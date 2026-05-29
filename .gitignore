@@ -1,0 +1,19 @@
+# Database credentials — NEVER commit
+.mcp.json
+db_explore.py
+db_explore2.py
+db_stats_mysql.py
+db_stats_mysql_output.json
+
+# Claude local settings
+.claude/
+
+# Temp / binary files
+docs/zh/~$*
+*.xlsx
+docs/zh/image.zip
+
+# Python
+__pycache__/
+*.pyc
+.venv/

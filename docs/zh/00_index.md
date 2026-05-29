@@ -1,0 +1,106 @@
+# ForeclosureRule2 — 止赎状态分析文档库（中文版）
+
+---
+
+## 文档信息
+
+| 项目 | 内容 |
+|------|------|
+| **文档目的** | 本索引是 ForeclosureRule2 项目所有中文分析文档的导航入口。提供各文档的内容摘要、适用场景与阅读顺序建议。 |
+| **解决的问题** | 解决 PrefectFlow 止赎处理逻辑分散在 500+ 个文件中、难以整体理解的问题。 |
+| **覆盖范围** | 源数据 → ETL 管道 → 状态生成逻辑 → 状态枚举 → 属性映射 → 可视化图表 |
+| **系统归属** | `C:\Users\jli\MyData\Copilot\PrefectFlow`（Prefect 2.x 抵押贷款服务 ETL 系统） |
+
+**目标读者：** 数据工程师 · 业务分析师 · 系统重写架构师 · 新成员 · 验证/对账工程师 · 未来 AI 会话
+
+**修订历史：**
+
+| 日期 | 作者 | 版本 | 变更内容 |
+|------|------|------|---------|
+| 2026-05-21 | AI Agent (Claude Sonnet 4.6) | v1 | 初始版本，完整逆向工程分析 |
+
+---
+
+## 文档目录
+
+| 文档编号 | 文件名 | 核心内容 | 适用场景 |
+|---------|--------|---------|---------|
+| 00 | `00_index.md` | 本索引 | 导航入口 |
+| 01 | `01_source_data.md` | 各服务商原始数据表结构、止赎相关字段清单 | 数据溯源、字段定义查询 |
+| 02 | `02_etl_pipeline.md` | 完整 ETL 管道：5层数据流、表谱系、Redshift vs MySQL 分层 | 管道理解、调试、重写规划 |
+| 03 | `03_fcl_status_logic.md` | 止赎状态生成的完整逻辑（SQL/Python/映射表/覆盖规则） | 状态计算原理、重写参考 |
+| 04 | `04_status_inventory.md` | 系统内所有止赎相关状态码的枚举、含义、来源、业务用途 | 状态查询、对账、验证 |
+| 05 | `05_loan_attribute_mapping.md` | 贷款属性 ↔ 止赎状态的映射关系 | 影响因素分析、规则验证 |
+| 06 | `06_diagrams.md` | 全部可视化图表（数据流、状态机、谱系、规则层次、依赖关系） | 技术评审、架构理解、文档演示 |
+| 07 | `07_fcl_lineage_and_rules.md` | 按服务商的完整 FCL 数据血缘与判断规则（SLS/Newrez/Carrington/Selene/MRC/Arvest/CapeCodFive/FCI/Rocket/SPS） | 各服务商 FCL 实现现状分析、差距识别、改进规划 |
+| 08 | `08_servicer_fcl_field_mapping.md` | 各服务商原始字段 → FCL 状态映射规则（业务视角，去掉 ETL 中间层）+ 缺口分析 + 字段补全优先级 | 业务规则重梳理、向 Servicer 请求补全字段、合规审核 |
+| 09 | `09_servicer_data_interface_standard.md` | 新系统 Servicer 数据接口标准：7 组标准字段目录（P0/P1/P2）+ 各 Servicer 合规矩阵 + 行动项汇总 + 交付格式规范 | 系统重构前置规范、向 Servicer 正式发出字段补全请求、新 ETL 接口设计 |
+| 10 | `10_glossary.md` | 综合术语清单：7 大分类 50+ 条目，覆盖核心业务状态 / 逾期状态编码 / FCL 流程 / LM 类型 / 破产相关 / ETL 架构 / 系统缩写 | 新成员入门、阅读任何文档时查询不熟悉的术语 |
+| 11 | `11_servicer_impl_guide.md` | **过渡期实施指南**：8 个 Servicer 现有数据 → 新系统标准字段的映射逻辑（CASE WHEN 伪代码 + 可实现程度矩阵 + 实施路线图）；含 Newrez portnewrezfc 多次 Hold 处理方案 | 新系统 ETL 开发者编码参考；在 Servicer 提供新格式数据前的过渡期实施方案 |
+| 12 | `12_sync_asset_management.md` | **代码调研文档**：`sync_asset_management.py` 全面分析——两阶段 ETL 编排（10 步 Redshift 中间层构建 + 13 类 BPS 同步），所有读/写 DB 表、函数说明、环境/租户参数、状态追踪机制，以及 `get_sync_df()` 中发现的 1 个死代码问题 | ETL 开发者参考；调试每日 BPS 同步；新系统重写该 Flow 时的设计参考 |
+| 13 | `13_newrez_fcl_bps_display_mapping.md` | **BPS 界面字段逆向映射**（Newrez 专项，v2）：以 BPS Foreclosure 界面 5 个面板为终点，逆向追溯每个展示字段的 Newrez 原始数据来源（newrez.portnewrezfc/bk/lm）与计算规则；涵盖 timeline/target/actual/var/variance/bid_approval/summary 共 104 个视图字段，以及 Hold 全历史、LM Cycle、Bankruptcy 三个独立面板，以及聚合视图 Days in Stage/LM/Hold 的来源（sync_fcl_stage_info） | BPS 数据排查；Newrez 字段映射参考；新 Servicer 接入时的字段对应模板 |
+| 14 | `14_bps_driven_servicer_fcl_interface.md` | **BPS 驱动的 Servicer FCL 数据接口规范**：以 doc 13 的 BPS 五大面板和聚合视图为终点，定义约 67 个 Servicer 字段、P0/P1/P2 优先级、交付格式、字段补全请求顺序；v3 已增加审核状态和字段准入检查规则 | doc 14 审核；作为后续逐 Servicer 缺口分析的目标标准；向 Servicer 发出字段补全请求的依据 |
+| 15 | `15_newrez_servicer_fcl_gap_analysis.md` | **Newrez Servicer FCL 字段缺口分析**：第一个逐 Servicer 文档样例；将 Newrez 原始表、PrefectFlow 血缘、BPS 展示字段、doc 14 目标字段和缺口行动项连成完整链路 | Newrez 字段补全讨论；验证 doc 14 是否可落地；后续 Servicer 文档模板样例 |
+| 16 | `16_bps_panel_quickref.md` | **BPS Foreclosure 面板速查**：6 个面板（Foreclosure Summary / Timeline / Hold / LM / BK / 聚合概览）的 UI 截图 + 紧凑字段映射表（UI 标签 → Newrez 源字段 → Mapping Rule）+ 快速排查路径；doc 13 的速查入口 | BPS 界面数据排查；新成员快速上手；运营/数据联调时对照 BPS 截图定位源字段 |
+| 98 | `98_database_verification_strategy.md` | **数据库验证与 MCP 使用规范**：规定后续研究默认用 MCP 只读验证 MySQL/Redshift，记录查询目的、SQL、快照日期、结果摘要，并保护连接信息 | 字段映射查库验证；逐 Servicer 文档 SQL 附录；Reviewer 复现 |
+| 99 | `99_servicer_fcl_gap_summary_and_action_plan.md` | **Servicer FCL 缺口汇总与行动计划**：汇总 doc 14 审核结论、后续逐 Servicer 文档顺序、行动项分类、验收标准 | 项目管理；Reviewer/Boss 汇报；后续工作路线图 |
+| 模板 | `_servicer_fcl_gap_analysis_template.md` | 单个 Servicer FCL 缺口分析模板：固定文档头、血缘链条、doc 14 字段对照、缺口分级、证据与 Open Questions 结构 | 生成 Carrington/SLS/Selene/MRC/Arvest/CapeCodFive/FCI 等后续文档 |
+
+---
+
+## 推荐阅读顺序
+
+```
+初次了解系统：  00 → 02 → 03 → 04
+数据溯源分析：  01 → 07 → 02 → 05
+系统重写准备：  03 → 07 → 05 → 06 → 02 → 09
+验证/对账场景：  04 → 03 → 05
+服务商差距分析：08 → 07 → 03 → 09
+业务规则重构：  08 → 03 → 07 → 09
+新系统接口设计：09 → 08 → 07
+新系统 ETL 实施：09 → 11 → 08
+BPS 驱动字段标准：13 → 14 → 15 → 99
+数据库验证规范：98 → 13 附录B → 15 Section 7
+逐 Servicer 缺口分析：14 → 98 → 模板 → 15 → 16/17/18...
+仅看图：        06
+```
+
+---
+
+## 关键术语速查
+
+| 术语 / 缩写 | 含义 |
+|------------|------|
+| FCL | Foreclosure，止赎 |
+| REO | Real Estate Owned，抵押房产已被银行取回 |
+| BK | Bankruptcy，破产 |
+| LM | Loss Mitigation，损失缓解（如宽限、修改还款） |
+| delinq | Delinquency，逾期状态码（C/D30/D60/D90/D120P/FCL/REO/P） |
+| svcdelinq | 服务商原始逾期描述（未标准化） |
+| days360 | 按 360 天/年计算两个日期之间的天数差 |
+| fctrdt | 报告截止日（月末次日，即下月第一天） |
+| portmonthbase | Redshift 中的月度主分析表 |
+| basic_data_loan_fix | 人工覆盖修正表（最高优先级） |
+| BPS | Business Planning System，业务规划系统（下游报告系统） |
+
+> 完整术语定义（50+ 条目，含 FCL 流程 / LM 类型 / ETL 架构 / MBA 编码对照）见 [doc 10 综合术语清单](10_glossary.md)
+
+---
+
+## 系统边界说明
+
+**包含：**
+- PrefectFlow 代码库中所有与止赎状态生成相关的 Python、SQL 逻辑
+- 涉及的 MySQL（staging）和 Redshift（分析层）表结构
+- BPS 同步层（下游输出）
+
+**不包含：**
+- BPS 系统内部逻辑（属于下游系统）
+- Polypath/IRR 计算（独立模块）
+- 原始服务商文件的业务规则（属于上游系统）
+
+---
+
+## 对应英文版
+
+英文同步版本：`docs/en/00_index.md`（章节编号、图表、术语完全对应）
