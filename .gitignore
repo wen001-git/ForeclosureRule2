@@ -8,6 +8,9 @@ db_stats_mysql_output.json
 # Claude local settings
 .claude/
 
+# Codex local settings (contains MCP connection strings / prod credentials)
+.codex/
+
 # Temp / binary files
 docs/zh/~$*
 *.xlsx
@@ -17,3 +20,4 @@ docs/zh/image.zip
 __pycache__/
 *.pyc
 .venv/
+node_modules

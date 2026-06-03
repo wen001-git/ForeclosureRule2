@@ -24,6 +24,15 @@ Secondary: Data quality engineers · Compliance analysts · Future AI sessions
 | 2026-05-28 | AI Agent (Claude Sonnet 4.6) | v5 | Section 2.3: added `noi_date` field (separating formal Notice of Intent from Demand Sent Date as distinct concepts); updated `demand_sent_date` BPS mapping and business meaning; Section 5.1/5.2 field counts updated (68 fields total, ❌ 7 not provided by Newrez) | — |
 | 2026-05-28 | AI Agent (Claude Sonnet 4.6) | v6 | Added Section 2.0 "Four-Dimension State Foundation Fields" (12 fields: delinquency_status/next_payment_due_date/days_past_due/foreclosure_flag/lm_flag/lm_type/lm_start_date/lm_end_date/hold_flag/hold_reason/reo_flag/reo_acquisition_date); added delinquency_status MBA allowed values table; document scope updated to ~80 fields; Section 5.1 compliance matrix updated; Section 1.4 comparison table updated | doc 09 |
 | 2026-05-28 | AI Agent (Claude Sonnet 4.6) | v7 | MCP live query of portnewrezfc (62 cols) + portnewrezgeneral (100+ cols) identified high-value fields Newrez provides but system does not utilize; added Section 2.6 "Loan Attribute and Risk Enhancement Fields" (9 fields: investor_loan_id/lien_position/interest_paid_through_date/in_auction_flag/borrower_deceased_flag/reason_for_default/hold_1/2/3_comment); Section 2.4 supplemented with hold_1/2/3_modified_date (P2); zero-fill fields (SR Lien/SCRA/FEMA etc.) documented as future extensions; document scope updated to ~92 fields | MCP live measurement 2026-05 |
+| 2026-05-29 | LiJiawen | v13 | Renamed standard interface fields: `last_step_completed` → `last_completed_step`, `last_step_completed_date` → `last_completed_step_date` (eliminates naming ambiguity: `_completed` suffix could be misread as a boolean/status flag; BPS internal field `summary_last_step_completed` unchanged) | — |
+| 2026-06-02 | AI Agent (Claude Sonnet 4.6) | v16 | `delinquency_status` allowed-values table completed with 3 DB-verified real values: `Foreclosure / Non-Perf BK`, `Foreclosure / Perf BK` (→FCL + bankruptcy='Y'), `Settlement` (special handling); footnote states all 19 values, consistent with doc 08 and DB verification; zh/en synced | doc 08 · DB verified 2026-06-01 |
+| 2026-06-03 | AI Agent (Claude Opus 4.8) | v19 | Renamed standard interface field `sms_days_in_fcl` → **`servicer_days_in_fcl`** (removed single-servicer brand "SMS"=Shellpoint; a servicer-agnostic standard should not embed one servicer's brand; pairs with `days_in_fcl`, matches ETL alias svc_days_infc). Kept Newrez column `smsdaysinfc` / BPS column `summary_sms_days_in_fcl` / UI "SMS Days" unchanged. Updated Excel col C + meaning + col13 comment (synced to zh cards), en table, doc 13 §3.7 footnote, 3 generator-script keys | DB/code verified · doc 13 v34 |
+| 2026-06-03 | AI Agent (Claude Opus 4.8) | v18 | Corrected `active_fcl_flag` value semantics: `activefcflag=0` previously labeled "completed"; it actually means **not currently in active foreclosure** (DB-verified: Reinstated 26 / Loss Mitigation 16 / Paid in Full 11 / truly-completed 10; BPS labels all "Closed Foreclosure" ≠ Completed). Updated Field Spec Excel value-range + meaning (synced to zh cards) and en horizontal table; synced with doc 13/16 | DB-verified 2026-06-03 |
+| 2026-06-02 | AI Agent (Claude Sonnet 4.6) | v17 | Source-table corrections (information_schema verified): ① `delinquency_status` source annotated as `portnewrezgeneral` (not portnewrezfc); ② `foreclosure_flag` removed the false "`portnewrezfc.fcl_flag` exists" claim — Newrez has no such column; FCL active status is actually `activefcflag`; ③ `state` source corrected to `portnewrezprop.propertystate` (portnewrezfc has no state column); also fixed 14_servicer_fcl_field_spec.xlsx Field Spec col4/verify-SQL (incl. lm_flag→portnewrezlm, lien_position→portnewrezgeneral.lienposition); zh/en synced | DB verified 2026-06-02 |
+| 2026-06-02 | AI Agent (Claude Sonnet 4.6) | v18 | Section 2.0 added a `days360(nextduedate, dataasof)` calculation footnote (30/360 day-count formula, argument order, DPD meaning, C/D30/D60/D90/D120P bucketing, source `PrefectFlow/flow/remit_validation/utils.py:14-21`); Excel synced with a cell comment + a days360 glossary entry; zh/en synced | source-verified in PrefectFlow |
+| 2026-06-02 | AI Agent (Claude Sonnet 4.6) | v19 | Section 4.1 — the 3 `⚠️ Code behavior under investigation` BK fields resolved via DB verification: ① `bk_status` is decoded to text by BPS (1→Active·2→Discharged·3→Dismissed·4→Closed·5→ReliefGranted); ② `bk_legal_status` actually comes from `portnewrezgeneral.legalstatus` text (FCBU/BK13/BK7…), `bkstage` was a misattribution; ③ `mfr_hearing_results` — BPS mfr_status empty in dev (0/64). Disproves the earlier "BK integer codes not decoded / BPS stores numbers" assumption; Excel + doc 13 Q7/Section 6 + data dictionary corrected too | DB-verified 2026-06-02 |
+| 2026-06-02 | AI Agent (Claude Sonnet 4.6) | v20 | Corrected `lm_flag` Newrez status: DB shows `activelmflag` 100% filled at latest snapshot (5052/5052, 0:5018·1:34, no nulls) — the prior "🟡 Partially provided (no type/dates)" was wrong (flag is fully provided → ✅; type/dates are separate fields lm_type/lm_start_date/lm_end_date). Synced to Excel + MD; added a "doc 14 MD⇄Excel sync" rule to project CLAUDE.md. (zh counterpart = zh v21) | DB-verified 2026-06-02 |
+| 2026-06-02 | AI Agent (Claude Opus 4.8) | v18 | Added "📖 Regulatory terms" footnote after the Section 3 LM business-meaning table: explains CFPB / Reg X / RESPA / 12 CFR 1024.40 (SPOC) / 1024.41 / Imminent Default; full entries also added to doc 10 "Category H — Regulatory/Compliance Terms"; zh/en synced | doc 10 v3 |
 
 ## Dependencies
 
@@ -115,12 +124,12 @@ portnewrezbk (BK table)             → Bankruptcy panel
 
 | Standard Interface Field | Newrez Raw Field | Type | Priority | Allowed Values / Format | BPS System Function | Newrez Status |
 |---|---|---|---|---|---|---|
-| `delinquency_status` | `delinquency_status_mba` | VARCHAR ENUM | **P0** | MBA standard text enum (see allowed values table below) | ETL entry filter; foundation for FCL/LM/BK status identification; `sync_fcl_stage_info` D120P secondary filter trigger; numeric strings (`'29.0'`) are prohibited | ✅ `delinquency_status_mba` provided (12K+ FCL rows) |
+| `delinquency_status` | `delinquency_status_mba` (from `portnewrezgeneral`) | VARCHAR ENUM | **P0** | MBA standard text enum (see allowed values table below) | ETL entry filter; foundation for FCL/LM/BK status identification; `sync_fcl_stage_info` D120P secondary filter trigger; numeric strings (`'29.0'`) are prohibited | ✅ `portnewrezgeneral.delinquency_status_mba` provided (12K+ FCL rows) |
 | `next_payment_due_date` | `nextduedate` (from `portnewrezpmt`) | DATE | **P0** | YYYY-MM-DD | Fallback basis for days360 calculation; ETL derives DPD via `days360(nextduedate, dataasof)` | ✅ `portnewrezpmt.nextduedate` provided; **100% fill rate** for active FCL loans (MCP-verified) |
 | `days_past_due` | *(none; ETL-derived)* | INTEGER | P1 | 0–999 positive integer | Cross-validates `delinquency_status`; ETL calculates via `days360(nextduedate, dataasof)`; Newrez has `portnewrezgeneral.mbadelinquency` (**months** past due, not days, integer) for reference | N/A Derived field (Newrez has no native DPD days field; `mbadelinquency` = months past due, cannot be used directly as DPD days) |
-| `foreclosure_flag` | `fcl_flag` | CHAR(1) | **P0** | `Y` / `N` | Explicit FCL active status flag; corresponds to BPS `active_fcl_flag` (0/1 Newrez-specific); `Y` = foreclosure legal proceedings formally initiated | 🟡 `portnewrezfc.fcl_flag` exists but ETL currently sets to null (internal ETL issue; see doc 09 Section 5.2; should be top-priority fix) |
-| `lm_flag` | `activelmflag` | CHAR(1) | **P0** | `Y` / `N` | Top-level LM active flag; ETL uses this to route loans into LM processing; basis for BPS LM Cycle panel data sourcing | 🟡 Partially provided (flag exists; no type/dates) |
-| `lm_type` | *(no field)* | VARCHAR ENUM | P1 | `Forbearance`/`Modification`/`RepaymentPlan`/`TrialPlan`/`ShortSale`/`DeedInLieu` | Standardized LM type; industry-standard version of the `lm_deal` field | ❌ Not provided (Newrez uses `lmdeal` numeric code, not standard enum) |
+| `foreclosure_flag` | *(no `fcl_flag` in Newrez; see `activefcflag`)* | CHAR(1) | **P0** | `Y` / `N` | Explicit FCL active status flag; corresponds to BPS `active_fcl_flag` (0/1 Newrez-specific); `Y` = foreclosure legal proceedings formally initiated | ❌ Newrez has **no standalone `fcl_flag` column** (DB-verified; no portnewrez* table contains it); FCL active status is expressed by `portnewrezfc.activefcflag` (see `active_fcl_flag`) or derived from `delinquency_status='Foreclosure'` |
+| `lm_flag` | `activelmflag` | CHAR(1) | **P0** | `Y` / `N` | Top-level LM active flag; ETL uses this to route loans into LM processing; basis for BPS LM Cycle panel data sourcing | ✅ Provided (`activelmflag`, 100% filled at latest snapshot: 0/1, no nulls; observed 0:5018·1:34). Expressed as 0/1 (map to Y/N); cycle-table-level flag — LM type/dates are separate fields (`lm_type` / `lm_start_date` / `lm_end_date`) |
+| `lm_type` | *(no field)* | VARCHAR ENUM | P1 | Newrez `lmdeal`-decoded deal (8): `Evaluation` / `Modification` / `Forbearance` / `Payment Plan` / `Deferment` / `Short Sale` / `DIL` / `Payoff` (= `lm_deal`; Trial Period Plan is a program-level value under Modification, not a deal) | Standardized LM type; same concept as `lm_deal` (Newrez `lmdeal`-decoded) | ❌ Newrez provides no standard `lm_type` text; supplied as `lmdeal` int code, ETL-decoded to the 8 deals above (see `lm_deal`) |
 | `lm_start_date` | `dealstartdate` | DATE | P1 | YYYY-MM-DD | LM program start date; corresponds to Section 3.1 `lm_cycle_open_date` | 🟡 Cycle-level `dealstartdate` available |
 | `lm_end_date` | `lmremovaldate` | DATE | P1 | YYYY-MM-DD | LM program expiration date; corresponds to Section 3.1 `lm_cycle_close_date` | 🟡 Cycle-level `lmremovaldate` available |
 | `hold_flag` | *(no top-level field)* | CHAR(1) | P1 | `Y` / `N` | Top-level flag for whether FCL is in Hold (paused) status; corresponds to the Section 2.4 slot fields | ❌ No independent top-level flag (`fchold1startdate IS NOT NULL` can be derived, but not a formal flag) |
@@ -158,13 +167,32 @@ portnewrezbk (BK table)             → Bankruptcy panel
 > | `150-179 DPD` | `D120P` | — |
 > | `180+ DPD` | `D120P` | — |
 > | `Foreclosure` | `FCL` | FCL legal proceedings initiated |
+> | `Foreclosure / Non-Perf BK` | `FCL` (+ `bankruptcy='Y'`) | Foreclosure + non-performing bankruptcy (Newrez extension; present in DB) |
+> | `Foreclosure / Perf BK` | `FCL` (+ `bankruptcy='Y'`) | Foreclosure + performing bankruptcy (Newrez extension; present in DB) |
 > | `REO` | `REO` | Foreclosure complete; property lender-owned |
 > | `Bankruptcy` / `Performing Bankruptcy` / `Non-Performing Bankruptcy` | By DPD + `bankruptcy_flag='Y'` | Bankruptcy must also be transmitted via `bankruptcy_flag` / `active_bk_flag` |
 > | `PaidOff` / `Full Payoff` / `Paid in Full` | `P` | Loan paid off |
 > | `REO Sale` / `3rd Party Sale` | `P` | Disposition complete |
-> | `Service Release` | Special handling | Loan servicing transferred |
+> | `Service Release` | Special handling | Loan servicing transferred (loan leaves this servicer) |
+> | `Settlement` | Special handling | Settled/closed (very rare; present in DB) |
 >
 > ⚠️ **Prohibited formats**: `'29.0'`, `'30.0'`, `'90.0'` numeric strings (CapeCodFive currently violates this, causing FCL to never be identified)
+>
+> Note: This table lists all 19 MBA standard transmission values, fully consistent with doc 08 "MBA Standard Delinquency: Full Raw Value Range" and DB verification (`newrez.portnewrezgeneral.delinquency_status_mba`, 2026-06-01).
+
+> **`days360(nextduedate, dataasof)` calculation note** (referenced by the `days_past_due` / `next_payment_due_date` rows):
+>
+> `days360` is the **30/360 day-count convention** — it counts days between two dates treating every month as 30 days and every year as 360 days:
+>
+> ```
+> days360(start, end) = (end.yr − start.yr)×360 + (end.mo − start.mo)×30 + (end.day − start.day)
+> ```
+>
+> - **Argument order**: `start = nextduedate` (next payment due date), `end = dataasof` (data snapshot date).
+> - **Meaning**: days from the due date to the snapshot date = **DPD (days past due)**; positive when the loan is overdue.
+> - **ETL bucketing** (produces the `delinquency_status` internal code): `<30 → C`, `<60 → D30`, `<90 → D60`, `<120 → D90`, `≥120 → D120P` (note: `days360` never yields `FCL` — foreclosure requires an explicit servicer flag).
+> - **Example**: `nextduedate=2024-01-01`, `dataasof=2024-04-01` → `days360=90` → `D90`.
+> - **Source**: `PrefectFlow/flow/remit_validation/utils.py:14-21` (Python definition); SQL usage in `basic_data_pool_config.py`. Full glossary entry in **doc 10**.
 
 ---
 
@@ -177,9 +205,9 @@ These fields are **prerequisites for BPS entry**; absence of any one will cause 
 | `loan_id` | `loanid` | VARCHAR | **P0** | Numeric string; global primary key | All panels; BPS global JOIN key | ✅ 100% |
 | `servicer_loan_id` | `shellpointloanid` | VARCHAR | **P0** | Servicer internal number | FCL Summary `summary_servicer_number` | ✅ 100% |
 | `data_as_of_date` | `dataasof` | DATE | **P0** | YYYY-MM-DD | Snapshot date; basis for real-time day recalculation (SMS/Days in FCL) | ✅ 100% |
-| `state` | `state` | CHAR(2) | **P0** | US state code (uppercase) | Stage grouping; target days configuration | ✅ 100% |
+| `state` | `propertystate` (from `portnewrezprop`) | CHAR(2) | **P0** | US state code (uppercase) | Stage grouping; target days configuration | ✅ 100% (`portnewrezprop.propertystate`, DB-verified) |
 | `judicial_flag` | `judicial` | TINYINT | **P0** | 1=Judicial / 0=Non-Judicial | FCL Summary Judicial type; stage routing | ✅ 100% |
-| `active_fcl_flag` | `activefcflag` | TINYINT | **P0** | 0=completed / 1=in-progress (NULL treated as 1) | BPS entry condition; historical NULLs require NULL-safe handling (see doc 13 Q3) | ✅ 100% (incl. historical NULLs) |
+| `active_fcl_flag` | `activefcflag` | TINYINT | **P0** | 1=in active foreclosure / 0=not in active foreclosure (completed OR withdrawn/reinstated/paid; BPS "Closed Foreclosure"); NULL conservatively treated as 1 | BPS entry condition; historical NULLs require NULL-safe handling (see doc 13 Q3) | ✅ 100% (incl. historical NULLs) |
 | `fcl_referral_date` | `fcreferraldate` | DATE | **P0** | YYYY-MM-DD | **BPS core entry prerequisite**; `timeline_referred_to_foreclosure_date`; FCL timeline anchor | ✅ 100% |
 
 **Business Meaning / Calculation Logic**
@@ -191,7 +219,7 @@ These fields are **prerequisites for BPS entry**; absence of any one will cause 
 | `data_as_of_date` | Snapshot cutoff date for this data batch (typically 1–2 days behind real time); BPS real-time correction formula: `smsdaysinfc + DATEDIFF(today NY, dataasof)` |
 | `state` | Two-letter uppercase state code where the property is located; determines applicable foreclosure law (Judicial/Non-Judicial) and BPS target day configurations per stage |
 | `judicial_flag` | Whether the foreclosure requires a court judgment before auction; affects JUDGEMENT stage routing (Judicial states only) and timeline field meanings |
-| `active_fcl_flag` | Whether the foreclosure is still in progress; 0=closed, 1=active; historical NULLs conservatively treated as in-progress (see doc 13 Q3 Technical Detail) |
+| `active_fcl_flag` | Whether the loan is in an active foreclosure process; 1=active, 0=not in active foreclosure (BPS "Closed Foreclosure" — includes completed AND withdrawn/reinstated/paid, **not necessarily "completed"**); historical NULLs conservatively treated as active (see doc 13 Q3 Technical Detail) |
 | `fcl_referral_date` | Date the lender formally transferred the foreclosure case to an attorney firm; **BPS entry core condition** (must be non-null to be included); legal start of the FCL timeline |
 
 ### 2.2 FCL Status Fields (P1 — FCL Summary Panel Core)
@@ -200,8 +228,8 @@ These fields are **prerequisites for BPS entry**; absence of any one will cause 
 |---|---|---|---|---|---|---|
 | `fcl_stage` | `fcstage` | VARCHAR | P1 | Text (Newrez internal stage description) | FCL Summary `summary_current_step` (**fallback**; used when `currentmilestone` is null) | ✅ 99.5% |
 | `current_milestone` | `currentmilestone` | VARCHAR | P1 | BPS milestone label text | FCL Summary `summary_current_step` (**highest priority**) | ⚠️ 62.7% (fill rate low) |
-| `last_step_completed` | `lastfcstepcompleted` | VARCHAR | P1 | Text | FCL Summary `summary_last_step_completed` | ✅ 99.5% |
-| `last_step_completed_date` | `lastfcstepcompleteddate` | DATE | P1 | YYYY-MM-DD | FCL Summary `summary_last_step_completed_date` | ✅ 99.5% |
+| `last_completed_step` | `lastfcstepcompleted` | VARCHAR | P1 | Text | FCL Summary `summary_last_step_completed` | ✅ 99.5% |
+| `last_completed_step_date` | `lastfcstepcompleteddate` | DATE | P1 | YYYY-MM-DD | FCL Summary `summary_last_step_completed_date` | ✅ 99.5% |
 | `fcl_results` | `fcresults` | VARCHAR | P1 | Text; typical values: `3rd Party` / `REO` | FCL Summary (completed loans); `timeline_third_party_sold_date_date` trigger logic | ⚠️ 2.1% (completed loans only) |
 | `attorney_firm` | `fcfirm` | VARCHAR | P1 | Text | FCL Summary `summary_foreclosure_attorney` / `summary_firm` | ✅ 100% |
 | `contested_flag` | `fccontestedflag` | TINYINT | P1 | 0/1 | FCL Summary `summary_contested_litigation` | ✅ 100% |
@@ -214,13 +242,13 @@ These fields are **prerequisites for BPS entry**; absence of any one will cause 
 |---|---|
 | `fcl_stage` | Newrez's internal current workflow step text (e.g., "Pre-Sale Review"); `summary_current_step` **fallback** display field (used when `currentmilestone` is null) |
 | `current_milestone` | BPS milestone label (written by BPS internal workflow or operations); `summary_current_step` **highest priority** display field |
-| `last_step_completed` | Most recently completed foreclosure processing step text (e.g., "Motion for Judgment Sent to Court"); used by operations to track progress |
-| `last_step_completed_date` | Completion date of the above step |
+| `last_completed_step` | Most recently completed foreclosure processing step text (e.g., "Motion for Judgment Sent to Court"); used by operations to track progress |
+| `last_completed_step_date` | Completion date of the above step |
 | `fcl_results` | Final FCL disposition result (populated only for completed loans); typical values: `3rd Party` (third-party purchase) / `REO` (lender-owned); `fcresults='3rd Party'` triggers the `timeline_third_party_sold_date_date` logic |
 | `attorney_firm` | Full name of the law firm handling this foreclosure case |
 | `contested_flag` | Whether contested litigation exists (borrower filed a legal objection); 1=contested / 0=not contested |
-| `sms_days_in_fcl` | Servicer (SMS/Newrez) perspective days in FCL (as of dataasof); BPS real-time correction: `smsdaysinfc + DATEDIFF(today NY, dataasof)` |
-| `days_in_fcl` | Investor-perspective days in FCL; different calculation basis from sms_days_in_fcl; BPS applies same real-time correction: `daysinfc + DATEDIFF(today NY, dataasof)` |
+| `servicer_days_in_fcl` | Servicer-perspective days in FCL — counted from the servicer FCL setup date (`fcsetupdate`); Newrez/SMS=Shellpoint implements this as native `smsdaysinfc` (ETL alias `svc_days_infc`). BPS real-time correction: `smsdaysinfc + DATEDIFF(today NY, dataasof)`; ≤ days_in_fcl. (Standard field name is servicer-neutral; `smsdaysinfc`/`summary_sms_days_in_fcl` are the Newrez/BPS column names.) |
+| `days_in_fcl` | Investor / full-timeline days in FCL — counted from the referral date (`fcreferraldate`); differs from servicer_days_in_fcl in start date (referral vs setup), so days_in_fcl ≥ servicer_days_in_fcl; BPS applies same real-time correction: `daysinfc + DATEDIFF(today NY, dataasof)` |
 
 ### 2.3 FCL Timeline Fields (P0/P1/P2 — Timeline Panel + Aggregate Time Line Tab)
 
@@ -410,6 +438,8 @@ Each LM cycle is stored as one row (uniquely identified by `lmdeal` + `dealstart
 | `imminent_default` | CFPB Reg X required flag for imminent default; marks borrowers not yet delinquent but facing foreseeable repayment hardship; triggers early LM assessment obligation; Newrez does not provide |
 | `single_point_of_contact` | CFPB Reg X 12 CFR 1024.40 required dedicated servicer contact name; borrowers in LM must have a single designated point of contact; Newrez does not provide |
 
+> 📖 **Regulatory terms**: **CFPB** = Consumer Financial Protection Bureau, the U.S. federal consumer-finance regulator. **Reg X** (Regulation X) is its rule implementing **RESPA** (Real Estate Settlement Procedures Act), codified at **12 CFR Part 1024**; within it, **1024.40** requires assigning a Single Point of Contact (**SPOC**, maps to `single_point_of_contact`) to a delinquent borrower, and **1024.41** prescribes the loss-mitigation evaluation procedures before foreclosure. **Imminent Default** denotes a borrower not yet delinquent but facing foreseeable hardship who must be evaluated for LM proactively (maps to `imminent_default`). For full entries, see doc 10 "Category H — Regulatory/Compliance Terms".
+
 ### 3.2 ETL Decode Requirement (LM Fields Special Note)
 
 Newrez `portnewrezlm` stores `lmdeal`, `lmprogram`, `lmstatus`, `lmdecision`, and `denialreason` as **numeric codes** (int type). BPS's `sync_loan_foreclosure_loss_mitigation` stores **decoded text**, not numeric codes.
@@ -430,14 +460,14 @@ BK data is independent from FCL data; each bankruptcy record for a loan is store
 | Standard Interface Field | Newrez Raw Field | Type | Priority | BPS Panel / Function | Newrez Status |
 |---|---|---|---|---|---|
 | `active_bk_flag` | `activebkflag` | TINYINT | P1 | `variance_active_bankruptcy` (FCL Summary active bankruptcy indicator) | ✅ Provided |
-| `bk_status` | `bkstatus` | INT/VARCHAR | P1 | BK panel Status column (decode behavior TBD; see doc 13 Q7) | ⚠️ Code behavior under investigation |
-| `bk_legal_status` | `bkstage` | INT/VARCHAR | P1 | BK panel Legal Status column (same) | ⚠️ Code behavior under investigation |
+| `bk_status` | `bkstatus` (int) | INT→VARCHAR | P1 | BK panel Status column (BPS decodes to text; DB-verified) | ✅ Confirmed: BPS decodes to text (Active/Discharged/Dismissed/Closed/ReliefGranted; bkstatus 1→Active·2→Discharged·3→Dismissed·4→Closed·5→ReliefGranted, DB-verified) |
+| `bk_legal_status` | `legalstatus` (from `portnewrezgeneral`, text; doc's `bkstage` was a misattribution) | VARCHAR | P1 | BK panel Legal Status column (from portnewrezgeneral.legalstatus text) | ✅ Confirmed: BPS `legal_status` comes from `portnewrezgeneral.legalstatus` text (FCBU/BK13/BK7/BK11/BK7DCH/BK11DCH/BKD7LM/BKD13LM/FCSold/REO, etc.), **not** a decode of `bkstage` (DB-verified) |
 | `bk_status_date` | `bkrcurrentstatusdate` | DATE | P1 | BK panel Status Date | ✅ Provided |
 | `bk_chapter` | `bkchapter` | VARCHAR/INT | P1 | BK panel Chapter (7/11/13) | ✅ Provided |
 | `bk_filed_date` | `bkfileddate` | DATE | P1 | BK history tracing | ✅ Provided |
 | `bk_removal_date` | `bkremovaldate` | DATE | P1 | `variance_completed_bankruptcy` calculation (activebkflag=0 AND bkremovaldate IS NOT NULL) | ✅ Provided |
 | `mfr_filed_date` | `mfrfileddate` | DATE | P1 | BK panel MFR Filed Date | ✅ Provided |
-| `mfr_hearing_results` | `mfrhearingresults` | INT | P1 | BK panel MFR Status (numeric code; see Q7) | ⚠️ Code behavior under investigation |
+| `mfr_hearing_results` | `mfrhearingresults` | INT | P1 | BK panel MFR Status | ⚠️ Newrez provides a raw numeric code (0/3/4/5/6 observed); BPS `mfr_status` column is empty in dev (0/64) — downstream population/decode TBD |
 | `proof_of_claim_date` | `pocfileddate` | DATE | P1 | BK panel Proof of Claim Date | ✅ Provided |
 | `post_petition_due_date` | `bkpostpetitionduedate` | DATE | P1 | BK panel Post Petition Due Date | ✅ Provided |
 
@@ -446,14 +476,14 @@ BK data is independent from FCL data; each bankruptcy record for a loan is store
 | Standard Interface Field | Business Meaning / Calculation Logic |
 |---|---|
 | `active_bk_flag` | Whether the loan is currently under active bankruptcy protection (Automatic Stay); 1=active; foreclosure must legally halt during Automatic Stay |
-| `bk_status` | Current bankruptcy case status (integer-coded; decode table TBD); reflects the current node in bankruptcy proceedings |
-| `bk_legal_status` | Bankruptcy legal proceeding stage (integer-coded); a different dimension of classification from bk_status |
+| `bk_status` | Current bankruptcy case status. Newrez raw `bkstatus` is an integer code (1–5); **BPS decodes it to text** (observed dominant map: 1→Active·2→Discharged·3→Dismissed·4→Closed·5→ReliefGranted); reflects the current node in bankruptcy proceedings |
+| `bk_legal_status` | Bankruptcy legal-proceeding stage. BPS `legal_status` **actually comes from `newrez.portnewrezgeneral.legalstatus`** (text, e.g. FCBU/BK13/BK7/BK11/...), NOT a decode of `bkstage` (DB-verified); a different classification dimension from bk_status |
 | `bk_status_date` | Effective date of the current bankruptcy status |
 | `bk_chapter` | Bankruptcy chapter filed under; common: Chapter 7 (liquidation) / Chapter 13 (repayment plan) / Chapter 11 (reorganization); affects foreclosure resumption strategy |
 | `bk_filed_date` | Date the bankruptcy petition was filed with the court; BPS deduplication key (loanid + bkfileddate uniquely identifies one bankruptcy filing) |
 | `bk_removal_date` | Date the bankruptcy proceeding was terminated; `variance_completed_bankruptcy` logic: `activebkflag=0 AND bkremovaldate IS NOT NULL` |
 | `mfr_filed_date` | Date the lender filed a Motion for Relief (MFR) from the Automatic Stay with the bankruptcy court; foreclosure can resume if MFR is granted |
-| `mfr_hearing_results` | MFR hearing outcome (integer-coded; decode table TBD); if granted, foreclosure proceedings may resume |
+| `mfr_hearing_results` | MFR hearing outcome. Newrez raw `mfrhearingresults` is an integer code (0/3/4/5/6 observed); BPS `mfr_status` is empty in dev (0/64) — whether/how it flows downstream is TBD; if granted, foreclosure proceedings may resume |
 | `proof_of_claim_date` | Date the lender formally registered its debt claim amount (Proof of Claim) with the bankruptcy court; required for bankruptcy compliance |
 | `post_petition_due_date` | Monthly loan payment due date after the bankruptcy petition was filed; used to track whether the borrower continued making payments during Automatic Stay |
 

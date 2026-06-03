@@ -67,13 +67,15 @@ These fields coexist with `delinq`, providing additional status dimensions.
 | `REO` | `R` | REO |
 | `P` | `P` | Paid off |
 | `D` | `D` | Confirmed delinquent |
-| `C` | `0` | Current |
+| `C` | `C` | Current |
 | `D30` | `1` | 30 days past due |
 | `D60` | `2` | 60 days past due |
 | `D90` | `3` | 90 days past due |
-| `D120P` | `4` | 120+ days past due |
+| `D120P` | `4` (also `5`–`9`) | 120+ days past due |
 
-**Example history string:** `"F4432100000"` = 12-month payment record (left=newest, right=oldest); this loan progressed from FCL (F) back to current (0).
+> **DB-verified correction (`port.basic_data_monthly_loan_clean_data_delinq`, fctrdt=2026-07-01)**: Current is encoded as **`C`** (not the old doc's `0`); `5`–`9` also map to `D120P`. Trust the live data.
+
+**Example history string (real, loan `7727000088`):** `paymthistfull = "RFFFFFFFFFFFF4321CC1C11CCCCCC11CCCCCCCC1C"` (left=newest, right=oldest). Reading it: leftmost `R` = currently REO ← 12×`F` = the prior 12 months in foreclosure ← `4321` = earlier delinquency escalation (D120P→D90→D60→D30) ← mostly `C` on the right = earliest, performing. In time order (right→left): Current → escalating delinquency → FCL → now REO.
 
 ---
 

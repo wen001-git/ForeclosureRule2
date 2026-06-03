@@ -18,6 +18,7 @@ Secondary: New team members · Future AI sessions
 
 | Date | Author | Version | Changes | Related |
 |------|--------|---------|---------|---------|
+| 2026-06-03 | AI Agent (Claude Opus 4.8) | v2 | SMS Days / Days in Foreclosure rows: added start-date basis (code + DB verified): SMS Days from fcsetupdate (servicer setup), Days from fcreferraldate (referral), hence SMS Days ≤ Days; synced with doc 13/14/16-xlsx/fcl_pipeline.html | doc 13 v34 · doc 14 v31 |
 | 2026-05-28 | AI Agent (Claude Sonnet 4.6) | v1 | Initial draft: 6-panel quick reference tables + screenshot; content derived from doc 13 MCP live measurements | doc 13 |
 
 ## Related Documents
@@ -57,8 +58,8 @@ Secondary: New team members · Future AI sessions
 | Contested / Litigation | `fccontestedflag` | Direct (1=contested / 0=not) |
 | Firm | `fcfirm` | Direct (attorney firm full name) |
 | Type | `judicial` | `judicial=1` → `'Judicial'`; `judicial=0` → `'Non-Judicial'` |
-| SMS Days in Foreclosure | `smsdaysinfc` + `dataasof` | **Real-time recalculation**: `smsdaysinfc + DATEDIFF(today NY, dataasof)` |
-| Days in Foreclosure | `daysinfc` + `dataasof` | **Real-time recalculation**: `daysinfc + DATEDIFF(today NY, dataasof)` |
+| SMS Days in Foreclosure | `smsdaysinfc`(=svc_days_infc) + `dataasof` | Servicer (SMS=Shellpoint) basis, counted from the **setup date fcsetupdate** (Newrez native, passed through); **Real-time recalculation**: `smsdaysinfc + DATEDIFF(today NY, dataasof)`; ≤ Days in Foreclosure |
+| Days in Foreclosure | `daysinfc` + `dataasof` | Investor/full-timeline basis, counted from the **referral date fcreferraldate**; **Real-time recalculation**: `daysinfc + DATEDIFF(today NY, dataasof)`; ≥ SMS Days |
 | Current Step | `currentmilestone` / `fcstage` | `currentmilestone` takes priority if non-null; otherwise falls back to `fcstage` |
 | Last Step Completed | `lastfcstepcompleted` | Direct (99.5% fill rate) |
 | Last Step Completed Date | `lastfcstepcompleteddate` | Direct |

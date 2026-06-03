@@ -18,6 +18,7 @@
 
 | 日期 | 作者 | 版本 | 变更 | 关联 |
 |------|------|------|------|------|
+| 2026-06-03 | AI Agent（Claude Opus 4.8） | v2 | SMS Days / Days in Foreclosure 行补起算基准（代码+DB 核实）：SMS Days 自 fcsetupdate(servicer 建案日)、Days 自 fcreferraldate(转介日)，故 SMS Days ≤ Days；同步 doc 13/14/16xlsx/fcl_pipeline.html | doc 13 v34 · doc 14 v31 |
 | 2026-05-28 | AI Agent（Claude Sonnet 4.6） | v1 | 初稿：6个面板速查表 + 截图；内容来自 doc 13 MCP 实测数据 | doc 13 |
 
 ## 相关文档
@@ -57,8 +58,8 @@
 | Contested / Litigation | `fccontestedflag` | 直接取值（1=有争议 / 0=无） |
 | Firm | `fcfirm` | 直接取值（律师事务所全名） |
 | Type | `judicial` | `judicial=1` → `'Judicial'`；`judicial=0` → `'Non-Judicial'` |
-| SMS Days in Foreclosure | `smsdaysinfc` + `dataasof` | **实时重算**：`smsdaysinfc + DATEDIFF(今日NY, dataasof)` |
-| Days in Foreclosure | `daysinfc` + `dataasof` | **实时重算**：`daysinfc + DATEDIFF(今日NY, dataasof)` |
+| SMS Days in Foreclosure | `smsdaysinfc`(=svc_days_infc) + `dataasof` | Servicer(SMS=Shellpoint)口径，自**建案日 fcsetupdate** 起算（Newrez 原生透传）；**实时重算**：`smsdaysinfc + DATEDIFF(今日NY, dataasof)`；≤ Days in Foreclosure |
+| Days in Foreclosure | `daysinfc` + `dataasof` | 投资人/全程口径，自**转介日 fcreferraldate** 起算；**实时重算**：`daysinfc + DATEDIFF(今日NY, dataasof)`；≥ SMS Days |
 | Current Step | `currentmilestone` / `fcstage` | `currentmilestone` 非空则优先取；否则取 `fcstage` |
 | Last Step Completed | `lastfcstepcompleted` | 直接取值（99.5% 填充） |
 | Last Step Completed Date | `lastfcstepcompleteddate` | 直接取值 |

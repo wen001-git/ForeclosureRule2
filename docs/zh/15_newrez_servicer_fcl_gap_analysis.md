@@ -17,8 +17,8 @@
 
 | 日期 | 作者 | 版本 | 变更说明 | 关联文档 |
 |------|------|------|---------|---------|
-| 2026-05-28 | AI Agent (Codex) | v1 | 初始版本；基于 doc 13 v21、doc 14 v3、PrefectFlow 代码路径建立 Newrez 缺口清单 | doc 13, doc 14 |
-| 2026-05-28 | AI Agent (Codex) | v2 | 增加数据库验证计划，明确后续用 MCP 刷新 Newrez 字段填充率、枚举分布和端到端样本校验 | doc 98 |
+| 2026-05-28 | LiJiawen | v1 | 初始版本；基于 doc 13 v21、doc 14 v3、PrefectFlow 代码路径建立 Newrez 缺口清单 | doc 13, doc 14 |
+| 2026-05-28 | LiJiawen | v2 | 增加数据库验证计划，明确后续用 MCP 刷新 Newrez 字段填充率、枚举分布和端到端样本校验 | doc 98 |
 
 ## 依赖文档
 
@@ -86,15 +86,159 @@ Newrez 日报/专项文件
 
 ## 4. doc 14 目标字段对照
 
-| doc 14 字段组 | 关键字段 | Newrez 状态 | 当前来源 | 缺口性质 | 优先级 |
-|---|---|---|---|---|---|
-| P0 入库字段 | `loan_id`, `servicer_loan_id`, `data_as_of_date`, `state`, `judicial_flag`, `active_fcl_flag`, `fcl_referral_date` | 已提供 | `portnewrezfc.loanid/shellpointloanid/dataasof/state/judicial/activefcflag/fcreferraldate` | 无；仅需 NULL-safe 处理历史 `activefcflag` | P0 |
-| FCL Summary | `current_milestone`, `last_step_completed`, `attorney_firm`, `days_in_fcl`, `sale_amount` | 部分提供 | `currentmilestone`, `lastfcstepcompleted`, `fcfirm`, `daysinfc`, `fcsaleamount` | `currentmilestone` 填充率偏低；`fcsaleamount` 与 `fcsalehelddate` 时序异常 | P1 |
-| Timeline | Demand/Referral/First Legal/Service/Judgement/Sale/Completed | 部分提供 | `demandsentdate`, `fcreferraldate`, `firstlegaldate`, `servicecompletedate`, `fcjudgmenthearingscheduled`, `fcscheduledsaledate`, `fcremovaldate/dtdeedrecorded` | `publication_date`, `titlereceiveddate`, `titlecleardate` 基本未提供 | P1/P2 |
-| Hold | 3 个 Hold 槽位 | 已提供但为快照槽位 | `fchold1/2/3description/start/end/projectedenddate` | 若要求完整历史，需依赖 BPS 内部追加机制，不是 Servicer 源文件直接提供 | P1/P2 |
-| LM | Deal/Program/Status/Cycle/Disposition/Denial | 部分提供 | `portnewrezlm.lmdeal/lmprogram/lmstatus/dealstartdate/lmremovaldate/lmdecision/denialreason` | `borrowerintention`, `imminent_default`, `single_point_of_contact` 未提供 | P1/P2 |
-| BK | Chapter/Status/MFR/POC/Post-petition due | 部分提供 | `portnewrezbk` | `lien_status`, `claim_status` 来源待确认；BK 数字码解码待确认 | P1 |
-| Aggregate Stage/Timeline | `stage`, `{stage}_start_date`, days metrics | 内部可推导 | `portnewrezfc` + `sync_fcl_stage_info` | `NOI Date 1` 使用 `noi_start_date`，但 Newrez Demand 日期进入 `demand_start_date`，需产品确认显示口径 | P1 |
+### 4.0 概览表
+
+| doc 14 字段组 | Newrez 状态 | 主要缺口 | 优先级 |
+|---|---|---|---|
+| P0 入库字段 | ✅ 已提供 | 仅需 NULL-safe 处理历史 `activefcflag` | P0 |
+| FCL Summary | ⚠️ 部分提供 | `currentmilestone` 填充率偏低；`fcsaleamount` 时序异常 | P1 |
+| Timeline | ⚠️ 部分提供 | `publication_date` / `titlereceiveddate` / `titlecleardate` 基本未提供 | P1/P2 |
+| Hold | ⚠️ 快照槽位（非完整历史） | 完整历史依赖 BPS 内部追加机制，非 Servicer 直接提供 | P1/P2 |
+| LM | ⚠️ 部分提供 | `borrowerintention` / `imminent_default` / `single_point_of_contact` 未提供 | P1/P2 |
+| BK | ⚠️ 部分提供 | 数字码解码待确认；`lien_status` / `claim_status` 来源待确认 | P1 |
+| Aggregate Stage/Timeline | ✅ 内部可推导 | NOI Date 显示口径需产品确认 | P1 |
+
+---
+
+### 4.1 P0 入库字段
+
+**关键字段**：`loan_id` · `servicer_loan_id` · `data_as_of_date` · `state` · `judicial_flag` · `active_fcl_flag` · `fcl_referral_date`
+
+**当前来源**（`newrez.portnewrezfc`）：
+
+| 标准字段 | Newrez 原始字段 | 状态 |
+|---|---|---|
+| `loan_id` | `loanid` | ✅ 100% |
+| `servicer_loan_id` | `shellpointloanid` | ✅ 100% |
+| `data_as_of_date` | `dataasof` | ✅ 100% |
+| `state` | `state` | ✅ 100% |
+| `judicial_flag` | `judicial` | ✅ 100% |
+| `active_fcl_flag` | `activefcflag` | ✅ 100%（含历史 NULL） |
+| `fcl_referral_date` | `fcreferraldate` | ✅ 100% |
+
+**缺口说明**：无字段缺口。历史存量中 `activefcflag IS NULL` 需 NULL-safe 处理（视为进行中），见 doc 13 Q3。
+
+---
+
+### 4.2 FCL Summary 字段
+
+**关键字段**：`current_milestone` · `last_completed_step` · `attorney_firm` · `days_in_fcl` · `sale_amount`
+
+**当前来源**（`newrez.portnewrezfc`）：
+
+| 标准字段 | Newrez 原始字段 | 状态 |
+|---|---|---|
+| `current_milestone` | `currentmilestone` | ⚠️ 62.7%（偏低） |
+| `last_completed_step` | `lastfcstepcompleted` | ✅ 99.5% |
+| `attorney_firm` | `fcfirm` | ✅ 100% |
+| `days_in_fcl` | `daysinfc` + `dataasof` | ✅ 100% |
+| `sale_amount` | `fcsaleamount` | ⚠️ 4.7%（高于 sale_held 2.1%） |
+
+**缺口说明**：
+- `currentmilestone` 填充率偏低，BPS 降级使用 `fcstage` 兜底
+- `fcsaleamount` 填充率高于 `fcsalehelddate`，疑为数据时序问题（见 doc 13 Q9）
+
+---
+
+### 4.3 Timeline 时间线字段
+
+**关键字段**：Demand · Referral · First Legal · Service · Judgement · Sale · Completed
+
+**当前来源**（`newrez.portnewrezfc`）：
+
+| 标准字段 | Newrez 原始字段 | 状态 |
+|---|---|---|
+| `demand_sent_date` | `demandsentdate` | ✅ 85.9% |
+| `fcl_referral_date` | `fcreferraldate` | ✅ 100% |
+| `first_legal_date` | `firstlegaldate` | ⚠️ 57.6% |
+| `service_complete_date` | `servicecompletedate` | ⚠️ 28.9% |
+| `judgement_hearing_scheduled` | `fcjudgmenthearingscheduled` | ✅ 11.9%（仅 Judicial 州） |
+| `scheduled_sale_date` | `fcscheduledsaledate` | ✅ 18.2% |
+| `fcl_removal_date` | `fcremovaldate` / `dtdeedrecorded` | ✅ ~2.0% |
+| `noi_date` | *(无独立字段)* | ❌ Newrez 以 `demandsentdate` 混用 |
+| `publication_date` | *(无对应字段)* | ❌ 0% |
+| `title_received_date` | `titlereceiveddate` | ❌ 0% |
+| `title_clear_date` | `titlecleardate` | ❌ 0% |
+
+**缺口说明**：`publication_date`、`titlereceiveddate`、`titlecleardate` Newrez 不提供（P2 补全请求）；`noi_date` 与 `demandsentdate` 混用，需向 Newrez 要求分离。
+
+---
+
+### 4.4 Hold 槽位字段
+
+**关键字段**：Hold 槽位 1/2/3 的 description · start_date · end_date · projected_end_date
+
+**当前来源**（`newrez.portnewrezfc`）：
+
+| 标准字段 | Newrez 原始字段 | 状态 |
+|---|---|---|
+| `hold_1_description` | `fchold1description` | ✅ 89.6% |
+| `hold_2_description` | `fchold2description` | ✅ 69.8% |
+| `hold_3_description` | `fchold3description` | ✅ 52.6% |
+| `hold_*/start/end/projected` | `fchold*/startdate/enddate/projectedenddate` | ✅ 已提供 |
+
+**缺口说明**：Newrez 提供的是**当前快照槽位**（最多 3 个并发 Hold），不是完整历史文件。BPS 通过每日追加机制积累完整 Hold 历史，但这依赖系统内部机制，不是 Servicer 源数据直接提供的完整历史。
+
+---
+
+### 4.5 LM 损失缓解字段
+
+**关键字段**：Deal · Program · Status · Cycle Open/Close · Final Disposition · Denial Reason
+
+**当前来源**（`newrez.portnewrezlm`）：
+
+| 标准字段 | Newrez 原始字段 | 状态 |
+|---|---|---|
+| `lm_deal` | `lmdeal`（int，需解码） | ✅ 已提供 |
+| `lm_program` | `lmprogram`（int，需解码） | ✅ 已提供 |
+| `lm_status` | `lmstatus`（int，需解码） | ✅ 已提供 |
+| `lm_cycle_open_date` | `dealstartdate` | ✅ 已提供 |
+| `lm_cycle_close_date` | `lmremovaldate` | ✅ 已提供 |
+| `lm_final_disposition` | `lmdecision`（int，需解码） | ✅ 已提供 |
+| `lm_denial_reason` | `denialreason`（int，需解码） | ✅ 已提供 |
+| `borrower_intentions` | `borrowerintention` | ❌ 0% |
+| `imminent_default` | *(无对应字段)* | ❌ 未提供 |
+| `single_point_of_contact` | *(无对应字段)* | ❌ 未提供 |
+
+**缺口说明**：`borrowerintention`、`imminent_default`、`single_point_of_contact` 均为 CFPB Reg X 相关字段，Newrez 不提供（P2 补全请求）。
+
+---
+
+### 4.6 BK 破产字段
+
+**关键字段**：Chapter · Status · MFR Filed/Result · POC Date · Post-petition Due Date
+
+**当前来源**（`newrez.portnewrezbk`）：
+
+| 标准字段 | Newrez 原始字段 | 状态 |
+|---|---|---|
+| `bk_chapter` | `bkchapter` | ✅ 已提供 |
+| `bk_status` | `bkstatus`（int，解码待确认） | ⚠️ 编码确认中 |
+| `bk_legal_status` | `bkstage`（int，解码待确认） | ⚠️ 编码确认中 |
+| `bk_filed_date` | `bkfileddate` | ✅ 已提供 |
+| `mfr_filed_date` | `mfrfileddate` | ✅ 已提供 |
+| `mfr_hearing_results` | `mfrhearingresults`（int） | ⚠️ 编码确认中 |
+| `proof_of_claim_date` | `pocfileddate` | ✅ 已提供 |
+| `post_petition_due_date` | `bkpostpetitionduedate` | ✅ 已提供 |
+
+**缺口说明**：`bkstatus`、`bkstage`、`mfrhearingresults` 的数字码解码行为尚未确认（见 doc 13 Q7）。
+
+---
+
+### 4.7 Aggregate Stage / Time Line Tab 字段
+
+**关键字段**：`stage` · `{stage}_start_date` · Days in Stage / LM / Hold
+
+**当前来源**（`newrez.portnewrezfc` + `bpms_dev.sync_fcl_stage_info`）：
+
+| 标准字段 | 来源 | 状态 |
+|---|---|---|
+| `stage`（当前阶段分类） | ETL 瀑布优先级计算（`portnewrezfc`） | ✅ 内部可推导 |
+| `{stage}_start_date` | 对应 `portnewrezfc` 里程碑字段 | ✅ 内部可推导 |
+| `days_in_stage` / `on_hold_days` / `in_lm_days` | ETL 计算 | ✅ 内部可推导 |
+| Time Line Tab `noi_start_date` | *(Newrez 不提供独立 NOI 字段)* | ❌ 恒为 NULL（见 doc 13 Q11） |
+
+**缺口说明**：Time Line Tab 的"NOI Date 1"列（`noi_start_date`）对 Newrez 贷款恒为 NULL，因为 Newrez 的 `demandsentdate` 进入 `demand_start_date` 而非 `noi_start_date`。需与 BPS 产品确认是否调整显示口径。
 
 ## 5. Newrez 缺口与行动项
 

@@ -6,7 +6,7 @@
 
 - **Why this document exists**: Business terms, ETL architecture vocabulary, MBA standard codes, and servicer-specific abbreviations are scattered across docs 01–09. This document provides a single lookup entry point.
 - **Problem solved**: When any reader (new member, reviewer, or AI session) encounters an unfamiliar term in any project document, they can look it up here without searching through multiple documents.
-- **Scope**: Core business statuses · Delinquency status codes · FCL process · LM types · Bankruptcy · ETL architecture · System abbreviations — 7 categories, 50+ entries.
+- **Scope**: Core business statuses · Delinquency status codes · FCL process · LM types · Bankruptcy · ETL architecture · System abbreviations · Regulatory/Compliance — 8 categories, 55+ entries.
 - **Not covered**: Field-level data dictionary (see `docs/foreclosure_data_dictionary.md`); servicer raw table schemas (see `docs/en/01_source_data.md`).
 - **System**: ForeclosureRule2 project, PrefectFlow (Prefect 2.x mortgage loan servicing ETL system).
 
@@ -21,6 +21,8 @@ Secondary: Compliance reviewers · System rewrite architects · Servicer liaison
 |------|--------|---------|---------|---------|
 | 2026-05-25 | AI Agent (Claude Sonnet 4.6) | v1 | Initial version — consolidated from docs 00–09 and foreclosure_data_dictionary.md | docs 00–09 |
 | 2026-05-26 | AI Agent (Claude Sonnet 4.6) | v2 | Added 9 missing terms: NOI/Demand Letter (Category C), 3rd Party Sale (Category C), Target/Actual/Var Days framework (Category C), MFR full definition (Category E), POC (Category E), dataasof and SMS/Shellpoint (Category G); updated Category G NOI and MFR one-liners to cross-reference full entries | doc 13 v4 |
+| 2026-06-02 | AI Agent (Claude Opus 4.8) | v3 | Added "Category H — Regulatory/Compliance Terms" (6 entries: CFPB, RESPA, Reg X, 12 CFR 1024.40/SPOC, 12 CFR 1024.41, Imminent Default); added CFPB/RESPA/SPOC cross-reference rows to Category G; updated scope to 8 categories | doc 14 |
+| 2026-06-03 | AI Agent (Claude Opus 4.8) | v4 | Category C new term `dtdeedrecorded` (deed recorded date = title transfer / FCL legal completion, ~2–3 weeks after fcsalehelddate, mostly→REO; BPS primary source for timeline_foreclosure_completed_date, proxy for REO acquisition date); also expanded doc 14 reo_acquisition_date verify-SQL comment | doc 14 · doc 13 §3.1 |
 
 ## Dependencies
 
@@ -187,6 +189,14 @@ The final disposition stage of the FCL process: the property is sold at public a
 An auction outcome where an external buyer successfully bids on the property — the property transfers to a third party (neither the original borrower nor the lender). This is a "successful" FCL exit. System internal code maps to `P` (Paid); the loan is closed.  
 Contrasts with **REO** (no bidder; lender takes possession). Newrez records the final outcome in the `fcresults` field; BPS uses this to determine whether to populate `timeline_third_party_sold_date_date` and `timeline_third_party_proceeds_received_date` (see doc 13 Section 3.1).  
 **Related**: REO; Sale; fcresults (Newrez field)
+
+---
+
+**dtdeedrecorded** (Deed Recorded Date)
+
+A Newrez `portnewrezfc` date field: the date the post-sale property-transfer deed (Trustee's / Sheriff's Deed) is **officially recorded** in the county land records — i.e., the **legal completion point** of foreclosure, when title transfers (usually to the lender → **REO**, occasionally to a third-party buyer).  
+It occurs ~**2–3 weeks after** `fcsalehelddate` (sale held date) in observed samples, with `fcresults=REO / fcremovaldesc=Process Complete`. BPS uses it as the **primary source** for `timeline_foreclosure_completed_date = COALESCE(dtdeedrecorded, fcremovaldate)`; since Newrez has no dedicated "REO acquisition date" field, doc 14 uses `dtdeedrecorded` as a **proxy** for `reo_acquisition_date`. Fill rate is very low (~0%; few loans reach title transfer).  
+**Related**: Sale Held (`fcsalehelddate`); `fcremovaldate` (FCL removal/closure date); REO; `timeline_foreclosure_completed_date` (BPS)
 
 ---
 
@@ -373,3 +383,44 @@ The report cutoff date, typically the first day of the following month after mon
 | **svcdelinq** | Servicer Delinquency | Raw delinquency status text as transmitted by the servicer, stored in L2, before normalization. Distinct from the system's standardized `delinq` internal code. |
 | **dataasof** | Data As Of | The snapshot date of data synchronized from a servicer (e.g., Newrez), typically 1–2 days behind today. BPS adds `DATEDIFF(today, dataasof)` when displaying FCL days-in-flight to compensate for this lag and reflect the true current-day count. |
 | **SMS** | Shellpoint Mortgage Servicing | The operational sub-brand name of Newrez (Newrez LLC rebranded from Shellpoint, but some legacy field names retain the abbreviation). The BPS field `smsdaysinfc` ("SMS-reported FCL days") uses this abbreviation, corresponding to the servicer-reported perspective vs. the investor-basis `daysinfc`. |
+| **CFPB** | Consumer Financial Protection Bureau | U.S. federal consumer-finance regulator; its mortgage-servicing rules (Reg X) are the regulatory basis for this project's LM/FCL compliance fields. See Category H. |
+| **RESPA** | Real Estate Settlement Procedures Act | The parent statute that Reg X implements. See Category H. |
+| **SPOC** | Single Point of Contact | The single designated servicer contact for a delinquent borrower, required by CFPB Reg X 12 CFR 1024.40; maps to field `single_point_of_contact`. See Category H. |
+
+---
+
+## Category H — Regulatory / Compliance Terms
+
+**CFPB** (Consumer Financial Protection Bureau)
+
+U.S. federal regulatory agency established by the Dodd-Frank Act (2010), responsible for writing and enforcing consumer-finance protection rules (including mortgages). The loss-mitigation / foreclosure compliance requirements on servicers (e.g., Newrez) in this project derive from CFPB rules.
+
+---
+
+**RESPA** (Real Estate Settlement Procedures Act)
+
+U.S. federal law governing real-estate settlement and mortgage-servicing conduct. CFPB implements RESPA's mortgage-servicing provisions through **Reg X**.
+
+---
+
+**Reg X** (Regulation X — 12 CFR Part 1024)
+
+The implementing regulation for RESPA, codified at Title 12, Part 1024 of the Code of Federal Regulations. Its mortgage-servicing provisions (1024.30–1024.41, effective 2014) define servicer obligations toward delinquent borrowers and loss mitigation (LM) — the regulatory source for this project's LM/FCL compliance fields.
+
+---
+
+**12 CFR 1024.40 / SPOC** (Continuity of Contact / Single Point of Contact)
+
+Reg X 1024.40 requires the servicer to assign a delinquent borrower a **Single Point of Contact (SPOC)**, so the borrower is not repeatedly handed off among agents during the LM process. Maps to the BPS field `single_point_of_contact` (Newrez does not provide it; always NULL — see doc 13 Q6 / doc 14).
+
+---
+
+**12 CFR 1024.41** (Loss Mitigation Procedures)
+
+Reg X 1024.41 prescribes the procedures and timelines for evaluating a borrower's LM options before advancing foreclosure (complete-application review period, appeal rights, etc.). It is the compliance backdrop for the LM Cycle fields.
+
+---
+
+**Imminent Default**
+
+A state where a borrower is **not yet delinquent** but faces foreseeable repayment hardship. Reg X / investor guidelines require the servicer to evaluate such borrowers for LM proactively, rather than waiting for actual default. Maps to the BPS field `imminent_default` (Newrez does not provide it; always NULL — see doc 13 Q6 / doc 14).

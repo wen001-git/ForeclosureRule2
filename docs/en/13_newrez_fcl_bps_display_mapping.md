@@ -18,6 +18,12 @@ Secondary: New ETL developers · FCL data governance team · Future AI sessions
 
 | Date | Author | Version | Changes | Related |
 |------|--------|---------|---------|---------|
+| 2026-06-03 | AI Agent (Claude Opus 4.8) | v34 | §3.7 footnote: added the start-date basis for `summary_sms_days_in_fcl` vs `summary_days_in_fcl` (code + DB verified): days ← `fcreferraldate` (datediff+1, :1628) = investor/full; sms ← Newrez native `smsdaysinfc` (svc_days_infc, :280/:1545) counted from `fcsetupdate` = servicer/SMS basis → sms≤days (only 2 of 91 differ); both get BPS +DATEDIFF real-time adjustment (:597-598). Synced with doc 14 v31 | basic_data_pool_config.py · doc 14 v31 |
+| 2026-06-03 | AI Agent (Claude Opus 4.8) | v33 | §5 numeric-decode mechanism traced (code + DB verified): lmdeal/lmprogram/lmstatus/lmdecision/borrowerintention/denialreason decode source = **Redshift dict table `newrez.portnewrezdatadic`** (not in dev MySQL); decode JOINs at `basic_data_pool_config.py:835-840` (BK at :367), not hardcoded; LMDeal dict = 13 codes, 8 observed; noted that a cross-table join `lmdeal=1→Evaluation` is a snapshot-timing artifact | basic_data_pool_config.py:835-840; Redshift portnewrezdatadic; data dictionary |
+| 2026-06-03 | AI Agent (Claude Opus 4.8) | v32 | [Readability] Unified middle-dot `·` separators in value/enum lists to `\|` (consistent with doc 14): currentmilestone / fchold descriptions / stage output fields / bk decode / Q7 (13 spots). Kept `·` in "X stage · sub-meaning" structural labels, audience line, env labels, cross-references, and revision history | doc 14 v24 |
+| 2026-06-03 | AI Agent (Claude Opus 4.8) | v31 | [Terminology fix] `activefcflag=0` was wrongly called "completed" in several places; it actually means **not currently in active foreclosure** — DB-verified (referred-to-FCL & activefcflag=0): Reinstated 26 / Loss Mitigation 16 / Paid in Full 11 (stopped, not completed) vs REO·3rd·DiL 10 (truly completed); BPS labels all "Closed Foreclosure" ≠ Completed. Fixed Section 1 entry table, Section 3.7 summary_completed_foreclosure, Section 7 population framing, Section 8 Q3, activefcflag definition; synced to doc 16/doc 14 | DB-verified 2026-06-03 |
+| 2026-06-02 | AI Agent (Claude Opus 4.8) | v30b | [ETL code + DB verified] Section 6 Bankruptcy mapping corrected: `status_date`←`bkfileddate` (not bkrcurrentstatusdate); `lien_status`/`mfr_status`/`claim_status`/`mfr_filed_date` hardcoded NULL in extract; `bankruptcy_status`=COALESCE(datadic decode, bkstatus) | basic_data_pool_config.py:349-363 |
+| 2026-06-01 | AI Agent (Claude Sonnet 4.6) | v29 | Section 2: added value-range/sample-value content to all three subtables — 2.1: new standalone supplementary table '2.1-B Value Range / Examples' (42 fields, date ranges and enum values from live MCP Redshift queries); 2.2 and 2.3: new 4th column 'Value Range / Examples'; zh+en versions updated | — |
 | 2026-05-26 | AI Agent (Claude Sonnet 4.6) | v1 | Initial version — complete BPS FCL display field reverse mapping; validated via MCP | doc 08, doc 12 |
 | 2026-05-26 | AI Agent (Claude Sonnet 4.6) | v2 | UI screenshot re-verification: ①corrected main BPS table name (sync_loan_foreclosure); ②corrected view column count (104); ③rewrote Hold section (full history model); ④added LM Cycle, Bankruptcy, and Aggregate View panel mappings; ⑤corrected LM field encoding description (BPS stores decoded text, not numeric codes); ⑥updated appendix with multi-panel validation for loan 7727000088 | doc 08, doc 12 |
 | 2026-05-26 | AI Agent (Claude Sonnet 4.6) | v3 | Section 3.1–3.7 table structure overhaul: ①added new first column "BPS UI Label" (Panel > Field display text, derived from BPS UI + MCP COLUMN_COMMENT); ②merged "Source Table" into "Newrez Raw Field" as full-path single column (`newrez.schema.table.field`); ③added new last column "Business Meaning" (derived from MCP COLUMN_COMMENT + existing notes); ④BPS full field path documented via per-subsection header note; ⑤Section 3.4 converted from text block to structured table | MCP COLUMN_COMMENT |
@@ -41,8 +47,10 @@ Secondary: New ETL developers · FCL data governance team · Future AI sessions
 | 2026-05-28 | AI Agent (Claude Sonnet 4.6) | v21 | Section 8: added Q12 — `port.basic_data_loan_fcl.fcjudgment_end_date` is stored in the Redshift ETL intermediate table but not consumed by any downstream BPS ETL; documents the architecture gap and design intent (cross-servicer standardized naming + reserved for future `actual_judgement_hearing_set_days` calculation). | doc 12 Section 15 |
 | 2026-05-28 | AI Agent (Claude Sonnet 4.6) | v22 | Section 8: added "Q3 Technical Detail" subsection after the Q table — full explanation of `activefcflag` NULL-safe handling: root cause, correct SQL patterns (OR NULL / COALESCE), business logic (closed FCL has explicit multi-field evidence; NULL conservatively treated as in-progress), and impact scope. | doc 08 · doc 14 Section 2.1 |
 | 2026-05-28 | AI Agent (Claude Sonnet 4.6) | v23 | Added source-data filter conditions (ETL code verified) for all 5 BPS FCL tables: Section 3.1 — ETL code reference for main FCL table filter; Section 4 (Hold) — two-layer filter conditions + GROUP BY dedup + independence from main FCL table; Section 5 (LM) — `dealstartdate IS NOT NULL` + dedup logic + numeric decode note; Section 6 (BK) — `LENGTH(TRIM(bkstatus)) > 0` + dedup + additional JOIN; Section 7 (Aggregation) — corrected entry filter to `activefcflag=1 AND fcremovaldate IS NULL` + added D90/D120P secondary filter. | ETL code: asset_managment_config.py · basic_data_pool_config.py |
-| 2026-05-29 | AI Agent (Codex) | v24 | Standardized BPS UI screenshots: added official Figure 13-x titles for all manually inserted screenshots, used relative paths, and synchronized the Chinese screenshot set into the English document at matching sections. | docs/zh/13 |
-| 2026-05-29 | AI Agent (Codex) | v25 | Renamed the 9 doc 13 screenshot files to business-meaningful English slug filenames and updated both Chinese and English image references. | docs/zh/13 |
+| 2026-05-29 | LiJiawen | v24 | Standardized BPS UI screenshots: added official Figure 13-x titles for all manually inserted screenshots, used relative paths, and synchronized the Chinese screenshot set into the English document at matching sections. | docs/zh/13 |
+| 2026-05-29 | LiJiawen | v25 | Renamed the 9 doc 13 screenshot files to business-meaningful English slug filenames and updated both Chinese and English image references. | docs/zh/13 |
+| 2026-06-02 | AI Agent (Claude Sonnet 4.6) | v30 | Section 5 LM field values overhauled (MCP SQL-D1/D2/D3 CTE JOIN verified): ① Deal table added `Deferment` (lmdeal=11) and `Payoff` (lmdeal=9), corrected `Repayment Plan` → `Payment Plan` (lmdeal=4), added Newrez code column; ② Program table expanded from 5 to 20 rows (Bridger mod, VA series, FHA series, Deferment, etc.); ③ Status table expanded from 6 to 20 rows; ④ Two BPS-table description fixes: `lmstatus=112` "Awaiting MI Approval"→"Workout Denial", `lmdecision=6` "LMS Opened in Error"→"Referral to FC"; ⑤ UI Column Reference Deal description synced. Synced from zh v30. | SQL-D1/D2/D3 CTE JOIN |
+| 2026-06-02 | AI Agent (Claude Sonnet 4.6) | v31 | Appendix B verification SQL: added snapshot-date filters (fixes snapshot-table count inflation). SQL-1/2/3 (query `newrez.portnewrezfc`, a daily-snapshot table: 891 snapshot days × ~7.6K loans) gained `AND dataasof=(SELECT MAX(dataasof)...)`; SQL-9 (queries `bpms_dev.sync_fcl_stage_info`, daily snapshot) gained `fctrdt=(SELECT MAX(fctrdt)...)` on both main query and denominator. Unchanged: SQL-5/6/7/8/11/13 (bpms event/cycle tables, not daily snapshots, ~1-4 rows/loan); SQL-10/12 (already filtered). Data-dictionary verification SQL (SQL-D1~D6) already uses latest-snapshot CTE — no change. | DB verified 2026-06-02 |
 
 ## Dependencies
 
@@ -64,7 +72,7 @@ Secondary: New ETL developers · FCL data governance team · Future AI sessions
 - `timeline_publication_date` has no corresponding field in Newrez source tables; typically null in BPS
 - ~14.1% of active FCL loans have no `demandsentdate` (no NOI record)
 - `imminent_default` and `single_point_of_contact` in the LM sync table are NULL for all Newrez loans — Newrez does not provide these fields
-- `lien_status` and `claim_status` in the Bankruptcy panel: source Newrez fields require further confirmation
+- ~~`lien_status` and `claim_status` in the Bankruptcy panel: source Newrez fields require further confirmation~~ **(Resolved 2026-06-02)**: `lien_status` / `claim_status` / `mfr_status` / `mfr_filed_date` are **hardcoded `NULL`** in the ETL extract (basic_data_pool_config.py:349-363) — not mapped from any Newrez field. See Section 6.
 
 ---
 
@@ -160,15 +168,15 @@ biz_data_view_loan_details_foreclosure (104-column VIEW)
 
 > **ETL code source**: `flow/basic_data/basic_data_config/basic_data_pool_config.py` (Newrez→Redshift extraction layer) + `flow/bps/bps_config/asset_managment_config.py` (Redshift→MySQL sync layer)
 
-| BPS Table | Newrez Source Table | Extraction Filter | Sync Filter | Dedup Logic | Includes Completed Loans? |
+| BPS Table | Newrez Source Table | Extraction Filter | Sync Filter | Dedup Logic | Includes inactive loans (activefcflag=0)? |
 |---|---|---|---|---|---|
-| `sync_loan_foreclosure` | `portnewrezfc` | None (full load into Redshift) | `fcreferraldate IS NOT NULL` + JOIN portfunding | None | ✅ Yes (activefcflag=0) |
+| `sync_loan_foreclosure` | `portnewrezfc` | None (full load into Redshift) | `fcreferraldate IS NOT NULL` + JOIN portfunding | None | ✅ Yes (activefcflag=0: not in active foreclosure — completed OR withdrawn/reinstated/paid) |
 | `sync_loan_foreclosure_hold` | `portnewrezfc` | `fchold1startdate IS NOT NULL` | Any slot: description/dates non-empty + JOIN portfunding | GROUP BY (loanid, description, start_date) | ✅ Yes |
 | `sync_loan_foreclosure_loss_mitigation` | `portnewrezlm` | `dealstartdate IS NOT NULL` | None (full pass-through) + JOIN portfunding | ROW_NUMBER PARTITION BY (loanid, dealstartdate) | ✅ Yes |
 | `sync_loan_foreclosure_bankruptcy` | `portnewrezbk` | `LENGTH(TRIM(bkstatus)) > 0` | None (full pass-through) + JOIN portfunding | ROW_NUMBER PARTITION BY (loanid, bkfileddate) | ✅ Yes |
 | `sync_fcl_stage_info` | `basic_data_loan_fcl` (multi-servicer) | Primary: `activefcflag=1 AND fcremovaldate IS NULL`; Secondary: D90/D120P + demandsentdate non-null | None (full pass-through) + JOIN portfunding | Multi-layer CTE calculation | ❌ Active FCL only |
 
-> **Key distinction**: `sync_fcl_stage_info` is the **only table that excludes completed loans** — the Aggregation Overview page reflects only currently in-progress FCL, making its loan population different from the other four tables (which include closed history). Loan counts across these tables should not be directly compared.  
+> **Key distinction**: `sync_fcl_stage_info` is the **only table that excludes inactive loans (activefcflag=0)** — the Aggregation Overview page reflects only loans currently in active foreclosure, making its population different from the other four tables (which include activefcflag=0 inactive/historical loans). Loan counts across these tables should not be directly compared. Note: `activefcflag=0` means **not currently in active foreclosure** (includes both completed and withdrawn/reinstated/paid), not necessarily "completed".  
 > **All five tables** require `JOIN port.portfunding ON loanid` to confirm the loan is in the funding pool.
 
 ---
@@ -178,7 +186,8 @@ biz_data_view_loan_details_foreclosure (104-column VIEW)
 ### 2.1 newrez.portnewrezfc (FCL Master Table)
 
 > Scale: **13,321 active FCL loans** (activefcflag=1, dataasof 2026-05-24)  
-> **Verification SQL**: Fill rates in this table are produced by Appendix B — SQL-1 (copy and run directly in MySQL)
+> **Verification SQL**: Fill rates in this table are produced by Appendix B — SQL-1 (copy and run directly in MySQL)  
+> **Value Examples**: See **2.1-B Value Range / Examples** below (field ranges and enum values from live MCP queries)
 
 | Raw Field | Type | Business Meaning | Active FCL Fill Rate |
 |-----------|------|-----------------|---------------------|
@@ -203,7 +212,7 @@ biz_data_view_loan_details_foreclosure (104-column VIEW)
 | `lastfcstepcompleteddate` | date | Most recent completed step date | — |
 | `fcresults` | varchar | Final FCL disposition result (completed loans) | — |
 | `fcremovaldesc` | varchar | FCL removal reason description | — |
-| `activefcflag` | int | FCL still active (1=in progress / 0=completed) | 100% |
+| `activefcflag` | int | Whether in active foreclosure (1=in active FCL / 0=not in active FCL: completed or withdrawn/reinstated/paid) | 100% |
 | `fccontestedflag` | int | Contested litigation flag (1=yes / 0=no) | 100% |
 | `judicial` | int | Judicial foreclosure (1=judicial / 0=non-judicial) | 100% |
 | `fcfirm` | varchar | Foreclosure attorney firm name | — |
@@ -227,48 +236,98 @@ biz_data_view_loan_details_foreclosure (104-column VIEW)
 
 > ⚠️ **Hold slot note**: The 3 hold slots in `portnewrezfc` (fchold1/2/3) reflect **Newrez's current snapshot** of active/recent holds. BPS appends each change as a new row in `sync_loan_foreclosure_hold` on each daily sync, accumulating full hold history (see Section 4).
 
+
+#### 2.1-B Value Range / Examples
+
+> Value ranges and enumerated samples below are from MCP Redshift live queries (`newrez.portnewrezfc`, as of 2026-06-01). All date formats are YYYY-MM-DD.
+
+| Raw Field | Type | Value Range / Sample Values |
+|---|---|---|
+| `fcsetupdate` | date | `2024-02-07` to `2026-05-26` |
+| `fcreferraldate` | date | `2024-02-07` to `2026-05-26` (usually same as `fcsetupdate`) |
+| `demandsentdate` | date | `2021-10-18` to `2026-04-20` |
+| `demandexpirationdate` | date | Typically `demandsentdate + 30 days` |
+| `firstlegaldate` | date | YYYY-MM-DD; blank for Non-Judicial states (57.6% fill in active FCL) |
+| `servicecompletedate` | date | YYYY-MM-DD; 28.9% fill in active FCL |
+| `titlereceiveddate` | date | Not provided by Newrez; 0% fill in active FCL |
+| `titlecleardate` | date | Not provided by Newrez; 0% fill in active FCL |
+| `fcjudgmenthearingscheduled` | date | YYYY-MM-DD; Judicial states only (11.9% fill) |
+| `fcjudgmententered` | date | YYYY-MM-DD; Judicial states only (court entry date) |
+| `fcscheduledsaledate` | date | `2025-04-17` to `2026-08-06` (18.2% fill) |
+| `fcsalehelddate` | date | `2025-05-27` to `2026-05-22` (2.1% fill, completed loans only) |
+| `fcremovaldate` | date | YYYY-MM-DD; populated when FCL completes |
+| `dtdeedrecorded` | date | YYYY-MM-DD; ~0% fill in active FCL |
+| `fcl3rdpartyproceedsreceiveddate` | date | YYYY-MM-DD; rare, completed loans only |
+| `fcstage` | varchar | Newrez system stage text; non-standardized, low fill rate |
+| `currentmilestone` | varchar | `'Closed'` \| `'First Legal'` \| `'Judgment Entered'` \| `'Sale Held'` \| `'Sold'` \| `'Service Complete'` \| `'Sale Scheduled'` (62.7% fill) |
+| `lastfcstepcompleted` | varchar | Newrez free text, e.g. `'FC Referral'`, `'Sale Held'` |
+| `lastfcstepcompleteddate` | date | YYYY-MM-DD |
+| `fcresults` | varchar | `'REO'` (lender takes property) / `'3rd Party'` (third-party buyer) / blank (active FCL) |
+| `fcremovaldesc` | varchar | Free text, e.g. `'Foreclosure Completed'` |
+| `activefcflag` | int | `1` (in progress) / `0` (completed) |
+| `fccontestedflag` | int | `1` (contested litigation) / `0` (none) |
+| `judicial` | int | `1` (judicial state, e.g. NY/NJ/FL) / `0` (non-judicial, e.g. CA/TX) |
+| `fcfirm` | varchar | Attorney firm name, free text |
+| `fcbidamount` | decimal | `$90,000` to `$543,305.96` (active FCL, 9.0% fill) |
+| `fcapprbidprice` | decimal | Similar range to `fcbidamount` (approved bid, 8.9% fill) |
+| `fcsaleamount` | decimal | Format NNNNNN.NN; only when sale closed |
+| `smsdaysinfc` | int | `1` to `606` days (Shellpoint/SMS basis) |
+| `daysinfc` | int | `1` to `814` days (investor basis) |
+| `fchold1description` | varchar | `'Loss Mitigation Workout'` \| `'Awaiting Funds to Post'` \| `'Service Delay'` \| `'Court Delay'` \| `'Hearing Set'` \| `'Client Document Execution'` \| `'Original Note'` \| `'Delinquency Review'` \| `'Bankruptcy Filed'` \| `'Moratorium'` \| `'Awaiting Escrow Analysis'` \| `'Title Resolution'` (89.6% fill) |
+| `fchold1startdate` | date | YYYY-MM-DD |
+| `fchold1enddate` | date | YYYY-MM-DD; null = hold still active |
+| `fchold1projectedenddate` | date | YYYY-MM-DD |
+| `fchold2description` | varchar | Same enum values as `fchold1description` (69.8% fill) |
+| `fchold2startdate` | date | YYYY-MM-DD |
+| `fchold2enddate` | date | YYYY-MM-DD |
+| `fchold2projectedenddate` | date | YYYY-MM-DD |
+| `fchold3description` | varchar | Same enum values as `fchold1description` (52.6% fill) |
+| `fchold3startdate` | date | YYYY-MM-DD |
+| `fchold3enddate` | date | YYYY-MM-DD |
+| `fchold3projectedenddate` | date | YYYY-MM-DD |
+
 ### 2.2 newrez.portnewrezbk (Bankruptcy Table, 60 columns)
 
 Key fields shown in the BPS Bankruptcy panel:
 
-| Raw Field | Type | Business Meaning |
-|-----------|------|-----------------|
-| `activebkflag` | int | Currently in bankruptcy protection (1=yes / 0=no) |
-| `bkchapter` | int | Bankruptcy chapter (7 / 11 / 13 etc.) |
-| `bkfileddate` | date | Bankruptcy filing date |
-| `bkstatus` | int | Bankruptcy status (numeric code) |
-| `bkstage` | int | Bankruptcy legal stage (numeric code) |
-| `bkrcurrentstatusdate` | date | Current status effective date |
-| `bkremovaldate` | date | Bankruptcy termination date |
-| `bkremovalcode` | int | Bankruptcy removal reason (numeric code) |
-| `mfrfileddate` | date | Motion for Relief (MFR) filed date |
-| `mfrhearingdate` | date | MFR hearing date |
-| `mfrgranteddate` | date | MFR granted date |
-| `mfrhearingresults` | int | MFR hearing result (numeric code) |
-| `pocfileddate` | date | Proof of Claim (POC) filed date |
-| `bkpostpetitionduedate` | date | Post-petition loan payment due date |
-| `bkcasenumber` | varchar | Bankruptcy case number |
-| `bkfirm` | varchar | Bankruptcy attorney firm name |
-| `debtorintention` | int | Debtor intention (numeric code) |
+| Raw Field | Type | Business Meaning | Value Range / Examples |
+|---|---|---|---|
+| `activebkflag` | int | Currently in bankruptcy protection (1=yes / 0=no) | `1` (active BK) / `0` (terminated) |
+| `bkchapter` | int | Bankruptcy chapter (7 / 11 / 13 etc.) | `7` (liquidation) / `11` (reorganization) / `13` (individual repayment plan) |
+| `bkfileddate` | date | Bankruptcy filing date | `2008-06-16` to `2026-04-27` |
+| `bkstatus` | int | Bankruptcy status (numeric code) | `1`–`5` (Newrez internal codes; **BPS decodes to text** Active/Discharged/Dismissed/Closed/ReliefGranted — see Section 6 / Q7) |
+| `bkstage` | int | Bankruptcy legal stage (numeric code) | `0`–`22` (common: `8`/`21`/`1`/`4`). Note: BPS `legal_status` actually comes from `portnewrezgeneral.legalstatus` text, **not from this field** (see Section 6 / Q7) |
+| `bkrcurrentstatusdate` | date | Current status effective date | YYYY-MM-DD format |
+| `bkremovaldate` | date | Bankruptcy termination date | `2009-09-18` to `2026-04-14` |
+| `bkremovalcode` | int | Bankruptcy removal reason (numeric code) | `1` (Dismissed) / `2` (Discharged) / `3` / `4` |
+| `mfrfileddate` | date | Motion for Relief (MFR) filed date | `2025-06-10` to `2026-04-29` |
+| `mfrhearingdate` | date | MFR hearing date | YYYY-MM-DD format |
+| `mfrgranteddate` | date | MFR granted date | YYYY-MM-DD format |
+| `mfrhearingresults` | int | MFR hearing result (numeric code) | `0` (no result/pending) / `3` / `4` / `5` / `6` |
+| `pocfileddate` | date | Proof of Claim (POC) filed date | `2001-01-01` to `2026-05-04` |
+| `bkpostpetitionduedate` | date | Post-petition loan payment due date | YYYY-MM-DD format |
+| `bkcasenumber` | varchar | Bankruptcy case number | e.g. `'1:23-bk-12345'` (format varies by court) |
+| `bkfirm` | varchar | Bankruptcy attorney firm name | Free text, e.g. `'Robertson Anschutz...'` |
+| `debtorintention` | int | Debtor intention (numeric code) | `1` (most common) / `2` / `0` |
 
 ### 2.3 newrez.portnewrezlm (Loss Mitigation Table, 56 columns)
 
 Key fields shown in the BPS Loss Mitigation Cycle panel:
 
-| Raw Field | Type | Business Meaning |
-|-----------|------|-----------------|
-| `activelmflag` | int | Currently in LM program (1=yes / 0=no) |
-| `lmdeal` | int | LM deal type (numeric code, ETL-decoded to text) |
-| `lmprogram` | int | LM program name (numeric code, ETL-decoded to text) |
-| `lmstatus` | int | LM current status (numeric code, ETL-decoded to text) |
-| `dealstartdate` | date | LM cycle start date |
-| `lmremovaldate` | date | LM cycle end date |
-| `lmdecision` | int | LM decision outcome (numeric code, ETL-decoded to text) |
-| `denialreason` | int | Denial reason (numeric code, ETL-decoded to text) |
-| `borrowerintention` | int | Borrower intention (numeric code, ETL-decoded to text) |
-| `hardshiptype` | int | Hardship type (numeric code) |
-| `daysindeal` | int | Days in current LM deal |
-| `daysinstatus` | int | Days in current status |
+| Raw Field | Type | Business Meaning | Value Range / Examples |
+|---|---|---|---|
+| `activelmflag` | int | Currently in LM program (1=yes / 0=no) | `1` (LM active) / `0` (not in LM or ended) |
+| `lmdeal` | int | LM deal type (numeric code, ETL-decoded to text) | Observed: `1`/`2`/`4`/`5`/`6`/`7`/`9`/`11`; decoded → `Evaluation`/`Modification`/`Forbearance`/`Short Sale`/`DIL` etc. (see Section 5) |
+| `lmprogram` | int | LM program name (numeric code, ETL-decoded to text) | 15+ codes observed (`10`→Deed-in-Lieu, `21`→Evaluation, `73`/`396`/`496` etc.); see Section 5 for decode |
+| `lmstatus` | int | LM current status (numeric code, ETL-decoded to text) | 15+ codes observed (`5`/`20`/`112`/`113`/`166` etc.); decoded → `Pending Financials`/`Workout Denial` etc. (see Section 5) |
+| `dealstartdate` | date | LM cycle start date | `2020-08-17` to `2026-05-29` |
+| `lmremovaldate` | date | LM cycle end date | `2020-09-22` to `2026-05-29`; null = cycle still open |
+| `lmdecision` | int | LM decision outcome (numeric code, ETL-decoded to text) | Observed: `1`/`4`/`5`/`6`/`7`/`10`/`11`/`14`/`17`/`99`; decoded → `Approved`/`Denied`/`Referral to FC`/`Pending` etc. (see Section 5) |
+| `denialreason` | int | Denial reason (numeric code, ETL-decoded to text) | 10+ codes observed (`4`/`6`/`76`/`109` etc.); blank when no denial |
+| `borrowerintention` | int | Borrower intention (numeric code, ETL-decoded to text) | `1`/`2`/`3`; typically null for Newrez loans |
+| `hardshiptype` | int | Hardship type (numeric code) | 10+ codes observed (`7`/`8`/`11`/`12`/`19`/`20`/`21`/`33`/`35` etc.) |
+| `daysindeal` | int | Days in current LM deal | `0` to `991` days |
+| `daysinstatus` | int | Days in current status | `0` to `991` days |
 
 > **Important**: Newrez `portnewrezlm` stores numeric codes (`lmdeal`, `lmprogram`, etc. are all int). The ETL **decodes these to business text** when writing to BPS's `sync_loan_foreclosure_loss_mitigation` (e.g., `lmdeal=7` → `"DIL"`, `lmprogram=10` → `"Deed-in-Lieu"`).
 
@@ -313,8 +372,8 @@ Key fields shown in the BPS Loss Mitigation Cycle panel:
 | Milestone > Final Title Cleared Date | Final title clearance completed ⚠️ Newrez does not populate this field; same raw field as preliminary clearance | `timeline_final_title_cleared_date` | `titlecleardate` | Direct (final clearance) | 0.0% |
 | Milestone > Sale Date Held | Actual sale held date. Most active FCL loans have not yet reached this milestone | `timeline_sale_date_held_date` | `fcsalehelddate` | Direct | 2.1% |
 | Milestone > Foreclosure Completed Date | Final FCL completion marker. Deed recorded date takes priority; falls back to FCL removal / completion date (verified: `dtdeedrecorded`=0%, `fcremovaldate`=2.0%, COALESCE result=2.0%) | `timeline_foreclosure_completed_date` | `dtdeedrecorded` / `fcremovaldate` | `COALESCE(dtdeedrecorded, fcremovaldate)` | 2.0% |
-| Milestone > Third Party Sold Date | Third-party buyer closing date (266 active FCL loans have `fcresults='3rd Party'`). Must be combined with `fcresults` to confirm third-party purchase ⚠️ | `timeline_third_party_sold_date_date` | `fcsalehelddate` | Use `fcsalehelddate` when `fcresults='3rd Party'` | 2.0% |
-| Milestone > Third Party Proceeds Received Date | Date third-party sale proceeds were received (no active FCL loans have reached this stage) | `timeline_third_party_proceeds_received_date` | `fcl3rdpartyproceedsreceiveddate` | Direct | 0.0% |
+| Milestone > FCL 3rd Party Sold Date | Third-party buyer closing date (266 active FCL loans have `fcresults='3rd Party'`). Must be combined with `fcresults` to confirm third-party purchase ⚠️ | `timeline_third_party_sold_date_date` | `fcsalehelddate` | Use `fcsalehelddate` when `fcresults='3rd Party'` | 2.0% |
+| Milestone > FCL 3rd Party Proceeds Received Date | Date third-party sale proceeds were received (no active FCL loans have reached this stage) | `timeline_third_party_proceeds_received_date` | `fcl3rdpartyproceedsreceiveddate` | Direct | 0.0% |
 
 > ⚠️ **Newrez-specific behavior**:
 > - `fcsetupdate` and `fcreferraldate` are typically the same date (confirmed in live data), so `timeline_approved_for_referral_date` and `timeline_referred_to_attorney_date` will usually show identical values.
@@ -462,13 +521,13 @@ Formula: `var_{stage}_days = actual_{stage}_days − target_{stage}_days` (posit
 | Summary > Contested Litigation | Whether contested litigation exists (1=yes / 0=no) | `summary_contested_litigation` | `fccontestedflag` | Direct |
 | Summary > Firm | Foreclosure law firm name (same source as Foreclosure Attorney, displayed twice in BPS UI) | `summary_firm` | `fcfirm` | Same as `summary_foreclosure_attorney` (both fields display the same source, slightly different UI placement) |
 | Summary > Type | Foreclosure type as readable text (converts boolean judicial flag to label) | `summary_type` | `judicial` | `judicial=1` → `'Judicial'`; `judicial=0` → `'Non-Judicial'` |
-| Summary > SMS Days in FCL | Servicer (Newrez/SMS) FCL days in-flight — adjusted to eliminate Newrez data cutoff lag | `summary_sms_days_in_fcl` | `smsdaysinfc`, `dataasof` | **Real-time recalculation**: `smsdaysinfc + DATEDIFF(today_NY, dataasof)` |
-| Summary > Days in FCL | Investor-basis FCL days in-flight — adjusted to reflect actual days as of today | `summary_days_in_fcl` | `daysinfc`, `dataasof` | **Real-time recalculation**: `daysinfc + DATEDIFF(today_NY, dataasof)` |
+| Summary > SMS Days in FCL | Servicer (Newrez/SMS=Shellpoint) FCL days in-flight — counted from the servicer **setup date fcsetupdate**; adjusted to eliminate Newrez data cutoff lag | `summary_sms_days_in_fcl` | `smsdaysinfc`(svc_days_infc), `dataasof` | **Real-time recalculation**: `smsdaysinfc + DATEDIFF(today_NY, dataasof)`; basis = fcsetupdate, ≤ Days in FCL (see footnote) |
+| Summary > Days in FCL | Investor/full-timeline FCL days in-flight — counted from the **referral date fcreferraldate**; adjusted to reflect actual days as of today | `summary_days_in_fcl` | `daysinfc`, `dataasof` | **Real-time recalculation**: `daysinfc + DATEDIFF(today_NY, dataasof)`; basis = fcreferraldate, ≥ SMS Days in FCL |
 | Summary > Current Step | Current FCL processing step (BPS milestone label preferred; falls back to Newrez stage description) | `summary_current_step` | `currentmilestone` / `fcstage` | `currentmilestone` takes priority if non-null; fall back to `fcstage` |
 | Summary > Last Step Completed | Text description of the most recently completed FCL processing step (99.5% fill rate) | `summary_last_step_completed` | `lastfcstepcompleted` | Direct |
 | Summary > Last Step Completed Date | Date the most recently completed step was finished (99.5% fill rate) | `summary_last_step_completed_date` | `lastfcstepcompleteddate` | Direct |
 | Summary > Servicer Number | Newrez/Shellpoint internal loan number (distinct from investor loanid; 100% fill rate) | `summary_servicer_number` | `shellpointloanid` | Direct |
-| Summary > Completed Foreclosure | Boolean flag indicating whether FCL has been completed | `summary_completed_foreclosure` | `activefcflag` | `activefcflag = 0` → 1 (completed); `activefcflag = 1` → 0 (in progress) |
+| Summary > Completed Foreclosure | Boolean flag for whether FCL is no longer active (⚠️ named "Completed" but really an "inactive" flag) | `summary_completed_foreclosure` | `activefcflag` | `activefcflag = 0` → 1; `activefcflag = 1` → 0. ⚠️ `activefcflag=0` = **not in active foreclosure** (DB: Reinstated 26 / Loss Mitigation 16 / Paid in Full 11 / truly-completed REO \| 3rd \| DiL 10), **not all completed** |
 | Summary > Servicer FC Bid Amount | Servicer-perspective FCL bid amount (distinguished from Bid Approval panel's `fcapprbidprice`) | `summary_srv_fc_bid_amount` | `fcbidamount` | Same as `summary_foreclosure_bid_amount` (Servicer-perspective bid; distinct from BPS-approved bid `fcapprbidprice`) |
 | Summary > Judicial Foreclosure | Raw boolean for judicial type (1=Judicial / 0=Non-Judicial); the Type field above is its readable text version | `summary_judicial_foreclosure` | `judicial` | Direct |
 | Summary > Foreclosure Attorney | Foreclosure law firm full name (same source as the Firm field above) | `summary_foreclosure_attorney` | `fcfirm` | Direct |
@@ -476,6 +535,12 @@ Formula: `var_{stage}_days = actual_{stage}_days − target_{stage}_days` (posit
 > ⚠️ **Real-time days recalculation — live example**:
 > Sample loan (loanid=7727000672): `smsdaysinfc = 77`, `dataasof = 2026-05-24`, today = 2026-05-26.
 > BPS displayed value = 77 + 2 = **79 days** — reflects actual days in FCL as of today, not as of Newrez data cutoff.
+>
+> **The core difference = different start date (code + DB verified, 2026-06-03)**:
+> - `summary_days_in_fcl` ← `daysinfc`: ETL recomputes from the **referral date `fcreferraldate`** as `datediff(referral_start_date, snapshot)+1` (only when Active; `basic_data_pool_config.py:1628`) — **investor / full-timeline** basis.
+> - `summary_sms_days_in_fcl` ← Newrez native `smsdaysinfc` (ETL alias `svc_days_infc` = servicer days in FC, passed through; `:280/:1545`), empirically counted from the **servicer FCL setup date `fcsetupdate`** — **current servicer (SMS = Shellpoint)** basis.
+> - Since `fcsetupdate ≥ fcreferraldate`, **`servicer_days_in_fcl ≤ days_in_fcl`** (doc 14 standard field name; the BPS column is `summary_sms_days_in_fcl`); in the latest snapshot only 2 of 91 differ (e.g. 7727004408: days=816 / sms=586, a 230-day referral→setup gap). When referral=setup they are equal.
+> - Both get the BPS real-time adjustment `+ DATEDIFF(today_NY, dataasof)` (`asset_managment_config.py:597-598`).
 
 ---
 
@@ -553,7 +618,9 @@ MAX(fchold1projectedenddate, fchold2projectedenddate, fchold3projectedenddate) �
 >
 > **Source Data Filter Conditions (ETL code verified)**:
 > - **Extraction layer (Newrez→Redshift, `basic_data_pool_config.py`)**: `newrez.portnewrezlm` filter: `WHERE dealstartdate IS NOT NULL` (LM cycle must have a start date). Deduplication: `ROW_NUMBER() OVER (PARTITION BY loanid, dealstartdate ORDER BY dataasof DESC) = 1` (one row per LM cycle, latest snapshot retained).
-> - **Numeric decode**: 6 integer-coded fields (`lmdeal`, `lmprogram`, `lmstatus`, `lmdecision`, `denialreason`, `borrowerintention`) are decoded to business text via `LEFT JOIN newrez.portnewrezdatadic` in the Redshift layer before writing to BPS (unlike the Hold panel which stores Newrez text descriptions directly).
+> - **Numeric decode**: 6 integer-coded fields (`lmdeal`, `lmprogram`, `lmstatus`, `lmdecision`, `denialreason`, `borrowerintention`) are decoded to business text via `LEFT JOIN newrez.portnewrezdatadic` in the Redshift extraction layer before writing to BPS (unlike the Hold panel which stores Newrez text descriptions directly).
+>   - **Mapping data lives in a DB dictionary table; decode logic lives in code** (not hardcoded): dict table `newrez.portnewrezdatadic` (long format `field_name | code | description`, **Redshift-only** — not in dev MySQL); decode JOINs at `basic_data_pool_config.py:835-840` (`:835 LMDeal→deal`, `:836 LMProgram→program`, `:837 LMStatus→lmc_status`, `:838 LMDecision→final_disposition`, `:839 BorrowerIntention`, `:840 DenialReason`; BK at `:367 BKStatus`). `concat(code,'.0')` aligns with `lmdeal`'s decimal-string storage (e.g. `'7.0'`).
+>   - **LMDeal dict defines 13 codes**: `1 Modification | 2 Evaluation | 3 Reinstatement | 4 Payment Plan | 5 Forbearance | 6 Short Sale | 7 DIL | 8 Loan Sale | 9 Payoff | 10 Settlement | 11 Deferment | 12 CFK | 13 Consent Judgement`; **only 8 observed in current data** (1/2/4/5/6/7/9/11). A cross-table join of "newrez latest-snapshot lmdeal × BPS deal" may show rare mismatches (e.g. `lmdeal=1`→`Evaluation`, 2 rows) — a snapshot-timing artifact (deal evolved Evaluation→Modification at the same `cycle_opened_date`), not a dict ambiguity; the dict is strictly 1:1.
 > - **Sync layer (Redshift→MySQL, `asset_managment_config.py` `GEN_FORECLOSURE_LM`)**: No additional WHERE filter (full pass-through); `JOIN port.portfunding ON loanid` (loan must be in the funding pool).
 > - **Multi-servicer**: Redshift staging table consolidates Newrez (`portnewrezlm`) + Carrington + Capecodfive LM data.
 
@@ -569,10 +636,10 @@ MAX(fchold1projectedenddate, fchold2projectedenddate, fchold3projectedenddate) �
 |---|---|---|---|---|---|
 | Deal | `deal` | varchar(256) | `lmdeal` (int) | portnewrezlm | ETL decodes numeric code to text (e.g. `7` → `"DIL"`) |
 | Program | `program` | varchar(256) | `lmprogram` (int) | portnewrezlm | ETL decodes to text (e.g. `10` → `"Deed-in-Lieu"`) |
-| Status | `lmc_status` | varchar(256) | `lmstatus` (int) | portnewrezlm | ETL decodes to text (e.g. `112` → `"Awaiting MI Approval"`) |
+| Status | `lmc_status` | varchar(256) | `lmstatus` (int) | portnewrezlm | ETL decodes to text (e.g. `112` → `"Workout Denial"`, `166` → `"Pending Financials"`) |
 | Cycle Opened Date | `cycle_opened_date` | date | `dealstartdate` | portnewrezlm | Direct (LM cycle start date) |
 | Cycle Closed Date | `cycle_closed_date` | date | `lmremovaldate` | portnewrezlm | Direct (LM cycle end date; NULL = active) |
-| Final Disposition | `final_disposition` | varchar(256) | `lmdecision` (int) | portnewrezlm | ETL decodes to text (e.g. `6` → `"LMS Opened in Error"`, `99` → `"Pending"`) |
+| Final Disposition | `final_disposition` | varchar(256) | `lmdecision` (int) | portnewrezlm | ETL decodes to text (e.g. `6` → `"Referral to FC"`, `11` → `"LMS Opened in Error"`, `99` → `"Pending"`) |
 | Denial / Reason | `denialreason` | varchar(256) | `denialreason` (int) | portnewrezlm | ETL decodes to text; empty string if no denial |
 | Borrower Intentions | `borrower_intentions` | varchar(256) | `borrowerintention` (int) | portnewrezlm | ETL decodes to text; typically empty for Newrez |
 | Imminent Default | `imminent_default` | varchar(256) | *(no Newrez counterpart)* | — | NULL for all Newrez loans |
@@ -584,7 +651,7 @@ What each column on the BPS LM Cycle panel shows to the user and its role in the
 
 | UI Column | Business Role | Notes |
 |---|---|---|
-| **Deal** | LM category (strategy direction) | Identifies the overall workout path: Evaluation → retention options (Modification / Forbearance / Repayment Plan) → exit options (Short Sale / DIL). See "LM Field Values — Deal" below for value details. |
+| **Deal** | LM category (strategy direction) | Identifies the overall workout path: Evaluation → retention options (Modification / Forbearance / Payment Plan / Deferment) → exit options (Short Sale / DIL) → termination (Payoff). See "LM Field Values — Deal" below for value details. |
 | **Program** | Specific workout plan | The investor program or proprietary plan ID within the Deal category (e.g., Bridger mod, 496.0, Deed-in-Lieu). More granular than Deal; directly determines the compliance and approval pathway. |
 | **Status** | Current working status | Reflects the current progress milestone within this LM cycle (e.g., waiting for borrower documents, denied, negotiating junior liens). Updated in real time as the workout progresses. |
 | **Cycle Opened Date** | Cycle start date | The date the servicer formally opened this workout attempt (maps to Newrez `dealstartdate`). |
@@ -623,41 +690,80 @@ What each column on the BPS LM Cycle panel shows to the user and its role in the
 
 The `deal` field marks the direction of the current LM round, forming a natural escalation sequence from "retain the home" to "exit the home":
 
-| `deal` Value | Business Meaning | Borrower Outcome | Typical Order |
-|---|---|---|---|
-| `Evaluation` | Initial assessment: collects borrower financials, determines applicable LM type; no specific plan committed yet | Undetermined | Step 1 |
-| `Modification` | Loan modification: permanently changes rate / term / principal; borrower retains the property | Retain property | Step 2 |
-| `Forbearance` | Temporary relief: suspends payments for 3–12 months (mandated during COVID by regulators) | Temporary relief | Step 2 (temporary) |
-| `Repayment Plan` | Repayment plan: repays arrears in installments without modifying loan terms | Retain property | Step 2 (light) |
-| `Short Sale` | Short sale: sells property for less than loan balance; lender provides written deficiency waiver | Sell property | Step 3 |
-| `DIL` | Deed-in-Lieu: borrower voluntarily transfers title to lender; loan extinguished by agreement | Surrender property | Step 4 (final) |
+> MCP-verified (SQL-D1, latest-snapshot CTE JOIN) complete enumeration: `lmdeal` code → BPS `deal` text.
+
+| `deal` Value | `lmdeal` Code | Business Meaning | Borrower Outcome | Typical Order |
+|---|---|---|---|---|
+| `Evaluation` | 2 | Initial assessment: collects borrower financials, determines applicable LM type; no specific plan committed yet | Undetermined | Step 1 |
+| `Modification` | 1 | Loan modification: permanently changes rate / term / principal; borrower retains the property | Retain property | Step 2 |
+| `Forbearance` | 5 | Temporary relief: suspends payments for 3–12 months (mandated during COVID by regulators) | Temporary relief | Step 2 (temporary) |
+| `Payment Plan` | 4 | Repayment plan: repays arrears in installments without modifying loan terms | Retain property | Step 2 (light) |
+| `Deferment` | 11 | Deferment: defers part of the arrears to the end of the loan as a lump sum; rate/term unchanged | Retain property | Step 2 (special) |
+| `Short Sale` | 6 | Short sale: sells property for less than loan balance; lender provides written deficiency waiver | Sell property | Step 3 |
+| `DIL` | 7 | Deed-in-Lieu: borrower voluntarily transfers title to lender; loan extinguished by agreement | Surrender property | Step 4 (final) |
+| `Payoff` | 9 | Borrower pays off the loan in full (arrears + fees); FCL terminated | Pay off loan | Any time |
+
+> ⚠️ **Correction from prior version**: `Repayment Plan` was outdated wording; MCP testing confirms the BPS-stored text is actually `Payment Plan` (lmdeal=4). Also added `Deferment` (lmdeal=11) and `Payoff` (lmdeal=9), two categories previously omitted.
 
 #### Program (Specific Solution)
 
 The `program` field identifies the specific workout plan within a `deal` category, decoded from Newrez `lmprogram` (int) via ETL:
 
-| `program` Value | Parent Deal | Business Meaning |
-|---|---|---|
-| `Evaluation` | Evaluation | Generic evaluation workflow (no specific plan) |
-| `Bridger mod` | Modification | Proprietary Bridger / Newrez modification plan (non-GSE standard) |
-| `496.0` | Modification | Specific investor / agency plan code (e.g., Fannie Mae Flex Modification or similar standard plan) |
-| `Short Sale` | Short Sale | Standard short sale workflow |
-| `Deed-in-Lieu` | DIL | Standard deed-in-lieu workflow |
+> MCP-verified (SQL-D2, latest-snapshot CTE JOIN) complete enumeration, grouped by Deal category:
 
-> Note: `program` values vary with investor guideline changes. Numeric codes such as `496.0` are Newrez internal plan IDs; their specific mapping is maintained in Newrez configuration tables.
+| `program` Value | `lmprogram` Code | Parent Deal | Business Meaning |
+|---|---|---|---|
+| `Evaluation` | 21 | Evaluation | Generic evaluation workflow (no specific plan) |
+| `Deferment` | 73 | Deferment | Standard deferment plan |
+| `Repayment Plan` | 29 | Payment Plan | Installment repayment plan |
+| `Short-term Forbearance` | 12 | Forbearance | Short-term forbearance (typically 3–6 months) |
+| `Disaster Forbearance` | 151 | Forbearance | Disaster-triggered forbearance |
+| `Unemployment Forbearance` | 14 | Forbearance | Unemployment-triggered forbearance |
+| `Short-term FB COVID` *(RETIRED 2023-11-01)* | 215 | Forbearance | COVID forbearance (retired) |
+| `Bridger mod` | 419 | Modification | Proprietary Bridger / Newrez modification plan (non-GSE) |
+| `SLS Standard Mod` | 240 | Modification | SLS standard modification plan |
+| `Standard Proprietary Modification` | 273 | Modification | Generic proprietary modification |
+| `FHA Recovery SAPC` | 348 | Modification | FHA payment recovery modification (SAPC) |
+| `FHA Recovery Mod (40yr)` | 346 | Modification | FHA 40-year modification |
+| `SLS Non-Standard Mod` | 358 | Modification | SLS non-standard modification |
+| `VA Traditional` | 396 | Modification | VA traditional modification |
+| `VA 30 Year Modification` | 364 | Modification | VA 30-year modification |
+| `VA 40 Year Modification` | 365 | Modification | VA 40-year modification |
+| `VASP No Trial` | 405 | Modification | VA VASP plan (no trial period) |
+| `Short Sale` | 8 | Short Sale | Standard short sale workflow |
+| `Deed-in-Lieu` | 10 | DIL | Standard deed-in-lieu workflow |
+| `Payoff` | 25 | Payoff | Full payoff |
+
+> Note: `program` values vary with investor guideline changes; the above are the valid plans observed in MCP testing. Codes `496` / `498` mapped inconsistently in testing — defer to the actual BPS record.
 
 #### Status (Current Working Status)
 
 `lmc_status` is decoded from Newrez `lmstatus` (int) and reflects the progress milestone within the LM cycle:
 
-| `lmc_status` Value | Business Meaning |
-|---|---|
-| `Pending Financials` | Waiting for borrower to submit financial documents (income verification, bank statements, etc.) |
-| `Workout Denial` | Current LM round has been denied (borrower ineligible or unresponsive) |
-| `Document Follow-up` | Partial documents received; following up to collect outstanding items |
-| `DIL Title Ordered` | In the DIL process, a title search has been ordered (to confirm no other liens) |
-| `Negotiate DIL liens` | Negotiating payoff terms with junior lienholders (second mortgage, HOA arrears, etc.) |
-| `Awaiting MI Approval` | Waiting for the Mortgage Insurance (MI) company to approve the LM plan |
+> MCP-verified (SQL-D3, latest-snapshot CTE JOIN) complete enumeration (`lmstatus` code → BPS `lmc_status` text):
+
+| `lmc_status` Value | `lmstatus` Code | Business Meaning |
+|---|---|---|
+| `Pending Financials` | 166 | Waiting for borrower to submit financial documents (income verification, bank statements, etc.) |
+| `Workout Denial` | 112 | Current LM round has been denied (borrower ineligible or unresponsive) |
+| `Document Follow-up` | 5 | Partial documents received; following up to collect outstanding items |
+| `Book mod` | 20 | Loan modification being formally booked (agreement signed, ETL writing to system) |
+| `Monitor Forbearance` | 113 | Monitoring forbearance execution (whether borrower pauses payments as agreed) |
+| `Deferment Agreement Ordered` | 140 | Deferment agreement ordered / signed |
+| `Deferment Plan In Progress` | 139 | Deferment plan in progress |
+| `Monitor for pmts/funds` | 25 | Monitoring whether borrower pays / funds arrive |
+| `Follow up for 1st Trial Payment` | 13 | Following up on first trial-period payment (Trial Plan kickoff) |
+| `Liquidation Referral` | 172 | Liquidation / disposition referral (plan failed, moved to liquidation) |
+| `Not Assigned` | 116 | Unassigned handler / status |
+| `Countered by Supervisor` | 45 | Supervisor countered / adjusted the plan (internal review step) |
+| `Monitor for Mod Agreement` | 47 | Monitoring modification agreement execution |
+| `DIL Title Ordered` | 126 | In the DIL process, a title search has been ordered (to confirm no other liens) |
+| `Negotiate DIL liens` | 127 | Negotiating payoff terms with junior lienholders (second mortgage, HOA arrears, etc.) |
+| `DIL Sent for Recording` | 135 | Deed-in-lieu documents submitted for title recording |
+| `Awaiting investor approval` | 24 | Waiting for investor (e.g., Fannie Mae / VA) to approve the LM plan |
+| `Awaiting MI Approval` | — | Waiting for the Mortgage Insurance (MI) company to approve (see loanid=7727000088 live record) |
+| `Solicitation Offered` | 187 | Plan offer sent to borrower; awaiting response |
+| `Submitted for Approval` | — | Submitted for approval; awaiting result |
 
 #### Final Disposition (Outcome of the LM Round)
 
@@ -719,36 +825,42 @@ A single loan can accumulate multiple LM records (e.g., loanid=7727000088 has 9 
 
 **BPS storage table**: `bpms_dev.sync_loan_foreclosure_bankruptcy` (22 columns)
 
-| UI Column | BPS Field | Newrez Raw Field | Source Table | Newrez Field → BPS Field |
+| UI Column | BPS Field | Newrez Raw Field | Source Table | Newrez Field → BPS Field (ETL code-verified basic_data_pool_config.py:349-363) |
 |---|---|---|---|---|
-| Status | `bankruptcy_status` | `bkstatus` (int) | portnewrezbk | Numeric code (Newrez internal BK status code) |
-| Legal Status | `legal_status` | `bkstage` (int) | portnewrezbk | Numeric code (BK legal proceeding stage code) |
-| Status Date | `status_date` | `bkrcurrentstatusdate` | portnewrezbk | Direct (current status effective date) |
-| Chapter | `chapter` | `bkchapter` (int) | portnewrezbk | Direct (7 / 11 / 13) |
-| Lien Status | `lien_status` | *(TBD)* | portnewrezbk | Possibly from cramdown or adversarial action fields |
-| MFR Status | `mfr_status` | `mfrhearingresults` (int) | portnewrezbk | Numeric code (MFR hearing outcome) |
-| MFR Filed Date | `mfr_filed_date` | `mfrfileddate` | portnewrezbk | Direct |
-| Claim Status | `claim_status` | *(TBD)* | portnewrezbk | Possibly from POC-related fields |
-| Proof of Claim Date | `proof_of_claim_date` | `pocfileddate` | portnewrezbk | Direct |
-| Post Petition Due Date | `post_petition_due_date` | `bkpostpetitionduedate` | portnewrezbk | Direct (post-petition loan payment due date) |
+| Status | `bankruptcy_status` | `bkstatus` (int) + datadic | portnewrezbk | **`COALESCE(portnewrezdatadic[BKStatus].description, bkstatus)`** — decoded text, falls back to raw code if unmatched. Observed values: Completed/Cancelled \| Discharged \| Active \| Dismissed \| ReliefGranted \| Closed (occasional raw code e.g. `3.0`) |
+| Legal Status | `legal_status` | `legalstatus` (text) | **portnewrezgeneral** | **Direct text** (DB-verified: FCBU/BK13/BK7/BK11/.../REO, 31/64 non-null); actual source is `portnewrezgeneral.legalstatus`, not a decode of `bkstage` |
+| Status Date | `status_date` | **`bkfileddate`** | portnewrezbk | ⚠️ Direct from bankruptcy **filing date `bkfileddate`** (code-verified correction — NOT `bkrcurrentstatusdate`, which is mostly NULL in dev) |
+| Chapter | `chapter` | `bkchapter` (int) | portnewrezbk | `CAST(bkchapter AS DECIMAL)` (7 / 11 / 13) |
+| Lien Status | `lien_status` | *(none)* | — | ⚠️ **ETL hardcodes `NULL`** (`null as lien_status`); 0/64 populated |
+| MFR Status | `mfr_status` | *(none)* | — | ⚠️ **ETL hardcodes `NULL`** (`null as mfr_status`, NOT `mfrhearingresults`); 0/64 |
+| MFR Filed Date | `mfr_filed_date` | *(none)* | — | ⚠️ **Newrez path hardcodes `NULL`** (`null as mfr_filed_date`, NOT `mfrfileddate`); only 3/64 non-null (likely BPS-internal/historical) |
+| Claim Status | `claim_status` | *(none)* | — | ⚠️ **ETL hardcodes `NULL`** (`null as claim_status`); 0/64 |
+| Proof of Claim Date | `proof_of_claim_date` | `pocfileddate` | portnewrezbk | Direct (24/64 non-null) |
+| Post Petition Due Date | `post_petition_due_date` | `bkpostpetitionduedate` | portnewrezbk | Direct (22/64 non-null; post-petition loan payment due date) |
 
 ### Notes
 
 - This panel only contains data for loans with a bankruptcy filing history. UI screenshot for loanid=7727000088 shows "No Rows To Show" — confirmed by MCP: no records in `sync_loan_foreclosure_bankruptcy` for this loan.
-- `bkstatus` and `bkstage` are numeric codes. Unlike the LM panel (where ETL decodes to text), BK panel numeric codes may be stored as-is — whether decode logic exists requires further investigation.
+- **(Resolved 2026-06-02, ETL code + DB-verified)** Verified field-by-field against `basic_data_pool_config.py:349-363` (BK extract layer):
+  - `bankruptcy_status` = `COALESCE(portnewrezdatadic[BKStatus].description, bkstatus)` — decode to text, fall back to raw code if unmatched (observed e.g. `3.0`); decoded values: Completed/Cancelled(31) | Discharged(15) | Active(13) | Dismissed(2) | ReliefGranted(1) | Closed(1). The earlier "1→Active…5→ReliefGranted" 5-value map was incomplete — corrected.
+  - `legal_status` comes **directly from `newrez.portnewrezgeneral.legalstatus`** (FCBU/BK13/BK7…, 31/64 non-null), not a decode of `bkstage`.
+  - ⚠️ `status_date` is actually **`bkfileddate` (filing date)**, NOT `bkrcurrentstatusdate` (code-verified correction; the latter is mostly NULL in dev).
+  - ⚠️ `lien_status` / `mfr_status` / `claim_status` / `mfr_filed_date` are **hardcoded `NULL`** in the Newrez extract path (`null as ...`); DB shows lien/mfr/claim = 0/64, `mfr_filed_date` only 3/64 (those loanids likely BPS-internal/historical, not the current extract). This corrects the earlier "mfr_status ← mfrhearingresults / mfr_filed_date ← mfrfileddate / lien·claim TBD" statements.
+  - Sync layer `GEN_FORECLOSURE_BK` (`asset_managment_config.py`) has no extra WHERE, `JOIN port.portfunding`. Verify via Appendix B — SQL-13.
 
 ---
 
 ## Section 7: Aggregate Overview (Stage Tab + Time Line Tab)
 
 > The Aggregate Overview page contains two view tabs, both drawing from the same data source `bpms_dev.sync_fcl_stage_info`: the **Stage Tab** groups loans by current stage and shows elapsed day statistics; the **Time Line Tab** shows each loan's FCL milestone dates as a horizontal timeline (see the `### Time Line Tab` subsection at the end of this section).
-> **Data Range**: This page displays all active FCL loans that meet the entry criteria; currently approximately **13,321 loans** (dataasof 2026-05-24). Each loan is grouped into the corresponding BPS stage bucket (via the `stage` field), showing stage-day statistics in a single row.
+> **Data Range**: This page displays all active FCL loans that meet the entry criteria; approximately **13,321 loans** (dataasof 2026-05-24, fuller dataset / production scope). Each loan is grouped into the corresponding BPS stage bucket (via the `stage` field), showing stage-day statistics in a single row.
+> **⚠️ Count reconciliation (2026-06-02, this dev env)**: current dev `bpms_dev.sync_fcl_stage_info` at latest `fctrdt=2026-03-13` has only **26 rows** (all Newrez / group=FCL) — a different dataset/snapshot than the 13,321 above. Related source counts: `newrez.portnewrezfc` latest snapshot (2026-05-31) `activefcflag=1`=**36**, `activefcflag=0`=5016 (5052 total); main FCL table `bpms_dev.sync_loan_foreclosure` (`fcreferraldate` not null, includes activefcflag=0 inactive loans) =**98**. These three populations (active aggregate / truly-active source / main table incl. inactive) are not directly comparable. (activefcflag=0 = not in active foreclosure: completed or withdrawn/reinstated/paid.)
 >
 > **Source Data Filter Conditions (ETL code verified — differs from Section 3.1)**:
-> - **Primary filter (in-progress FCL, `basic_data_pool_config.py` `GEN_FCL_STAGE` lines 1789–1791)**: `activefcflag = 1 AND fcremovaldate IS NULL AND (fcremovaldesc IS NULL OR fcremovaldesc = '')` — only loans actively in FCL and not yet removed. ⚠️ **Completed loans (`activefcflag=0`) are excluded from this table**, unlike `sync_loan_foreclosure` (which includes completed loans).
+> - **Primary filter (in-progress FCL, `basic_data_pool_config.py` `GEN_FCL_STAGE` lines 1789–1791)**: `activefcflag = 1 AND fcremovaldate IS NULL AND (fcremovaldesc IS NULL OR fcremovaldesc = '')` — only loans actively in FCL and not yet removed. ⚠️ **Inactive loans (`activefcflag=0`: not in active foreclosure — completed or withdrawn/reinstated/paid) are excluded from this table**, unlike `sync_loan_foreclosure` (which includes activefcflag=0 inactive loans).
 > - **Secondary filter (pre-FCL demand-letter loans, lines 1809–1818)**: `activefcflag != 1 AND demandsentdate IS NOT NULL AND referral_start_date IS NULL AND delinquency_status IN ('D90', 'D120P')` — 90-day+ delinquent loans with a Demand Letter but not yet referred to FCL are also included (shown under `DEMAND` stage).
 > - **Sync layer (Redshift→MySQL, `asset_managment_config.py` `GET_FCL_STAGE_DATA` lines 925–929)**: `SELECT a.* FROM port.fcl_stage_info a JOIN port.portfunding p ON a.loanid = p.loanid` (no additional WHERE; full pass-through with funding pool join).
-> - **Difference from Section 3.1**: Main FCL table entry condition is `fcreferraldate IS NOT NULL` (includes historical completed loans); Aggregation Overview condition is `activefcflag=1 AND fcremovaldate IS NULL` (active in-progress only, stricter). The two populations differ — their loan counts should not be directly compared.
+> - **Difference from Section 3.1**: Main FCL table entry condition is `fcreferraldate IS NOT NULL` (includes activefcflag=0 historical inactive loans); Aggregation Overview condition is `activefcflag=1 AND fcremovaldate IS NULL` (active in-progress only, stricter). The two populations differ — their loan counts should not be directly compared.
 > **Source table**: `bpms_dev.sync_fcl_stage_info` (one row per active FCL loan, 57 columns)
 > **Validation SQL**: Stage distribution across all loans: Appendix B — SQL-9 (grouped by `stage`; reproduces the loan count breakdown shown on the Aggregation Overview page)
 
@@ -796,13 +908,13 @@ BPS uses a **waterfall priority rule** to assign each loan a `stage` value: forw
 
 | Priority | `stage` Stored Value (all-caps DB code) | Classification Condition (Newrez `portnewrezfc` fields) | BPS Output Fields (`sync_fcl_stage_info`) |
 |----------|----------------------------------------|--------------------------------------------------------|------------------------------------------|
-| 1 | `SALE` | `fcscheduledsaledate IS NOT NULL` | `sale_start_date` · `to_sale_days` · `sale_in_lm_days` · `sale_on_hold_days` |
-| 2 | `JUDGEMENT` | `fcjudgmenthearingscheduled IS NOT NULL` AND `fcscheduledsaledate IS NULL` | `judgement_start_date` · `to_judgement_days` · `judgement_in_lm_days` · `judgement_on_hold_days` |
-| 3 | `PUBLICATION` | `publication_date IS NOT NULL` (always 0 for Newrez loans — see Section 8 Q1) | `publication_start_date` · `publication_stage_days` · `publication_in_lm_days` · `publication_on_hold_days` |
-| 4 | `SERVICE` | `servicecompletedate IS NOT NULL` AND priorities 1–3 not triggered | `service_start_date` · `service_stage_days` · `service_in_lm_days` · `service_on_hold_days` |
-| 5 | `FIRST_LEGAL` | `firstlegaldate IS NOT NULL` AND `servicecompletedate IS NULL` | `first_legal_start_date` · `first_legal_stage_days` · `first_legal_in_lm_days` · `first_legal_on_hold_days` |
-| 6 | `REFERRAL` | `fcreferraldate IS NOT NULL` AND `firstlegaldate IS NULL` | `referral_start_date` · `referral_stage_days` · `referral_in_lm_days` · `referral_on_hold_days` |
-| 7 | `DEMAND` | `demandsentdate IS NOT NULL` AND `fcreferraldate IS NULL` (post-entry loans should not hit this; live rate = 0%) | `demand_start_date` · `demand_stage_days` · `demand_in_lm_days` · `demand_on_hold_days` |
+| 1 | `SALE` | `fcscheduledsaledate IS NOT NULL` | `sale_start_date` \| `to_sale_days` \| `sale_in_lm_days` \| `sale_on_hold_days` |
+| 2 | `JUDGEMENT` | `fcjudgmenthearingscheduled IS NOT NULL` AND `fcscheduledsaledate IS NULL` | `judgement_start_date` \| `to_judgement_days` \| `judgement_in_lm_days` \| `judgement_on_hold_days` |
+| 3 | `PUBLICATION` | `publication_date IS NOT NULL` (always 0 for Newrez loans — see Section 8 Q1) | `publication_start_date` \| `publication_stage_days` \| `publication_in_lm_days` \| `publication_on_hold_days` |
+| 4 | `SERVICE` | `servicecompletedate IS NOT NULL` AND priorities 1–3 not triggered | `service_start_date` \| `service_stage_days` \| `service_in_lm_days` \| `service_on_hold_days` |
+| 5 | `FIRST_LEGAL` | `firstlegaldate IS NOT NULL` AND `servicecompletedate IS NULL` | `first_legal_start_date` \| `first_legal_stage_days` \| `first_legal_in_lm_days` \| `first_legal_on_hold_days` |
+| 6 | `REFERRAL` | `fcreferraldate IS NOT NULL` AND `firstlegaldate IS NULL` | `referral_start_date` \| `referral_stage_days` \| `referral_in_lm_days` \| `referral_on_hold_days` |
+| 7 | `DEMAND` | `demandsentdate IS NOT NULL` AND `fcreferraldate IS NULL` (post-entry loans should not hit this; live rate = 0%) | `demand_start_date` \| `demand_stage_days` \| `demand_in_lm_days` \| `demand_on_hold_days` |
 
 #### Stage Code → BPS Page Display Name Mapping
 
@@ -894,7 +1006,7 @@ The Time Line Tab shows **one row per loan**, displaying each FCL milestone date
 | Q4 | `currentmilestone` and `fcstage` track different things: `fcstage` is Newrez's current workflow step; `currentmilestone` is the BPS milestone label (sometimes set ahead of time) | `summary_current_step` | When they differ, `currentmilestone` takes priority, which may appear inconsistent |
 | Q5 | `demandsentdate` is null for ~14.1% of active FCL loans | `timeline_notice_of_intent_date`, `actual_notice_of_intent_days` | Loans without NOI data can still be in FCL (entry condition uses `fcreferraldate`, not `demandsentdate`) |
 | Q6 | `imminent_default` and `single_point_of_contact` in LM sync table are NULL for all Newrez loans | LM Cycle panel — these two columns | Newrez does not provide these fields; always null for Newrez loans |
-| Q7 | BK panel `bankruptcy_status` and `legal_status` come from Newrez numeric codes (`bkstatus`, `bkstage`); BPS may store raw numbers rather than decoded text | Bankruptcy panel Status and Legal Status columns | Requires further investigation — decode behavior differs from LM panel |
+| Q7 | Are BK panel `bankruptcy_status` / `legal_status` decoded text? | Bankruptcy panel Status and Legal Status columns | ✅ **Resolved (2026-06-02, DB-verified)**: `bankruptcy_status` = ETL decode of `bkstatus` (int 1–5) to text (1→Active \| 2→Discharged \| 3→Dismissed \| 4→Closed \| 5→ReliefGranted); `legal_status` comes directly from `newrez.portnewrezgeneral.legalstatus` (text FCBU/BK13/BK7…), not a decode of `bkstage`. Both are text, not numeric codes |
 | Q8 | `titlereceiveddate` and `titlecleardate` have **0.0% fill rate** for active FCL loans (MCP-verified) — Newrez does not populate title-related date fields | `timeline_title_report_received_date`, `timeline_preliminary_title_cleared_date`, `timeline_final_title_cleared_date`; and related `actual_*`, `var_*` fields | All three BPS title milestone fields will **always be null** for Newrez loans. Same nature as Q1 (Publication) — Newrez simply does not report these dates |
 | Q9 | `fcsaleamount` has **4.7% fill rate** for active FCL loans — higher than sale-held rate (`fcsalehelddate` = 2.1%). ~2.6% of active loans have a sale amount recorded without a corresponding sale held date | `summary_foreclosure_sale_amount` | Likely a Newrez field update sequencing issue (amount arrives before held date). When using `fcsaleamount`, always verify `fcsalehelddate` is non-null ⚠️ |
 | Q10 | **[v20 corrected]** `sync_fcl_stage_info.judgement_start_date` maps to **`fcjudgmenthearingscheduled`** (hearing scheduled date), NOT `fcjudgmententered` (court entry date). These two fields measure different time points. MCP-verified (loan 7727000357): `fcjudgmenthearingscheduled` = 2026-01-18 **matches** BPS `judgement_start_date` = 2026-01-18 ✅; `fcjudgmententered` = 2026-01-07. The ~11-day gap is NOT a processing lag — `fcjudgmenthearingscheduled` is the scheduled hearing date (future planned event); `fcjudgmententered` is when the court formally recorded the judgment (completed legal fact). ETL code: `fc.fcjudgment_hearing_scheduled AS timeline_judgement_date` (`basic_data_pool_config.py`) | Time Line Tab "Judgement Date 6" column; `sync_fcl_stage_info.judgement_start_date` | Root cause confirmed: two fields with different business meanings. When verifying Judgement Date 6, use `fcjudgmenthearingscheduled`; use `fcjudgmententered` only for actual hearing-set → judgment-entered days calculation ⚠️ |
@@ -909,8 +1021,8 @@ The Time Line Tab shows **one row per loan**, displaying each FCL milestone date
 
 | Value | Meaning |
 |-------|---------|
-| `1` | FCL in-progress (Active Foreclosure) |
-| `0` | FCL closed / removed |
+| `1` | In active foreclosure (Active Foreclosure) |
+| `0` | Not currently in active foreclosure (Closed / Removed: includes completed AND withdrawn/reinstated/paid) |
 | `NULL` | ⚠️ Historical legacy issue (see below) |
 
 **Problem**: Newrez historical data contains loans where `activefcflag IS NULL`, yet these loans were still actively in the FCL process — **not closed**. Newrez simply failed to populate `1` for those historical records, leaving the field blank.
@@ -920,9 +1032,11 @@ The Time Line Tab shows **one row per loan**, displaying each FCL milestone date
 In BPS's data architecture, FCL **closure** has explicit, multi-field evidence:
 
 - `fcremovaldate` is populated → explicit exit date
-- `fcremovaldesc` is populated → explicit exit reason (e.g., `'Borrower Reinstated'`, `'Loss Mitigation'`)
+- `fcremovaldesc` is populated → explicit exit reason (e.g., `'Borrower Reinstated'`, `'Loss Mitigation'`, `'Paid in Full'`, `'Process Complete'`)
 
-Therefore: **if a loan's FCL is truly closed, there is unambiguous closing evidence — it is not identified solely by `activefcflag = 0`.**
+> Note: `activefcflag=0` means **not currently in active foreclosure**; the exit reason is most often **reinstated / loss-mitigation / paid (stopped, NOT completed)**, and only a minority are REO/3rd Party/DiL (truly completed). So `activefcflag=0` ≠ "completed".
+
+Therefore: **if a loan has exited active foreclosure, there is unambiguous exit evidence — it is not identified solely by `activefcflag = 0`.**
 
 Conversely, if `activefcflag IS NULL` and `fcremovaldate` is also null, the conservative interpretation is "still in FCL."
 
@@ -1085,7 +1199,8 @@ SELECT
   ROUND(SUM(fchold3description IS NOT NULL)/COUNT(*)*100,1) AS fchold3description_pct
 
 FROM newrez.portnewrezfc
-WHERE activefcflag = 1;
+WHERE activefcflag = 1
+  AND dataasof = (SELECT MAX(dataasof) FROM newrez.portnewrezfc);
 ```
 
 ---
@@ -1105,10 +1220,12 @@ SELECT
   fcresults,
   COUNT(*)                                       AS loan_count,
   ROUND(COUNT(*) * 100.0 /
-    (SELECT COUNT(*) FROM newrez.portnewrezfc WHERE activefcflag = 1), 1
+    (SELECT COUNT(*) FROM newrez.portnewrezfc WHERE activefcflag = 1
+       AND dataasof = (SELECT MAX(dataasof) FROM newrez.portnewrezfc)), 1
   )                                              AS pct_of_active_fcl
 FROM newrez.portnewrezfc
 WHERE activefcflag = 1
+  AND dataasof = (SELECT MAX(dataasof) FROM newrez.portnewrezfc)
   AND fcresults IS NOT NULL
   AND fcresults != ''
 GROUP BY fcresults
@@ -1138,7 +1255,8 @@ SELECT
   -- Further inspect fcresults
   SUM(fcsaleamount IS NOT NULL AND fcresults IS NOT NULL AND fcresults != '') AS amount_with_results
 FROM newrez.portnewrezfc
-WHERE activefcflag = 1;
+WHERE activefcflag = 1
+  AND dataasof = (SELECT MAX(dataasof) FROM newrez.portnewrezfc);
 ```
 
 ---
@@ -1320,9 +1438,11 @@ SELECT
   stage                          AS bps_stage,
   COUNT(*)                       AS loan_count,
   ROUND(COUNT(*) * 100.0 /
-    (SELECT COUNT(*) FROM bpms_dev.sync_fcl_stage_info), 1
+    (SELECT COUNT(*) FROM bpms_dev.sync_fcl_stage_info
+     WHERE fctrdt = (SELECT MAX(fctrdt) FROM bpms_dev.sync_fcl_stage_info)), 1
   )                              AS pct_of_total
 FROM bpms_dev.sync_fcl_stage_info
+WHERE fctrdt = (SELECT MAX(fctrdt) FROM bpms_dev.sync_fcl_stage_info)
 GROUP BY stage
 ORDER BY loan_count DESC;
 -- Expected stage values: NOI/Demand Letter / NOI (Approved for Referral) / Referral /

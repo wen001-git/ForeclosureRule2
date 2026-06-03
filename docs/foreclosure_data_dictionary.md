@@ -18,10 +18,18 @@
 
 | Date | Author | Version | Changes | Related |
 |------|--------|---------|---------|---------|
+| 2026-06-03 | AI Agent (Claude Opus 4.8) | v12 | 「表19 LM 编码字段解码参考」补充解码机制溯源：映射数据在 **Redshift 字典表 `newrez.portnewrezdatadic`**（dev MySQL 无），解码 JOIN 在代码 `basic_data_pool_config.py:835-840`（BK :367），非硬编码；LMDeal 字典 13 码（实测 8） | basic_data_pool_config.py · Redshift portnewrezdatadic · doc 13 v33 |
+| 2026-06-03 | AI Agent (Claude Opus 4.8) | v11 | 【可读性】把值/枚举取值列表的中点 `·` 分隔符统一改为 `\|`（与 doc 14 一致）：summary_foreclosure_status / fchold1description / fcresults / currentmilestone / lmdeal·lmstatus·lmprogram·lmdecision·denialreason 编码列表 / bk 解码 共 10 处；保留「X 阶段 · 子含义」结构标签、读者行、修订史里的 `·` | doc 14 v24 · doc 13 v32 |
 | 2026-05-23 | AI Agent | v1 | Initial draft — reverse engineered from PrefectFlow Python/SQL source | prompt.md |
 | 2026-05-25 | AI Agent (Claude Sonnet 4.6) | v2 | 新增表13（port.basic_data_loan_fcl，61列全量）和表14（port.basic_data_loan_foreclosure，62列全量）；包含DB实测类型、真实取值分布、INSERT填充状态标注；修正 fcstage 实际取值说明 | prompt.md |
 | 2026-05-25 | AI Agent (Claude Sonnet 4.6) | v3 | 新增表15（port.portmonthbase，120列）和表16（port.portmonth，141列）；含Redshift实测行数/日期范围/delinq分布/关键字段统计；标注 portmonth 相对 portmonthbase 的23个新增字段（★） | prompt.md |
 | 2026-05-28 | AI Agent (Claude Sonnet 4.6) | v4 | 新增表17（bpms_dev.sync_loan_foreclosure，72列，MCP实测）；7组字段全量记录（标识符/timeline_*/target_*_days/variance_*/bid_approval_*/summary_*/管理字段）；标注 target_*_days 硬编码DEFAULT值、bid_approval_loan_resolution_holods 列名拼写错误、actual_*_days 字段位于 sync_fcl_stage_info 而非本表 | prompt.md |
+| 2026-06-01 | AI Agent (Claude Sonnet 4.6) | v6 | 表18/表19 典型取值 MySQL 实测校正：① currentmilestone 更正（去除不存在的 'First Legal Complete'）；② fchold1description 更正为完整枚举值；③ fcresults 更正（去除不存在的 '3rd Party Sale'/'Redemption'）；④ Hold 2/3 全部 — 字段补充实测值；⑤ hardshiptype/denialreason 更正为实际编码；⑥ pradate2/3、praamount2/3 标注实测始终 NULL | MySQL newrez 实测 |
+| 2026-06-01 | AI Agent (Claude Sonnet 4.6) | v8 | 表19 LM 编码字段补全：① borrowerintention、lmdeal 取值范围列内联 BPS 解码文本；② lmprogram/lmstatus/lmdecision/denialreason 取值范围列增加解码参考说明；③ 新增「表19 LM 编码字段解码参考」章节（5 张解码表，共约 60 条 code→text 映射，来自 bpms_dev JOIN newrez 实测） | BPS JOIN 2026-06-01 |
+| 2026-06-01 | AI Agent (Claude Sonnet 4.6) | v7 | 表18/表19「典型取值」列拆分为「取值范围」+「典型取值」两列（9列→10列）；取值范围来自 MCP MySQL 实测（min/max、枚举集、格式约束）；典型取值保留单一代表性示例 | MySQL newrez 实测 2026-06-01 |
+| 2026-05-29 | AI Agent (Codex) | v5 | 新增表18（newrez.portnewrezfc，63列，MySQL实测）和表19（newrez.portnewrezlm，56列，MySQL实测）；补充 Newrez FCL/LM 原始表字段、行数、dataasof 范围、关键字段最新快照分布、代码下游使用路径 | prompt.md |
+| 2026-06-01 | AI Agent (Claude Opus 4.8) | v10 | 依据 PrefectFlow 源码确认/订正表上游下游血缘：① 表17 上游来源由"写入来源不明/推测 BPS 应用层"**订正为代码确认的两步写入**（`sync_to_mysql` staging → `update_to_mysql`→`UPDATE_FORECLOSURE` upsert，df_db_util.py:698/710 + asset_managment_config.py:644）；订正下游（`sync_fcl_stage_info` 非本表下游）；② 表17/20–25 各属性块新增「代码血缘（PrefectFlow）」行（SQL 模板 + file:line）；③ 表23 字段来源按代码订正：`legal_status`←portnewrezgeneral.legalstatus、`status_date`←bkfileddate、`mfr_status`/`claim_status`/`lien_status` 恒 NULL、`mfr_filed_date` 仅 Carrington 分支（推翻 doc 13 §6 二手映射） | PrefectFlow 源码 (basic_data_pool_config.py / asset_managment_config.py / df_db_util.py / sync_asset_management.py / servicer_config.py) |
+| 2026-06-01 | AI Agent (Claude Opus 4.8) | v9 | 新增表20–表25（6张，MCP 实测，10列表头含【取值范围】）：表20 `newrez.portnewrezbk`(60) · 表21 `sync_loan_foreclosure_hold`(15) · 表22 `sync_loan_foreclosure_loss_mitigation`(22) · 表23 `sync_loan_foreclosure_bankruptcy`(22) · 表24 `sync_fcl_stage_info`(57) · 表25 `biz_data_view_loan_details_foreclosure`(104, VIEW)。同时为表17 全 7 组补充【取值范围】列并**按 live schema 校正字段清单/类型**（无 `dataasof`、含 `id` 主键、timeline 组成员与多字段类型更正）。取值范围/类型/填充率全部经 MCP 实测（脚本 `scripts/extract_table_stats.py` → `outputs/table_stats_for_data_dictionary.json`；视图溯源用 `SHOW CREATE VIEW`） | MCP 实测 2026-06-01；doc 13 §2/§4/§5/§6/§7 |
 
 ## Assumptions
 
@@ -1100,129 +1108,945 @@
 | **业务作用** | BPS Foreclosure 管理面板的主数据表，存储每笔贷款的 FCL 全生命周期时间线、SLA 目标天数、差异调整、竞拍审批信息及综合摘要；对应 BPS UI 的5个核心面板：Milestone Timeline / Target Days / Variance / Bid Approval / Summary |
 | **业务意图** | 为 BPS Foreclosure 管理界面提供结构化、标准化的数据支撑，供资产经理实时查看贷款 FCL 进展、判断 SLA 合规性、审批竞拍出价 |
 | **行数（dev）** | 98 行（95 个 distinct loanid；2家Servicer：Newrez 88行，Carrington 10行） |
-| **上游来源** | 写入来源不明（**不在 SYNC_TABLE_MAP 中**）；推测由 BPS 应用层（Java/Spring Boot）或专属 ETL 脚本直接写入；见 doc 02 v2 + doc 12 v4 |
-| **下游使用** | BPS UI 5个面板（Milestone Timeline / Target Days / Variance / Bid Approval / Summary）；`bpms_dev.sync_fcl_stage_info`（阶段信息及 `actual_*_days` 实际天数字段） |
+| **上游来源** | **由 PrefectFlow 代码写入（已确认，非"来源不明"）**：`sync_asset_management` 的 `5-FORECLOSURE` 分支 → `GEN_FORECLOSURE` 从 Redshift `port.basic_data_loan_foreclosure` 读数 → `sync_to_mysql()` 先 DELETE+INSERT 写 MySQL **staging 表** `port.basic_data_loan_foreclosure` → 随后 `update_to_mysql()` 触发 `UPDATE_FORECLOSURE`：`INSERT INTO sync_loan_foreclosure ... ON DUPLICATE KEY UPDATE`（源 `port.basic_data_loan_foreclosure JOIN port.portfunding WHERE timeline_referred_to_foreclosure_date IS NOT NULL`）。详见「代码血缘」行 |
+| **下游使用** | BPS UI 5个面板（Milestone Timeline / Target Days / Variance / Bid Approval / Summary）；视图 `bpms_dev.biz_data_view_loan_details_foreclosure`（表25）以本表为基表实时计算 `actual_*_days`/`var_*_days`。⚠️ 注：`sync_fcl_stage_info`（表24）**不是本表下游**——它是同级 BPS 表，独立由 `12-FCL_STAGE` 从 Redshift `port.fcl_stage_info` 同步 |
 | **Foreclosure 关系** | 核心：`timeline_*` 字段驱动时间线面板；`target_*_days` 提供 SLA 基准；`summary_*` 字段驱动综合摘要面板 |
-| **已知问题** | ① `actual_*_days`（实际历时天数）**不在本表**，而在 `bpms_dev.sync_fcl_stage_info`；② 列名 `bid_approval_loan_resolution_holods` 含拼写错误（应为 `holds`，已投产无法轻易修改）；③ 写入来源未通过 ETL 代码确认（见 doc 12 Section 14 对 SYNC_TABLE_MAP 的分析） |
-| **MCP验证** | 2026-05-28 实测；INFORMATION_SCHEMA.COLUMNS + 行统计 SQL |
+| **已知问题** | ① `actual_*_days`（实际历时天数）**不在本表**——在视图 `biz_data_view_loan_details_foreclosure`（表25）实时计算、阶段口径在 `sync_fcl_stage_info`（表24）；② 列名 `bid_approval_loan_resolution_holods` 含拼写错误（应为 `holds`，已投产无法轻易修改）；③ ~~写入来源未通过 ETL 代码确认~~ **已订正：写入来源已由 PrefectFlow 代码确认**（两步 upsert，见上游来源/代码血缘；推翻 doc 02/12 早期"不在 SYNC_TABLE_MAP/来源不明"的推断）；④ dev 环境多数 `variance_*` / `bid_approval_status` / `summary_servicer_number` / 管理字段（create_*/update_*）实测全为 NULL（未回填） |
+| **代码血缘（PrefectFlow）** | 编排 `flow/bps/sync_asset_management.py`（`5-FORECLOSURE`）→ SQL 模板 `flow/bps/bps_config/asset_managment_config.py`：`GEN_FORECLOSURE`(L535)、`UPDATE_FORECLOSURE`(L644，`INSERT INTO sync_loan_foreclosure ... ON DUPLICATE KEY UPDATE`，源 JOIN portfunding + `WHERE timeline_referred_to_foreclosure_date IS NOT NULL` L604-605) → 同步工具 `util/df_db_util.py`：`sync_to_mysql`(L664，staging DELETE+INSERT，`sync_table_name=='basic_data_loan_foreclosure'` 时库为 `port` L675)→`update_to_mysql`(L702，`if sync_table_name=='basic_data_loan_foreclosure'` L710 执行 UPDATE_FORECLOSURE)。Redshift 基表构建 `flow/basic_data/basic_data_config/basic_data_pool_config.py`（CREATE_BASIC_FCL/GEN_FCL_DETAIL）。**写入机制：upsert（ON DUPLICATE KEY UPDATE），区别于子表的 DELETE+INSERT** |
+| **MCP验证** | 2026-06-01 重新实测（72列）：INFORMATION_SCHEMA.COLUMNS + 单列 MIN/MAX/COUNT/DISTINCT 全量统计（脚本 `scripts/extract_table_stats.py`，结果 `outputs/table_stats_for_data_dictionary.json`）。⚠️ 本次实测对早期 v4 字段清单做了校正：本表**无 `dataasof` 列**、含自增主键 `id`；timeline 组实际字段为 `judgement_hearing_set_date`/`sale_date_set_date`/`third_party_sold_date_date`（早期误列的 `*_start_date`/`*_completed_date`/`*_proceeds_wired_date` 不存在）；多个字段数据类型已按实测更正。字段清单与 `UPDATE_FORECLOSURE` 的 INSERT 列清单一致（asset_managment_config.py:647+） |
 
 #### Group 1：标识符（6列）
 
-| 字段名 | 字段业务含义 | 来源数据 | 计算/推导逻辑 | 数据类型 | 典型取值 | 上游字段 | 下游用途 | 备注 |
-|--------|------------|---------|--------------|---------|---------|---------|---------|------|
-| `bid_id` | 主键，自增 ID | 系统生成 | AUTO_INCREMENT | bigint NOT NULL | `1`, `2`, `3` | — | 内部主键 | ✅ Confirmed |
-| `funding_id` | Fund / Funding 编号 | BPS 应用层 | 直接写入 | int NOT NULL | `101`, `202` | `port.portfunding.fundingid` | 关联 Funding 维度 | ✅ Confirmed |
-| `loanid` | 系统贷款 ID（跨 Servicer 统一标识） | BPS 应用层 | 直接写入 | varchar(50) NOT NULL | `7727001272` | `port.basic_data_loan_fcl.loanid` | 全表 join key；关联 FCL 中间表 | ✅ Confirmed |
-| `svcloanid` | Servicer 内部贷款号 | BPS 应用层 | 直接写入 | varchar(50) NOT NULL | `NR12345678` | `port.basic_data_loan_fcl.svc_loanid` | Servicer 对账字段 | ✅ Confirmed |
-| `servicer` | Servicer 名称 | BPS 应用层 | 直接写入 | varchar(50) NOT NULL | `Newrez`, `Carrington` | — | Servicer 分组过滤 | ✅ Confirmed（实测：Newrez 88行 / Carrington 10行） |
-| `dataasof` | 数据截止日（Factor Date） | BPS ETL | 直接写入 | date NOT NULL | `2026-05-01` | `port.basic_data_loan_fcl.dataasof` | 时间维度；数据新鲜度追踪 | ✅ Confirmed |
+| 字段名 | 字段业务含义 | 来源数据 | 计算/推导逻辑 | 数据类型 | 取值范围 | 典型取值 | 上游字段 | 下游用途 | 备注 |
+|--------|------------|---------|--------------|---------|---------|---------|---------|---------|------|
+| `id` | 主键，自增 ID | 系统生成 | AUTO_INCREMENT | bigint NOT NULL | `1` ~ `279`（实测98行非连续） | `1` | — | 内部主键（**真正的 PK，非 `bid_id`**） | ✅ Confirmed（MCP 2026-06-01） |
+| `bid_id` | Bid/资产业务编号（非自增，文本代码） | BPS 应用层 | 直接写入 | varchar(64) | 实测31种文本码，如 `ACRA005` … `WFL001` | `ACRA005` | — | 竞拍/资产关联键 | 🟡 Strong Inference（类型实测；业务含义待 BPS 确认） |
+| `funding_id` | Fund / Funding 编号 | BPS 应用层 | 直接写入 | varchar(256) | 实测34种文本码，如 `2024WS-ARES-4` … `WFL001` | `2024WS-ARES-4` | `port.portfunding.fundingid` | 关联 Funding 维度 | ✅ Confirmed（类型实测为 varchar，非 int） |
+| `loanid` | 系统贷款 ID（跨 Servicer 统一标识） | BPS 应用层 | 直接写入 | bigint | `686279936` ~ `700082890000291`（95个distinct） | `7727001272` | `port.basic_data_loan_fcl.loanid` | 全表 join key；关联 FCL 中间表 | ✅ Confirmed（类型实测为 bigint，非 varchar） |
+| `svcloanid` | Servicer 内部贷款号 | BPS 应用层 | 直接写入 | varchar(64) | 92种，纯数字字符串如 `0578252925` ~ `9715751096` | `9715751096` | `port.basic_data_loan_fcl.svc_loanid` | Servicer 对账字段 | ✅ Confirmed |
+| `servicer` | Servicer 名称 | BPS 应用层 | 直接写入 | varchar(128) | `{Newrez, Carrington}`（2种） | `Newrez` | — | Servicer 分组过滤 | ✅ Confirmed（实测：Newrez 88行 / Carrington 10行） |
 
 #### Group 2：FCL 时间线（`timeline_*`，19列）
 
-> 对应 BPS UI 的 **Milestone Timeline 面板**。日期均为 date 类型，均可为 NULL（事件未发生时为空）。
+> 对应 BPS UI 的 **Milestone Timeline 面板**。日期均为 date 类型，均可为 NULL（事件未发生时为空）。  
+> ⚠️ 字段清单按 2026-06-01 实测校正为 19 列（早期误列的 `*_start_date`/`*_completed_date`/`*_proceeds_wired_date` 不存在）。取值范围/填充率来自本表 dev 98 行实测（含历史完结贷款，与 doc 13 活跃-FCL 口径的填充率不同）；上游 Newrez 字段映射见 doc 13 Section 3.1。
 
-| 字段名 | 字段业务含义 | 来源数据 | 计算/推导逻辑 | 数据类型 | 典型取值 | 上游字段 | 下游用途 | 备注 |
-|--------|------------|---------|--------------|---------|---------|---------|---------|------|
-| `timeline_notice_of_intent_date` | NOI 发出日期 | ETL | 直接映射 | date | `2025-03-01` | `port.basic_data_loan_fcl.noi_date` / `demandsentdate` | NOI 阶段起始；Milestone 第1步 | ✅ Confirmed |
-| `timeline_notice_of_intent_end_date` | NOI 到期日 | ETL | 直接映射 | date | `2025-04-01` | `port.basic_data_loan_fcl.demandexpirationdate` | NOI 有效期截止 | ✅ Confirmed |
-| `timeline_notice_of_intent_start_date` | NOI 阶段正式开始日 | ETL | 直接映射 | date | `2025-03-01` | — | NOI 倒计时起点 | ✅ Confirmed |
-| `timeline_notice_of_intent_completed_date` | NOI 阶段完成日 | ETL | 直接映射 | date | `2025-04-15` | — | NOI 完结记录 | ✅ Confirmed |
-| `timeline_approved_for_referral_date` | 批准转案律师日 | ETL | 直接映射 | date | `2025-04-20` | `port.basic_data_loan_fcl.fcsetupdate` | FCL 转案审批节点 | ✅ Confirmed |
-| `timeline_referred_to_attorney_date` | 已转案律师确认日 | ETL | 直接映射 | date | `2025-04-25` | — | 律师接案确认 | ✅ Confirmed |
-| `timeline_referred_to_foreclosure_date` | 正式转 FCL 日期 | ETL | 直接映射 | date | `2025-05-01` | `port.basic_data_loan_fcl.referral_start_date` | FCL 流程正式启动节点 | ✅ Confirmed |
-| `timeline_title_report_received_date` | 产权报告收到日 | ETL | 直接映射 | date | `2025-06-01` | `port.basic_data_loan_fcl.titlereceiveddate` | 产权追踪第2步 | ✅ Confirmed |
-| `timeline_preliminary_title_cleared_date` | 初步产权确认清查日 | ETL | 直接映射 | date | `2025-07-01` | `port.basic_data_loan_fcl.titlecleardate` | 产权追踪第3步 | ✅ Confirmed |
-| `timeline_first_legal_date` | 第一次法律行动日 | ETL | 直接映射 | date | `2025-07-15` | `port.basic_data_loan_fcl.legal_start_date` | FCL 法律程序里程碑 | ✅ Confirmed |
-| `timeline_service_date` | 完成送达日 | ETL | 直接映射 | date | `2025-09-01` | `port.basic_data_loan_fcl.service_start_date` | 法律送达完成节点 | ✅ Confirmed |
-| `timeline_publication_date` | 拍卖公告发布日 | ETL | 直接映射 | date | `2025-10-01` | — | 拍卖公告发布节点 | ✅ Confirmed |
-| `timeline_judgement_date` | 判决听证安排日（Judgment Hearing Scheduled） | ETL | 直接映射 | date | `2025-11-01` | `port.basic_data_loan_fcl.fcjudgment_hearing_scheduled` | Judgment 阶段起点；注：法院录入判决日（`fcjudgment_end_date`）为 ETL 预留字段，见 doc 12 Section 15 | ✅ Confirmed |
-| `timeline_sale_date_projected_date` | 预计拍卖日期 | ETL | 直接映射 | date | `2025-12-15` | `port.basic_data_loan_fcl.fcscheduled_sale_date` | 拍卖安排节点 | ✅ Confirmed |
-| `timeline_sale_date_held_date` | 实际拍卖日期 | ETL | 直接映射 | date | `2026-01-15` | `port.basic_data_loan_fcl.fcsale_held_date` | 拍卖完成确认 | ✅ Confirmed |
-| `timeline_final_title_cleared_date` | 最终产权确认清查日 | ETL | 直接映射 | date | `2026-01-20` | `port.basic_data_loan_fcl.titlecleardate`（最终） | 产权追踪最终节点 | ✅ Confirmed |
-| `timeline_third_party_proceeds_received_date` | 第三方购买款收到日 | ETL | 直接映射 | date | `2026-02-01` | `port.basic_data_loan_fcl.fcl3rdpartyproceedsreceiveddate` | 拍卖款到账追踪 | ✅ Confirmed |
-| `timeline_third_party_proceeds_wired_date` | 第三方购买款转账日 | ETL | 直接映射 | date | `2026-02-05` | — | 资金拨付追踪 | ✅ Confirmed |
-| `timeline_foreclosure_completed_date` | FCL 流程完结日 | ETL | 优先取 `dtdeedrecorded`，其次 `fcremovaldate` | date | `2026-02-15` | `port.basic_data_loan_fcl.dtdeedrecorded` / `fcremovaldate` | FCL 关闭里程碑 | ✅ Confirmed |
+| 字段名 | 字段业务含义 | 来源数据 | 计算/推导逻辑 | 数据类型 | 取值范围 | 典型取值 | 上游字段 | 下游用途 | 备注 |
+|--------|------------|---------|--------------|---------|---------|---------|---------|---------|------|
+| `timeline_notice_of_intent_date` | NOI / Demand 信函发出日 | ETL | 直接映射 `demandsentdate` | date | `2024-05-17` ~ `2025-04-22` | `2025-01-22` | `newrez.portnewrezfc.demandsentdate` | NOI 阶段起始；Milestone 第1步 | ✅ Confirmed（dev填充5%；活跃FCL口径85.9%） |
+| `timeline_notice_of_intent_end_date` | NOI 到期日（通常发出+30天） | ETL | 直接映射 `demandexpirationdate` | date | 实测全为 NULL | — | `newrez.portnewrezfc.demandexpirationdate` | NOI 有效期截止 | ✅ Confirmed（dev 0%） |
+| `timeline_approved_for_referral_date` | 批准转案/开案日（BPS 建档日） | ETL | 直接映射 `fcsetupdate` | date | 实测全为 NULL | — | `newrez.portnewrezfc.fcsetupdate` | FCL 转案审批节点 | ✅ Confirmed（dev 0%；活跃FCL口径100%） |
+| `timeline_referred_to_attorney_date` | 转介律师日 | ETL | 直接映射 `fcreferraldate` | date | 实测全为 NULL | — | `newrez.portnewrezfc.fcreferraldate` | 律师接案确认 | ✅ Confirmed（dev 0%） |
+| `timeline_referred_to_foreclosure_date` | 正式转 FCL 日期 | ETL | 直接映射 `fcreferraldate` | date | `2018-08-15` ~ `2026-03-10`（84种） | `2025-05-23` | `newrez.portnewrezfc.fcreferraldate` | **BPS 主表入库过滤字段**（非空才收录） | ✅ Confirmed（100%） |
+| `timeline_title_report_received_date` | 产权报告收到日 | ETL | 直接映射 `titlereceiveddate` | date | `2025-03-24` ~ `2025-12-02` | `2025-12-02` | `newrez.portnewrezfc.titlereceiveddate` | 产权追踪 | ✅ Confirmed（dev 3%；Newrez 活跃FCL口径0%） |
+| `timeline_preliminary_title_cleared_date` | 初步产权清查日 | ETL | 直接映射 `titlecleardate` | date | `2025-03-24` ~ `2026-02-02` | `2025-03-24` | `newrez.portnewrezfc.titlecleardate` | 产权追踪 | ✅ Confirmed（dev 2%） |
+| `timeline_first_legal_date` | 第一次法律行动日（Filing） | ETL | 直接映射 `firstlegaldate` | date | `2018-10-29` ~ `2026-02-25`（42种） | `2025-06-13` | `newrez.portnewrezfc.firstlegaldate` | FCL 法律程序里程碑 | ✅ Confirmed（45%） |
+| `timeline_service_date` | 法律文书送达完成日 | ETL | 直接映射 `servicecompletedate` | date | `2018-12-10` ~ `2026-02-16`（19种） | `2025-07-18` | `newrez.portnewrezfc.servicecompletedate` | 法律送达完成节点 | ✅ Confirmed（19%） |
+| `timeline_publication_date` | 拍卖公告发布日 | ETL | Newrez 无对应字段 | date | 实测全为 NULL | — | *(Newrez 无对应字段)* | 拍卖公告发布节点 | ✅ Confirmed（恒 NULL，见 doc 13 Q1） |
+| `timeline_judgement_hearing_set_date` | 当前听证日首次出现日（ETL 追踪） | ETL | `MIN(dataasof WHERE fcjudgmenthearingscheduled=当前值)` | date | `2023-12-14` ~ `2026-03-06` | `2025-07-15` | `newrez.portnewrezfc.fcjudgmenthearingscheduled` | Judgement 阶段起点（Judicial 州） | ✅ Confirmed（9%） |
+| `timeline_judgement_date` | 当前排定的判决听证会日期 | ETL | 直接映射 `fcjudgmenthearingscheduled` | date | `2020-01-22` ~ `2026-07-15` | `2026-01-18` | `newrez.portnewrezfc.fcjudgmenthearingscheduled` | Judgement 听证排期；注：**非** `fcjudgmententered`（法院录入日，见 doc 13 Q12） | ✅ Confirmed（9%） |
+| `timeline_sale_date_projected_date` | 最新预计/排定拍卖日 | ETL | 直接映射 `fcscheduledsaledate` | date | `2025-01-23` ~ `2026-06-26`（15种） | `2026-04-07` | `newrez.portnewrezfc.fcscheduledsaledate` | 拍卖安排节点 | ✅ Confirmed（19%） |
+| `timeline_sale_date_set_date` | 当前拍卖日首次出现日（ETL 追踪） | ETL | `MIN(dataasof WHERE fcscheduledsaledate=当前值)` | date | `2025-01-23` ~ `2026-03-12`（17种） | `2026-02-25` | `newrez.portnewrezfc.fcscheduledsaledate` | 拍卖确定追踪 | ✅ Confirmed（19%） |
+| `timeline_final_title_cleared_date` | 最终产权清查日 | ETL | 直接映射 `titlecleardate`（最终） | date | `2025-03-24` ~ `2026-02-02` | `2026-02-02` | `newrez.portnewrezfc.titlecleardate` | 产权追踪最终节点 | ✅ Confirmed（dev 2%） |
+| `timeline_sale_date_held_date` | 实际拍卖举行日 | ETL | 直接映射 `fcsalehelddate` | date | `2025-01-23` ~ `2026-03-11`（7种） | `2026-01-16` | `newrez.portnewrezfc.fcsalehelddate` | 拍卖完成确认 | ✅ Confirmed（7%） |
+| `timeline_foreclosure_completed_date` | FCL 流程完结日 | ETL | `COALESCE(dtdeedrecorded, fcremovaldate)` | date | 实测全为 NULL | — | `newrez.portnewrezfc.dtdeedrecorded` / `fcremovaldate` | FCL 关闭里程碑 | ✅ Confirmed（dev 0%） |
+| `timeline_third_party_sold_date_date` | 第三方买家成交日 | ETL | 当 `fcresults='3rd Party'` 时取 `fcsalehelddate` | date | 实测全为 NULL | — | `newrez.portnewrezfc.fcsalehelddate` | 第三方拍卖追踪 | ✅ Confirmed（dev 0%） |
+| `timeline_third_party_proceeds_received_date` | 第三方拍卖款到账日 | ETL | 直接映射 `fcl3rdpartyproceedsreceiveddate` | date | `2026-03-05`（仅1笔） | `2026-03-05` | `newrez.portnewrezfc.fcl3rdpartyproceedsreceiveddate` | 拍卖款到账追踪 | ✅ Confirmed（1%） |
 
 #### Group 3：SLA 目标天数（`target_*_days`，15列）
 
 > 对应 BPS UI 的 **Target Days 面板**。全部为 `int NOT NULL`，含 **MySQL 硬编码 DEFAULT 值**（静态 SLA 阈值，非动态计算）。  
 > ⚠️ `actual_*_days`（实际历时天数）**不在本表**，位于 `bpms_dev.sync_fcl_stage_info`。
 
-| 字段名 | SLA 含义 | MySQL DEFAULT | 备注 |
-|--------|---------|--------------|------|
-| `target_notice_of_intent_days` | NOI 阶段目标天数 | `30` | NOI 发出后30天内进入下一阶段 |
-| `target_notice_of_intent_expired_days` | NOI 到期等待目标天数 | `90` | NOI 等待期90天 |
-| `target_approved_for_referral_days` | 批准转案目标天数 | `30` | 审批后30天内正式转案 |
-| `target_referred_to_attorney_days` | 转案至律师接案目标天数 | `1` | 1天内律师确认接案 |
-| `target_referred_to_foreclosure_days` | 转案至正式启动FCL目标天数 | `1` | 1天内正式进入FCL程序 |
-| `target_title_report_received_days` | 产权报告到位目标天数 | `30` | 30天内收到产权报告 |
-| `target_preliminary_title_cleared_days` | 初步产权确认目标天数 | `30` | 初步产权确认30天 |
-| `target_first_legal_days` | 第一次法律行动目标天数 | `120` | 从正式FCL到First Legal最多120天 |
-| `target_service_days` | 送达完成目标天数 | `90` | 90天内完成法律送达 |
-| `target_publication_days` | 公告发布目标天数 | `30` | 30天内完成拍卖公告 |
-| `target_judgement_hearing_set_days` | Judgment Hearing 安排目标天数 | `120` | 120天内确定判决听证日期 |
-| `target_judgement_days` | Judgment 完成目标天数 | `30` | 30天内完成判决 |
-| `target_sale_date_set_days` | 拍卖日期确定目标天数 | `30` | 30天内确定拍卖日 |
-| `target_final_title_cleared_days` | 最终产权确认目标天数 | `5` | 拍卖后5天内完成最终产权确认 |
-| `target_sale_date_held_days` | 拍卖完成目标天数 | `0` | 0天（即设定日当天完成） |
+> 全部 `int NOT NULL`，含硬编码 DEFAULT；实测每列 distinct=1（98 行全部等于 DEFAULT），故「取值范围」即唯一实测值。
+
+| 字段名 | SLA 含义 | MySQL DEFAULT | 取值范围 | 备注 |
+|--------|---------|--------------|---------|------|
+| `target_notice_of_intent_days` | NOI 阶段目标天数 | `30` | `{30}`（唯一值, 98/98） | NOI 发出后30天内进入下一阶段 |
+| `target_notice_of_intent_expired_days` | NOI 到期等待目标天数 | `90` | `{90}`（唯一值, 98/98） | NOI 等待期90天 |
+| `target_approved_for_referral_days` | 批准转案目标天数 | `30` | `{30}`（唯一值, 98/98） | 审批后30天内正式转案 |
+| `target_referred_to_attorney_days` | 转案至律师接案目标天数 | `1` | `{1}`（唯一值, 98/98） | 1天内律师确认接案 |
+| `target_referred_to_foreclosure_days` | 转案至正式启动FCL目标天数 | `1` | `{1}`（唯一值, 98/98） | 1天内正式进入FCL程序 |
+| `target_title_report_received_days` | 产权报告到位目标天数 | `30` | `{30}`（唯一值, 98/98） | 30天内收到产权报告 |
+| `target_preliminary_title_cleared_days` | 初步产权确认目标天数 | `30` | `{30}`（唯一值, 98/98） | 初步产权确认30天 |
+| `target_first_legal_days` | 第一次法律行动目标天数 | `120` | `{120}`（唯一值, 98/98） | 从正式FCL到First Legal最多120天 |
+| `target_service_days` | 送达完成目标天数 | `90` | `{90}`（唯一值, 98/98） | 90天内完成法律送达 |
+| `target_publication_days` | 公告发布目标天数 | `30` | `{30}`（唯一值, 98/98） | 30天内完成拍卖公告 |
+| `target_judgement_hearing_set_days` | Judgment Hearing 安排目标天数 | `120` | `{120}`（唯一值, 98/98） | 120天内确定判决听证日期 |
+| `target_judgement_days` | Judgment 完成目标天数 | `30` | `{30}`（唯一值, 98/98） | 30天内完成判决 |
+| `target_sale_date_set_days` | 拍卖日期确定目标天数 | `30` | `{30}`（唯一值, 98/98） | 30天内确定拍卖日 |
+| `target_final_title_cleared_days` | 最终产权确认目标天数 | `5` | `{5}`（唯一值, 98/98） | 拍卖后5天内完成最终产权确认 |
+| `target_sale_date_held_days` | 拍卖完成目标天数 | `0` | `{0}`（唯一值, 98/98） | 0天（即设定日当天完成） |
 
 #### Group 4：差异/方差调整（`variance_*`，4列）
 
 > 对应 BPS UI 的 **Variance 面板**。记录 FCL 流程中因 BK/LM/Hold 等暂停事件产生的天数调整量。
 
-| 字段名 | 字段业务含义 | 来源数据 | 计算/推导逻辑 | 数据类型 | 典型取值 | 上游字段 | 下游用途 | 备注 |
-|--------|------------|---------|--------------|---------|---------|---------|---------|------|
-| `variance_active_bankruptcy` | 活跃破产期间的方差调整天数 | BPS 应用层 | 破产期间 FCL 暂停总天数 | int | `30`, `60`, `0` | — | 从 Target 中扣除，得到调整后期望天数 | ✅ Confirmed |
-| `variance_completed_bankruptcy` | 已完结破产的方差天数 | BPS 应用层 | 历史破产事件累计暂停天数 | int | `0`, `90` | — | 历史方差追踪 | ✅ Confirmed |
-| `variance_estimated_hold_days` | 预计 Hold 调整天数合计 | BPS 应用层 | 各类 Hold（BK/LM/AOM等）预计延误天数合计 | int | `0`, `30`, `60` | `bpms_dev.sync_loan_foreclosure_hold` | SLA 方差分析 | ✅ Confirmed |
-| `variance_bankruptcies` | 该贷款历史破产次数 | BPS 应用层 | 直接写入 | int | `0`, `1`, `2` | — | 风险评估；多次破产=FCL流程更复杂 | ✅ Confirmed |
+> ⚠️ dev 环境本组 4 列实测**全为 NULL**（未回填）；下方「取值范围」记录实测状态，业务取值逻辑来自 doc 13 Section 4.4。
+
+| 字段名 | 字段业务含义 | 来源数据 | 计算/推导逻辑 | 数据类型 | 取值范围 | 典型取值 | 上游字段 | 下游用途 | 备注 |
+|--------|------------|---------|--------------|---------|---------|---------|---------|---------|------|
+| `variance_active_bankruptcy` | 当前是否处于活跃破产保护（1/0） | BPS 应用层 | 直接取 `activebkflag` | int | 实测全为 NULL（dev 未回填） | — | `newrez.portnewrezbk.activebkflag` | 从 Target 中扣除，得到调整后期望天数 | 🟡 类型实测；取值 dev 未回填 |
+| `variance_completed_bankruptcy` | 历史上是否曾完结破产（1/0） | BPS 应用层 | `activebkflag=0 AND bkremovaldate IS NOT NULL → 1` | int | 实测全为 NULL（dev 未回填） | — | `newrez.portnewrezbk.activebkflag` / `bkremovaldate` | 历史方差追踪 | 🟡 类型实测；取值 dev 未回填 |
+| `variance_estimated_hold_days` | 预计 Hold 调整天数合计 | BPS 应用层 | `MAX(fchold1/2/3projectedenddate) − current_date` | int | 实测全为 NULL（dev 未回填） | — | `newrez.portnewrezfc.fchold*projectedenddate`（**非** Hold 表，见 doc 13 §4.4） | SLA 方差分析 | 🟡 类型实测；取值 dev 未回填 |
+| `variance_bankruptcies` | 该贷款历史 BK 申请总次数 | BPS 应用层 | `COUNT(*)` 按 loanid 分组 | int | 实测全为 NULL（dev 未回填） | — | `newrez.portnewrezbk.loanid`（计数） | 风险评估；多次破产=FCL流程更复杂 | 🟡 类型实测；取值 dev 未回填 |
 
 #### Group 5：竞拍审批（`bid_approval_*`，4列）
 
 > 对应 BPS UI 的 **Bid Approval 面板**。
 
-| 字段名 | 字段业务含义 | 来源数据 | 计算/推导逻辑 | 数据类型 | 典型取值 | 上游字段 | 下游用途 | 备注 |
-|--------|------------|---------|--------------|---------|---------|---------|---------|------|
-| `bid_approval_status` | 竞拍审批状态 | BPS 应用层 | 直接写入 | varchar | `Approved`, `Pending`, `Rejected` | — | Bid Approval 面板状态展示 | ✅ Confirmed |
-| `bid_approval_sale_date` | 竞拍关联的拍卖日期 | BPS 应用层 | 直接写入 | date | `2026-01-15` | `port.basic_data_loan_fcl.fcsale_held_date` | 拍卖日确认 | ✅ Confirmed |
-| `bid_approval_bid_amount` | 竞拍出价金额 | ETL | 映射自 `fcbidamount` 或 `fcapprbidprice` | decimal | `180000.00` | `port.basic_data_loan_fcl.fcbidamount` / `fcapprbidprice` | 投资人审批出价 | ✅ Confirmed |
-| `bid_approval_loan_resolution_holods` | **贷款处置 Hold 原因** | BPS 应用层 | 直接写入；**⚠️ 列名拼写错误（`holods` 应为 `holds`），已投产，不可轻易修改** | varchar | `BK Hold`, `LM Hold` | — | Hold 原因记录 | 🟡 Strong Inference（拼写错误已MCP实测确认） |
+| 字段名 | 字段业务含义 | 来源数据 | 计算/推导逻辑 | 数据类型 | 取值范围 | 典型取值 | 上游字段 | 下游用途 | 备注 |
+|--------|------------|---------|--------------|---------|---------|---------|---------|---------|------|
+| `bid_approval_status` | 竞拍审批状态 | BPS 应用层 | 直接写入 | varchar(128) | 实测全为 NULL（dev 未回填） | — | — | Bid Approval 面板状态展示 | 🟡 类型实测；取值 dev 未回填 |
+| `bid_approval_sale_date` | 竞拍关联的拍卖日期 | BPS 应用层 | 直接写入 | date | 实测全为 NULL（dev 未回填） | — | `port.basic_data_loan_fcl.fcsale_held_date` | 拍卖日确认 | 🟡 类型实测；取值 dev 未回填 |
+| `bid_approval_bid_amount` | 竞拍出价金额 | ETL | 映射自 `fcbidamount` / `fcapprbidprice` | decimal(32,16) | `$90,000` ~ `$543,305.96`（9笔有值, 9%） | `136392.44` | `port.basic_data_loan_fcl.fcbidamount` / `fcapprbidprice` | 投资人审批出价 | ✅ Confirmed |
+| `bid_approval_loan_resolution_holods` | **贷款处置 Hold 原因** | BPS 应用层 | 直接写入；**⚠️ 列名拼写错误（`holods` 应为 `holds`），已投产，不可轻易修改** | text | 实测全为 NULL（dev 未回填） | — | — | Hold 原因记录 | 🟡 拼写错误已实测确认；取值 dev 未回填 |
 
 #### Group 6：汇总摘要（`summary_*`，16列）
 
 > 对应 BPS UI 的 **Summary 面板**，含 FCL 当前状态、律师信息、关键效率指标等。
 
-| 字段名 | 字段业务含义 | 来源数据 | 计算/推导逻辑 | 数据类型 | 典型取值 | 上游字段 | 下游用途 | 备注 |
-|--------|------------|---------|--------------|---------|---------|---------|---------|------|
-| `summary_servicer_number` | Servicer 内部编号 | BPS 应用层 | 直接写入 | int | `1`, `2` | — | Servicer 标识辅助字段 | ✅ Confirmed |
-| `summary_foreclosure_status` | **FCL 当前状态**（Servicer 状态描述） | ETL | 映射自 `fcremovaldesc` / `activefcflag` / `fcresults` | varchar | Newrez: `Active Foreclosure` / `Closed Foreclosure:Process Complete`；Carrington: `1. First Legal Pending` / `5. Sales Held` | `port.basic_data_loan_fcl.fcremovaldesc` | BPS Summary 面板首要展示字段 | ✅ Confirmed（实测取值已确认） |
-| `summary_completed_foreclosure` | FCL 是否已完结 | ETL | 推断自 `fcresults` / `fcremovaldate` | varchar | `Foreclosure Complete`, `null` | `port.basic_data_loan_fcl.fcresults` | 完结 FCL 标志 | ✅ Confirmed |
-| `summary_foreclosure_bid_amount` | FCL 出价金额（投资人口径） | ETL | 映射自 `fcbidamount` / `fcapprbidprice` | decimal | `180000.00` | `port.basic_data_loan_fcl.fcbidamount` | 投资人出价审批参考 | ✅ Confirmed |
-| `summary_srv_fc_bid_amount` | Servicer 上报的 FCL 出价金额 | ETL | 直接映射 | decimal | `178000.00` | — | 与投资人出价的差异对比分析 | ✅ Confirmed |
-| `summary_foreclosure_sale_amount` | 实际拍卖成交金额 | ETL | 映射自 `fcsaleamount` | decimal | `175000.00` | `port.basic_data_loan_fcl.fcsaleamount` | 拍卖结果记录；Loss Severity 计算 | ✅ Confirmed |
-| `summary_judicial_foreclosure` | 是否司法 FCL（1=司法） | ETL | 映射自 `judicial` | tinyint | `0`（非司法）, `1`（司法） | `port.basic_data_loan_fcl.judicial` | FCL 类型识别（司法/非司法流程差异显著） | ✅ Confirmed |
-| `summary_foreclosure_attorney` | FCL 律师名称 | ETL | 映射自 `fcfirm` | varchar | `'ABC Law Firm'` | `port.basic_data_loan_fcl.fcfirm` | 律师信息展示 | ✅ Confirmed |
-| `summary_contested_litigation` | 是否有争议诉讼（1=有） | ETL | 映射自 `fccontestedflag` | tinyint | `0`, `1` | `port.basic_data_loan_fcl.fccontestedflag` | 争议贷款标识；法律风险追踪 | ✅ Confirmed |
-| `summary_firm` | 律师事务所名称 | ETL | 映射自 `fcfirm` | varchar | `'Smith & Jones LLP'` | `port.basic_data_loan_fcl.fcfirm` | BPS 律师事务所展示 | ✅ Confirmed |
-| `summary_type` | FCL 类型文本（与 judicial 配合） | ETL | 映射自 `judicial` 标志 | varchar | `'Judicial'`, `'Non-Judicial'` | `port.basic_data_loan_fcl.judicial` | FCL 类型文本展示 | ✅ Confirmed |
-| `summary_sms_days_in_fcl` | SMS系统统计的 FCL 历时天数（Servicer口径） | ETL | 实时计算自 `svc_days_infc` | int | `180`, `365` | `port.basic_data_loan_fcl.svc_days_infc` | Servicer 口径 FCL 历时监控 | ✅ Confirmed |
-| `summary_days_in_fcl` | 投资人口径 FCL 历时天数 | ETL | 实时计算自 `daysinfc` | int | `200`, `400` | `port.basic_data_loan_fcl.daysinfc` | FCL 效率监控；SLA 评估基础 | ✅ Confirmed |
-| `summary_current_step` | 当前 FCL 步骤 | ETL | 次优先：映射自 `fcstage` | varchar | `'Judgment'`, `'Sale Scheduled'`, `'First Legal'` | `port.basic_data_loan_fcl.fcstage` | BPS 当前进度展示 | ✅ Confirmed |
-| `summary_last_step_completed` | 最近完成的 FCL 步骤 | ETL | 映射自 `lastfcstepcompleted` | varchar | `'Service Complete'` | `port.basic_data_loan_fcl.lastfcstepcompleted` | 历史进度追踪 | ✅ Confirmed |
-| `summary_last_step_completed_date` | 最近完成步骤的日期 | ETL | 映射自 `lastfcstepcompleteddate` | date | `2025-11-01` | `port.basic_data_loan_fcl.lastfcstepcompleteddate` | 进度时间追踪 | ✅ Confirmed |
+| 字段名 | 字段业务含义 | 来源数据 | 计算/推导逻辑 | 数据类型 | 取值范围 | 典型取值 | 上游字段 | 下游用途 | 备注 |
+|--------|------------|---------|--------------|---------|---------|---------|---------|---------|------|
+| `summary_servicer_number` | Servicer 内部编号 | BPS 应用层 | 直接写入 | varchar(64) | 实测全为 NULL（dev 未回填） | — | — | Servicer 标识辅助字段 | 🟡 类型实测为 varchar（非 int）；取值 dev 未回填 |
+| `summary_foreclosure_status` | **FCL 当前状态**（Servicer 状态描述） | ETL | 映射自 `fcremovaldesc` / `activefcflag` / `fcresults` | varchar(64) | 实测9种：`Active Foreclosure`(43) \| `Closed Foreclosure:Reinstated`(21) \| `Closed Foreclosure:Loss Mitigation`(15) \| `Closed Foreclosure:Paid in Full`(10) \| `Closed Foreclosure:Process Complete`(3) \| `Closed Foreclosure:Deed in Lieu Cmplte` \| Carrington `1. First Legal Pending`/`2. First Legal Filed`/`5. Sales Held` | `Active Foreclosure` | `port.basic_data_loan_fcl.fcremovaldesc` | BPS Summary 面板首要展示字段 | ✅ Confirmed（97/98=99%） |
+| `summary_completed_foreclosure` | FCL 是否已完结 | ETL | 推断自 `fcresults` / `fcremovaldate` | int | 实测全为 NULL（dev 未回填） | — | `port.basic_data_loan_fcl.fcresults` | 完结 FCL 标志 | 🟡 类型实测为 int（非 varchar）；取值 dev 未回填 |
+| `summary_foreclosure_bid_amount` | FCL 出价金额（投资人口径） | ETL | 映射自 `fcbidamount` / `fcapprbidprice` | decimal(32,16) | `$90,000` ~ `$543,305.96`（9笔, 9%） | `136392.44` | `port.basic_data_loan_fcl.fcbidamount` | 投资人出价审批参考 | ✅ Confirmed |
+| `summary_srv_fc_bid_amount` | Servicer 上报的 FCL 出价金额 | ETL | 直接映射 | decimal(32,16) | `$90,000` ~ `$543,305.96`（9笔, 9%） | `136392.44` | — | 与投资人出价的差异对比分析 | ✅ Confirmed |
+| `summary_foreclosure_sale_amount` | 实际拍卖成交金额 | ETL | 映射自 `fcsaleamount` | decimal(32,16) | `$90,001` ~ `$400,000`（6笔, 6%） | `165900.00` | `port.basic_data_loan_fcl.fcsaleamount` | 拍卖结果记录；Loss Severity 计算 | ✅ Confirmed |
+| `summary_judicial_foreclosure` | 是否司法 FCL（1=司法） | ETL | 映射自 `judicial` | int | `{0, 1}`（各44笔, 88/98=90%） | `0` | `port.basic_data_loan_fcl.judicial` | FCL 类型识别（司法/非司法流程差异显著） | ✅ Confirmed（类型实测为 int，非 tinyint） |
+| `summary_foreclosure_attorney` | FCL 律师名称 | ETL | 映射自 `fcfirm` | varchar(256) | 实测4种，如 `Brock & Scott PLLC` / `Lender Legal PLLC` / `Vylla Solutions, LLC` | `Brock & Scott PLLC` | `port.basic_data_loan_fcl.fcfirm` | 律师信息展示 | ✅ Confirmed（4%） |
+| `summary_contested_litigation` | 是否有争议诉讼（1=有） | ETL | 映射自 `fccontestedflag` | int | `{0(83), 1(4)}`（87/98=89%） | `0` | `port.basic_data_loan_fcl.fccontestedflag` | 争议贷款标识；法律风险追踪 | ✅ Confirmed（类型实测为 int，非 tinyint） |
+| `summary_firm` | 律师事务所名称 | ETL | 映射自 `fcfirm` | varchar(256) | 实测46种，如 `Albertelli Law` … `ZBS Law, LLP` | `Albertelli Law` | `port.basic_data_loan_fcl.fcfirm` | BPS 律师事务所展示 | ✅ Confirmed（96%） |
+| `summary_type` | FCL 类型文本（与 judicial 配合） | ETL | 映射自 `judicial` 标志 | varchar(128) | `{Judicial, Non Judicial}`（各44笔, 90%） | `Non Judicial` | `port.basic_data_loan_fcl.judicial` | FCL 类型文本展示 | ✅ Confirmed（注：实测文本为 `Non Judicial`，无连字符） |
+| `summary_sms_days_in_fcl` | SMS系统统计的 FCL 历时天数（Servicer口径） | ETL | 实时计算自 `svc_days_infc` | int | `5` ~ `531`（73种, 82%） | `128` | `port.basic_data_loan_fcl.svc_days_infc` | Servicer 口径 FCL 历时监控 | ✅ Confirmed |
+| `summary_days_in_fcl` | 投资人口径 FCL 历时天数 | ETL | 实时计算自 `daysinfc` | int | `5` ~ `739`（81种, 95%） | `215` | `port.basic_data_loan_fcl.daysinfc` | FCL 效率监控；SLA 评估基础 | ✅ Confirmed |
+| `summary_current_step` | 当前 FCL 步骤 | ETL | 次优先：映射自 `fcstage` | varchar(128) | 实测38种，如 `Acceleration Letter Sent` … `TSG Report Received` | `Sale Scheduled For` | `port.basic_data_loan_fcl.fcstage` | BPS 当前进度展示 | ✅ Confirmed（96%） |
+| `summary_last_step_completed` | 最近完成的 FCL 步骤 | ETL | 映射自 `lastfcstepcompleted` | varchar(256) | 实测32种，如 `Answer Period Will Expire On` … `TSG Report Received` | `Service Complete` | `port.basic_data_loan_fcl.lastfcstepcompleted` | 历史进度追踪 | ✅ Confirmed（90%；字段曾由 `last_step_completed` 重命名，见 doc 14 v13） |
+| `summary_last_step_completed_date` | 最近完成步骤的日期 | ETL | 映射自 `lastfcstepcompleteddate` | date | `2019-10-14` ~ `2026-03-12`（74种, 90%） | `2025-11-01` | `port.basic_data_loan_fcl.lastfcstepcompleteddate` | 进度时间追踪 | ✅ Confirmed |
 
 #### Group 7：管理字段（8列）
 
-| 字段名 | 字段业务含义 | 数据类型 | DEFAULT | 典型取值 | 备注 |
-|--------|------------|---------|---------|---------|------|
-| `create_user` | 记录创建用户 | varchar | NULL | `'ETL'`, `'admin'` | 审计追踪 |
-| `create_dept` | 记录创建部门 | varchar | NULL | `'Engineering'` | 审计追踪 |
-| `create_time` | 记录创建时间 | datetime | NULL | `2026-01-15 10:00:00` | 审计追踪 |
-| `update_user` | 最后更新用户 | varchar | NULL | `'ETL'` | 审计追踪 |
-| `update_time` | 最后更新时间 | datetime | NULL | `2026-05-28 08:00:00` | 审计追踪 |
-| `status` | 记录状态（0=正常） | tinyint NOT NULL | `0` | `0` | 软停用标志 |
-| `is_deleted` | 是否软删除（0=未删） | tinyint NOT NULL | `0` | `0` | 软删除标志 |
-| `tenant_id` | 租户 ID（多租户架构预留） | bigint | NULL | `1` | 多租户支持 |
+| 字段名 | 字段业务含义 | 数据类型 | DEFAULT | 取值范围 | 典型取值 | 备注 |
+|--------|------------|---------|---------|---------|---------|------|
+| `create_user` | 记录创建用户 | bigint | NULL | 实测全为 NULL（dev 未回填） | — | 审计追踪（类型实测为 bigint，非 varchar） |
+| `create_dept` | 记录创建部门 | bigint | NULL | 实测全为 NULL（dev 未回填） | — | 审计追踪（类型实测为 bigint） |
+| `create_time` | 记录创建时间 | datetime | NULL | 实测全为 NULL（dev 未回填） | — | 审计追踪 |
+| `update_user` | 最后更新用户 | bigint | NULL | 实测全为 NULL（dev 未回填） | — | 审计追踪（类型实测为 bigint） |
+| `update_time` | 最后更新时间 | datetime | NULL | 实测全为 NULL（dev 未回填） | — | 审计追踪 |
+| `status` | 记录状态（0=正常） | int NOT NULL | `0` | `{0}`（唯一值, 98/98） | `0` | 软停用标志（类型实测为 int） |
+| `is_deleted` | 是否软删除（0=未删） | int NOT NULL | `0` | `{0}`（唯一值, 98/98） | `0` | 软删除标志（类型实测为 int） |
+| `tenant_id` | 租户 ID（多租户架构） | varchar(12) | NULL | `{000000(86), 984018(12)}`（2种） | `000000` | 多租户支持（类型实测为 varchar(12)，非 bigint） |
+
+---
+
+### 表 18：`newrez.portnewrezfc` — Newrez Foreclosure 原始日报表
+
+| 属性 | 值 |
+|------|----|
+| **表名** | `portnewrezfc` |
+| **所属 Schema** | MySQL `newrez` |
+| **数据层** | Raw / Servicer-specific（Newrez/Shellpoint 原始 FCL 日报落地表） |
+| **业务作用** | Newrez foreclosure 全流程追踪表，包含 FCL 激活标志、里程碑时间线、Hold 1/2/3、司法/非司法属性、律师、拍卖、结案和高级留置权 sale 信息 |
+| **业务意图** | 作为 Newrez FCL 原始事实表，下游统一到 `port.basic_data_loan_fcl`、`port.basic_data_loan_foreclosure_hold_detail`、`port.basic_data_loan_comments`，并被 BPS FCL stage 计算使用 |
+| **上游来源** | Newrez/Shellpoint `Foreclosure` / `AresOversight_Foreclosure` 文件；代码映射见 `flow/basic_data/load_servicer_data_config/servicer_config.py` |
+| **下游使用** | `port.basic_data_loan_fcl`（FCL timeline 主来源）；`port.basic_data_loan_foreclosure_hold_detail` / `port.basic_data_loan_foreclosure_hold`（Hold 详情）；`port.basic_data_loan_comments`（Hold comment）；BPS `sync_asset_management.get_max_daily_date()` 使用其 `max(dataasof)` |
+| **Foreclosure 关系** | 直接：Newrez FCL 判断、timeline、Hold、拍卖和结案事实的核心原始表 |
+| **主键 / 索引** | `id` 为自增主键；业务 join key 通常为 `loanid + dataasof` |
+| **DB验证** | 2026-05-29 MySQL `information_schema.columns` + 聚合查询：63列；1,556,688行；887个非空 `dataasof`；范围 2023-12-14 至 2026-05-27 |
+
+#### 最新快照分布（`dataasof = 2026-05-27`）
+
+| 指标 | 结果 |
+|------|------|
+| 行数 | 5,050 |
+| `activefcflag` | `0` = 5,012；`1` = 38 |
+| `fcstage` Top values | blank/null = 4,951；`Pre-Sale Review 1 (SCRA and PACER Check)` = 16；`Service Complete` = 11；`Post Sale Review (SCRA and PACER Check)` = 9；`Title Report Received` = 8；`Sale Scheduled For` = 8 |
+| `fcresults` | blank/null = 5,041；`REO` = 6；`3rd Party` = 3 |
+| `judicial` | NULL = 4,951；`0` = 51；`1` = 48 |
+
+#### 字段说明（63列）
+
+| 字段名 | 字段业务含义 | 来源数据 | 计算/推导逻辑 | 数据类型 | 取值范围 | 典型取值 | 上游字段 | 下游用途 | 备注 |
+|--------|-----------|--------|-----------|----------|---------|---------|--------|--------|------|
+| `id` | MySQL 自增主键 | Newrez 系统 | 直接上报 | bigint | 1~1,556,688 | 1 | — | 技术主键，不作为业务 join key | ✅ Confirmed |
+| `loanid` | Bridger/投资人贷款 ID | Newrez 系统 | 直接上报 | varchar(255) | 纯数字字符串 | 7727000088 | — | 与其他 Newrez 表按 `loanid + dataasof` 关联 | ✅ Confirmed |
+| `dataasof` | 数据快照日期 | Newrez 系统 | 直接上报 | date | YYYY-MM-DD | 2026-05-27 | — | 每日报表日期；下游 `fctrdt` / `dataasof` 来源 | ✅ Confirmed |
+| `shellpointloanid` | Newrez/Shellpoint 服务商贷款号 | Newrez 系统 | 直接上报 | varchar(255) | 格式 NR-YYYY-NNNNNN | NR-2024-001234 | — | 下游 `svc_loanid` / `svcloanid` | ✅ Confirmed |
+| `fcsetupdate` | FCL 立案/设置日期 | Newrez 系统 | 直接上报 | date | 2024-02-07~2026-05-26 | 2024-01-10 | — | 下游 `fcsetupdate`，BPS 可用作 Approved for Referral 相关节点 | ✅ Confirmed |
+| `fcreferraldate` | FCL Referral / 转交律师日期 | Newrez 系统 | 直接上报 | date | 2024-02-07~2026-05-26 | 2024-01-20 | — | 下游 `referral_start_date`，FCL timeline 起点 | ✅ Confirmed |
+| `smsdaysinfc` | Servicer/SMS 口径 FCL 已历天数 | Newrez 系统 | 直接上报 | int | 1~606天 | 128 | — | 下游 `svc_days_infc`、BPS `summary_sms_days_in_fcl` | ✅ Confirmed |
+| `daysinfc` | Newrez 自报 FCL 已历天数 | Newrez 系统 | 直接上报 | int | 1~814天 | 215 | — | 下游 `daysinfc`、BPS `summary_days_in_fcl` | ✅ Confirmed |
+| `demandsentdate` | Demand / NOI 发出日 | Newrez 系统 | 直接上报 | date | 2021-10-18~2026-04-20 | 2024-02-01 | — | BPS `timeline_notice_of_intent_date` 来源之一 | ✅ Confirmed |
+| `demandexpirationdate` | Demand / NOI 到期日 | Newrez 系统 | 直接上报 | date | 2018-03-02~2026-06-22 | 2024-03-02 | — | BPS `timeline_notice_of_intent_end_date` 来源之一 | ✅ Confirmed |
+| `fcstage` | 当前 FCL 阶段描述 | Newrez 系统 | 直接上报 | varchar(255) | 自由文本（Newrez系统内部） | Service Complete | — | 下游 `fcstage`、BPS `summary_current_step` | ✅ Confirmed |
+| `lastfcstepcompleted` | 最近完成的 FCL 步骤 | Newrez 系统 | 直接上报 | varchar(255) | 自由文本 | First Legal | — | 下游 `lastfcstepcompleted`、BPS `summary_last_step_completed` | ✅ Confirmed |
+| `lastfcstepcompleteddate` | 最近完成步骤日期 | Newrez 系统 | 直接上报 | date | 2019-10-14~2026-05-27 | 2024-02-15 | — | 下游 `lastfcstepcompleteddate` | ✅ Confirmed |
+| `fchold1description` | Hold 1 原因描述 | Newrez 系统 | 直接上报 | varchar(255) | Loss Mitigation Workout \| Awaiting Funds to Post \| Service Delay \| Court Delay \| Hearing Set \| Bankruptcy Filed 等15+种 | Loss Mitigation Workout | — | 下游 Hold detail 的 `description1` | ✅ Confirmed (MySQL 实测) |
+| `fchold1startdate` | Hold 1 开始日期 | Newrez 系统 | 直接上报 | date | 2019-11-20~2026-05-27 | 2024-01-05 | — | 下游 Hold detail 的 `description1_start_date` | ✅ Confirmed |
+| `fchold1enddate` | Hold 1 结束日期 | Newrez 系统 | 直接上报 | date | 2019-11-26~2026-05-28（空=仍持续） | 2024-03-15 | — | 下游 Hold detail 的 `description1_end_date` | ✅ Confirmed |
+| `fchold2description` | Hold 2 原因描述 | Newrez 系统 | 直接上报 | varchar(255) | 同 fchold1description（69.8%填充） | Loss Mitigation Workout | — | 下游 Hold detail 的 `description2` | ✅ Confirmed (MySQL 实测) |
+| `fchold2startdate` | Hold 2 开始日期 | Newrez 系统 | 直接上报 | date | 2019-11-20~2026-05-27 | 2022-11-08 | — | 下游 Hold detail 的 `description2_start_date` | ✅ Confirmed (MySQL 实测) |
+| `fchold2enddate` | Hold 2 结束日期 | Newrez 系统 | 直接上报 | date | 2019-11-26~2026-05-28（空=仍持续） | 2022-11-25 | — | 下游 Hold detail 的 `description2_end_date` | ✅ Confirmed (MySQL 实测) |
+| `fcjudgmenthearingscheduled` | 判决听证会/出售确认听证会的**排定日期**（未来计划事件；每次改期后此值更新为最新排期日） | Newrez 系统 | 直接上报 | date | 2020-01-22~2026-08-21 | 2026-01-18 | — | → Redshift `port.basic_data_loan_fcl.fcjudgment_hearing_scheduled` → `bpms_dev.sync_loan_foreclosure.timeline_judgement_date`（直接）；同时作为 `timeline_judgement_hearing_set_date` 计算 key（`MIN(dataasof WHERE fcjudgmenthearingscheduled=当前值)`）；→ `bpms_dev.sync_fcl_stage_info.judgement_start_date` | ✅ Confirmed |
+| `fcjudgmententered` | 法院**正式录入**判决的日期（已完成的法律事实；与 `fcjudgmenthearingscheduled` 含义不同：前者是排定日/计划事件，后者是录入日/已发生事实） | Newrez 系统 | 直接上报 | date | 2025-01-10~2026-04-09 | 2026-01-07 | — | → Redshift `port.basic_data_loan_fcl.fcjudgment_end_date`；⚠️ 当前未流入任何 `bpms_dev` 字段（ETL 预留；设计意图：未来 `actual_judgement_hearing_set_days` 计算来源；见 doc 13 Q12） | ✅ Confirmed |
+| `fcscheduledsaledate` | 计划拍卖日期 | Newrez 系统 | 直接上报 | date | 2025-04-17~2026-08-06 | 2024-05-15 | — | 下游 `fcscheduled_sale_date`、BPS sale projected date | ✅ Confirmed |
+| `fcsalehelddate` | 实际拍卖日期 | Newrez 系统 | 直接上报 | date | 2025-05-27~2026-05-22 | 2024-05-15 | — | 下游 `fcsale_held_date` | ✅ Confirmed |
+| `fcsaleamount` | 实际拍卖成交金额 | Newrez 系统 | 直接上报 | decimal(32,16) | $90,001~$400,000 | 170000.00 | — | 下游 `fcsaleamount`、BPS sale amount | ✅ Confirmed |
+| `fcresults` | FCL 结果 | Newrez 系统 | 直接上报 | varchar(255) | REO \| 3rd Party（活跃FCL为空） | REO | — | 识别 `REO` / `3rd Party` 等结案结果 | ✅ Confirmed (MySQL 实测，仅此2值) |
+| `firstlegaldate` | First Legal 日期 | Newrez 系统 | 直接上报 | date | 2018-10-29~2026-05-27 | 2024-02-01 | — | 下游 `legal_start_date`、BPS first legal date | ✅ Confirmed |
+| `servicecompletedate` | Service complete 日期 | Newrez 系统 | 直接上报 | date | 2018-12-10~2026-02-15 | 2024-03-10 | — | 下游 `service_start_date`、BPS service date | ✅ Confirmed |
+| `titleordereddate` | Title report ordered 日期 | Newrez 系统 | 直接上报 | date | YYYY-MM-DD | 2023-12-20 | — | 产权调查启动 | ✅ Confirmed |
+| `titlecleardate` | Title clear 日期 | Newrez 系统 | 直接上报 | date | 2025-03-24~2026-04-26（Newrez少量提供） | 2024-01-15 | — | BPS preliminary/final title cleared 相关来源 | ✅ Confirmed |
+| `titlereceiveddate` | Title report received 日期 | Newrez 系统 | 直接上报 | date | 2025-03-24~2026-04-26（Newrez少量提供） | 2024-01-25 | — | BPS title report received date | ✅ Confirmed |
+| `fcremovaldesc` | FCL 移除/关闭原因描述 | Newrez 系统 | 直接上报 | varchar(255) | 自由文本 | Foreclosure Complete | — | 下游 summary foreclosure status / closed reason | ✅ Confirmed |
+| `fcremovaldate` | FCL 移除/关闭日期 | Newrez 系统 | 直接上报 | date | 2019-11-27~2026-05-28 | 2024-06-01 | — | FCL completed / closed date 相关来源 | ✅ Confirmed |
+| `fccontestedflag` | 是否 contested litigation | Newrez 系统 | 直接上报 | int | 0 / 1 | 0 | — | BPS `summary_contested_litigation` | ✅ Confirmed |
+| `judicial` | 是否 Judicial Foreclosure | Newrez 系统 | 直接上报 | int | 0（Non-Judicial）/ 1（Judicial） | 1 | — | BPS `summary_judicial_foreclosure` / `summary_type` | ✅ Confirmed |
+| `fcfirm` | FCL 律师事务所 | Newrez 系统 | 直接上报 | varchar(255) | 自由文本（律师事务所名称） | Kelley Kronenberg, P.A. | — | BPS `summary_firm` / attorney | ✅ Confirmed |
+| `jr_sr_lien_flag` | Junior/Senior lien 标志 | Newrez 系统 | 直接上报 | int | 0 / 1 | 0 | — | 高级/次级留置权辅助字段 | ✅ Confirmed |
+| `fcbidamount` | FCL bid amount | Newrez 系统 | 直接上报 | decimal(32,16) | $90,000~$543,305.96 | 160000.00 | — | BPS bid approval / summary bid amount 来源 | ✅ Confirmed |
+| `activefcflag` | FCL 活跃标志 | Newrez 系统 | 直接上报 | int | 0（已完结）/ 1（进行中） | 1 | — | Newrez FCL active 判断入口；最新快照 `1`=38 | ✅ Confirmed |
+| `fchold1projectedenddate` | Hold 1 预计结束日期 | Newrez 系统 | 直接上报 | date | YYYY-MM-DD | 2024-03-20 | — | Hold 面板 projected end date | ✅ Confirmed |
+| `fchold1comment` | Hold 1 备注 | Newrez 系统 | 直接上报 | varchar(1000) | 自由文本 | Awaiting Bankruptcy Resolution | — | 写入 `port.basic_data_loan_comments` | ✅ Confirmed |
+| `fchold2projectedenddate` | Hold 2 预计结束日期 | Newrez 系统 | 直接上报 | date | YYYY-MM-DD | 2023-01-07 | — | Hold 面板 projected end date | ✅ Confirmed (MySQL 实测) |
+| `fchold2comment` | Hold 2 备注 | Newrez 系统 | 直接上报 | varchar(1000) | 自由文本 | Awaiting Court Scheduling | — | 写入 `port.basic_data_loan_comments` | ✅ Confirmed |
+| `holdmodified` | Hold 1 修改日期 | Newrez 系统 | 直接上报 | date | 2019-11-26~2026-05-28 | 2024-02-20 | — | Hold comment 的 `comments_date` | ✅ Confirmed |
+| `holdmodified2` | Hold 2 修改日期 | Newrez 系统 | 直接上报 | date | 2019-11-26~2026-05-28 | 2022-11-25 | — | Hold comment 的 `comments_date` | ✅ Confirmed (MySQL 实测) |
+| `create_time` | 记录创建时间 | Newrez 系统 | 直接上报 | datetime | 2024-04-09~2026-05-31（datetime） | 2023-12-14 08:30:00 | — | MySQL 管理字段 | ✅ Confirmed |
+| `update_time` | 记录更新时间 | Newrez 系统 | 直接上报 | datetime | 2024-04-09~2026-05-31（datetime） | 2026-05-27 10:15:00 | — | MySQL 管理字段 | ✅ Confirmed |
+| `dtdeedrecorded` | Deed recorded 日期 | Newrez 系统 | 直接上报 | date | 2025-10-28~2026-05-21 | 2024-06-01 | — | FCL 完成 / REO 转移后登记节点 | ✅ Confirmed |
+| `fcapprbidprice` | 批准 bid price | Newrez 系统 | 直接上报 | decimal(32,16) | $90,000~$536,008.42 | 162000.00 | — | Bid approval / summary bid amount 参考 | ✅ Confirmed |
+| `fcl3rdpartyproceedsreceiveddate` | 第三方购买款到账日期 | Newrez 系统 | 直接上报 | date | 2026-03-04~2026-05-26 | 2026-03-04 | — | BPS `timeline_third_party_proceeds_received_date` | ✅ Confirmed |
+| `investorloanid` | 投资人贷款号 | Newrez 系统 | 直接上报 | varchar(100) | 格式 INV-YYYYMMDD-NNN | INV-20240110-088 | — | Newrez 对账辅助 ID | ✅ Confirmed |
+| `fchold3description` | Hold 3 原因描述 | Newrez 系统 | 直接上报 | varchar(1000) | 同 fchold1description（52.6%填充） | Service Delay | — | 下游 Hold detail 的 `description3` | ✅ Confirmed (MySQL 实测) |
+| `fchold3startdate` | Hold 3 开始日期 | Newrez 系统 | 直接上报 | date | 2019-10-24~2026-05-25 | 格式 YYYY-MM-DD | — | 下游 Hold detail 的 `description3_start_date` | ✅ Confirmed |
+| `fchold3enddate` | Hold 3 结束日期 | Newrez 系统 | 直接上报 | date | YYYY-MM-DD（空=仍持续） | 格式 YYYY-MM-DD | — | 下游 Hold detail 的 `description3_end_date` | ✅ Confirmed |
+| `fchold3projectedenddate` | Hold 3 预计结束日期 | Newrez 系统 | 直接上报 | date | YYYY-MM-DD | 格式 YYYY-MM-DD | — | Hold 面板 projected end date | ✅ Confirmed |
+| `fchold3comment` | Hold 3 备注 | Newrez 系统 | 直接上报 | varchar(1000) | 自由文本 | 同 fchold1comment 格式 | — | 写入 `port.basic_data_loan_comments` | ✅ Confirmed |
+| `holdmodified3` | Hold 3 修改日期 | Newrez 系统 | 直接上报 | date | YYYY-MM-DD | 格式 YYYY-MM-DD | — | Hold comment 的 `comments_date` | ✅ Confirmed |
+| `activejnrlienfcflag` | 活跃 junior lien FCL 标志 | Newrez 系统 | 直接上报 | int | 0 / 1 | 0 | — | 下游 `activejnrlienfcflag` | ✅ Confirmed |
+| `currentmilestone` | 当前 FCL milestone | Newrez 系统 | 直接上报 | varchar(255) | Closed \| First Legal \| Judgment Entered \| Sale Held \| Sold \| Service Complete \| Sale Scheduled | First Legal | — | Newrez 当前里程碑辅助字段 | ✅ Confirmed (MySQL 实测) |
+| `srlienmonitorflag` | Senior lien monitoring 标志 | Newrez 系统 | 直接上报 | int | 0 / 1 | 0 | — | Senior lien 监控 | ✅ Confirmed |
+| `srliensalescheduleddate` | Senior lien sale scheduled date | Newrez 系统 | 直接上报 | date | 实测始终为 NULL | — | — | Senior lien sale timeline | ✅ Confirmed |
+| `srliensalehelddate` | Senior lien sale held date | Newrez 系统 | 直接上报 | date | 实测始终为 NULL | — | — | Senior lien sale timeline | ✅ Confirmed |
+| `srliensaleresult` | Senior lien sale result | Newrez 系统 | 直接上报 | double | 实测始终为 NULL | — | — | Senior lien sale 结果 | ✅ Confirmed |
+| `srliensaledate` | Senior lien sale date | Newrez 系统 | 直接上报 | date | YYYY-MM-DD | 2024-06-15 | — | Senior lien sale 日期 | ✅ Confirmed |
+
+---
+
+### 表 19：`newrez.portnewrezlm` — Newrez Loss Mitigation 原始日报表
+
+| 属性 | 值 |
+|------|----|
+| **表名** | `portnewrezlm` |
+| **所属 Schema** | MySQL `newrez` |
+| **数据层** | Raw / Servicer-specific（Newrez/Shellpoint 原始 LM 日报落地表） |
+| **业务作用** | Newrez Loss Mitigation 周期追踪表，包含 LM deal/program/status/decision、Forbearance、Trial、Repayment、PRA、Deferment、Short Sale 金额和 denial 信息 |
+| **业务意图** | 识别贷款是否处于 LM、追踪每轮 LM cycle 的打开/关闭、方案类型和最终处置，并为 FCL Hold / BPS LM Cycle 面板提供业务上下文 |
+| **上游来源** | Newrez/Shellpoint `LossMitigation` / `AresOversight_LossMitigation` 文件；代码映射见 `flow/basic_data/load_servicer_data_config/servicer_config.py` |
+| **下游使用** | `port.basic_data_daily_loan_common.lm_flag`（`activelmflag = 1` → `Y`）；`port.basic_data_daily_loan_common.forbearance`；`port.basic_data_loan_foreclosure_loss_mitigation`（Deal/Program/Status/Disposition 解码后进入 BPS LM Cycle） |
+| **Foreclosure 关系** | 间接但关键：LM 可导致 FCL Hold / Pause；LM 成功可能终止或避免 FCL，LM 失败通常转回 FCL |
+| **主键 / 索引** | `id` 为自增主键；`loanid` 有索引；业务 join key 通常为 `loanid + dataasof`，LM cycle 去重常按 `loanid + dealstartdate` |
+| **DB验证** | 2026-05-29 MySQL `information_schema.columns` + 聚合查询：56列；1,556,688行；887个非空 `dataasof`；范围 2023-12-14 至 2026-05-27 |
+
+#### 最新快照分布（`dataasof = 2026-05-27`）
+
+| 指标 | 结果 |
+|------|------|
+| 行数 | 5,050 |
+| `activelmflag` | `0` = 5,018；`1` = 32 |
+| `lmdeal` Top values | NULL = 4,831；`1` = 71；`2` = 67；`11` = 29；`5` = 25；`4` = 17；`6` = 6；`7` = 3；`9` = 1 |
+| `lmprogram` Top values | NULL = 4,831；`21` = 67；`73` = 29；`496` = 23；`12` = 21；`29` = 16；`498` = 11；`419` = 9 |
+| `lmstatus` Top values | NULL = 4,831；`166` = 74；`112` = 49；`5` = 20；`20` = 17；`140` = 13；`113` = 12；`25` = 10 |
+| `lmdecision` Top values | NULL = 4,806；`99` = 62；`5` = 50；`11` = 34；`10` = 32；`6` = 26；`14` = 21 |
+| `forbearancestatus` | NULL = 5,020；`4` = 25；`1` = 5 |
+
+> 注意：`lmdeal` / `lmprogram` / `lmstatus` / `lmdecision` 在原始表中是数值编码。代码在生成 `port.basic_data_loan_foreclosure_loss_mitigation` 时通过 Newrez 数据字典表解码成文本；因此业务文档中应优先展示解码后的 Deal / Program / Status / Final Disposition。
+
+#### 字段说明（56列）
+
+| 字段名 | 字段业务含义 | 来源数据 | 计算/推导逻辑 | 数据类型 | 取值范围 | 典型取值 | 上游字段 | 下游用途 | 备注 |
+|--------|-----------|--------|-----------|----------|---------|---------|--------|--------|------|
+| `id` | MySQL 自增主键 | Newrez 系统 | 直接上报 | bigint | 1~1,556,688 | 1 | — | 技术主键 | ✅ Confirmed |
+| `loanid` | Bridger/投资人贷款 ID | Newrez 系统 | 直接上报 | varchar(255) | 纯数字字符串 | 7727000088 | — | 与其他 Newrez 表按 `loanid + dataasof` 关联 | ✅ Confirmed |
+| `dataasof` | 数据快照日期 | Newrez 系统 | 直接上报 | date | YYYY-MM-DD | 2026-05-27 | — | 每日报表日期 | ✅ Confirmed |
+| `shellpointloanid` | Newrez/Shellpoint 服务商贷款号 | Newrez 系统 | 直接上报 | varchar(255) | 格式 NR-YYYY-NNNNNN | NR-2024-001234 | — | 下游 `svcloanid` | ✅ Confirmed |
+| `hardshiptype` | Hardship 类型编码 | Newrez 系统 | 直接上报 | int | 11 / 12 / 19 / 20 / 7 / 8 / 21 等（整数编码，10+种） | 11 | — | 借款人困难原因；需字典解码 | ✅ Confirmed (MySQL 实测) |
+| `borrowerintention` | Borrower intention 编码 | Newrez 系统 | 直接上报 | int | `1`=Unknown / `2`=Retention / `3`=Disposition | `2` | — | 下游解码为 `borrower_intentions` | ✅ Confirmed |
+| `lmdeal` | LM Deal 大类编码 | Newrez 系统 | 直接上报 | int | `1`=Modification \| `2`=Evaluation \| `4`=Payment Plan \| `5`=Forbearance \| `6`=Short Sale \| `7`=DIL \| `9`=Payoff \| `11`=Deferment（见下方解码参考表） | `2` | — | 下游解码为 `deal`，如 Evaluation / Modification / Short Sale / DIL | ✅ Confirmed |
+| `dealstartdate` | 本轮 LM cycle 打开日期 | Newrez 系统 | 直接上报 | date | 2020-08-17~2026-05-29 | 2024-01-15 | — | 下游 `cycle_opened_date`；LM cycle 去重 key | ✅ Confirmed |
+| `daysindeal` | 本轮 Deal 已持续天数 | Newrez 系统 | 直接上报 | int | 0~991天 | 45 | — | LM cycle 时效分析 | ✅ Confirmed |
+| `lmstatus` | LM 当前状态编码 | Newrez 系统 | 直接上报 | int | 15+种编码（166=Pending Financials \| 112=Workout Denial \| 5=Document Follow-up 等；**见下方解码参考表**） | `166` | — | 下游解码为 `lmc_status` | ✅ Confirmed |
+| `statusstartdate` | 当前 LM status 开始日期 | Newrez 系统 | 直接上报 | date | 2020-08-17~2026-05-29 | 2024-02-01 | — | 状态持续时间分析 | ✅ Confirmed |
+| `daysinstatus` | 当前 LM status 已持续天数 | Newrez 系统 | 直接上报 | int | 0~991天 | 30 | — | 状态时效分析 | ✅ Confirmed |
+| `lmprogram` | LM Program 编码 | Newrez 系统 | 直接上报 | int | 15+种编码（21=Evaluation \| 73=Deferment \| 10=Deed-in-Lieu \| 8=Short Sale 等；**见下方解码参考表**） | `21` | — | 下游解码为 `program`，并保留原编码为 `improgram` | ✅ Confirmed |
+| `lmdecision` | LM 最终决策编码 | Newrez 系统 | 直接上报 | int | 12+种编码（99=Pending \| 6=Referral to FC \| 10=Request Incomplete \| 11=LMS Opened in Error 等；**见下方解码参考表**） | `99` | — | 下游解码为 `final_disposition` | ✅ Confirmed |
+| `lmremovaldate` | LM cycle 关闭/移除日期 | Newrez 系统 | 直接上报 | date | 2020-09-22~2026-05-29（空=进行中） | 2024-03-15 | — | 下游 `cycle_closed_date` | ✅ Confirmed |
+| `denialreason` | LM 拒绝原因编码 | Newrez 系统 | 直接上报 | int | 18+种编码（109=Loan not due 3+ months \| 4=Withdrawal \| 6=Ineligible 等；**见下方解码参考表**） | `109` | — | 下游解码为 `denialreason` | ✅ Confirmed (MySQL 实测) |
+| `forbearanceagreementdate` | Forbearance 协议日期 | Newrez 系统 | 直接上报 | date | 2020-04-01~2026-05-25 | 2024-01-20 | — | Forbearance 子流程 | ✅ Confirmed |
+| `forbearancedatecompleted` | Forbearance 完成日期 | Newrez 系统 | 直接上报 | date | 2020-10-15~2026-04-30 | 2024-04-20 | — | Forbearance 子流程 | ✅ Confirmed |
+| `forbearancebeginningduedate` | Forbearance 起始 due date | Newrez 系统 | 直接上报 | date | YYYY-MM-DD | 2024-01-01 | — | Forbearance 起始还款期 | ✅ Confirmed |
+| `forbearanceendingduedate` | Forbearance 结束 due date | Newrez 系统 | 直接上报 | date | YYYY-MM-DD | 2024-04-01 | — | Forbearance 到期节点 | ✅ Confirmed |
+| `forbearancenumberofmonths` | Forbearance 月数 | Newrez 系统 | 直接上报 | int | 1~12个月（常见 3/6/12） | 3 | — | Forbearance 时长 | ✅ Confirmed |
+| `forbearancestatus` | Forbearance 状态编码 | Newrez 系统 | 直接上报 | int | 4 / 1 / 6（整数编码） | 4 | — | 下游 `forbearance` 文本映射；最新快照 `4`=25、`1`=5 | ✅ Confirmed |
+| `forbearancetype` | Forbearance 类型编码 | Newrez 系统 | 直接上报 | int | 41 / 61 / 40（整数编码） | 41 | — | Forbearance 类型细分 | ✅ Confirmed |
+| `trialagreementdate` | Trial Period 协议日期 | Newrez 系统 | 直接上报 | date | 2024-04-01~2026-05-29 | 2024-02-01 | — | Trial plan 子流程 | ✅ Confirmed |
+| `trialdatecompleted` | Trial Period 完成日期 | Newrez 系统 | 直接上报 | date | YYYY-MM-DD | 2024-05-01 | — | Trial plan 子流程 | ✅ Confirmed |
+| `trialbeginningduedate` | Trial 起始 due date | Newrez 系统 | 直接上报 | date | YYYY-MM-DD | 2024-02-01 | — | Trial plan 起始还款期 | ✅ Confirmed |
+| `trialendingduedate` | Trial 结束 due date | Newrez 系统 | 直接上报 | date | YYYY-MM-DD | 2024-05-01 | — | Trial plan 到期节点 | ✅ Confirmed |
+| `trialnumberofmonths` | Trial 期数 / 月数 | Newrez 系统 | 直接上报 | int | 3（实测仅此1值） | 3 | — | Trial plan 时长 | ✅ Confirmed |
+| `trialstatus` | Trial 状态编码 | Newrez 系统 | 直接上报 | int | 8 / 1 / 4 / 7（整数编码） | 8 | — | Trial plan 状态 | ✅ Confirmed |
+| `repaymentagreementdate` | Repayment Plan 协议日期 | Newrez 系统 | 直接上报 | date | 2023-04-20~2026-03-30 | 2024-05-05 | — | Repayment 子流程 | ✅ Confirmed |
+| `repaymentstartdate` | Repayment Plan 开始日期 | Newrez 系统 | 直接上报 | date | 2023-04-20~2026-04-30 | 2024-05-15 | — | Repayment 子流程 | ✅ Confirmed |
+| `repaymentenddate` | Repayment Plan 结束日期 | Newrez 系统 | 直接上报 | date | 2023-06-20~2027-01-30 | 2025-05-15 | — | Repayment 子流程 | ✅ Confirmed |
+| `repaymenttype` | Repayment 类型编码 | Newrez 系统 | 直接上报 | int | 4（实测仅此1值） | 4 | — | Repayment 类型细分 | ✅ Confirmed |
+| `repaymentstatus` | Repayment 状态编码 | Newrez 系统 | 直接上报 | int | 5 / 1 / 7 / 4 / 6 / 3（整数编码） | 5 | — | Repayment 状态 | ✅ Confirmed |
+| `repaymentplandownpmt` | Repayment Plan down payment 金额 | Newrez 系统 | 直接上报 | decimal(32,16) | $0~$40,000 | 5000.00 | — | 还款计划首付款 | ✅ Confirmed |
+| `repaymentplandownpmtdate` | Repayment Plan down payment 日期 | Newrez 系统 | 直接上报 | date | 2023-12-04~2026-04-23 | 2024-05-15 | — | 还款计划首付款日期 | ✅ Confirmed |
+| `pradate1` | PRA 日期 1 | Newrez 系统 | 直接上报 | date | 实测始终为 NULL | — | — | Principal Reduction Alternative / PRA 相关字段，需结合 Newrez 字典确认 | ✅ Confirmed |
+| `praamount1` | PRA 金额 1 | Newrez 系统 | 直接上报 | int | 实测始终为 0 | 0 | — | PRA 相关金额 | ✅ Confirmed |
+| `pradate2` | PRA 日期 2 | Newrez 系统 | 直接上报 | date | 实测始终为 NULL | — | — | PRA 相关字段 | ✅ Confirmed (MySQL 实测) |
+| `praamount2` | PRA 金额 2 | Newrez 系统 | 直接上报 | int | 实测始终为 NULL | — | — | PRA 相关金额 | ✅ Confirmed (MySQL 实测) |
+| `pradate3` | PRA 日期 3 | Newrez 系统 | 直接上报 | date | 实测始终为 NULL | — | — | PRA 相关字段 | ✅ Confirmed (MySQL 实测) |
+| `praamount3` | PRA 金额 3 | Newrez 系统 | 直接上报 | int | 实测始终为 NULL | — | — | PRA 相关金额 | ✅ Confirmed (MySQL 实测) |
+| `activelmflag` | LM 活跃标志 | Newrez 系统 | 直接上报 | int | 0（未在LM）/ 1（LM进行中） | 1 | — | 下游 `lm_flag`：`1` → `Y`，否则 `N` | ✅ Confirmed |
+| `create_time` | 记录创建时间 | Newrez 系统 | 直接上报 | datetime | 2024-04-09~2026-05-31（datetime） | 2023-12-14 08:30:00 | — | MySQL 管理字段 | ✅ Confirmed |
+| `update_time` | 记录更新时间 | Newrez 系统 | 直接上报 | datetime | 2024-04-09~2026-05-31（datetime） | 2026-05-27 10:15:00 | — | MySQL 管理字段 | ✅ Confirmed |
+| `lossmitmodtermsmodifiedtermextensionmonths` | Loss Mitigation modification term extension months | Newrez 系统 | 直接上报 | int | 0~181个月 | 6 | — | 贷款修改条款延长期数 | ✅ Confirmed |
+| `deferment_flag` | Deferment 标志 | Newrez 系统 | 直接上报 | int | 0 / 1 | 1 | — | 是否存在 deferred payment / deferment | ✅ Confirmed |
+| `deferment_amount` | Deferment 金额 | Newrez 系统 | 直接上报 | decimal(32,16) | $1,319~$130,729.62 | 10000.00 | — | 递延金额 | ✅ Confirmed |
+| `number_pi_payments_deferred` | 递延的 PI payment 数量 | Newrez 系统 | 直接上报 | int | 1~14期 | 3 | — | 递延本金利息期数 | ✅ Confirmed |
+| `shortsalenetproceedsamount` | Short Sale net proceeds 金额 | Newrez 系统 | 直接上报 | decimal(32,16) | 实测始终为 0 | 0 | — | Short Sale 净回收金额 | ✅ Confirmed |
+| `shortsalecontractofferamount` | Short Sale contract offer 金额 | Newrez 系统 | 直接上报 | decimal(32,16) | 实测始终为 0 | 0 | — | Short Sale 合同报价 | ✅ Confirmed |
+| `appealperiodexpirationdate` | Appeal period expiration date | Newrez 系统 | 直接上报 | date | 2024-09-17~2026-05-12 | 2024-04-15 | — | 拒绝/处置后的申诉期到期日 | ✅ Confirmed |
+| `lossmitmodpreviouslydeferredcapitalizedamount` | 贷款修改中以前递延并资本化的金额 | Newrez 系统 | 直接上报 | decimal(32,16) | $0~$4,500 | 8000.00 | — | Modification 资本化金额 | ✅ Confirmed |
+| `deferment_date` | Deferment 日期 | Newrez 系统 | 直接上报 | date | 2020-09-11~2026-05-14 | 2024-03-01 | — | Deferment 生效/记录日期 | ✅ Confirmed |
+| `denialletterdate` | Denial letter 日期 | Newrez 系统 | 直接上报 | date | 2019-05-07~2026-05-27 | 2024-04-10 | — | LM 拒绝通知函日期 | ✅ Confirmed |
+| `investorloanid` | 投资人贷款号 | Newrez 系统 | 直接上报 | varchar(100) | 格式 INV-YYYYMMDD-NNN | INV-20240115-088 | — | Newrez 对账辅助 ID | ✅ Confirmed |
+
+
+---
+
+#### 表19 LM 编码字段解码参考（BPS JOIN 实测，2026-06-01）
+
+> 以下解码来自 `newrez.portnewrezlm JOIN bpms_dev.sync_loan_foreclosure_loss_mitigation`，以最高频率映射为准（ETL 可能因版本差异产生少量多对多）。
+>
+> **解码机制（代码 + DB 验证 2026-06-03）**：映射数据存于 **Redshift 字典表 `newrez.portnewrezdatadic`**（长表 `field_name | code | description`；dev MySQL 无此表），解码逻辑（`LEFT JOIN`）在 ETL 代码 `basic_data_pool_config.py:835-840`（`LMDeal→deal`/`LMProgram→program`/`LMStatus→lmc_status`/`LMDecision→final_disposition`/`BorrowerIntention`/`DenialReason`；BK 在 `:367 BKStatus`），`concat(code,'.0')` 对齐 `lmdeal` 小数串存法 —— 非硬编码 Python 字典。`field_name='LMDeal'` 字典共 **13 码**（实测数据仅出现 8 码）：1 Modification · 2 Evaluation · 3 Reinstatement · 4 Payment Plan · 5 Forbearance · 6 Short Sale · 7 DIL · 8 Loan Sale · 9 Payoff · 10 Settlement · 11 Deferment · 12 CFK · 13 Consent Judgement。
+
+##### lmdeal — LM 交易大类
+
+| 编码 | 解码（BPS deal字段） | 业务含义 |
+|---|---|---|
+| `1` | Modification | 贷款修改（永久变更利率/期限/本金） |
+| `2` | Evaluation | 初始评估阶段 |
+| `4` | Payment Plan | 还款计划 |
+| `5` | Forbearance | 宽限期（临时暂停还款） |
+| `6` | Short Sale | 短售（低于贷款余额出售） |
+| `7` | DIL | Deed-in-Lieu（以房抵债） |
+| `9` | Payoff | 全额还清 |
+| `11` | Deferment | 递延（延期偿还部分本金） |
+
+##### lmprogram — LM 具体方案
+
+| 编码 | 解码（BPS program字段） | 所属大类 |
+|---|---|---|
+| `21` | Evaluation | Evaluation |
+| `73` | Deferment | Deferment |
+| `29` | Repayment Plan | Payment Plan |
+| `12` | Short-term Forbearance | Forbearance |
+| `396` | VA Traditional | Forbearance/Modification |
+| `419` | Bridger mod | Modification |
+| `240` | SLS Standard Mod | Modification |
+| `348` | FHA Recovery SAPC | Modification |
+| `8` | Short Sale | Short Sale |
+| `10` | Deed-in-Lieu | DIL |
+| `14` | Unemployment Forbearance | Forbearance |
+| `25` | Payoff | Payoff |
+| `151` | Disaster Forbearance | Forbearance |
+| `215` | Short-term FB COVID *(RETIRED 2023-11-01)* | Forbearance |
+| `273` | Standard Proprietary Modification | Modification |
+| `364` | VA 30 Year Modification | Modification |
+| `365` | VA 40 Year Modification | Modification |
+| `405` | VASP No Trial | Modification |
+| `346` | FHA Recovery Mod (40yr) | Modification |
+| `358` | SLS Non-Standard Mod | Modification |
+| `364` | VA 30 Year Modification | Modification |
+| `365` | VA 40 Year Modification | Modification |
+| `405` | VASP No Trial | Modification |
+| `496` | Evaluation *(CTE实测：映射至 Evaluation，与 lmprogram=21 功能相同)* | Evaluation |
+| `498` | *(实测记录极少，含义待确认)* | — |
+
+##### lmstatus — LM 当前工作状态
+
+| 编码 | 解码（BPS lmc_status字段） | 阶段描述 |
+|---|---|---|
+| `166` | Pending Financials | 等待借款人提交财务材料 |
+| `112` | Workout Denial | 本轮 LM 已被拒绝 |
+| `5` | Document Follow-up | 跟进补充缺失材料 |
+| `20` | Book mod | 贷款修改正式记账中 |
+| `113` | Monitor Forbearance | 监控宽限期执行情况 |
+| `140` | Deferment Agreement Ordered | 递延协议已下单/签署 |
+| `139` | Deferment Plan In Progress | 递延计划进行中 |
+| `25` | Monitor for pmts/funds | 监控借款人是否正常还款 |
+| `13` | Follow up for 1st Trial Payment | 跟进首期试验期还款 |
+| `172` | Liquidation Referral | 清算/处置转介 |
+| `116` | Not Assigned | 未分配状态 |
+| `45` | Countered by Supervisor | 主管已反驳/调整方案 |
+| `135` | DIL Sent for Recording | 以房抵债文件已提交登记 |
+| `47` | Book mod | 记账中（另一变体） |
+| `48` | Workout Denial | 拒绝（另一代码） |
+| `24` | Workout Denial | 拒绝（另一代码） |
+| `24` | Awaiting investor approval | 等待投资人审批 |
+| `47` | Monitor for Mod Agreement | 监控修改协议执行 |
+| `126` | DIL Title Ordered | DIL 产权调查已下单 |
+| `127` | Negotiate DIL liens | 与次级留置权方协商 |
+| `185` / `186` | Follow up for 1st Trial Payment / Book mod | 跟进首期 Trial 还款 / 记账 |
+| `187` | Solicitation Offered | 已发出方案邀约 |
+
+##### lmdecision — LM 最终处置结论
+
+| 编码 | 解码（BPS final_disposition字段） | 对 FCL 的影响 |
+|---|---|---|
+| `99` | Pending（进行中） | FCL 暂停 |
+| `1` | Modification Complete | FCL 撤销/暂停 |
+| `3` | DIL Complete | FCL 完成（DIL方式） |
+| `4` | Forbearance Complete | 宽限完成，FCL 继续评估 |
+| `5` | Reinstated/Current | 借款人已复原还款，FCL 撤销 |
+| `6` | Referral to FC | LM 失败，正式转回 FCL |
+| `7` | Not Eligible for Loss Mitigation | 不符合 LM 资格 |
+| `10` | Request Incomplete/Failed to Provide Information | 申请不完整，FCL 继续 |
+| `11` | LMS Opened in Error | 系统错误开立，忽略 |
+| `14` | Deferment Completed | 递延完成 |
+| `17` | Full Pay Off | 全额还清 |
+| `18` | FC Sale Held | 拍卖已执行 |
+
+##### denialreason — LM 拒绝原因
+
+| 编码 | 解码（BPS denialreason字段） |
+|---|---|
+| `109` | Loan not due for 3 or more monthly payments |
+| `76` | HAMP Sunset |
+| `4` | Withdrawal of Request/Non-Acceptance |
+| `6` | Ineligible Borrower |
+| `75` | Declined Mod Review in favor of SS/DIL |
+| `21` | Request Incomplete/Failed to Provide Documentation |
+| `118` | Loan not 90+ DPD |
+| `34` | Ineligible Borrower: Not a Natural Person |
+| `30` | Failed Plan |
+| `124` | Hardship not resolved |
+| `86` | Request Withdrawn |
+| `50` | Request Withdrawn Before Offer |
+| `108` | Unable to achieve target payment |
+| `2` | Trial Plan Default |
+| `9` | Investor Not Participating |
+| `32` | HDTI out of range |
+| `78` | Buyer walked (SS) |
+| `11` | Default Not Imminent |
+
+
+#### 验证 SQL — LM 编码解码实测
+
+> 以下 SQL 在 `mcp__mysql_bpms_dev__mysql_query` 执行（跨库 JOIN）。  
+> **JOIN key**：`loanid` + `dealstartdate = cycle_opened_date`（同一 LM 周期开始日，两表命名不同但含义相同）。  
+> **⚠️ 快照放大问题**：`portnewrezlm` 是日快照表，同一 `(loanid, dealstartdate)` 存在多行（一天一行，共 887 天）。直接 JOIN 会产生笛卡尔积，导致 1 个 code 出现多个 deal 文本。**修正方法**：用 `ROW_NUMBER()` 每个 LM 周期只取最新快照，再 JOIN（见下方 CTE 模式）。  
+> **lmdecision 中残留少量 "Pending" 次级映射**：这是因为 BPS 记录写入时该周期还在进行中，Newrez 后来才更新 decision 码为最终值，属正常历史数据行为，以 cnt 最高的非 Pending 映射为主映射。
+
+```sql
+-- 公共 CTE：每个 LM 周期只取最新快照（解决日快照笛卡尔积放大问题）
+-- 将 latest_lm 替换到各 SQL 的 FROM 子句中使用
+
+WITH latest_lm AS (
+    SELECT loanid, dealstartdate,
+           lmdeal, lmprogram, lmstatus, lmdecision, denialreason, borrowerintention,
+           ROW_NUMBER() OVER (PARTITION BY loanid, dealstartdate ORDER BY dataasof DESC) AS rn
+    FROM newrez.portnewrezlm
+)
+
+-- SQL-D1：lmdeal → deal（LM 交易大类）
+SELECT l.lmdeal, b.deal, COUNT(*) AS cnt
+FROM latest_lm l
+JOIN bpms_dev.sync_loan_foreclosure_loss_mitigation b
+  ON l.loanid = b.loanid AND l.dealstartdate = b.cycle_opened_date
+WHERE l.rn = 1 AND l.lmdeal IS NOT NULL
+  AND b.deal IS NOT NULL AND b.deal != '' AND b.deal NOT REGEXP '^[0-9]'
+GROUP BY l.lmdeal, b.deal ORDER BY l.lmdeal, cnt DESC;
+
+-- SQL-D2：lmprogram → program（LM 具体方案）
+SELECT l.lmprogram, b.program, COUNT(*) AS cnt
+FROM latest_lm l
+JOIN bpms_dev.sync_loan_foreclosure_loss_mitigation b
+  ON l.loanid = b.loanid AND l.dealstartdate = b.cycle_opened_date
+WHERE l.rn = 1 AND l.lmprogram IS NOT NULL
+  AND b.program IS NOT NULL AND b.program != '' AND b.program NOT REGEXP '^[0-9]'
+GROUP BY l.lmprogram, b.program ORDER BY l.lmprogram, cnt DESC;
+
+-- SQL-D3：lmstatus → lmc_status（LM 当前工作状态）
+SELECT l.lmstatus, b.lmc_status, COUNT(*) AS cnt
+FROM latest_lm l
+JOIN bpms_dev.sync_loan_foreclosure_loss_mitigation b
+  ON l.loanid = b.loanid AND l.dealstartdate = b.cycle_opened_date
+WHERE l.rn = 1 AND l.lmstatus IS NOT NULL
+  AND b.lmc_status IS NOT NULL AND b.lmc_status != '' AND b.lmc_status NOT REGEXP '^[0-9]'
+GROUP BY l.lmstatus, b.lmc_status ORDER BY l.lmstatus, cnt DESC;
+
+-- SQL-D4：lmdecision → final_disposition（LM 最终处置结论）
+SELECT l.lmdecision, b.final_disposition, COUNT(*) AS cnt
+FROM latest_lm l
+JOIN bpms_dev.sync_loan_foreclosure_loss_mitigation b
+  ON l.loanid = b.loanid AND l.dealstartdate = b.cycle_opened_date
+WHERE l.rn = 1 AND l.lmdecision IS NOT NULL
+  AND b.final_disposition IS NOT NULL AND b.final_disposition != '' AND b.final_disposition NOT REGEXP '^[0-9]'
+GROUP BY l.lmdecision, b.final_disposition ORDER BY l.lmdecision, cnt DESC;
+
+-- SQL-D5：denialreason → denialreason text（拒绝原因）
+SELECT l.denialreason, b.denialreason AS decoded, COUNT(*) AS cnt
+FROM latest_lm l
+JOIN bpms_dev.sync_loan_foreclosure_loss_mitigation b
+  ON l.loanid = b.loanid AND l.dealstartdate = b.cycle_opened_date
+WHERE l.rn = 1 AND l.denialreason IS NOT NULL AND l.denialreason != 0
+  AND b.denialreason IS NOT NULL AND b.denialreason != ''
+GROUP BY l.denialreason, b.denialreason ORDER BY cnt DESC;
+
+-- SQL-D6：borrowerintention → borrower_intentions（借款人意向）
+SELECT l.borrowerintention, b.borrower_intentions, COUNT(*) AS cnt
+FROM latest_lm l
+JOIN bpms_dev.sync_loan_foreclosure_loss_mitigation b
+  ON l.loanid = b.loanid AND l.dealstartdate = b.cycle_opened_date
+WHERE l.rn = 1 AND l.borrowerintention IS NOT NULL AND l.borrowerintention != 0
+  AND b.borrower_intentions IS NOT NULL AND b.borrower_intentions != ''
+GROUP BY l.borrowerintention, b.borrower_intentions ORDER BY l.borrowerintention;
+```
+
+
+### 表 20：`newrez.portnewrezbk` — Newrez Bankruptcy 原始日报表
+
+| 属性 | 值 |
+|------|----|
+| **表名** | `portnewrezbk` |
+| **所属 Schema** | MySQL `newrez` |
+| **数据层** | Raw / Servicer-specific（Newrez/Shellpoint 原始 BK 日报落地表） |
+| **业务作用** | Newrez 破产全流程追踪表，含破产申请/章节/状态、MFR（解除中止动议）、POC（债权申报）、Cramdown、对抗性诉讼、受托人资产、还款计划确认及暂记款余额等子流程节点 |
+| **业务意图** | 作为 Newrez BK 原始事实表，识别贷款是否处于破产保护（破产会暂停 FCL），并为 BPS Bankruptcy 面板提供章节/状态/MFR/POC 等业务上下文 |
+| **上游来源** | Newrez/Shellpoint `Bankruptcy` / `AresOversight_Bankruptcy` 文件；映射见 `flow/basic_data/load_servicer_data_config/servicer_config.py` |
+| **下游使用** | Redshift 中间表（`WHERE LENGTH(TRIM(bkstatus))>0`，按 `loanid+bkfileddate` 去重最新快照）→ `bpms_dev.sync_loan_foreclosure_bankruptcy`（表23，`bkstatus`/`bkstage` 经 `portnewrezdatadic` 解码）；`activebkflag` 驱动主表 `variance_active_bankruptcy`（表17）；见 doc 13 §2.2 / §6 |
+| **Foreclosure 关系** | 间接但关键：活跃破产（`activebkflag=1`）触发 FCL Hold/暂停；破产 Dismiss/MFR Granted 后 FCL 通常恢复 |
+| **主键 / 索引** | `id` 自增主键；业务 join key 通常为 `loanid + dataasof`；BK 去重常按 `loanid + bkfileddate` |
+| **代码血缘（PrefectFlow）** | 原始落地：`flow/basic_data/load_servicer_data_config/servicer_config.py` `SHELL_POINT_FILE_TABLE_MAP`：文件 `Bankruptcy`/`AresOversight_Bankruptcy` → `newrez.portnewrezbk`(L222,244)。下游消费：`flow/basic_data/basic_data_config/basic_data_pool_config.py` `CREATE_BASIC_DATA_FCL_BANKRUPTCY` Newrez 分支(L349-370)——`JOIN newrez.portnewrezgeneral`(L365-366)、`portnewrezdatadic` 解码 BKStatus(L367)、按 `loanid,bkfileddate` 去重(L364) → Redshift `port.basic_data_loan_foreclosure_bankruptcy` → BPS 表23 |
+| **DB验证** | 2026-06-01 MySQL 实测：60列；全表 1,576,896 行；最新快照 `dataasof=2026-05-31` 共 5,052 行。取值范围/填充率取自最新快照（脚本 `scripts/extract_table_stats.py`） |
+
+> ⚠️ `bkstatus`/`bkstage`/`bkremovalcode`/`mfrhearingresults` 等为 **Newrez 内部数值编码**，下游写入 BPS 时经 `newrez.portnewrezdatadic` 解码为文本（见表23 与 doc 13 Q7）。最新快照中仅 32 笔有破产记录（`activebkflag` 等填充约 1%），属正常（多数活跃贷款无破产）。
+
+#### 字段说明（60列）
+
+| 字段名 | 字段业务含义 | 来源数据 | 计算/推导逻辑 | 数据类型 | 取值范围 | 典型取值 | 上游字段 | 下游用途 | 备注 |
+|--------|-----------|--------|-----------|----------|---------|---------|--------|--------|------|
+| `id` | MySQL 自增主键 | Newrez 系统 | 直接上报 | bigint NOT NULL | 1824745 ~ 1829796 | 1824745 | — | 技术主键 | ✅；填充 5052/5052=100% |
+| `loanid` | Bridger/投资人贷款 ID | Newrez 系统 | 直接上报 | varchar(255) | 文本，5052种（样例 0695996231 … 7727006148） | 0695996231 | — | 按 `loanid+dataasof` 关联其他 Newrez 表 | ✅；填充 5052/5052=100% |
+| `dataasof` | 数据快照日期 | Newrez 系统 | 直接上报 | date NOT NULL | {2026-05-31} | 2026-05-31 | — | 每日报表日期 | ✅；填充 5052/5052=100% |
+| `shellpointloanid` | Newrez/Shellpoint 服务商贷款号 | Newrez 系统 | 直接上报 | varchar(255) | 文本，5052种（样例 0578252925 … 9799754446） | 0578252925 | — | 下游 `svcloanid` | ✅；填充 5052/5052=100% |
+| `bkfileddate` | 破产申请日 | Newrez 系统 | 直接上报 | date | {2010-06-03, 2025-04-30, 2024-02-09, 2017-01-18, 2024-01-13, 2008-06-16, 2009-06-01, 2014-12-24, 2026-02-26, 2024-02-01, 2023-11-20, 2022-08-25, 2025-04-18, 2024-03-25, 2026-03-27, 2024-02-06} 等29种 | 2010-06-03 | — | BK 时间线起点 | ✅；填充 32/5052=1% |
+| `bkstatus` | 破产状态编码（Newrez 内部数值码） | Newrez 系统 | 直接上报 | int | {2, 1, 3, 5, 4}（5种） | 2 | — | 解码后→ `bankruptcy_status`（表23） | 🟡 数值码，需字典解码；填充 32/5052=1% |
+| `bkremovalcode` | 破产终止原因编码（1=Dismissed/2=Discharged 等） | Newrez 系统 | 直接上报 | int | {1, 2, 4, 3}（4种） | 1 | — | 破产结案原因 | 🟡 数值码；填充 20/5052=0% |
+| `bkremovaldate` | 破产程序终止日 | Newrez 系统 | 直接上报 | date | {2014-09-24, 2024-06-24, 2022-03-14, 2024-04-11, 2013-08-15, 2009-09-18, 2015-05-08, 2022-09-30, 2026-04-14, 2025-07-29, 2026-03-25, 2023-06-21, 2022-12-30, 2021-06-08, 2023-04-20, 2026-01-08} 等17种 | 2014-09-24 | — | → `variance_completed_bankruptcy` 判定 | ✅；填充 20/5052=0% |
+| `bkchapter` | 破产章节（7=清算/11=重组/13=个人还款） | Newrez 系统 | 直接上报 | int | {13, 7, 11}（3种） | 13 | — | → `chapter`（表23） | ✅；填充 32/5052=1% |
+| `bkcasenumber` | 破产案件编号 | Newrez 系统 | 直接上报 | varchar(255) | {1033613, 2500228, 2410065, 1701437, 2400439, 881575, 981704, 1482201, 2611401, 2430197, 2331915, 2213209, 2503460, 2421405, 2680351, 2310152} 等29种 | 1033613 | — | 案件追溯 | ✅；填充 32/5052=1% |
+| `bkpostpetitionduedate` | 破产申请后贷款应付日 | Newrez 系统 | 直接上报 | date | {2026-05-01, 2026-02-01, 2026-04-01, 2022-04-01, 2024-02-01, 2026-05-06, 2026-07-01, 2022-09-01, 2025-05-01, 2024-04-01, 2023-11-01, 2023-04-01, 2025-12-01, 2025-09-01, 2018-09-01, 2021-04-01} 等18种 | 2026-05-01 | — | → `post_petition_due_date`（表23） | ✅；填充 22/5052=0% |
+| `prepetitionduedate` | 破产申请前贷款应付日 | Newrez 系统 | 直接上报 | date | 2022-11-01 ~ 2026-09-01 | 2022-11-01 | — | Pre-petition 欠款基准 | ✅；填充 5052/5052=100% |
+| `pocfileddate` | 债权申报（POC）提交日 | Newrez 系统 | 直接上报 | date | {2010-06-17, 2025-08-05, 2022-10-17, 2025-09-22, 2023-11-15, 2023-09-30, 2025-06-27, 2001-01-01, 2024-03-29, 2026-05-04, 2017-03-31, 2024-04-19} | 2010-06-17 | — | → `proof_of_claim_date`（表23） | ✅；填充 13/5052=0% |
+| `dischargeddate` | 债务免责（Discharge）日 | Newrez 系统 | 直接上报 | date | {2014-09-24, 2026-01-08, 2021-06-08, 2022-12-30, 2023-06-21, 2025-07-29, 2024-06-24, 2015-04-17, 2009-09-18, 2013-08-15, 2024-04-08, 2022-03-14} | 2014-09-24 | — | BK 完结情形之一 | ✅；填充 15/5052=0% |
+| `dismisseddate` | 破产驳回（Dismiss）日 | Newrez 系统 | 直接上报 | date | {2025-12-08, 2026-04-14, 2022-09-30} | 2025-12-08 | — | BK 完结情形之一；驳回后 FCL 可恢复 | ✅；填充 3/5052=0% |
+| `mfrfileddate` | 解除自动中止动议（MFR）提交日 | Newrez 系统 | 直接上报 | date | {2025-11-04, 2025-11-21, 2026-04-29, 2026-02-04, 2025-06-10} | 2025-11-04 | — | → `mfr_filed_date`（表23） | ✅；填充 5/5052=0% |
+| `mfrhearingdate` | MFR 听证日 | Newrez 系统 | 直接上报 | date | {2025-12-02, 2026-05-15, 2026-03-09, 2025-06-24} | 2025-12-02 | — | MFR 子流程 | ✅；填充 4/5052=0% |
+| `mfrgranteddate` | MFR 批准日（批准后可推进 FCL） | Newrez 系统 | 直接上报 | date | {2025-12-05, 2026-03-11, 2025-06-25} | 2025-12-05 | — | MFR 子流程 | ✅；填充 3/5052=0% |
+| `trusteeassetflag` | 受托人资产标志（1=有可分配资产） | Newrez 系统 | 直接上报 | int | {0, 1}（2种） | 0 | — | Ch7 资产案件标识 | ✅；填充 32/5052=1% |
+| `trusteeassetdate` | 受托人资产认定日 | Newrez 系统 | 直接上报 | date | {2025-11-09, 2023-04-19, 2024-04-16, 2025-06-01, 2024-02-22} | 2025-11-09 | — | Ch7 子流程 | ✅；填充 5/5052=0% |
+| `planconfirmationdate` | 还款计划确认日（Ch13 Plan Confirmed） | Newrez 系统 | 直接上报 | date | {2014-03-24, 2023-04-20, 2024-08-15, 2024-07-11, 2024-02-23, 2024-05-07, 2017-03-20, 2024-06-25} | 2014-03-24 | — | Ch13 子流程 | ✅；填充 11/5052=0% |
+| `bkstage` | 破产阶段编码（Newrez 内部数值码） | Newrez 系统 | 直接上报 | int | {8, 0, 4, 10, 21, 7, 17}（7种） | 8 | — | 解码后→ `legal_status`（表23） | 🟡 数值码，需字典解码；填充 32/5052=1% |
+| `bkfirm` | 破产律师事务所名称 | Newrez 系统 | 直接上报 | varchar(255) | {Padgett Law Group, Aldridge Pite, LLP, Bonial & Associates, P.C., McCalla Raymer Leibert Pierce, LLP, Hill Wallack} | Padgett Law Group | — | 律所信息 | ✅；填充 12/5052=0% |
+| `reaffirmationdate` | 重申债务确认（Reaffirmation）日 | Newrez 系统 | 直接上报 | date | {2015-01-14} | 2015-01-14 | — | Ch7 重申子流程 | ✅；填充 1/5052=0% |
+| `trusteeabandonmentdate` | 受托人放弃资产日 | Newrez 系统 | 直接上报 | date | 实测全为 NULL | — | — | Ch7 子流程 | ✅；填充 0/5052=0% |
+| `pocreferreddate` | POC 转介日 | Newrez 系统 | 直接上报 | date | {2025-07-07, 2025-06-06, 2025-07-17, 2026-05-26, 2026-05-21, 2025-06-04, 2026-04-03, 2024-02-13} | 2025-07-07 | — | POC 子流程 | ✅；填充 8/5052=0% |
+| `pocbardate` | POC 申报截止日（Bar Date） | Newrez 系统 | 直接上报 | date | {2010-10-21, 2024-04-16, 2024-04-19, 2017-05-24, 2026-05-07, 2024-04-11, 2024-01-29, 2025-06-27, 2026-06-05, 2024-05-28, 2023-07-24, 2026-06-10, 2024-01-02, 2025-09-22, 2022-10-27, 2025-08-05} | 2010-10-21 | — | POC 截止节点 | ✅；填充 19/5052=0% |
+| `mfrreferred` | MFR 转介日 | Newrez 系统 | 直接上报 | date | {2025-10-21, 2025-10-24, 2026-04-08, 2026-01-07, 2025-11-10, 2025-05-15} | 2025-10-21 | — | MFR 子流程 | ✅；填充 6/5052=0% |
+| `mfrhearingresults` | MFR 听证结果编码 | Newrez 系统 | 直接上报 | int | {0, 3, 4, 5}（4种） | 0 | — | 解码后→ `mfr_status`（表23） | 🟡 数值码；填充 32/5052=1% |
+| `cramdowndatereferred` | Cramdown 转介日 | Newrez 系统 | 直接上报 | date | 实测全为 NULL | — | — | Cramdown 子流程 | ✅；填充 0/5052=0% |
+| `cramdownobjectionfileddate` | Cramdown 异议提交日 | Newrez 系统 | 直接上报 | date | 实测全为 NULL | — | — | Cramdown 子流程 | ✅；填充 0/5052=0% |
+| `cramdownresultdate` | Cramdown 结果日 | Newrez 系统 | 直接上报 | date | 实测全为 NULL | — | — | Cramdown 子流程 | ✅；填充 0/5052=0% |
+| `cramdownhearingresults` | Cramdown 听证结果编码 | Newrez 系统 | 直接上报 | int | {0}（1种） | 0 | — | Cramdown 结果 | 🟡 数值码；填充 32/5052=1% |
+| `adversarialactionfileddate` | 对抗性诉讼（Adversary）提交日 | Newrez 系统 | 直接上报 | date | 实测全为 NULL | — | — | Adversary 子流程 | ✅；填充 0/5052=0% |
+| `adversarialhearingdate` | 对抗性诉讼听证日 | Newrez 系统 | 直接上报 | date | 实测全为 NULL | — | — | Adversary 子流程 | ✅；填充 0/5052=0% |
+| `adversarialresultdate` | 对抗性诉讼结果日 | Newrez 系统 | 直接上报 | date | 实测全为 NULL | — | — | Adversary 子流程 | ✅；填充 0/5052=0% |
+| `adversarialresults` | 对抗性诉讼结果编码 | Newrez 系统 | 直接上报 | int | {0}（1种） | 0 | — | Adversary 结果 | 🟡 数值码；填充 32/5052=1% |
+| `cramdownflag` | Cramdown 标志（1=存在 cramdown） | Newrez 系统 | 直接上报 | int | {0}（1种） | 0 | — | 本金 cramdown 标识 | ✅；填充 32/5052=1% |
+| `bankruptcypaymenttype` | 破产还款类型编码 | Newrez 系统 | 直接上报 | int | {1, 2, 0}（3种） | 1 | — | 还款类型细分 | 🟡 数值码；填充 12/5052=0% |
+| `debtorintention` | 债务人意向编码（保留/放弃房产） | Newrez 系统 | 直接上报 | int | {1, 0}（2种） | 1 | — | 债务人意向 | 🟡 数值码；填充 12/5052=0% |
+| `jointfilerflag` | 是否共同申请人（1=joint） | Newrez 系统 | 直接上报 | int | {0, 1}（2种） | 0 | — | 共同申请标识 | ✅；填充 12/5052=0% |
+| `activebkflag` | 是否在破产保护中（1=是/0=否） | Newrez 系统 | 直接上报 | int | {0, 1}（2种） | 0 | — | → `variance_active_bankruptcy`；BK 活跃判定 | ✅；填充 5052/5052=100% |
+| `apocfileddate` | 修订债权申报（APOC）提交日 | Newrez 系统 | 直接上报 | date | {2025-09-23, 2025-08-05} | 2025-09-23 | — | APOC 子流程 | ✅；填充 2/5052=0% |
+| `apocreferraldate` | APOC 转介日 | Newrez 系统 | 直接上报 | date | {2025-09-23, 2025-08-29} | 2025-09-23 | — | APOC 子流程 | ✅；填充 2/5052=0% |
+| `reasonforapoc` | APOC 原因（文本） | Newrez 系统 | 直接上报 | varchar(255) | {Error with Claim} | Error with Claim | — | APOC 原因说明 | ✅；填充 2/5052=0% |
+| `attorney` | 受理律师/律所名称 | Newrez 系统 | 直接上报 | varchar(255) | {Aldridge Pite, LLP} | Aldridge Pite, LLP | — | 律师信息（APOC 相关） | ✅；填充 2/5052=0% |
+| `create_time` | 记录创建时间 | Newrez 系统 | 直接上报 | datetime | {2026-06-01 21:37:44} | 2026-06-01 21:37:44 | — | MySQL 管理字段（实测=落库时间） | ✅；填充 5052/5052=100% |
+| `update_time` | 记录更新时间 | Newrez 系统 | 直接上报 | datetime | {2026-06-01 21:37:44} | 2026-06-01 21:37:44 | — | MySQL 管理字段 | ✅；填充 5052/5052=100% |
+| `bkrepayplanpaymentcount` | 破产还款计划期数 | Newrez 系统 | 直接上报 | int | {0, 60, 36}（3种） | 0 | — | Ch13 计划期数 | ✅；填充 12/5052=0% |
+| `bksourceoffundscode` | 资金来源编码 | Newrez 系统 | 直接上报 | int | 实测全为 NULL | — | — | 还款资金来源 | 🟡 数值码；填充 0/5052=0% |
+| `bkpoccourtreceiveddate` | POC 法院收到日 | Newrez 系统 | 直接上报 | date | {2025-09-22, 2026-05-04, 2024-04-19} | 2025-09-22 | — | POC 子流程 | ✅；填充 3/5052=0% |
+| `bkrcurrentstatusdate` | 当前破产状态生效日期 | Newrez 系统 | 直接上报 | date | {2026-04-27, 2026-04-15, 2025-07-12, 2023-10-24, 2026-04-01, 2026-04-08, 2026-05-26, 2026-03-27, 2023-11-20, 2024-02-01, 2026-02-26, 2024-02-09} | 2026-04-27 | — | → `status_date`（表23） | ✅；填充 12/5052=0% |
+| `bkborrowerintent` | 借款人破产意向编码 | Newrez 系统 | 直接上报 | int | {1, 0}（2种） | 1 | — | 借款人意向 | 🟡 数值码；填充 12/5052=0% |
+| `bkpostpetitionpaymentcurrent` | 破产后应付款当前额 | Newrez 系统 | 直接上报 | decimal(32,16) | {0, 1805.15, 2437.01, 2192, 1232.3, 805.5, 4103.99, 1427.01}（8种） | $0 | — | Post-petition 还款监控 | ✅；填充 12/5052=0% |
+| `bkcramdownpercent` | Cramdown 比例（本金削减%） | Newrez 系统 | 直接上报 | decimal(32,16) | 实测全为 NULL | — | — | Cramdown 金额计算 | ✅；填充 0/5052=0% |
+| `bkpostsuspensebalance` | 破产后暂记款（suspense）余额 | Newrez 系统 | 直接上报 | decimal(32,16) | {0}（1种） | $0 | — | 暂记款监控 | ✅；填充 8/5052=0% |
+| `bkpresuspensebalance` | 破产前暂记款余额 | Newrez 系统 | 直接上报 | decimal(32,16) | {0}（1种） | $0 | — | 暂记款监控 | ✅；填充 7/5052=0% |
+| `investorloanid` | 投资人贷款号 | Newrez 系统 | 直接上报 | varchar(100) | 文本，5051种（样例 1000006548 … 958710） | 1000006548 | — | 投资人对账 ID | ✅；填充 5052/5052=100% |
+| `bkfilingstate` | 破产申请州 | Newrez 系统 | 直接上报 | varchar(255) | {OH, IL, FL, CA, TX, AZ, RI, CO, TN, NE, WV, MN, GA, NV, MD, PA} | OH | — | 管辖州 | ✅；填充 32/5052=1% |
+| `bkfilingregion` | 破产申请法院辖区（含 Division） | Newrez 系统 | 直接上报 | varchar(255) | {Southern District Of Ohio, Dayton, Central District of Illinois, Peoria Division, (None), Southern District of Ohio, Dayton Division   , Northern District of Illinois, Eastern Division, Eastern District of California, Sacramento Division, District of Rhode Island (Providence), Northern District Of Illinois, Chicago Division, Central District Of California, Riverside Division, Mian District Of Colorado, Denver Division, Main District of Arizona, Phoenix Division, District of Nebraska, Omaha Division                                , Northern District of WV (Martinsburg), Northern District of Florida, Gainesville Division                    , District Of Arizona, Phoenix Division, District of Minnesota, St. Paul Division} 等23种 | Southern District Of Ohio, Dayton | — | 联邦破产法院辖区 | ✅；填充 32/5052=1% |
+
+---
+
+### 表 21：`bpms_dev.sync_loan_foreclosure_hold` — BPS Hold 历史记录表
+
+| 属性 | 值 |
+|------|----|
+| **表名** | `sync_loan_foreclosure_hold` |
+| **所属 Schema** | MySQL `bpms_dev`（BPS 应用数据库） |
+| **数据层** | Layer 5 — BPS Application Layer |
+| **业务作用** | 贷款 FCL 生命周期内的**完整 Hold 历史**（每次 Hold 变更追加一行），驱动 BPS Loan Foreclosure 详情页 Hold 面板 |
+| **业务意图** | Newrez `portnewrezfc` 仅保留 3 个当前 Hold 槽位（fchold1/2/3）；BPS 每日同步将每次变更落为新行，从而累积完整 Hold 历史（单贷款可远多于 3 行） |
+| **上游来源** | Redshift `port.basic_data_loan_foreclosure_hold`（源 `portnewrezfc`，`WHERE fchold1startdate IS NOT NULL`，3 槽 UNPIVOT，按 `loanid,description,start_date` 去重）→ `JOIN port.portfunding`；DELETE+INSERT 全量重写（见 doc 13 §4） |
+| **下游使用** | BPS Hold 面板（Description/Start/End）；入库链路与主 FCL 表独立（不要求 `fcreferraldate IS NOT NULL`） |
+| **Foreclosure 关系** | 直接：Hold（BK/LM/Court Delay 等）暂停 FCL 计时，是 SLA 方差分析的事件来源 |
+| **主键 / 索引** | `id` 自增主键；业务键 `loanid + description + description_start_date` |
+| **代码血缘（PrefectFlow）** | 编排 `flow/bps/sync_asset_management.py`（`10-FORECLOSURE_HOLD`）→ `flow/bps/bps_config/asset_managment_config.py` `GEN_FORECLOSURE_HOLD`(L847，3 槽 UNPIVOT + `JOIN port.portfunding` L890) → `util/df_db_util.py` `sync_to_mysql`(DELETE+INSERT)。Redshift 基表 `port.basic_data_loan_foreclosure_hold`：`flow/basic_data/basic_data_config/basic_data_pool_config.py`(L466-768，源 `portnewrezfc` L693，按 `loanid,hold1_start_date` 去重 L765) |
+| **DB验证** | 2026-06-01 实测：15列；338 行（85 个 distinct svcloanid）；`description` 40 种文本（如 `Loss Mitigation Workout` / `Court Delay`）；脚本 `scripts/extract_table_stats.py` |
+
+> 说明：本表**不存储 Hold 预计结束日**；主表 `sync_loan_foreclosure.variance_estimated_hold_days` 的 projected 来源是 `portnewrezfc` 的 `fchold*projectedenddate`（见表17 与 doc 13 §4.4）。
+
+#### 字段说明（15列）
+
+| 字段名 | 字段业务含义 | 来源数据 | 计算/推导逻辑 | 数据类型 | 取值范围 | 典型取值 | 上游字段 | 下游用途 | 备注 |
+|--------|-----------|--------|-----------|----------|---------|---------|--------|--------|------|
+| `id` | 自增主键 | BPS ETL | AUTO_INCREMENT | bigint NOT NULL | 10842 ~ 11540 | 10842 | — | 技术主键 | ✅；填充 338/338=100% |
+| `loanid` | 系统贷款 ID | BPS ETL | 直接写入 | bigint | 7727000012 ~ 700082870000041 | 7727000012 | `port.basic_data_loan_fcl.loanid` | 贷款 join key | ✅；填充 338/338=100% |
+| `svcloanid` | Servicer 内部贷款号 | BPS ETL | 直接写入 | varchar(64) | 文本，85种（样例 0578252925 … 7000329258） | 0578252925 | — | Servicer 对账 | ✅；填充 338/338=100% |
+| `fctrdt` | 数据来源批次日期 | BPS ETL | 直接写入 | date | 2023-12-17 ~ 2026-03-13 | 2023-12-17 | — | 快照批次追踪 | ✅；填充 338/338=100% |
+| `description` | Hold 原因描述（文本） | BPS ETL | 源 fchold1/2/3description（UNPIVOT） | varchar(256) | 文本，40种（样例 ACT(PA) Letter/Demand Letter/NOI Expiration … Veterans Affairs Servicing Purchase (VASP)） | ACT(PA) Letter/Demand Letter/NOI Expiration | `newrez.portnewrezfc.fchold*description` | BPS Hold 面板 Description 列 | ✅；填充 297/338=88% |
+| `description_start_date` | Hold 开始日 | BPS ETL | 源 fchold1/2/3startdate | date | 2019-10-24 ~ 2026-03-13 | 2019-10-24 | `newrez.portnewrezfc.fchold*startdate` | Hold 面板 Start Date | ✅；填充 338/338=100% |
+| `description_end_date` | Hold 结束日（NULL=仍持续） | BPS ETL | 源 fchold1/2/3enddate | date | 2019-11-15 ~ 2026-03-12 | 2019-11-15 | `newrez.portnewrezfc.fchold*enddate` | Hold 面板 End Date | ✅；填充 316/338=93% |
+| `create_user` | 记录创建用户 | BPS 应用层 | 直接写入 | bigint | 实测全为 NULL | — | — | 审计追踪 | dev 未回填；填充 0/338=0% |
+| `create_dept` | 记录创建部门 | BPS 应用层 | 直接写入 | bigint | 实测全为 NULL | — | — | 审计追踪 | dev 未回填；填充 0/338=0% |
+| `create_time` | 记录创建时间 | BPS 应用层 | 直接写入 | datetime | 实测全为 NULL | — | — | 审计追踪 | dev 未回填；填充 0/338=0% |
+| `update_user` | 最后更新用户 | BPS 应用层 | 直接写入 | bigint | 实测全为 NULL | — | — | 审计追踪 | dev 未回填；填充 0/338=0% |
+| `update_time` | 最后更新时间 | BPS 应用层 | 直接写入 | datetime | 实测全为 NULL | — | — | 审计追踪 | dev 未回填；填充 0/338=0% |
+| `status` | 记录状态（0=正常） | BPS 应用层 | DEFAULT 0 | int NOT NULL | {0}（1种） | 0 | — | 软停用标志 | ✅；填充 338/338=100% |
+| `is_deleted` | 是否软删除（0=未删） | BPS 应用层 | DEFAULT 0 | int NOT NULL | {0}（1种） | 0 | — | 软删除标志 | ✅；填充 338/338=100% |
+| `tenant_id` | 租户 ID | BPS 应用层 | 直接写入 | varchar(12) NOT NULL | {000000, 984018} | 000000 | — | 多租户支持 | ✅；填充 338/338=100% |
+
+---
+
+### 表 22：`bpms_dev.sync_loan_foreclosure_loss_mitigation` — BPS Loss Mitigation 周期表
+
+| 属性 | 值 |
+|------|----|
+| **表名** | `sync_loan_foreclosure_loss_mitigation` |
+| **所属 Schema** | MySQL `bpms_dev` |
+| **数据层** | Layer 5 — BPS Application Layer |
+| **业务作用** | 贷款完整 Loss Mitigation 周期历史（每个 LM 周期一行），驱动 BPS LM Cycle 面板 |
+| **业务意图** | 追踪每轮 workout（Evaluation→Modification/Forbearance/Short Sale/DIL）的开/关、方案与最终处置；LM 失败通常转回 FCL，成功则暂停/终止 FCL |
+| **上游来源** | Redshift（源 `newrez.portnewrezlm`，`WHERE dealstartdate IS NOT NULL`，按 `loanid,dealstartdate` 去重；6 个整型编码经 `portnewrezdatadic` 解码）→ `JOIN port.portfunding`；合并 Newrez+Carrington+Capecodfive（见 doc 13 §5） |
+| **下游使用** | BPS LM Cycle 面板（Deal/Program/Status/Cycle Dates/Final Disposition 等 10 列）；编码↔文本解码对照见表19「LM 编码解码参考」 |
+| **Foreclosure 关系** | 直接：LM 周期影响 FCL Hold/恢复；`final_disposition` 决定 FCL 是否继续 |
+| **主键 / 索引** | `id` 自增主键；业务键 `loanid + deal + cycle_opened_date` |
+| **代码血缘（PrefectFlow）** | 编排 `flow/bps/sync_asset_management.py`（`8-FORECLOSURE_LM`）→ `flow/bps/bps_config/asset_managment_config.py` `GEN_FORECLOSURE_LM`(L799，`JOIN port.portfunding` L814) → `util/df_db_util.py` `sync_to_mysql`(DELETE+INSERT)。Redshift 基表 `port.basic_data_loan_foreclosure_loss_mitigation`：`flow/basic_data/basic_data_config/basic_data_pool_config.py`(L773-1041，源 `portnewrezlm` L833，按 `loanid,dealstartdate` 去重 L832；**编码解码 `LEFT JOIN newrez.portnewrezdatadic`**：LMDeal/LMProgram/LMStatus/LMDecision/BorrowerIntention/DenialReason L835-840) |
+| **DB验证** | 2026-06-01 实测：22列；544 行（250 个 distinct svcloanid）；`deal`/`program`/`lmc_status`/`final_disposition` 填充约 87%；脚本 `scripts/extract_table_stats.py` |
+
+> ⚠️ 本表存储**解码后业务文本**（与 Hold 表直接存文本不同；编码解码在 Redshift 层完成）。实测部分值仍为未解码数字（如 `deal='2.0'`、`lmc_status='166.0'`），属 ETL 字典缺失项，应以表19 解码参考为准。
+
+#### 字段说明（22列）
+
+| 字段名 | 字段业务含义 | 来源数据 | 计算/推导逻辑 | 数据类型 | 取值范围 | 典型取值 | 上游字段 | 下游用途 | 备注 |
+|--------|-----------|--------|-----------|----------|---------|---------|--------|--------|------|
+| `id` | 自增主键 | BPS ETL | AUTO_INCREMENT | bigint NOT NULL | 25061 ~ 26155 | 25061 | — | 技术主键 | ✅；填充 544/544=100% |
+| `loanid` | 系统贷款 ID | BPS ETL | 直接写入 | bigint | 7727000010 ~ 700082890000291 | 7727000010 | `newrez.portnewrezlm.loanid` | 贷款 join key | ✅；填充 544/544=100% |
+| `svcloanid` | Servicer 内部贷款号 | BPS ETL | 直接写入 | varchar(64) | 文本，250种（样例 0578252925 … 7000359729） | 0578252925 | — | Servicer 对账 | ✅；填充 544/544=100% |
+| `fctrdt` | 数据来源批次日期 | BPS ETL | 直接写入 | date | 2023-11-15 ~ 2026-03-13 | 2023-11-15 | — | 快照批次追踪 | ✅；填充 544/544=100% |
+| `deal` | LM 大类（解码文本） | BPS ETL | lmdeal(int) 经 portnewrezdatadic 解码 | varchar(256) | {Modification, Evaluation, Forbearance, Deferment, Payment Plan, 2.0, DIL, Short Sale, 4.0, 1.0, Payoff} | Modification | `newrez.portnewrezlm.lmdeal` | LM Cycle 面板 Deal 列 | ✅ 解码存储（如 7→DIL）；填充 475/544=87% |
+| `program` | LM 具体方案（解码文本） | BPS ETL | lmprogram(int) 解码 | varchar(256) | {Evaluation, Deferment, 496.0, Short-term Forbearance, Bridger mod, Repayment Plan, VA Traditional, SLS Standard Mod, FHA Recovery SAPC, 498.0, 21.0, Deed-in-Lieu, Standard Proprietary Modification, Short Sale, VASP No Trial, Unemployment Forbearance} 等30种 | Evaluation | `newrez.portnewrezlm.lmprogram` | LM Cycle 面板 Program 列 | ✅ 解码存储（如 10→Deed-in-Lieu）；填充 475/544=87% |
+| `lmc_status` | LM 当前状态（解码文本） | BPS ETL | lmstatus(int) 解码 | varchar(256) | {Workout Denial, Pending Financials , Document Follow-up, Monitor Forbearance, Book mod, Deferment Agreement Ordered, 166.0, Deferment Plan In Progress, Monitor for pmts/funds, Liquidation Referral, Follow up for 1st Trial Payment, Solicitation Offered, 5.0, Monitor for Mod Agreement, Follow up for 2nd Trial Payment, 112.0} 等26种 | Workout Denial | `newrez.portnewrezlm.lmstatus` | LM Cycle 面板 Status 列 | ✅ 解码（如 166→Pending Financials）；填充 475/544=87% |
+| `cycle_opened_date` | LM 周期开始日 | BPS ETL | 直接映射 dealstartdate | date | 2020-08-17 ~ 2026-03-12 | 2020-08-17 | `newrez.portnewrezlm.dealstartdate` | LM 周期唯一键之一 | ✅；填充 543/544=100% |
+| `cycle_closed_date` | LM 周期结束日（NULL=进行中） | BPS ETL | 直接映射 lmremovaldate | date | 2020-09-22 ~ 2026-03-12 | 2020-09-22 | `newrez.portnewrezlm.lmremovaldate` | 周期历时计算 | ✅；填充 489/544=90% |
+| `final_disposition` | 最终处置结论（解码文本） | BPS ETL | lmdecision(int) 解码 | varchar(256) | {Referral to FC, Request Incomplete/Failed to Provide Information, Pending, LMS Opened in Error, Reinstated/Current, Deferment Completed, Forbearance Complete, Modification Complete, Not Eligible for Loss Mitigation, Full Pay Off, 10.0, 11.0, 99.0, FC Sale Held, 5.0, 6.0} 等18种 | Referral to FC | `newrez.portnewrezlm.lmdecision` | 决定 FCL 是否恢复（如 Referral to FC） | ✅ 解码存储；填充 475/544=87% |
+| `denialreason` | 拒绝原因（解码文本，无则空串） | BPS ETL | denialreason(int) 解码 | varchar(256) | {, Loan not due for 3 or more monthly payments, Request Incomplete/Failed to Provide Documentation, HAMP Sunset, Withdrawal of Request/Non-Acceptance, Unable to achieve target payment, Hardship not resolved, Investor Not Participating, Failed Plan, Loan not 90+ DPD , Post-Mod P&I Payment > Current P&I Payment, Trial Plan Default, HDTI out of range, Request Withdrawn, Default Not Imminent, Ineligible Borrower: Not a Natural Person} 等28种 |  | `newrez.portnewrezlm.denialreason` | LM 拒绝原因 | ✅ 无拒绝=空字符串；填充 475/544=87% |
+| `borrower_intentions` | 借款人意向（解码文本） | BPS ETL | borrowerintention(int) 解码 | varchar(256) | {, Retention, Disposition, Unknown} |  | `newrez.portnewrezlm.borrowerintention` | 借款人意向 | ✅ Newrez 多为空；填充 475/544=87% |
+| `imminent_default` | 即将违约标识（CFPB Reg X） | BPS ETL | Newrez 无对应字段 | varchar(256) | 实测全为 NULL | — | — | LM Cycle 面板列 | ✅ Newrez 恒 NULL（doc 13 Q6）；填充 0/544=0% |
+| `single_point_of_contact` | 专属联系人（CFPB 12 CFR 1024.40） | BPS ETL | Newrez 无对应字段 | varchar(256) | 实测全为 NULL | — | — | LM Cycle 面板列 | ✅ Newrez 恒 NULL（doc 13 Q6）；填充 0/544=0% |
+| `create_user` | 记录创建用户 | BPS 应用层 | 直接写入 | bigint | 实测全为 NULL | — | — | 审计追踪 | dev 未回填；填充 0/544=0% |
+| `create_dept` | 记录创建部门 | BPS 应用层 | 直接写入 | bigint | 实测全为 NULL | — | — | 审计追踪 | dev 未回填；填充 0/544=0% |
+| `create_time` | 记录创建时间 | BPS 应用层 | 直接写入 | datetime | 实测全为 NULL | — | — | 审计追踪 | dev 未回填；填充 0/544=0% |
+| `update_user` | 最后更新用户 | BPS 应用层 | 直接写入 | bigint | 实测全为 NULL | — | — | 审计追踪 | dev 未回填；填充 0/544=0% |
+| `update_time` | 最后更新时间 | BPS 应用层 | 直接写入 | datetime | 实测全为 NULL | — | — | 审计追踪 | dev 未回填；填充 0/544=0% |
+| `status` | 记录状态（0=正常） | BPS 应用层 | DEFAULT 0 | int NOT NULL | {0}（1种） | 0 | — | 软停用标志 | ✅；填充 544/544=100% |
+| `is_deleted` | 是否软删除（0=未删） | BPS 应用层 | DEFAULT 0 | int NOT NULL | {0}（1种） | 0 | — | 软删除标志 | ✅；填充 544/544=100% |
+| `tenant_id` | 租户 ID | BPS 应用层 | 直接写入 | varchar(12) NOT NULL | {000000, 984018} | 000000 | — | 多租户支持 | ✅；填充 544/544=100% |
+
+---
+
+### 表 23：`bpms_dev.sync_loan_foreclosure_bankruptcy` — BPS Bankruptcy 记录表
+
+| 属性 | 值 |
+|------|----|
+| **表名** | `sync_loan_foreclosure_bankruptcy` |
+| **所属 Schema** | MySQL `bpms_dev` |
+| **数据层** | Layer 5 — BPS Application Layer |
+| **业务作用** | 贷款破产申请记录，驱动 BPS Bankruptcy 面板（仅有破产记录的贷款才有行） |
+| **业务意图** | 向资产经理展示破产章节/状态/MFR/POC 等关键节点；破产保护期间 FCL 暂停 |
+| **上游来源** | Redshift（源 `newrez.portnewrezbk`，`WHERE LENGTH(TRIM(bkstatus))>0`，按 `loanid,bkfileddate` 去重；`LEFT JOIN portnewrezgeneral` 取 legalstatus、`portnewrezdatadic` 解码 bkstatus）→ `JOIN port.portfunding`；合并 Newrez+Carrington+Capecodfive（见 doc 13 §6） |
+| **下游使用** | BPS Bankruptcy 面板（Status/Legal Status/Chapter/MFR/POC 等 10 列） |
+| **Foreclosure 关系** | 直接：上游 `activebkflag`/`bkremovaldate` 还驱动主表 `variance_active_bankruptcy`/`variance_completed_bankruptcy`（表17） |
+| **主键 / 索引** | `id` 自增主键；业务键 `loanid + bkfileddate` |
+| **代码血缘（PrefectFlow）** | 编排 `flow/bps/sync_asset_management.py`（`9-FORECLOSURE_BK`）→ `flow/bps/bps_config/asset_managment_config.py` `GEN_FORECLOSURE_BK`(L822，原样透传 a.* JOIN portfunding L838) → `util/df_db_util.py` `sync_to_mysql`(DELETE+INSERT)。Redshift 基表 `flow/basic_data/basic_data_config/basic_data_pool_config.py` `CREATE_BASIC_DATA_FCL_BANKRUPTCY`(L308-462)：**三个 servicer 分支** — Newrez(L349-370) `portnewrezbk JOIN portnewrezgeneral`、`portnewrezdatadic` 解码 BKStatus(L367)、按 `loanid,bkfileddate` 去重；Carrington(L391-416) 源 `portcarrington`；Capecodfive(L438-462) 源 `portcapecodfive_monthly_collections`。原始落地见表20 |
+| **DB验证** | 2026-06-01 实测：22列；64 行（59 个 distinct svcloanid）；`bankruptcy_status`/`chapter` 100% 填充，`legal_status` 48%；脚本 `scripts/extract_table_stats.py` |
+
+> ⚠️ `bankruptcy_status`/`legal_status` 实测多为已解码文本（Active/Discharged/Dismissed、BK13/BK7/REO 等），但仍混有少量未解码数字（如 `3.0`），属字典缺失项（doc 13 Q7 **已解决 2026-06-02**：`bankruptcy_status` = `bkstatus` int 1~5 解码，1→Active | 2→Discharged | 3→Dismissed | 4→Closed | 5→ReliefGranted；doc 14 v19 同步更正）。
+> ⚠️ **字段来源按代码订正（推翻 doc 13 §6 的二手映射）**：`legal_status` 来自 `portnewrezgeneral.legalstatus`（**非** `bkstage`）；`status_date` 来自 `bkfileddate`（**非** `bkrcurrentstatusdate`）；`lien_status`/`mfr_status`/`claim_status` 在 **Newrez 分支硬编码 NULL**（非"待确认"）；`mfr_filed_date` 仅 **Carrington 分支**由 `bk_mfr_filed_date` 填充（Newrez/CC5 分支为 NULL），故 dev 仅 3/64 非空。详见下方字段表「上游字段」列与「代码血缘」行。
+
+#### 字段说明（22列）
+
+| 字段名 | 字段业务含义 | 来源数据 | 计算/推导逻辑 | 数据类型 | 取值范围 | 典型取值 | 上游字段 | 下游用途 | 备注 |
+|--------|-----------|--------|-----------|----------|---------|---------|--------|--------|------|
+| `id` | 自增主键 | BPS ETL | AUTO_INCREMENT | bigint NOT NULL | 2611 ~ 2739 | 2611 | — | 技术主键 | ✅；填充 64/64=100% |
+| `loanid` | 系统贷款 ID | BPS ETL | 直接写入 | bigint | 7727000010 ~ 700082700000050 | 7727000010 | `newrez.portnewrezbk.loanid` | 贷款 join key | ✅；填充 64/64=100% |
+| `svcloanid` | Servicer 内部贷款号 | BPS ETL | 直接写入 | varchar(64) | 文本，59种（样例 0578707313 … 7000357268） | 0578707313 | — | Servicer 对账 | ✅；填充 64/64=100% |
+| `fctrdt` | 数据来源批次日期 | BPS ETL | 直接写入 | date | {2026-03-10, 2026-03-13, 2026-01-17, 2024-07-24, 2024-09-29, 2025-07-14, 2024-09-05, 2024-11-18, 2026-03-01} | 2026-03-10 | — | 快照批次追踪 | ✅；填充 64/64=100% |
+| `bankruptcy_status` | 破产状态（解码文本） | BPS ETL | Newrez: `COALESCE(decode(bkstatus), bkstatus)`（portnewrezdatadic BKStatus，L354/367）；Carrington: `bk_flag`；CC5: `bankruptcy_flag` | varchar(256) | {Completed/Cancelled, Discharged, Active, Dismissed, 3.0, ReliefGranted, Closed} | Completed/Cancelled | Newrez `portnewrezbk.bkstatus`（解码） | BK 面板 Status 列 | ✅ 解码存储；未命中字典则回落原码（如 `3.0`）；填充 64/64=100% |
+| `legal_status` | 法律程序状态 | BPS ETL | Newrez: 直接取 `legalstatus`；Carrington/CC5: NULL | varchar(256) | {BK13, , FCBU, BK11, BK11DCH, BK7, BK7DCH, REO, BKD13LM, BKD7LM, BK13DCH, FCSold} | BK13 | **`newrez.portnewrezgeneral.legalstatus`**（**非** bkstage）（L355,365-366） | BK 面板 Legal Status 列 | ✅ 已按代码订正；仅 Newrez 分支非空；填充 31/64=48% |
+| `status_date` | 破产申请日（作状态日期用） | BPS ETL | Newrez/Carrington: 破产申请日；CC5: 最近破产申请日 | date | 2003-11-14 ~ 2026-02-26 | 2003-11-14 | **`bkfileddate`**（Newrez，**非** bkrcurrentstatusdate，L356）/ `bk_filed_date`（Carrington）/ `most_recent_bankruptcy_filing_date`（CC5） | BK 面板 Status Date | ✅ 已按代码订正；填充 62/64=97% |
+| `chapter` | 破产章节（7/11/13） | BPS ETL | `CAST(bkchapter AS DECIMAL)`（Newrez/Carrington）；CC5 取 `bankruptcy_type` | varchar(256) | {13, 7, 11} | 13 | `newrez.portnewrezbk.bkchapter`(L357) | BK 面板 Chapter | ✅；填充 64/64=100% |
+| `lien_status` | 留置权状态 | BPS ETL | 三个 servicer 分支均硬编码 `NULL`（L358/401/449） | varchar(256) | 实测全为 NULL | — | — （未映射） | BK 面板 Lien Status | ✅ 代码确认恒 NULL（非"待确认"）；填充 0/64=0% |
+| `mfr_status` | MFR 状态 | BPS ETL | 三个 servicer 分支均硬编码 `NULL`（L359/402/450） | varchar(256) | 实测全为 NULL | — | — （未映射） | BK 面板 MFR Status | ✅ 代码确认恒 NULL（**非** mfrhearingresults）；填充 0/64=0% |
+| `mfr_filed_date` | MFR 提交日 | BPS ETL | Newrez/CC5: NULL（L360/451）；Carrington: `bk_mfr_filed_date`（L403） | date | {2022-03-18, 2020-10-19, 2026-03-04} | 2022-03-18 | **`carrington.portcarrington.bk_mfr_filed_date`**（仅 Carrington 分支；Newrez `portnewrezbk.mfrfileddate` **未** 映射） | BK 面板 MFR Filed Date | ✅ 已按代码订正；dev 非空均来自 Carrington；填充 3/64=5% |
+| `claim_status` | 债权状态 | BPS ETL | 三个 servicer 分支均硬编码 `NULL`（L361/404/452） | varchar(256) | 实测全为 NULL | — | — （未映射） | BK 面板 Claim Status | ✅ 代码确认恒 NULL（非"待确认"）；填充 0/64=0% |
+| `proof_of_claim_date` | 债权申报（POC）日 | BPS ETL | Newrez: `pocfileddate`(L362)；Carrington: `bk_poc_filed_date`(L405)；CC5: NULL | date | {2023-09-30, 2010-06-17, 2001-01-01, 2025-08-05, 2024-03-29, 2025-12-16, 2022-10-17, 2017-03-31, 2024-04-19, 2026-01-26, 2018-04-12, 2016-04-26, 2013-06-13, 2020-02-13, 2024-12-17, 2016-02-15} 等22种 | 2023-09-30 | `newrez.portnewrezbk.pocfileddate` / `carrington.portcarrington.bk_poc_filed_date` | BK 面板 Proof of Claim Date | ✅；填充 24/64=38% |
+| `post_petition_due_date` | 破产申请后应付日 | BPS ETL | Newrez: `bkpostpetitionduedate`(L363)；Carrington/CC5: NULL | date | {2026-01-01, 2026-02-01, 2025-06-01, 2026-04-01, 2026-03-06, 2024-02-01, 2026-03-01, 2021-04-01, 2025-11-01, 2025-02-01, 2022-04-01, 2018-09-01, 2025-09-01, 2025-10-01, 2025-05-01, 2022-09-01} 等20种 | 2026-01-01 | `newrez.portnewrezbk.bkpostpetitionduedate`（仅 Newrez 分支） | BK 面板 Post Petition Due Date | ✅；填充 22/64=34% |
+| `create_user` | 记录创建用户 | BPS 应用层 | 直接写入 | bigint | 实测全为 NULL | — | — | 审计追踪 | dev 未回填；填充 0/64=0% |
+| `create_dept` | 记录创建部门 | BPS 应用层 | 直接写入 | bigint | 实测全为 NULL | — | — | 审计追踪 | dev 未回填；填充 0/64=0% |
+| `create_time` | 记录创建时间 | BPS 应用层 | 直接写入 | datetime | 实测全为 NULL | — | — | 审计追踪 | dev 未回填；填充 0/64=0% |
+| `update_user` | 最后更新用户 | BPS 应用层 | 直接写入 | bigint | 实测全为 NULL | — | — | 审计追踪 | dev 未回填；填充 0/64=0% |
+| `update_time` | 最后更新时间 | BPS 应用层 | 直接写入 | datetime | 实测全为 NULL | — | — | 审计追踪 | dev 未回填；填充 0/64=0% |
+| `status` | 记录状态（0=正常） | BPS 应用层 | DEFAULT 0 | int NOT NULL | {0}（1种） | 0 | — | 软停用标志 | ✅；填充 64/64=100% |
+| `is_deleted` | 是否软删除（0=未删） | BPS 应用层 | DEFAULT 0 | int NOT NULL | {0}（1种） | 0 | — | 软删除标志 | ✅；填充 64/64=100% |
+| `tenant_id` | 租户 ID | BPS 应用层 | 直接写入 | varchar(12) NOT NULL | {000000, 984018} | 000000 | — | 多租户支持 | ✅；填充 64/64=100% |
+
+---
+
+### 表 24：`bpms_dev.sync_fcl_stage_info` — BPS FCL 阶段统计表
+
+| 属性 | 值 |
+|------|----|
+| **表名** | `sync_fcl_stage_info` |
+| **所属 Schema** | MySQL `bpms_dev` |
+| **数据层** | Layer 5 — BPS Application Layer（聚合概览页数据源） |
+| **业务作用** | 驱动 BPS Foreclosure 聚合概览页（Stage Tab + Time Line Tab）：按当前阶段分组的 Days in Stage / Days in LM / Days on Hold 统计，及各里程碑日期时间线 |
+| **业务意图** | 为资产经理提供组合级 FCL 进度与停滞监控；含主表 `sync_loan_foreclosure` 所缺的实际历时天数（`*_stage_days` 等） |
+| **上游来源** | Redshift `port.fcl_stage_info`（`GEN_FCL_STAGE`：主筛选 `activefcflag=1 AND fcremovaldate IS NULL`；次筛选 Demand 且 D90/D120P）→ `JOIN port.portfunding`（见 doc 13 §7） |
+| **下游使用** | BPS 聚合概览页 Stage Tab（阶段天数）与 Time Line Tab（里程碑日期）；`stage` 代码经前端映射为显示名 |
+| **Foreclosure 关系** | 核心：**唯一排除完结贷款**的 FCL 表（仅活跃 FCL），与主表 `sync_loan_foreclosure`（含完结）人口不同，数量不应直接比较 |
+| **主键 / 索引** | `id` 自增主键；业务键 `loanid + fctrdt`（每日快照） |
+| **代码血缘（PrefectFlow）** | 编排 `flow/bps/sync_asset_management.py`（`12-FCL_STAGE`）→ `flow/bps/bps_config/asset_managment_config.py` `GET_FCL_STAGE_DATA`(L925，`select a.* ... JOIN port.portfunding` L928) → `util/df_db_util.py` `sync_to_mysql`(DELETE+INSERT)。Redshift 基表 `port.fcl_stage_info`：`flow/basic_data/basic_data_config/basic_data_pool_config.py` `GEN_FCL_STAGE`(L1774-2438，INSERT L2344；源 `port.basic_data_loan_fcl` + `port.basic_data_fcl_related` + hold_detail) |
+| **DB验证** | 2026-06-01 实测：57列；5,825 行（56 个 distinct loanid × 多快照日）；`stage` 6 种代码；脚本 `scripts/extract_table_stats.py` |
+
+> 阶段字段按前缀分组（`demand_`/`noi_`/`referral_`/`first_legal_`/`service_`/`publication_`/`judgement_`/`sale_`），各组含 `*_start_date`/`*_end_date`/`*_stage_days`/`*_in_lm_days`/`*_on_hold_days`；Upcoming 组用 `to_judgement_days`/`to_sale_days` 替代 stage_days。`noi_*`/`publication_*` 对 Newrez 恒 NULL（见 doc 13 §7）。
+
+#### 字段说明（57列）
+
+| 字段名 | 字段业务含义 | 来源数据 | 计算/推导逻辑 | 数据类型 | 取值范围 | 典型取值 | 上游字段 | 下游用途 | 备注 |
+|--------|-----------|--------|-----------|----------|---------|---------|--------|--------|------|
+| `id` | 自增主键 | BPS ETL（GEN_FCL_STAGE） | 直接写入 | bigint NOT NULL | 299808 ~ 305632 | 299808 | — | 技术主键 | ✅；填充 5825/5825=100% |
+| `stage` | 当前 FCL 阶段代码（全大写） | BPS ETL（GEN_FCL_STAGE） | ETL 计算/派生 | varchar(100) | {REFERRAL, SALE, SERVICE, FIRST_LEGAL, JUDGEMENT, DEMAND} | REFERRAL | — | BPS 聚合页分组键；瀑布优先级判定 | ✅ {SALE,JUDGEMENT,SERVICE,FIRST_LEGAL,REFERRAL,DEMAND}；填充 5825/5825=100% |
+| `fctrdt` | 数据快照日（每贷款每天一行） | BPS ETL（GEN_FCL_STAGE） | 直接写入 | date | 2025-06-04 ~ 2026-03-13 | 2025-06-04 | — | 查询当前态需 `fctrdt=MAX(fctrdt)` | ✅；填充 5825/5825=100% |
+| `loanid` | 系统贷款 ID | BPS ETL（GEN_FCL_STAGE） | 直接写入 | varchar(100) | 文本，56种（样例 7727000065 … 7727005351） | 7727000065 | — | 贷款 join key | ✅；填充 5825/5825=100% |
+| `group` | 派生分类（FCL/REO/D120P/D90） | BPS ETL（GEN_FCL_STAGE） | ETL 计算/派生 | varchar(100) | {FCL, D120P, D90, REO} | FCL | — | 聚合页分组/过滤 | ✅ ETL 写入派生字段；填充 5825/5825=100% |
+| `servicer` | Servicer 名称 | BPS ETL（GEN_FCL_STAGE） | 直接写入 | varchar(100) | {Newrez, Carrington} | Newrez | — | 聚合页过滤 | ✅；填充 5825/5825=100% |
+| `state` | 物业所在州 | BPS ETL（GEN_FCL_STAGE） | 直接写入 | varchar(100) | {FL, IL, NY, CA, AZ, IN, CO, PA, TX, WA, OR, NC, MT, MD, MA, RI} 等22种 | FL | `newrez.portnewrezfc.*`（经 `port.basic_data_loan_fcl`） | 聚合页过滤 | ✅；填充 5825/5825=100% |
+| `judicial` | 是否司法州（Y/N） | BPS ETL（GEN_FCL_STAGE） | 直接写入 | varchar(1) | {Y, N} | Y | `newrez.portnewrezfc.*`（经 `port.basic_data_loan_fcl`） | 司法/非司法流程区分 | ✅；填充 5825/5825=100% |
+| `demand_start_date` | NOI/Demand Letter 阶段 · 阶段开始日 | BPS ETL（GEN_FCL_STAGE） | 源 timeline 日期（经 basic_data_loan_fcl） | date | 2021-10-18 ~ 2026-02-04 | 2021-10-18 | `newrez.portnewrezfc` timeline | 聚合页 NOI/Demand Letter 组 | ✅；填充 4858/5825=83% |
+| `demand_end_date` | NOI/Demand Letter 阶段 · 阶段结束日 | BPS ETL（GEN_FCL_STAGE） | 源 timeline 日期（经 basic_data_loan_fcl） | date | 2021-11-22 ~ 2026-03-11 | 2021-11-22 | `newrez.portnewrezfc` timeline | 聚合页 NOI/Demand Letter 组 | ✅；填充 4858/5825=83% |
+| `demand_stage_days` | NOI/Demand Letter 阶段 · 在该阶段已历天数 | BPS ETL（GEN_FCL_STAGE） | BPS 结合 LM/Hold 状态计算 | int | 3 ~ 1452 | 3 | `portnewrezlm.activelmflag` / Hold 状态 | 聚合页 NOI/Demand Letter 组 | ✅；填充 4858/5825=83% |
+| `demand_in_lm_days` | NOI/Demand Letter 阶段 · 该阶段内处于 LM 的天数 | BPS ETL（GEN_FCL_STAGE） | BPS 结合 LM/Hold 状态计算 | int | 3 ~ 283 | 3 | `portnewrezlm.activelmflag` / Hold 状态 | 聚合页 NOI/Demand Letter 组 | ✅；填充 2573/5825=44% |
+| `demand_on_hold_days` | NOI/Demand Letter 阶段 · 该阶段内处于 Hold 的天数 | BPS ETL（GEN_FCL_STAGE） | BPS 结合 LM/Hold 状态计算 | int | 1 ~ 250 | 1 | `portnewrezlm.activelmflag` / Hold 状态 | 聚合页 NOI/Demand Letter 组 | ✅；填充 2672/5825=46% |
+| `noi_start_date` | NOI(Approved for Referral) 阶段 · 阶段开始日 | BPS ETL（GEN_FCL_STAGE） | 源 timeline 日期（经 basic_data_loan_fcl） | date | 实测全为 NULL | — | `newrez.portnewrezfc` timeline | 聚合页 NOI(Approved for Referral) 组 | ✅；填充 0/5825=0% |
+| `noi_end_date` | NOI(Approved for Referral) 阶段 · 阶段结束日 | BPS ETL（GEN_FCL_STAGE） | 源 timeline 日期（经 basic_data_loan_fcl） | date | 实测全为 NULL | — | `newrez.portnewrezfc` timeline | 聚合页 NOI(Approved for Referral) 组 | ✅；填充 0/5825=0% |
+| `noi_stage_days` | NOI(Approved for Referral) 阶段 · 在该阶段已历天数 | BPS ETL（GEN_FCL_STAGE） | BPS 结合 LM/Hold 状态计算 | int | 实测全为 NULL | — | `portnewrezlm.activelmflag` / Hold 状态 | 聚合页 NOI(Approved for Referral) 组 | ✅；填充 0/5825=0% |
+| `noi_in_lm_days` | NOI(Approved for Referral) 阶段 · 该阶段内处于 LM 的天数 | BPS ETL（GEN_FCL_STAGE） | BPS 结合 LM/Hold 状态计算 | int | 实测全为 NULL | — | `portnewrezlm.activelmflag` / Hold 状态 | 聚合页 NOI(Approved for Referral) 组 | ✅；填充 0/5825=0% |
+| `noi_on_hold_days` | NOI(Approved for Referral) 阶段 · 该阶段内处于 Hold 的天数 | BPS ETL（GEN_FCL_STAGE） | BPS 结合 LM/Hold 状态计算 | int | 实测全为 NULL | — | `portnewrezlm.activelmflag` / Hold 状态 | 聚合页 NOI(Approved for Referral) 组 | ✅；填充 0/5825=0% |
+| `referral_start_date` | Referral 阶段 · 阶段开始日 | BPS ETL（GEN_FCL_STAGE） | 源 timeline 日期（经 basic_data_loan_fcl） | date | 2024-01-11 ~ 2026-03-10 | 2024-01-11 | `newrez.portnewrezfc` timeline | 聚合页 Referral 组 | ✅；填充 5501/5825=94% |
+| `referral_end_date` | Referral 阶段 · 阶段结束日 | BPS ETL（GEN_FCL_STAGE） | 源 timeline 日期（经 basic_data_loan_fcl） | date | {2025-02-12, 2025-04-03, 2025-04-15, 2025-05-19, 2025-01-16, 2025-06-13, 2025-06-11, 2025-07-23, 2025-07-21, 2025-07-28, 2025-08-13, 2025-08-07, 2024-10-29, 2025-03-31, 2025-10-14, 2025-03-27} 等30种 | 2025-02-12 | `newrez.portnewrezfc` timeline | 聚合页 Referral 组 | ✅；填充 3436/5825=59% |
+| `referral_stage_days` | Referral 阶段 · 在该阶段已历天数 | BPS ETL（GEN_FCL_STAGE） | BPS 结合 LM/Hold 状态计算 | int | 3 ~ 762 | 3 | `portnewrezlm.activelmflag` / Hold 状态 | 聚合页 Referral 组 | ✅；填充 5501/5825=94% |
+| `referral_in_lm_days` | Referral 阶段 · 该阶段内处于 LM 的天数 | BPS ETL（GEN_FCL_STAGE） | BPS 结合 LM/Hold 状态计算 | int | 3 ~ 132 | 3 | `portnewrezlm.activelmflag` / Hold 状态 | 聚合页 Referral 组 | ✅；填充 816/5825=14% |
+| `referral_on_hold_days` | Referral 阶段 · 该阶段内处于 Hold 的天数 | BPS ETL（GEN_FCL_STAGE） | BPS 结合 LM/Hold 状态计算 | int | 2 ~ 227 | 2 | `portnewrezlm.activelmflag` / Hold 状态 | 聚合页 Referral 组 | ✅；填充 1300/5825=22% |
+| `first_legal_start_date` | First Legal 阶段 · 阶段开始日 | BPS ETL（GEN_FCL_STAGE） | 源 timeline 日期（经 basic_data_loan_fcl） | date | {2025-02-12, 2025-04-03, 2025-04-15, 2025-05-19, 2025-01-16, 2025-06-13, 2025-06-11, 2025-07-23, 2025-07-21, 2025-07-28, 2025-08-13, 2025-08-07, 2024-10-29, 2025-03-31, 2025-10-14, 2025-03-27} 等30种 | 2025-02-12 | `newrez.portnewrezfc` timeline | 聚合页 First Legal 组 | ✅；填充 3436/5825=59% |
+| `first_legal_end_date` | First Legal 阶段 · 阶段结束日 | BPS ETL（GEN_FCL_STAGE） | 源 timeline 日期（经 basic_data_loan_fcl） | date | {2025-03-04, 2025-04-24, 2025-06-02, 2025-07-18, 2025-08-14, 2025-08-25, 2025-05-28, 2025-09-02, 2025-05-23, 2025-12-08, 2025-05-03, 2025-12-24, 2025-09-21, 2026-01-13, 2025-12-29, 2025-07-27} 等17种 | 2025-03-04 | `newrez.portnewrezfc` timeline | 聚合页 First Legal 组 | ✅；填充 1993/5825=34% |
+| `first_legal_stage_days` | First Legal 阶段 · 在该阶段已历天数 | BPS ETL（GEN_FCL_STAGE） | BPS 结合 LM/Hold 状态计算 | int | 3 ~ 424 | 3 | `portnewrezlm.activelmflag` / Hold 状态 | 聚合页 First Legal 组 | ✅；填充 3436/5825=59% |
+| `first_legal_in_lm_days` | First Legal 阶段 · 该阶段内处于 LM 的天数 | BPS ETL（GEN_FCL_STAGE） | BPS 结合 LM/Hold 状态计算 | int | 1 ~ 283 | 1 | `portnewrezlm.activelmflag` / Hold 状态 | 聚合页 First Legal 组 | ✅；填充 828/5825=14% |
+| `first_legal_on_hold_days` | First Legal 阶段 · 该阶段内处于 Hold 的天数 | BPS ETL（GEN_FCL_STAGE） | BPS 结合 LM/Hold 状态计算 | int | 3 ~ 250 | 3 | `portnewrezlm.activelmflag` / Hold 状态 | 聚合页 First Legal 组 | ✅；填充 853/5825=15% |
+| `first_legal_date_history` | 首次法律行动日变更历史 | BPS ETL（GEN_FCL_STAGE） | ETL 计算/派生 | text | 实测全为 NULL | — | — | First Legal 改期追溯 | 🟡 dev 全 NULL；填充 0/5825=0% |
+| `service_start_date` | Service 阶段 · 阶段开始日 | BPS ETL（GEN_FCL_STAGE） | 源 timeline 日期（经 basic_data_loan_fcl） | date | {2025-03-04, 2025-04-24, 2025-06-02, 2025-07-18, 2025-08-14, 2025-08-25, 2025-05-28, 2025-09-02, 2025-05-23, 2025-12-08, 2025-05-03, 2025-12-24, 2025-09-21, 2026-01-13, 2025-12-29, 2025-07-27} 等17种 | 2025-03-04 | `newrez.portnewrezfc` timeline | 聚合页 Service 组 | ✅；填充 1993/5825=34% |
+| `service_end_date` | Service 阶段 · 阶段结束日 | BPS ETL（GEN_FCL_STAGE） | 源 timeline 日期（经 basic_data_loan_fcl） | date | {2025-11-17, 2025-07-03, 2025-12-17, 2025-10-27, 2025-06-11, 2025-10-29, 2026-01-26, 2025-08-08, 2025-12-08, 2025-07-15, 2025-07-14, 2025-07-21, 2025-08-06, 2026-02-13, 2025-11-04, 2025-09-12} 等22种 | 2025-11-17 | `newrez.portnewrezfc` timeline | 聚合页 Service 组 | ✅；填充 839/5825=14% |
+| `service_stage_days` | Service 阶段 · 在该阶段已历天数 | BPS ETL（GEN_FCL_STAGE） | BPS 结合 LM/Hold 状态计算 | int | 4 ~ 377 | 4 | `portnewrezlm.activelmflag` / Hold 状态 | 聚合页 Service 组 | ✅；填充 1993/5825=34% |
+| `service_in_lm_days` | Service 阶段 · 该阶段内处于 LM 的天数 | BPS ETL（GEN_FCL_STAGE） | BPS 结合 LM/Hold 状态计算 | int | 3 ~ 102 | 3 | `portnewrezlm.activelmflag` / Hold 状态 | 聚合页 Service 组 | ✅；填充 832/5825=14% |
+| `service_on_hold_days` | Service 阶段 · 该阶段内处于 Hold 的天数 | BPS ETL（GEN_FCL_STAGE） | BPS 结合 LM/Hold 状态计算 | int | 1 ~ 145 | 1 | `portnewrezlm.activelmflag` / Hold 状态 | 聚合页 Service 组 | ✅；填充 834/5825=14% |
+| `publication_start_date` | Publication 阶段 · 阶段开始日 | BPS ETL（GEN_FCL_STAGE） | 源 timeline 日期（经 basic_data_loan_fcl） | date | 实测全为 NULL | — | `newrez.portnewrezfc` timeline | 聚合页 Publication 组 | ✅；填充 0/5825=0% |
+| `publication_end_date` | Publication 阶段 · 阶段结束日 | BPS ETL（GEN_FCL_STAGE） | 源 timeline 日期（经 basic_data_loan_fcl） | date | 实测全为 NULL | — | `newrez.portnewrezfc` timeline | 聚合页 Publication 组 | ✅；填充 0/5825=0% |
+| `publication_stage_days` | Publication 阶段 · 在该阶段已历天数 | BPS ETL（GEN_FCL_STAGE） | BPS 结合 LM/Hold 状态计算 | int | 实测全为 NULL | — | `portnewrezlm.activelmflag` / Hold 状态 | 聚合页 Publication 组 | ✅；填充 0/5825=0% |
+| `publication_in_lm_days` | Publication 阶段 · 该阶段内处于 LM 的天数 | BPS ETL（GEN_FCL_STAGE） | BPS 结合 LM/Hold 状态计算 | int | 实测全为 NULL | — | `portnewrezlm.activelmflag` / Hold 状态 | 聚合页 Publication 组 | ✅；填充 0/5825=0% |
+| `publication_on_hold_days` | Publication 阶段 · 该阶段内处于 Hold 的天数 | BPS ETL（GEN_FCL_STAGE） | BPS 结合 LM/Hold 状态计算 | int | 实测全为 NULL | — | `portnewrezlm.activelmflag` / Hold 状态 | 聚合页 Publication 组 | ✅；填充 0/5825=0% |
+| `judgement_start_date` | Upcoming Judgement 阶段 · 阶段开始日 | BPS ETL（GEN_FCL_STAGE） | 源 timeline 日期（经 basic_data_loan_fcl） | date | {2025-11-29, 2025-09-16, 2026-03-27, 2026-02-04, 2025-09-23, 2026-04-08, 2026-01-18, 2026-01-17, 2026-03-23, 2025-10-15, 2025-10-27, 2025-12-03, 2025-11-14, 2026-04-13, 2026-02-21, 2025-08-07} 等22种 | 2025-11-29 | `newrez.portnewrezfc` timeline | 聚合页 Upcoming Judgement 组 | ✅；填充 839/5825=14% |
+| `judgement_end_date` | Upcoming Judgement 阶段 · 阶段结束日 | BPS ETL（GEN_FCL_STAGE） | 源 timeline 日期（经 basic_data_loan_fcl） | date | 实测全为 NULL | — | `newrez.portnewrezfc` timeline | 聚合页 Upcoming Judgement 组 | ✅；填充 0/5825=0% |
+| `to_judgement_days` | 距判决日剩余天数 | BPS ETL（GEN_FCL_STAGE） | BPS 计算 | int | 0 ~ 151 | 0 | — | Upcoming Judgement 组 Days to Judgement | ✅；填充 839/5825=14% |
+| `judgement_in_lm_days` | Upcoming Judgement 阶段 · 该阶段内处于 LM 的天数 | BPS ETL（GEN_FCL_STAGE） | BPS 结合 LM/Hold 状态计算 | int | 3 ~ 23（21种） | 9 | `portnewrezlm.activelmflag` / Hold 状态 | 聚合页 Upcoming Judgement 组 | ✅；填充 57/5825=1% |
+| `judgement_on_hold_days` | Upcoming Judgement 阶段 · 该阶段内处于 Hold 的天数 | BPS ETL（GEN_FCL_STAGE） | BPS 结合 LM/Hold 状态计算 | int | 3 ~ 51 | 3 | `portnewrezlm.activelmflag` / Hold 状态 | 聚合页 Upcoming Judgement 组 | ✅；填充 274/5825=5% |
+| `sale_start_date` | Upcoming FC Sales 阶段 · 阶段开始日 | BPS ETL（GEN_FCL_STAGE） | 源 timeline 日期（经 basic_data_loan_fcl） | date | {2025-12-29, 2025-12-30, 2026-03-31, 2025-12-17, 2025-08-15, 2026-01-16, 2026-04-08, 2026-05-15, 2025-08-26, 2026-03-03, 2026-04-07, 2025-10-28, 2026-02-04, 2025-10-14, 2026-03-11, 2026-02-27} 等30种 | 2025-12-29 | `newrez.portnewrezfc` timeline | 聚合页 Upcoming FC Sales 组 | ✅；填充 1197/5825=21% |
+| `sale_end_date` | Upcoming FC Sales 阶段 · 阶段结束日 | BPS ETL（GEN_FCL_STAGE） | 源 timeline 日期（经 basic_data_loan_fcl） | date | 实测全为 NULL | — | `newrez.portnewrezfc` timeline | 聚合页 Upcoming FC Sales 组 | ✅；填充 0/5825=0% |
+| `to_sale_days` | 距拍卖日剩余天数 | BPS ETL（GEN_FCL_STAGE） | BPS 计算 | int | 0 ~ 129 | 0 | — | Upcoming FC Sales 组 Days to Sale | ✅；填充 1197/5825=21% |
+| `sale_in_lm_days` | Upcoming FC Sales 阶段 · 该阶段内处于 LM 的天数 | BPS ETL（GEN_FCL_STAGE） | BPS 结合 LM/Hold 状态计算 | int | 3 ~ 88 | 3 | `portnewrezlm.activelmflag` / Hold 状态 | 聚合页 Upcoming FC Sales 组 | ✅；填充 213/5825=4% |
+| `sale_on_hold_days` | Upcoming FC Sales 阶段 · 该阶段内处于 Hold 的天数 | BPS ETL（GEN_FCL_STAGE） | BPS 结合 LM/Hold 状态计算 | int | 3 ~ 109 | 3 | `portnewrezlm.activelmflag` / Hold 状态 | 聚合页 Upcoming FC Sales 组 | ✅；填充 216/5825=4% |
+| `create_time` | 记录创建时间 | BPS ETL（GEN_FCL_STAGE） | ETL 计算/派生 | datetime | {2026-03-16 06:54:17} | 2026-03-16 06:54:17 | — | 管理字段 | ✅ 实测=同步批次时间；填充 5825/5825=100% |
+| `update_time` | 记录更新时间 | BPS ETL（GEN_FCL_STAGE） | ETL 计算/派生 | datetime | {2026-03-16 06:54:17} | 2026-03-16 06:54:17 | — | 管理字段 | ✅；填充 5825/5825=100% |
+| `create_user` | 记录创建用户 | BPS ETL（GEN_FCL_STAGE） | ETL 计算/派生 | bigint | 实测全为 NULL | — | — | 审计追踪 | dev 未回填；填充 0/5825=0% |
+| `create_dept` | 记录创建部门 | BPS ETL（GEN_FCL_STAGE） | ETL 计算/派生 | bigint | 实测全为 NULL | — | — | 审计追踪 | dev 未回填；填充 0/5825=0% |
+| `update_user` | 最后更新用户 | BPS ETL（GEN_FCL_STAGE） | ETL 计算/派生 | bigint | 实测全为 NULL | — | — | 审计追踪 | dev 未回填；填充 0/5825=0% |
+| `status` | 记录状态（0=正常） | BPS ETL（GEN_FCL_STAGE） | ETL 计算/派生 | int NOT NULL | {0}（1种） | 0 | — | 软停用标志 | ✅；填充 5825/5825=100% |
+| `is_deleted` | 是否软删除（0=未删） | BPS ETL（GEN_FCL_STAGE） | ETL 计算/派生 | int NOT NULL | {0}（1种） | 0 | — | 软删除标志 | ✅；填充 5825/5825=100% |
+| `tenant_id` | 租户 ID | BPS ETL（GEN_FCL_STAGE） | ETL 计算/派生 | varchar(12) NOT NULL | {000000} | 000000 | — | 多租户支持 | ✅；填充 5825/5825=100% |
+
+---
+
+### 表 25：`bpms_dev.biz_data_view_loan_details_foreclosure` — BPS FCL 详情展示视图
+
+| 属性 | 值 |
+|------|----|
+| **表名** | `biz_data_view_loan_details_foreclosure`（**VIEW，非物理表**） |
+| **所属 Schema** | MySQL `bpms_dev` |
+| **数据层** | Layer 5 — BPS Application Layer（展示视图，最终展示口径） |
+| **业务作用** | BPS Loan Foreclosure 详情页最终数据视图：在主表 `sync_loan_foreclosure` 基础上，按 `nextduedate` 实时计算各阶段 `actual_*_days`、`var_*_days` 偏差及 total 汇总 |
+| **业务意图** | 将「目标 vs 实际 vs 偏差」三类天数指标在查询层一次性算出，避免落库；resolved actual/var 字段（如 `actual_judgement_hearing_set_days`）仅存在于本视图 |
+| **视图定义** | `sync_portmonth`(monthly) `LEFT JOIN sync_loan_foreclosure`(loan_fcl) ON `loanid+tenant_id`，再 LEFT JOIN 各 loanid 的 `MAX(fctrdt)` 子查询（取最新月度快照）。`actual_*_days = TO_DAYS(timeline_x) − TO_DAYS(nextduedate)`；`var_*_days = actual − 累计 target`（MCP `SHOW CREATE VIEW` 实测） |
+| **下游使用** | BPS 详情页 Milestone Timeline / Target / Actual / Variance 面板（含 doc 14 SQL-C3 验证的 `actual_judgement_hearing_set_days`） |
+| **Foreclosure 关系** | 核心展示层：FCL 时间线 + SLA 合规（actual vs target）一站式视图 |
+| **主键 / 索引** | 视图无主键；按 `loanid + fctrdt` 唯一 |
+| **代码血缘（PrefectFlow）** | **本视图不由 PrefectFlow 管理**：全库 grep 无 `biz_data_view_loan_details_foreclosure`、无 `CREATE VIEW`——视图定义在 bpms_dev 库内（`SHOW CREATE VIEW` 实测，见上「视图定义」行）。其基表均由 PrefectFlow 写入：`sync_loan_foreclosure`(表17，两步 upsert) 与 `sync_portmonth`(月度同步)。即 PrefectFlow 负责"喂数据"，视图聚合/计算逻辑在 DB 侧 |
+| **DB验证** | 2026-06-01 实测：104列；122,550 行（基于 `sync_portmonth` 全量月度贷款，含非 FCL，故 timeline/summary 等填充率低）；脚本 `scripts/extract_table_stats.py` |
+
+> 列结构（104）：标识与锚点 5 + `timeline_*` 19 + `target_*_days` 15 + `actual_*_days` 15 + `variance_*` 4 + `bid_approval_*` 4 + `summary_*` 16 + 管理字段 8 + `var_*_days` 15 + 汇总 3（`var_total`/`target_total`/`actual_total`）。`target_*` 在视图中为 `bigint`（基表为 `int`）。填充率低因视图人口为全部月度贷款（122,550 行），非仅活跃 FCL。
+
+#### 字段说明（104列）
+
+| 字段名 | 字段业务含义 | 来源数据 | 计算/推导逻辑 | 数据类型 | 取值范围 | 典型取值 | 上游字段 | 下游用途 | 备注 |
+|--------|-----------|--------|-----------|----------|---------|---------|--------|--------|------|
+| `id` | FCL 记录 ID（来自 loan_fcl） | 视图计算 | `loan_fcl.id` | bigint | 1 ~ 279 | 1 | 表17 `id` | 贷款 FCL 关联 | ✅；填充 2359/122550=2% |
+| `loanid` | 系统贷款 ID | 视图计算 | `monthly.loanid` | bigint | 7727000002 ~ 700083320000172 | 7727000002 | `sync_portmonth.loanid` | 视图主键 | ✅；填充 122550/122550=100% |
+| `svcloanid` | Servicer 内部贷款号 | 视图计算 | `monthly.svcloanid` | varchar(32) | 文本，9426种（样例 001324995 … HB0075942） | 001324995 | `sync_portmonth` | 对账 | ✅；填充 122550/122550=100% |
+| `fctrdt` | 数据快照日（月度） | 视图计算 | `monthly.fctrdt` | date | 2023-02-01 ~ 2026-03-01 | 2023-02-01 | `sync_portmonth` | 时间维度 | ✅；填充 122550/122550=100% |
+| `nextduedate` | 下次应还款日（DPD/历时计算锚点） | 视图计算 | `monthly.nextduedate` | date | 2021-09-01 ~ 2027-07-01 | 2021-09-01 | `sync_portmonth` | actual_*_days 计算基准 | ✅ 100%；填充 122037/122550=100% |
+| `timeline_notice_of_intent_date` | FCL 里程碑日期（同表17 `timeline_notice_of_intent_date`） | 视图计算 | 取自 `loan_fcl.timeline_notice_of_intent_date` | date | {2025-04-22, 2024-05-17, 2024-10-18, 2025-02-22, 2025-01-22} | 2025-04-22 | 表17 `timeline_notice_of_intent_date` | Milestone Timeline 展示 | ✅；填充 145/122550=0% |
+| `timeline_notice_of_intent_end_date` | FCL 里程碑日期（同表17 `timeline_notice_of_intent_end_date`） | 视图计算 | 取自 `loan_fcl.timeline_notice_of_intent_end_date` | date | 实测全为 NULL | — | 表17 `timeline_notice_of_intent_end_date` | Milestone Timeline 展示 | ✅；填充 0/122550=0% |
+| `timeline_approved_for_referral_date` | FCL 里程碑日期（同表17 `timeline_approved_for_referral_date`） | 视图计算 | 取自 `loan_fcl.timeline_approved_for_referral_date` | date | 实测全为 NULL | — | 表17 `timeline_approved_for_referral_date` | Milestone Timeline 展示 | ✅；填充 0/122550=0% |
+| `timeline_referred_to_attorney_date` | FCL 里程碑日期（同表17 `timeline_referred_to_attorney_date`） | 视图计算 | 取自 `loan_fcl.timeline_referred_to_attorney_date` | date | 实测全为 NULL | — | 表17 `timeline_referred_to_attorney_date` | Milestone Timeline 展示 | ✅；填充 0/122550=0% |
+| `timeline_referred_to_foreclosure_date` | FCL 里程碑日期（同表17 `timeline_referred_to_foreclosure_date`） | 视图计算 | 取自 `loan_fcl.timeline_referred_to_foreclosure_date` | date | 2018-08-15 ~ 2026-03-10 | 2018-08-15 | 表17 `timeline_referred_to_foreclosure_date` | Milestone Timeline 展示 | ✅；填充 2359/122550=2% |
+| `timeline_title_report_received_date` | FCL 里程碑日期（同表17 `timeline_title_report_received_date`） | 视图计算 | 取自 `loan_fcl.timeline_title_report_received_date` | date | {2025-12-02, 2025-03-24} | 2025-12-02 | 表17 `timeline_title_report_received_date` | Milestone Timeline 展示 | ✅；填充 96/122550=0% |
+| `timeline_preliminary_title_cleared_date` | FCL 里程碑日期（同表17 `timeline_preliminary_title_cleared_date`） | 视图计算 | 取自 `loan_fcl.timeline_preliminary_title_cleared_date` | date | {2025-03-24, 2026-02-02} | 2025-03-24 | 表17 `timeline_preliminary_title_cleared_date` | Milestone Timeline 展示 | ✅；填充 59/122550=0% |
+| `timeline_first_legal_date` | FCL 里程碑日期（同表17 `timeline_first_legal_date`） | 视图计算 | 取自 `loan_fcl.timeline_first_legal_date` | date | 2018-10-29 ~ 2026-02-25 | 2018-10-29 | 表17 `timeline_first_legal_date` | Milestone Timeline 展示 | ✅；填充 1127/122550=1% |
+| `timeline_service_date` | FCL 里程碑日期（同表17 `timeline_service_date`） | 视图计算 | 取自 `loan_fcl.timeline_service_date` | date | {2025-06-02, 2025-09-02, 2025-05-03, 2026-01-13, 2025-07-18, 2025-08-14, 2024-04-01, 2025-11-19, 2025-03-04, 2025-05-23, 2024-11-26, 2025-12-08, 2025-04-24, 2018-12-10, 2025-05-28, 2025-12-29} 等19种 | 2025-06-02 | 表17 `timeline_service_date` | Milestone Timeline 展示 | ✅；填充 559/122550=0% |
+| `timeline_publication_date` | FCL 里程碑日期（同表17 `timeline_publication_date`） | 视图计算 | 取自 `loan_fcl.timeline_publication_date` | date | 实测全为 NULL | — | 表17 `timeline_publication_date` | Milestone Timeline 展示 | ✅；填充 0/122550=0% |
+| `timeline_judgement_hearing_set_date` | FCL 里程碑日期（同表17 `timeline_judgement_hearing_set_date`） | 视图计算 | 取自 `loan_fcl.timeline_judgement_hearing_set_date` | date | {2025-10-27, 2025-07-15, 2026-03-06, 2026-01-26, 2025-08-06, 2025-11-17, 2023-12-14, 2025-07-03, 2026-02-13} | 2025-10-27 | 表17 `timeline_judgement_hearing_set_date` | Milestone Timeline 展示 | ✅；填充 272/122550=0% |
+| `timeline_judgement_date` | FCL 里程碑日期（同表17 `timeline_judgement_date`） | 视图计算 | 取自 `loan_fcl.timeline_judgement_date` | date | {2026-02-04, 2025-10-15, 2026-07-15, 2026-01-18, 2025-11-14, 2025-11-29, 2020-01-22, 2025-09-16, 2026-04-13} | 2026-02-04 | 表17 `timeline_judgement_date` | Milestone Timeline 展示 | ✅；填充 272/122550=0% |
+| `timeline_sale_date_projected_date` | FCL 里程碑日期（同表17 `timeline_sale_date_projected_date`） | 视图计算 | 取自 `loan_fcl.timeline_sale_date_projected_date` | date | {2026-04-07, 2026-04-08, 2026-03-31, 2026-04-02, 2025-06-05, 2026-06-26, 2026-05-15, 2025-08-26, 2026-01-16, 2025-01-23, 2025-05-16, 2025-11-04, 2026-03-27, 2026-05-19, 2025-09-09} | 2026-04-07 | 表17 `timeline_sale_date_projected_date` | Milestone Timeline 展示 | ✅；填充 521/122550=0% |
+| `timeline_sale_date_set_date` | FCL 里程碑日期（同表17 `timeline_sale_date_set_date`） | 视图计算 | 取自 `loan_fcl.timeline_sale_date_set_date` | date | {2026-02-25, 2026-02-22, 2025-12-23, 2026-01-23, 2025-03-07, 2026-02-15, 2026-01-08, 2025-07-18, 2025-01-23, 2025-11-26, 2025-04-10, 2025-09-25, 2026-02-11, 2026-02-27, 2026-03-12, 2026-02-19} 等17种 | 2026-02-25 | 表17 `timeline_sale_date_set_date` | Milestone Timeline 展示 | ✅；填充 521/122550=0% |
+| `timeline_final_title_cleared_date` | FCL 里程碑日期（同表17 `timeline_final_title_cleared_date`） | 视图计算 | 取自 `loan_fcl.timeline_final_title_cleared_date` | date | {2025-03-24, 2026-02-02} | 2025-03-24 | 表17 `timeline_final_title_cleared_date` | Milestone Timeline 展示 | ✅；填充 59/122550=0% |
+| `timeline_sale_date_held_date` | FCL 里程碑日期（同表17 `timeline_sale_date_held_date`） | 视图计算 | 取自 `loan_fcl.timeline_sale_date_held_date` | date | {2026-03-11, 2025-10-14, 2026-01-16, 2025-01-23, 2025-12-04, 2025-12-29, 2025-11-04} | 2026-03-11 | 表17 `timeline_sale_date_held_date` | Milestone Timeline 展示 | ✅；填充 204/122550=0% |
+| `timeline_foreclosure_completed_date` | FCL 里程碑日期（同表17 `timeline_foreclosure_completed_date`） | 视图计算 | 取自 `loan_fcl.timeline_foreclosure_completed_date` | date | 实测全为 NULL | — | 表17 `timeline_foreclosure_completed_date` | Milestone Timeline 展示 | ✅；填充 0/122550=0% |
+| `timeline_third_party_sold_date_date` | FCL 里程碑日期（同表17 `timeline_third_party_sold_date_date`） | 视图计算 | 取自 `loan_fcl.timeline_third_party_sold_date_date` | date | 实测全为 NULL | — | 表17 `timeline_third_party_sold_date_date` | Milestone Timeline 展示 | ✅；填充 0/122550=0% |
+| `timeline_third_party_proceeds_received_date` | FCL 里程碑日期（同表17 `timeline_third_party_proceeds_received_date`） | 视图计算 | 取自 `loan_fcl.timeline_third_party_proceeds_received_date` | date | {2026-03-05} | 2026-03-05 | 表17 `timeline_third_party_proceeds_received_date` | Milestone Timeline 展示 | ✅；填充 21/122550=0% |
+| `target_notice_of_intent_days` | SLA 目标天数（同表17 `target_notice_of_intent_days`） | 视图计算 | `IFNULL(loan_fcl.target_notice_of_intent_days, 默认值)` | bigint NOT NULL | {30}（1种） | 30 | 表17 `target_notice_of_intent_days` | Target 基准 | ✅ 含 IFNULL 默认；填充 122550/122550=100% |
+| `target_notice_of_intent_expired_days` | SLA 目标天数（同表17 `target_notice_of_intent_expired_days`） | 视图计算 | `IFNULL(loan_fcl.target_notice_of_intent_expired_days, 默认值)` | bigint NOT NULL | {90}（1种） | 90 | 表17 `target_notice_of_intent_expired_days` | Target 基准 | ✅ 含 IFNULL 默认；填充 122550/122550=100% |
+| `target_approved_for_referral_days` | SLA 目标天数（同表17 `target_approved_for_referral_days`） | 视图计算 | `IFNULL(loan_fcl.target_approved_for_referral_days, 默认值)` | bigint NOT NULL | {30}（1种） | 30 | 表17 `target_approved_for_referral_days` | Target 基准 | ✅ 含 IFNULL 默认；填充 122550/122550=100% |
+| `target_referred_to_attorney_days` | SLA 目标天数（同表17 `target_referred_to_attorney_days`） | 视图计算 | `IFNULL(loan_fcl.target_referred_to_attorney_days, 默认值)` | bigint NOT NULL | {1}（1种） | 1 | 表17 `target_referred_to_attorney_days` | Target 基准 | ✅ 含 IFNULL 默认；填充 122550/122550=100% |
+| `target_referred_to_foreclosure_days` | SLA 目标天数（同表17 `target_referred_to_foreclosure_days`） | 视图计算 | `IFNULL(loan_fcl.target_referred_to_foreclosure_days, 默认值)` | bigint NOT NULL | {1}（1种） | 1 | 表17 `target_referred_to_foreclosure_days` | Target 基准 | ✅ 含 IFNULL 默认；填充 122550/122550=100% |
+| `target_title_report_received_days` | SLA 目标天数（同表17 `target_title_report_received_days`） | 视图计算 | `IFNULL(loan_fcl.target_title_report_received_days, 默认值)` | bigint NOT NULL | {30}（1种） | 30 | 表17 `target_title_report_received_days` | Target 基准 | ✅ 含 IFNULL 默认；填充 122550/122550=100% |
+| `target_preliminary_title_cleared_days` | SLA 目标天数（同表17 `target_preliminary_title_cleared_days`） | 视图计算 | `IFNULL(loan_fcl.target_preliminary_title_cleared_days, 默认值)` | bigint NOT NULL | {30}（1种） | 30 | 表17 `target_preliminary_title_cleared_days` | Target 基准 | ✅ 含 IFNULL 默认；填充 122550/122550=100% |
+| `target_first_legal_days` | SLA 目标天数（同表17 `target_first_legal_days`） | 视图计算 | `IFNULL(loan_fcl.target_first_legal_days, 默认值)` | bigint NOT NULL | {120}（1种） | 120 | 表17 `target_first_legal_days` | Target 基准 | ✅ 含 IFNULL 默认；填充 122550/122550=100% |
+| `target_service_days` | SLA 目标天数（同表17 `target_service_days`） | 视图计算 | `IFNULL(loan_fcl.target_service_days, 默认值)` | bigint NOT NULL | {90}（1种） | 90 | 表17 `target_service_days` | Target 基准 | ✅ 含 IFNULL 默认；填充 122550/122550=100% |
+| `target_publication_days` | SLA 目标天数（同表17 `target_publication_days`） | 视图计算 | `IFNULL(loan_fcl.target_publication_days, 默认值)` | bigint NOT NULL | {30}（1种） | 30 | 表17 `target_publication_days` | Target 基准 | ✅ 含 IFNULL 默认；填充 122550/122550=100% |
+| `target_judgement_hearing_set_days` | SLA 目标天数（同表17 `target_judgement_hearing_set_days`） | 视图计算 | `IFNULL(loan_fcl.target_judgement_hearing_set_days, 默认值)` | bigint NOT NULL | {120}（1种） | 120 | 表17 `target_judgement_hearing_set_days` | Target 基准 | ✅ 含 IFNULL 默认；填充 122550/122550=100% |
+| `target_judgement_days` | SLA 目标天数（同表17 `target_judgement_days`） | 视图计算 | `IFNULL(loan_fcl.target_judgement_days, 默认值)` | bigint NOT NULL | {30}（1种） | 30 | 表17 `target_judgement_days` | Target 基准 | ✅ 含 IFNULL 默认；填充 122550/122550=100% |
+| `target_sale_date_set_days` | SLA 目标天数（同表17 `target_sale_date_set_days`） | 视图计算 | `IFNULL(loan_fcl.target_sale_date_set_days, 默认值)` | bigint NOT NULL | {30}（1种） | 30 | 表17 `target_sale_date_set_days` | Target 基准 | ✅ 含 IFNULL 默认；填充 122550/122550=100% |
+| `target_final_title_cleared_days` | SLA 目标天数（同表17 `target_final_title_cleared_days`） | 视图计算 | `IFNULL(loan_fcl.target_final_title_cleared_days, 默认值)` | bigint NOT NULL | {5}（1种） | 5 | 表17 `target_final_title_cleared_days` | Target 基准 | ✅ 含 IFNULL 默认；填充 122550/122550=100% |
+| `target_sale_date_held_days` | SLA 目标天数（同表17 `target_sale_date_held_days`） | 视图计算 | `IFNULL(loan_fcl.target_sale_date_held_days, 默认值)` | bigint NOT NULL | {0}（1种） | 0 | 表17 `target_sale_date_held_days` | Target 基准 | ✅ 含 IFNULL 默认；填充 122550/122550=100% |
+| `actual_notice_of_intent_days` | 实际历时天数（notice_of_intent） | 视图计算 | `TO_DAYS(timeline_notice_of_intent_date) − TO_DAYS(nextduedate)` | int | -594 ~ 811 | -594 | 本视图 timeline + nextduedate | Actual Days 展示 | ✅ 视图实时计算；填充 145/122550=0% |
+| `actual_notice_of_intent_expire_days` | 实际历时天数（notice_of_intent_expire） | 视图计算 | `TO_DAYS(timeline_notice_of_intent_expire_date) − TO_DAYS(nextduedate)` | int | 实测全为 NULL | — | 本视图 timeline + nextduedate | Actual Days 展示 | ✅ 视图实时计算；填充 0/122550=0% |
+| `actual_approved_for_referral_days` | 实际历时天数（approved_for_referral） | 视图计算 | `TO_DAYS(timeline_approved_for_referral_date) − TO_DAYS(nextduedate)` | int | 实测全为 NULL | — | 本视图 timeline + nextduedate | Actual Days 展示 | ✅ 视图实时计算；填充 0/122550=0% |
+| `actual_referred_to_attorney_days` | 实际历时天数（referred_to_attorney） | 视图计算 | `TO_DAYS(timeline_referred_to_attorney_date) − TO_DAYS(nextduedate)` | int | 实测全为 NULL | — | 本视图 timeline + nextduedate | Actual Days 展示 | ✅ 视图实时计算；填充 0/122550=0% |
+| `actual_referred_to_foreclosure_days` | 实际历时天数（referred_to_foreclosure） | 视图计算 | `TO_DAYS(timeline_referred_to_foreclosure_date) − TO_DAYS(nextduedate)` | int | -2147 ~ 1274 | -2147 | 本视图 timeline + nextduedate | Actual Days 展示 | ✅ 视图实时计算；填充 2346/122550=2% |
+| `actual_title_report_received_days` | 实际历时天数（title_report_received） | 视图计算 | `TO_DAYS(timeline_title_report_received_date) − TO_DAYS(nextduedate)` | int | 215 ~ 1035 | 215 | 本视图 timeline + nextduedate | Actual Days 展示 | ✅ 视图实时计算；填充 95/122550=0% |
+| `actual_preliminary_title_cleared_days` | 实际历时天数（preliminary_title_cleared） | 视图计算 | `TO_DAYS(timeline_preliminary_title_cleared_date) − TO_DAYS(nextduedate)` | int | 277 ~ 754（25种） | 357 | 本视图 timeline + nextduedate | Actual Days 展示 | ✅ 视图实时计算；填充 58/122550=0% |
+| `actual_first_legal_days` | 实际历时天数（first_legal） | 视图计算 | `TO_DAYS(timeline_first_legal_date) − TO_DAYS(nextduedate)` | int | -2072 ~ 1100 | -2072 | 本视图 timeline + nextduedate | Actual Days 展示 | ✅ 视图实时计算；填充 1121/122550=1% |
+| `actual_service_days` | 实际历时天数（service） | 视图计算 | `TO_DAYS(timeline_service_date) − TO_DAYS(nextduedate)` | int | -2030 ~ 1108 | -2030 | 本视图 timeline + nextduedate | Actual Days 展示 | ✅ 视图实时计算；填充 557/122550=0% |
+| `actual_publication_days` | 实际历时天数（publication） | 视图计算 | `TO_DAYS(timeline_publication_date) − TO_DAYS(nextduedate)` | int | 实测全为 NULL | — | 本视图 timeline + nextduedate | Actual Days 展示 | ✅ 视图实时计算；填充 0/122550=0% |
+| `actual_judgement_hearing_set_days` | 实际历时天数（judgement_hearing_set） | 视图计算 | `TO_DAYS(timeline_judgement_hearing_set_date) − TO_DAYS(nextduedate)` | int | -200 ~ 1129 | -200 | 本视图 timeline + nextduedate | Actual Days 展示 | ✅ 视图实时计算；填充 271/122550=0% |
+| `actual_judgement_days` | 实际历时天数（judgement） | 视图计算 | `TO_DAYS(timeline_judgement_date) − TO_DAYS(nextduedate)` | int | -1622 ~ 1260 | -1622 | 本视图 timeline + nextduedate | Actual Days 展示 | ✅ 视图实时计算；填充 271/122550=0% |
+| `actual_sale_date_set_days` | 实际历时天数（sale_date_set） | 视图计算 | `TO_DAYS(timeline_sale_date_set_date) − TO_DAYS(nextduedate)` | int | -359 ~ 1148 | -359 | 本视图 timeline + nextduedate | Actual Days 展示 | ✅ 视图实时计算；填充 517/122550=0% |
+| `actual_final_title_cleared_days` | 实际历时天数（final_title_cleared） | 视图计算 | `TO_DAYS(timeline_final_title_cleared_date) − TO_DAYS(nextduedate)` | int | 277 ~ 754（25种） | 357 | 本视图 timeline + nextduedate | Actual Days 展示 | ✅ 视图实时计算；填充 58/122550=0% |
+| `actual_sale_date_held_days` | 实际历时天数（sale_date_held） | 视图计算 | `TO_DAYS(timeline_sale_date_held_date) − TO_DAYS(nextduedate)` | int | 187 ~ 1075 | 187 | 本视图 timeline + nextduedate | Actual Days 展示 | ✅ 视图实时计算；填充 203/122550=0% |
+| `variance_active_bankruptcy` | 同表17 `variance_active_bankruptcy` | 视图计算 | `loan_fcl.variance_active_bankruptcy` | int | 实测全为 NULL | — | 表17 `variance_active_bankruptcy` | BK 方差 | ✅；填充 0/122550=0% |
+| `variance_completed_bankruptcy` | 同表17 `variance_completed_bankruptcy` | 视图计算 | `loan_fcl.variance_completed_bankruptcy` | int | 实测全为 NULL | — | 表17 `variance_completed_bankruptcy` | BK 方差 | ✅；填充 0/122550=0% |
+| `variance_estimated_hold_days` | 同表17 `variance_estimated_hold_days` | 视图计算 | `loan_fcl.variance_estimated_hold_days` | int | 实测全为 NULL | — | 表17 `variance_estimated_hold_days` | BK 方差 | ✅；填充 0/122550=0% |
+| `variance_bankruptcies` | 同表17 `variance_bankruptcies` | 视图计算 | `loan_fcl.variance_bankruptcies` | int | 实测全为 NULL | — | 表17 `variance_bankruptcies` | BK 方差 | ✅；填充 0/122550=0% |
+| `bid_approval_status` | 同表17 `bid_approval_status` | 视图计算 | `loan_fcl.bid_approval_status` | varchar(128) | 实测全为 NULL | — | 表17 `bid_approval_status` | Bid Approval 展示 | ✅；填充 0/122550=0% |
+| `bid_approval_sale_date` | 同表17 `bid_approval_sale_date` | 视图计算 | `loan_fcl.bid_approval_sale_date` | date | 实测全为 NULL | — | 表17 `bid_approval_sale_date` | Bid Approval 展示 | ✅；填充 0/122550=0% |
+| `bid_approval_bid_amount` | 同表17 `bid_approval_bid_amount` | 视图计算 | `loan_fcl.bid_approval_bid_amount` | decimal(32,16) | {$125,366.73, $390,832.50, $231,285.22, $136,392.44, $154,591.01, $543,305.96, $271,278.01, $90,000, $428,971.78}（9种） | $125,366.73 | 表17 `bid_approval_bid_amount` | Bid Approval 展示 | ✅；填充 254/122550=0% |
+| `bid_approval_loan_resolution_holods` | 同表17 `bid_approval_loan_resolution_holods` | 视图计算 | `loan_fcl.bid_approval_loan_resolution_holods` | text | 实测全为 NULL | — | 表17 `bid_approval_loan_resolution_holods` | Bid Approval 展示 | ✅；填充 0/122550=0% |
+| `summary_servicer_number` | 同表17 `summary_servicer_number` | 视图计算 | `loan_fcl.summary_servicer_number` | varchar(64) | 实测全为 NULL | — | 表17 `summary_servicer_number` | Summary 展示 | ✅；填充 0/122550=0% |
+| `summary_foreclosure_status` | 同表17 `summary_foreclosure_status` | 视图计算 | `loan_fcl.summary_foreclosure_status` | varchar(64) | {Active Foreclosure, Closed Foreclosure:Loss Mitigation, Closed Foreclosure:Reinstated, Closed Foreclosure:Paid in Full, Closed Foreclosure:Process Complete, 1. First Legal Pending, Closed Foreclosure:Deed in Lieu Cmplte, 2. First Legal Filed, 5. Sales Held} | Active Foreclosure | 表17 `summary_foreclosure_status` | Summary 展示 | ✅；填充 2330/122550=2% |
+| `summary_completed_foreclosure` | 同表17 `summary_completed_foreclosure` | 视图计算 | `loan_fcl.summary_completed_foreclosure` | int | 实测全为 NULL | — | 表17 `summary_completed_foreclosure` | Summary 展示 | ✅；填充 0/122550=0% |
+| `summary_foreclosure_bid_amount` | 同表17 `summary_foreclosure_bid_amount` | 视图计算 | `loan_fcl.summary_foreclosure_bid_amount` | decimal(32,16) | {$125,366.73, $390,832.50, $231,285.22, $136,392.44, $154,591.01, $543,305.96, $271,278.01, $90,000, $428,971.78}（9种） | $125,366.73 | 表17 `summary_foreclosure_bid_amount` | Summary 展示 | ✅；填充 254/122550=0% |
+| `summary_srv_fc_bid_amount` | 同表17 `summary_srv_fc_bid_amount` | 视图计算 | `loan_fcl.summary_srv_fc_bid_amount` | decimal(32,16) | {$125,366.73, $390,832.50, $231,285.22, $136,392.44, $154,591.01, $543,305.96, $271,278.01, $90,000, $428,971.78}（9种） | $125,366.73 | 表17 `summary_srv_fc_bid_amount` | Summary 展示 | ✅；填充 254/122550=0% |
+| `summary_foreclosure_sale_amount` | 同表17 `summary_foreclosure_sale_amount` | 视图计算 | `loan_fcl.summary_foreclosure_sale_amount` | decimal(32,16) | {$203,122.00, $357,200, $274,000, $165,900, $90,001.00, $400,000}（6种） | $203,122.00 | 表17 `summary_foreclosure_sale_amount` | Summary 展示 | ✅；填充 182/122550=0% |
+| `summary_judicial_foreclosure` | 同表17 `summary_judicial_foreclosure` | 视图计算 | `loan_fcl.summary_judicial_foreclosure` | int | {0, 1}（2种） | 0 | 表17 `summary_judicial_foreclosure` | Summary 展示 | ✅；填充 2069/122550=2% |
+| `summary_foreclosure_attorney` | 同表17 `summary_foreclosure_attorney` | 视图计算 | `loan_fcl.summary_foreclosure_attorney` | varchar(256) | {Lender Legal PLLC, McPhail Sanchez, LLC, Brock & Scott PLLC, Vylla Solutions, LLC} | Lender Legal PLLC | 表17 `summary_foreclosure_attorney` | Summary 展示 | ✅；填充 116/122550=0% |
+| `summary_contested_litigation` | 同表17 `summary_contested_litigation` | 视图计算 | `loan_fcl.summary_contested_litigation` | int | {0, 1}（2种） | 0 | 表17 `summary_contested_litigation` | Summary 展示 | ✅；填充 2040/122550=2% |
+| `summary_firm` | 同表17 `summary_firm` | 视图计算 | `loan_fcl.summary_firm` | varchar(256) | 文本，45种（样例 Albertelli Law … ZBS Law, LLP） | Albertelli Law | 表17 `summary_firm` | Summary 展示 | ✅；填充 2243/122550=2% |
+| `summary_type` | 同表17 `summary_type` | 视图计算 | `loan_fcl.summary_type` | varchar(128) | {Non Judicial, Judicial} | Non Judicial | 表17 `summary_type` | Summary 展示 | ✅；填充 2069/122550=2% |
+| `summary_sms_days_in_fcl` | 同表17 `summary_sms_days_in_fcl` | 视图计算 | `loan_fcl.summary_sms_days_in_fcl` | int | 7 ~ 531 | 7 | 表17 `summary_sms_days_in_fcl` | Summary 展示 | ✅；填充 1797/122550=1% |
+| `summary_days_in_fcl` | 同表17 `summary_days_in_fcl` | 视图计算 | `loan_fcl.summary_days_in_fcl` | int | 7 ~ 739 | 7 | 表17 `summary_days_in_fcl` | Summary 展示 | ✅；填充 2214/122550=2% |
+| `summary_current_step` | 同表17 `summary_current_step` | 视图计算 | `loan_fcl.summary_current_step` | varchar(128) | 文本，37种（样例 Acceleration Letter Sent … TSG Report Received） | Acceleration Letter Sent | 表17 `summary_current_step` | Summary 展示 | ✅；填充 2243/122550=2% |
+| `summary_last_step_completed` | 同表17 `summary_last_step_completed` | 视图计算 | `loan_fcl.summary_last_step_completed` | varchar(256) | 文本，32种（样例 Answer Period Will Expire On … TSG Report Received） | Answer Period Will Expire On | 表17 `summary_last_step_completed` | Summary 展示 | ✅；填充 2069/122550=2% |
+| `summary_last_step_completed_date` | 同表17 `summary_last_step_completed_date` | 视图计算 | `loan_fcl.summary_last_step_completed_date` | date | 2019-10-14 ~ 2026-03-12 | 2019-10-14 | 表17 `summary_last_step_completed_date` | Summary 展示 | ✅；填充 2069/122550=2% |
+| `create_user` | 管理字段（同表17 `create_user`） | 视图计算 | `loan_fcl.create_user` | bigint | 实测全为 NULL | — | 表17 `create_user` | 审计/多租户 | ✅；填充 0/122550=0% |
+| `create_dept` | 管理字段（同表17 `create_dept`） | 视图计算 | `loan_fcl.create_dept` | bigint | 实测全为 NULL | — | 表17 `create_dept` | 审计/多租户 | ✅；填充 0/122550=0% |
+| `create_time` | 管理字段（同表17 `create_time`） | 视图计算 | `loan_fcl.create_time` | datetime | 实测全为 NULL | — | 表17 `create_time` | 审计/多租户 | ✅；填充 0/122550=0% |
+| `update_user` | 管理字段（同表17 `update_user`） | 视图计算 | `loan_fcl.update_user` | bigint | 实测全为 NULL | — | 表17 `update_user` | 审计/多租户 | ✅；填充 0/122550=0% |
+| `update_time` | 管理字段（同表17 `update_time`） | 视图计算 | `loan_fcl.update_time` | datetime | 实测全为 NULL | — | 表17 `update_time` | 审计/多租户 | ✅；填充 0/122550=0% |
+| `status` | 管理字段（同表17 `status`） | 视图计算 | `loan_fcl.status` | int | {0}（1种） | 0 | 表17 `status` | 审计/多租户 | ✅；填充 2359/122550=2% |
+| `is_deleted` | 是否软删除 | 视图计算 | 视图恒置 0 | int NOT NULL | {0}（1种） | 0 | — | 软删除标志 | ✅ 视图硬编码 0；填充 122550/122550=100% |
+| `tenant_id` | 管理字段（同表17 `tenant_id`） | 视图计算 | `loan_fcl.tenant_id` | varchar(12) | {000000, 984018} | 000000 | 表17 `tenant_id` | 审计/多租户 | ✅；填充 2359/122550=2% |
+| `var_notice_of_intent_days` | SLA 偏差天数（notice_of_intent；正=超期） | 视图计算 | `actual − 累计 target` | bigint | -624 ~ 781 | -624 | 本视图 actual_* − target_* | Variance 展示 | ✅ 视图实时计算；填充 145/122550=0% |
+| `var_notice_of_intent_expire_days` | SLA 偏差天数（notice_of_intent_expire；正=超期） | 视图计算 | `actual − 累计 target` | bigint | 实测全为 NULL | — | 本视图 actual_* − target_* | Variance 展示 | ✅ 视图实时计算；填充 0/122550=0% |
+| `var_approved_for_referral_days` | SLA 偏差天数（approved_for_referral；正=超期） | 视图计算 | `actual − 累计 target` | bigint | 实测全为 NULL | — | 本视图 actual_* − target_* | Variance 展示 | ✅ 视图实时计算；填充 0/122550=0% |
+| `var_referred_to_attorney_days` | SLA 偏差天数（referred_to_attorney；正=超期） | 视图计算 | `actual − 累计 target` | bigint | 实测全为 NULL | — | 本视图 actual_* − target_* | Variance 展示 | ✅ 视图实时计算；填充 0/122550=0% |
+| `var_referred_to_foreclosure_days` | SLA 偏差天数（referred_to_foreclosure；正=超期） | 视图计算 | `actual − 累计 target` | bigint | -2299 ~ 1122 | -2299 | 本视图 actual_* − target_* | Variance 展示 | ✅ 视图实时计算；填充 2346/122550=2% |
+| `var_title_report_received_days` | SLA 偏差天数（title_report_received；正=超期） | 视图计算 | `actual − 累计 target` | bigint | 33 ~ 853 | 33 | 本视图 actual_* − target_* | Variance 展示 | ✅ 视图实时计算；填充 95/122550=0% |
+| `var_preliminary_title_cleared_days` | SLA 偏差天数（preliminary_title_cleared；正=超期） | 视图计算 | `actual − 累计 target` | bigint | 65 ~ 542（25种） | 145 | 本视图 actual_* − target_* | Variance 展示 | ✅ 视图实时计算；填充 58/122550=0% |
+| `var_first_legal_days` | SLA 偏差天数（first_legal；正=超期） | 视图计算 | `actual − 累计 target` | bigint | -2404 ~ 768 | -2404 | 本视图 actual_* − target_* | Variance 展示 | ✅ 视图实时计算；填充 1121/122550=1% |
+| `var_service_days` | SLA 偏差天数（service；正=超期） | 视图计算 | `actual − 累计 target` | bigint | -2452 ~ 686 | -2452 | 本视图 actual_* − target_* | Variance 展示 | ✅ 视图实时计算；填充 557/122550=0% |
+| `var_publication_days` | SLA 偏差天数（publication；正=超期） | 视图计算 | `actual − 累计 target` | bigint | 实测全为 NULL | — | 本视图 actual_* − target_* | Variance 展示 | ✅ 视图实时计算；填充 0/122550=0% |
+| `var_judgement_hearing_set_days` | SLA 偏差天数（judgement_hearing_set；正=超期） | 视图计算 | `actual − 累计 target` | bigint | -772 ~ 557 | -772 | 本视图 actual_* − target_* | Variance 展示 | ✅ 视图实时计算；填充 271/122550=0% |
+| `var_judgement_days` | SLA 偏差天数（judgement；正=超期） | 视图计算 | `actual − 累计 target` | bigint | -2224 ~ 658 | -2224 | 本视图 actual_* − target_* | Variance 展示 | ✅ 视图实时计算；填充 271/122550=0% |
+| `var_sale_date_set_days` | SLA 偏差天数（sale_date_set；正=超期） | 视图计算 | `actual − 累计 target` | bigint | -991 ~ 516 | -991 | 本视图 actual_* − target_* | Variance 展示 | ✅ 视图实时计算；填充 517/122550=0% |
+| `var_final_title_cleared_days` | SLA 偏差天数（final_title_cleared；正=超期） | 视图计算 | `actual − 累计 target` | bigint | -360 ~ 117（25种） | -280 | 本视图 actual_* − target_* | Variance 展示 | ✅ 视图实时计算；填充 58/122550=0% |
+| `var_sale_date_held_days` | SLA 偏差天数（sale_date_held；正=超期） | 视图计算 | `actual − 累计 target` | bigint | -450 ~ 438 | -450 | 本视图 actual_* − target_* | Variance 展示 | ✅ 视图实时计算；填充 203/122550=0% |
+| `var_total` | 总偏差合计 | 视图计算 | Σ(actual_* − target_*) | bigint | 实测全为 NULL | — | 本视图 var_* | 总 SLA 偏差 | ✅ 任一分项 NULL 则为 NULL；填充 0/122550=0% |
+| `target_total` | 目标天数合计 | 视图计算 | Σ(target_*_days) | bigint NOT NULL | {637}（1种） | 637 | 本视图 target_* | 总目标=637 | ✅；填充 122550/122550=100% |
+| `actual_total` | 实际历时合计 | 视图计算 | Σ(actual_*_days) | bigint | 实测全为 NULL | — | 本视图 actual_* | 总历时 | ✅ 任一分项 NULL 则为 NULL；填充 0/122550=0% |
 
 ---
 

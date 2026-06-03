@@ -1,0 +1,23 @@
+--- bpms_dev.sync_loan_foreclosure (snap=all) ---
+    rows=98 snap_rows=98 cols=72 -> combined pass
+    done bpms_dev.sync_loan_foreclosure
+--- newrez.portnewrezbk (snap=latest) ---
+    rows=1576896 snap_rows=5052 cols=60 -> combined pass
+    done newrez.portnewrezbk
+--- bpms_dev.sync_loan_foreclosure_hold (snap=all) ---
+    rows=338 snap_rows=338 cols=15 -> combined pass
+    done bpms_dev.sync_loan_foreclosure_hold
+--- bpms_dev.sync_loan_foreclosure_loss_mitigation (snap=all) ---
+    rows=544 snap_rows=544 cols=22 -> combined pass
+    done bpms_dev.sync_loan_foreclosure_loss_mitigation
+--- bpms_dev.sync_loan_foreclosure_bankruptcy (snap=all) ---
+    rows=64 snap_rows=64 cols=22 -> combined pass
+    done bpms_dev.sync_loan_foreclosure_bankruptcy
+--- bpms_dev.sync_fcl_stage_info (snap=all) ---
+    rows=5825 snap_rows=5825 cols=57 -> combined pass
+    done bpms_dev.sync_fcl_stage_info
+--- bpms_dev.biz_data_view_loan_details_foreclosure (snap=all) ---
+    rows=122550 snap_rows=122550 cols=104 -> combined pass
+    done bpms_dev.biz_data_view_loan_details_foreclosure
+
+Done -> outputs/table_stats_for_data_dictionary.json

@@ -67,13 +67,15 @@
 | `REO` | `R` | REO |
 | `P` | `P` | Paid off |
 | `D` | `D` | Confirmed delinquent |
-| `C` | `0` | Current |
+| `C` | `C` | Current |
 | `D30` | `1` | 30 days past due |
 | `D60` | `2` | 60 days past due |
 | `D90` | `3` | 90 days past due |
-| `D120P` | `4` | 120+ days past due |
+| `D120P` | `4`（亦见 `5`–`9`） | 120+ days past due |
 
-**示例历史字符串：** `"F4432100000"` = 12个月付款记录（左→新，右→旧），该贷款当前已从止赎（F）逐步恢复到当前状态（0）
+> **DB 实测订正（`port.basic_data_monthly_loan_clean_data_delinq`，fctrdt=2026-07-01）**：Current 编码为 **`C`**（非旧文档的 `0`）；`5`–`9` 亦映射到 `D120P`。以实测为准。
+
+**示例历史字符串（真实，loan `7727000088`）：** `paymthistfull = "RFFFFFFFFFFFF4321CC1C11CCCCCC11CCCCCCCC1C"`（左=最新，右=最早）。逐段解读：最左 `R` = 当前 REO ← 连续 12 个 `F` = 此前 12 个月处于止赎 ← `4321` = 更早的逾期升级（D120P→D90→D60→D30）← 最右段多为 `C` = 最早期正常还款。按时间正序（从右往左读）：正常 → 逐月逾期 → 止赎 → 现已 REO。
 
 ---
 

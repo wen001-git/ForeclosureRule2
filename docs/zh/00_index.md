@@ -42,6 +42,8 @@
 | 14 | `14_bps_driven_servicer_fcl_interface.md` | **BPS 驱动的 Servicer FCL 数据接口规范**：以 doc 13 的 BPS 五大面板和聚合视图为终点，定义约 67 个 Servicer 字段、P0/P1/P2 优先级、交付格式、字段补全请求顺序；v3 已增加审核状态和字段准入检查规则 | doc 14 审核；作为后续逐 Servicer 缺口分析的目标标准；向 Servicer 发出字段补全请求的依据 |
 | 15 | `15_newrez_servicer_fcl_gap_analysis.md` | **Newrez Servicer FCL 字段缺口分析**：第一个逐 Servicer 文档样例；将 Newrez 原始表、PrefectFlow 血缘、BPS 展示字段、doc 14 目标字段和缺口行动项连成完整链路 | Newrez 字段补全讨论；验证 doc 14 是否可落地；后续 Servicer 文档模板样例 |
 | 16 | `16_bps_panel_quickref.md` | **BPS Foreclosure 面板速查**：6 个面板（Foreclosure Summary / Timeline / Hold / LM / BK / 聚合概览）的 UI 截图 + 紧凑字段映射表（UI 标签 → Newrez 源字段 → Mapping Rule）+ 快速排查路径；doc 13 的速查入口 | BPS 界面数据排查；新成员快速上手；运营/数据联调时对照 BPS 截图定位源字段 |
+| 17 | `17_foreclosure_business_primer.md` | **美国贷款 Foreclosure 业务入门**：从 doc 7 第 2 章独立提取的分享版，介绍 FCL 判断依据、常见字段、贷款生命周期、FCL 内部阶段、司法/非司法差异、Foreclosure 与 Bankruptcy 关系 | 给业务/运营/新同事分享；无需阅读完整 ETL 血缘即可理解 Foreclosure 基础概念 |
+| 18 | `18_loss_mitigation_business_primer.md` | **Loss Mitigation（LM）业务入门与方案说明**：解释 LM 的业务含义、六类常见方案、BPS/Newrez Deal/Program/Status/Final Disposition 字段，以及 LM 与 FCL 的关系 | 快速理解 LM 各方案；BPS LM Cycle 面板排查；向 Servicer 讨论 LM 字段前置学习 |
 | 98 | `98_database_verification_strategy.md` | **数据库验证与 MCP 使用规范**：规定后续研究默认用 MCP 只读验证 MySQL/Redshift，记录查询目的、SQL、快照日期、结果摘要，并保护连接信息 | 字段映射查库验证；逐 Servicer 文档 SQL 附录；Reviewer 复现 |
 | 99 | `99_servicer_fcl_gap_summary_and_action_plan.md` | **Servicer FCL 缺口汇总与行动计划**：汇总 doc 14 审核结论、后续逐 Servicer 文档顺序、行动项分类、验收标准 | 项目管理；Reviewer/Boss 汇报；后续工作路线图 |
 | 模板 | `_servicer_fcl_gap_analysis_template.md` | 单个 Servicer FCL 缺口分析模板：固定文档头、血缘链条、doc 14 字段对照、缺口分级、证据与 Open Questions 结构 | 生成 Carrington/SLS/Selene/MRC/Arvest/CapeCodFive/FCI 等后续文档 |
@@ -52,6 +54,8 @@
 
 ```
 初次了解系统：  00 → 02 → 03 → 04
+业务背景入门：  17 → 10 → 07
+LM 业务入门：   18 → 10 → 13 → 15
 数据溯源分析：  01 → 07 → 02 → 05
 系统重写准备：  03 → 07 → 05 → 06 → 02 → 09
 验证/对账场景：  04 → 03 → 05
