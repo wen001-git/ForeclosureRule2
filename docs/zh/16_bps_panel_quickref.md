@@ -18,6 +18,7 @@
 
 | 日期 | 作者 | 版本 | 变更 | 关联 |
 |------|------|------|------|------|
+| 2026-06-04 | AI Agent（Claude Opus 4.8） | v3 | 改正 Foreclosure Summary 速查表 Foreclosure status 行（代码+DB）：原 `activefcflag=1 → 取 fcstage；=0 → fcresults 或 fcremovaldesc` 错误 → `activefcflag=1` 固定文本 `'Active Foreclosure'`、`=0` 且 fcremovaldesc 非空 → `'Closed Foreclosure:'+fcremovaldesc`、否则 NULL（fcstage→summary_current_step）；Type/Current Step 与截图验证行同步写全/纠正 | 代码 basic_data_pool_config.py:273 · doc 13 v35 · doc 14 v33 |
 | 2026-06-03 | AI Agent（Claude Opus 4.8） | v2 | SMS Days / Days in Foreclosure 行补起算基准（代码+DB 核实）：SMS Days 自 fcsetupdate(servicer 建案日)、Days 自 fcreferraldate(转介日)，故 SMS Days ≤ Days；同步 doc 13/14/16xlsx/fcl_pipeline.html | doc 13 v34 · doc 14 v31 |
 | 2026-05-28 | AI Agent（Claude Sonnet 4.6） | v1 | 初稿：6个面板速查表 + 截图；内容来自 doc 13 MCP 实测数据 | doc 13 |
 
@@ -52,20 +53,20 @@
 
 | UI 标签 | Newrez 源字段 | Mapping Rule |
 |---|---|---|
-| Foreclosure status | `fcstage` / `fcresults` / `fcremovaldesc` | `activefcflag=1` → 取 `fcstage`（进行中阶段文本）；`activefcflag=0` → 取 `fcresults` 或 `fcremovaldesc` |
+| Foreclosure status | `activefcflag`, `fcremovaldesc` | 如果 `activefcflag=1`，则 = 固定文本 `'Active Foreclosure'`；如果 `activefcflag=0` 且 `fcremovaldesc` 非空，则 = `'Closed Foreclosure:'`+`fcremovaldesc`；否则 `NULL`（注：`fcstage` 不参与本字段，它归 `summary_current_step`） |
 | Foreclosure bid amount | `fcbidamount` | 直接取值（活跃 FCL 约 9% 填充） |
 | Foreclosure sale amount | `fcsaleamount` | 直接取值（4.7%；⚠️ 高于拍卖完成率 2.1%，见 doc 13 Q9） |
 | Contested / Litigation | `fccontestedflag` | 直接取值（1=有争议 / 0=无） |
 | Firm | `fcfirm` | 直接取值（律师事务所全名） |
-| Type | `judicial` | `judicial=1` → `'Judicial'`；`judicial=0` → `'Non-Judicial'` |
+| Type | `judicial` | 如果 `judicial=1`，则 = `'Judicial'`；如果 `judicial=0`，则 = `'Non Judicial'`；如果为 `NULL`/空，则 = `NULL` |
 | SMS Days in Foreclosure | `smsdaysinfc`(=svc_days_infc) + `dataasof` | Servicer(SMS=Shellpoint)口径，自**建案日 fcsetupdate** 起算（Newrez 原生透传）；**实时重算**：`smsdaysinfc + DATEDIFF(今日NY, dataasof)`；≤ Days in Foreclosure |
 | Days in Foreclosure | `daysinfc` + `dataasof` | 投资人/全程口径，自**转介日 fcreferraldate** 起算；**实时重算**：`daysinfc + DATEDIFF(今日NY, dataasof)`；≥ SMS Days |
-| Current Step | `currentmilestone` / `fcstage` | `currentmilestone` 非空则优先取；否则取 `fcstage` |
+| Current Step | `currentmilestone` / `fcstage` | 如果 `currentmilestone` 非空，则 = `currentmilestone`；否则 = `fcstage`（Newrez 阶段文本的去处） |
 | Last Step Completed | `lastfcstepcompleted` | 直接取值（99.5% 填充） |
 | Last Step Completed Date | `lastfcstepcompleteddate` | 直接取值 |
 
 > **截图验证（loanid=7727000088）**：  
-> "Active Foreclosure" ← `fcstage`（activefcflag=1）；"Kelley Kronenberg, P.A." ← `fcfirm`；"Judicial" ← `judicial=1`；"298" ← `smsdaysinfc + DATEDIFF(截图日, dataasof)`；"Judgment Entered" ← `currentmilestone`（优先于 fcstage）；"Motion for Judgment Sent to Court" ← `lastfcstepcompleted`
+> "Active Foreclosure" ← 固定文本（`activefcflag=1`，非 `fcstage`）；"Kelley Kronenberg, P.A." ← `fcfirm`；"Judicial" ← `judicial=1`；"298" ← `smsdaysinfc + DATEDIFF(截图日, dataasof)`；"Judgment Entered" ← `currentmilestone`（优先于 fcstage）；"Motion for Judgment Sent to Court" ← `lastfcstepcompleted`
 
 ---
 

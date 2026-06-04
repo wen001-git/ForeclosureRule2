@@ -1,5 +1,21 @@
 # Prompt & Decision Log — ForeclosureRule2
 
+## [2026-06-04 UTC] fcl_pipeline.html 字段注释也写全逻辑
+> 同理，file:///C:/Users/jli/MyData/Copilot/ForeclosureRule2/outputs/fcl_pipeline.html 的字段注释 也需要把逻辑说完全
+
+## [2026-06-04 UTC] 把 Excel 文件推送到 git
+> pls push the excle files to git
+
+## [2026-06-04 UTC] 改正并写全 Foreclosure Status 等映射规则（doc 13/14/16）
+> doc 16 字段 Foreclosure Status 的 Newrez → BPS 规则 的写法是这样的：activefcflag=1 → fcstage；activefcflag=0 → fcresults 或 fcremovaldesc 这让读者很难理解，这个逻辑省略了如果....则.....,即 如果 activefcflag=1 则 Foreclosure Status = fcstage，对吗？请检查 doc 14 , doc 13, doc 16 是否有类似简化的表达，请写全逻辑，不要省略字数。
+> 决定（AskUserQuestion=改正+展开全部相关项）：代码+DB 实测发现该规则**写错**了（非仅简写）。真实逻辑 = 如果 activefcflag=1 则 summary_foreclosure_status='Active Foreclosure'(固定文本)；如果 activefcflag=0 且 fcremovaldesc 非空 则 ='Closed Foreclosure:'+fcremovaldesc；否则 NULL（basic_data_pool_config.py:273 GEN_FCL_DETAIL，经 GEN_FORECLOSURE/UPDATE_FORECLOSURE_TENANT 原值同步入 bpms_dev.sync_loan_foreclosure）。fcstage 实际填 summary_current_step（同 SELECT L282），fcresults 不参与。DB 实测 Active 43/Closed 50/NULL 1 全符合；另 4 行陈旧脏数据(status=编号fcstage、current_step=NULL，与现码相反)=旧 ETL 残留。统一展开为完整 如果…则… 句，并改正 Type/Current Step/active_fcl_flag「0=已完成」残留。
+
+### Decision: doc 16 Foreclosure Status 规则按代码改正而非仅展开 [2026-06-04]
+- **Context**: 用户以为只是箭头简写，要求写全；但 Code-First 核查发现 doc 16/13 的 `activefcflag=1 → fcstage；=0 → fcresults 或 fcremovaldesc` 与现行 ETL 不符。
+- **Options considered**: A 仅按原（错）文案展开为 if/then；B 依代码+DB 改正逻辑再展开（并连带 Type/Current Step/active_fcl_flag）；C 只改 Foreclosure Status 一条。
+- **Choice**: B（用户在 AskUserQuestion 选「改正+展开全部相关项」）。
+- **Reason**: 文档须与 ETL 真值一致（Code-First）；fcstage 实际属 summary_current_step，沿用错文案展开会把错误固化。
+
 ## [2026-06-03 UTC] 重排 tab 顺序 + BPS UI Panels 合并为 BPS 字段血缘子页
 > 请重新 organize tab 页的顺序：BPS Field lineage、BPS UI Panels、Pipeline、Lineage graph、Status codes、Primer，我感觉 BPS UI Panels 是不是可以合并到 BPS Field lineage？或者你有什么建议？
 > 决定（AskUserQuestion=合并为子页）：顶层 5 tab：BPS 字段血缘(默认)→Pipeline→血缘图谱→状态码→业务科普；BPS 字段血缘 5 子页：面板总览(原 BPS UI Panels)→详情→Stage→TimeLine→示例，默认 detail。renderBps→panelsHTML() 子页；selectPanel/setView/setFieldsScreen 抽屉归属改到 fields；新增 fScreenPanels；默认 view='fields'。
@@ -1789,3 +1805,10 @@
 ### Milestone: 标准字段 sms_days_in_fcl→servicer_days_in_fcl [2026-06-03]
 - doc 14 Excel col C 改名(rename_sms_days_to_servicer.py,guarded)+业务含义+col13注释(query 仍 smsdaysinfc)→sync zh 卡片；en 横表 :249/:250；doc 13 §3.7 脚注 zh/en；3 生成脚本 key(verify_sql/value_columns/fix_days_in_fcl_meaning)；修订史 doc14 zh v32/en v19。
 - 保留 Newrez smsdaysinfc / BPS summary_sms_days_in_fcl / UI "SMS Days"(doc16/13摘要/html) 不变。人工列 O/P/Q 未动。残留标准名仅 doc14 v31/en v18 历史修订行。
+
+### Milestone: 改正并写全 Foreclosure Status 等映射规则 + 推送 Excel [2026-06-04]
+- **改正**（代码 basic_data_pool_config.py:273 + DB 实测）：summary_foreclosure_status 真实逻辑 = activefcflag=1→固定文本 'Active Foreclosure'；=0 且 fcremovaldesc 非空→'Closed Foreclosure:'+fcremovaldesc；否则 NULL。fcstage→summary_current_step、fcresults 不参与。原 doc 13/16/html 的「→fcstage / →fcresults 或 fcremovaldesc」为错误，已改。
+- **写全简写**：Type(judicial)、Current Step、Completed Foreclosure 等箭头规则展开为完整「如果…则…」。
+- **覆盖**：doc 16 生成器 build_bps_display_mapping_xlsx.py(L426/431/436/446)→重生成 16_bps_fcl_display_mapping.xlsx(8 sheets)；doc 13 §3.7+§3头注+附录A/A.B(zh+en)；doc 16 quickref(zh+en);doc 14 active_fcl_flag「0=已完成」残留(fix_active_fcl_flag_semantics.py 加 fmt 列)→sync zh 卡片(en 已对);fcl_pipeline.html(sum_status/sum_type/sum_curstep + 2 条 per-loan 比对行)。修订史 doc13 v35/doc14 zh v33·en v21/doc16 v3。
+- **dev 陈旧数据**：4 行 summary_foreclosure_status=编号 fcstage、summary_current_step=NULL（与现码相反）=旧 ETL 残留，已在 doc 13 附录注明，不改库。
+- **推送 Excel**：.gitignore 加例外跟踪 docs/14·16·19 xlsx（'- Copy'/~$ 锁文件/outputs review xlsx 仍忽略）；实测 xlsx 无 DB 凭据。注：5 笔样例 loan 数据此前已随 md 推送，xlsx 无新增暴露。

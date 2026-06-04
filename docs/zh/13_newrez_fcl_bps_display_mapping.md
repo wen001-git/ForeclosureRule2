@@ -18,6 +18,7 @@
 
 | 日期 | 作者 | 版本 | 变更 | 关联 |
 |------|------|------|------|------|
+| 2026-06-04 | AI Agent（Claude Opus 4.8） | v35 | **改正 §3.7 `summary_foreclosure_status` 映射规则**（代码+DB 核实）：原作 `activefcflag=1 → 取 fcstage；=0 → fcresults 或 fcremovaldesc` 系**错误**。真实逻辑（basic_data_pool_config.py:273 GEN_FCL_DETAIL）：`activefcflag=1` → 固定文本 `'Active Foreclosure'`；`activefcflag=0` 且 `fcremovaldesc` 非空 → `'Closed Foreclosure:'+fcremovaldesc`；否则 NULL。`fcstage` 实际填 `summary_current_step`、`fcresults` 不参与。同步：业务含义、§3 头注、附录 A/A.B 两处来源注（标注 dev 陈旧样本）、Type/Current Step/Completed Foreclosure 箭头简写写全为「如果…则…」。DB 实测 Active 43/Closed 50/NULL 1 全符合；另 4 行陈旧脏数据已注明。同步 doc 16/14 | 代码 basic_data_pool_config.py:273 · doc 14 v33 · doc 16 v3 |
 | 2026-06-03 | AI Agent（Claude Opus 4.8） | v34 | §3.7 脚注补 `summary_sms_days_in_fcl` vs `summary_days_in_fcl` 起算基准（代码+DB 核实）：days←`fcreferraldate`(datediff+1, :1628)=投资人全程；sms←Newrez 原生 `smsdaysinfc`(svc_days_infc, :280/:1545)实测自 `fcsetupdate`=servicer/SMS 口径 → sms≤days（91 笔仅 2 笔不等）；BPS 两者 +DATEDIFF 实时修正(:597-598)。同步 doc 14 v31 | 代码 basic_data_pool_config.py · doc 14 v31 |
 | 2026-06-03 | AI Agent（Claude Opus 4.8） | v33 | §5 数值解码补充机制溯源（代码+DB 验证）：lmdeal/lmprogram/lmstatus/lmdecision/borrowerintention/denialreason 解码源 = **Redshift 字典表 `newrez.portnewrezdatadic`**（dev MySQL 无），解码 JOIN 在 `basic_data_pool_config.py:835-840`（BK 在 :367），非硬编码；LMDeal 字典 13 码、实测 8 码；并说明跨表 join 偶见 lmdeal=1→Evaluation 系快照时点伪差 | basic_data_pool_config.py:835-840；Redshift portnewrezdatadic；doc 数据字典 |
 | 2026-06-03 | AI Agent（Claude Opus 4.8） | v32 | 【可读性】把值/枚举列表的中点 `·` 分隔符统一改为 `\|`（与 doc 14 一致）：currentmilestone / fchold 描述 / stage 输出字段 / bk 解码 / Q7 等 13 处；保留「X 阶段 · 子含义」结构标签、读者行、环境标注、跨文档引用、修订史里的 `·` | doc 14 v24 |
@@ -340,6 +341,7 @@ biz_data_view_loan_details_foreclosure（104列 VIEW）
 > - `直接取值`：ETL 将 Newrez 字段值原样复制到 BPS，不做任何转换
 > - `COALESCE(A, B)`：取 A、B 中第一个非空值写入 BPS
 > - `当 fcresults='xxx' 时取...`：条件赋值，根据另一字段值决定写入内容
+> - `如果 …，则 = …；否则 …`：完整条件赋值（已避免纯箭头简写）。⚠️ 注意输出值可能是**固定文本常量**（如 `'Active Foreclosure'`），并非条件字段本身的值——例如 `summary_foreclosure_status` 用 `activefcflag` 作判断，但写入的是常量而非 `activefcflag` 的值；`fcstage` 也不写入此字段（它去的是 `summary_current_step`）。
 > - **条件字段说明**：规则表达式里出现的所有字段名（如 `activefcflag`、`judicial`、`currentmilestone`）均属于该小节"Newrez 来源表"所指定的 Newrez 表（通常为 `newrez.portnewrezfc`）。ETL 在 Newrez 侧读取这些字段完成条件判断，**不涉及任何 BPS 字段**。
 
 ### 3.1 FCL 时间线日期（timeline_*）
@@ -516,19 +518,19 @@ biz_data_view_loan_details_foreclosure（104列 VIEW）
 
 | BPS 界面标签 | 业务含义 | BPS 展示字段 | Newrez 字段 | Newrez字段 → BPS展示字段 |
 |---|---|---|---|---|
-| Summary > Foreclosure Status | FCL 当前状态或最终处置结果文本（`fcstage` 填充率 99.5%；`fcresults` 2.1%；`fcremovaldesc` 2.0%） | `summary_foreclosure_status` | `fcstage` / `fcresults` / `fcremovaldesc` | `activefcflag=1` → 取 `fcstage`；`activefcflag=0` → 取 `fcresults` 或 `fcremovaldesc` |
+| Summary > Foreclosure Status | FCL 状态文本：活跃时为固定文本 `Active Foreclosure`；非活跃且有撤销原因时为 `Closed Foreclosure:` + 撤销原因（`fcremovaldesc` 填充率 2.0%）；否则为空 | `summary_foreclosure_status` | `activefcflag`, `fcremovaldesc` | 如果 `activefcflag=1`，则 `summary_foreclosure_status` = 固定文本 `'Active Foreclosure'`；如果 `activefcflag=0` 且 `fcremovaldesc` 非空，则 = `'Closed Foreclosure:'` + `fcremovaldesc`；否则 = `NULL`。<br>（注：`fcstage` **不**参与本字段——它填充的是 `summary_current_step`；`fcresults` 也不用于本字段。代码 `basic_data_pool_config.py:273` GEN_FCL_DETAIL） |
 | Summary > Foreclosure Bid Amount | Servicer 报告的竞拍出价金额（活跃 FCL 填充率约 9%） | `summary_foreclosure_bid_amount` | `fcbidamount` | 直接取值 |
 | Summary > Foreclosure Sale Amount | 拍卖实际成交金额（活跃 FCL 填充率 4.7%，高于拍卖完成率 2.1%，存在数据滞后问题）⚠️ | `summary_foreclosure_sale_amount` | `fcsaleamount` | 直接取值 |
 | Summary > Contested Litigation | 是否存在争议诉讼（1=是 / 0=否） | `summary_contested_litigation` | `fccontestedflag` | 直接取值 |
 | Summary > Firm | 止赎律师事务所名称（与 Foreclosure Attorney 同源，BPS 界面重复展示） | `summary_firm` | `fcfirm` | 同 `summary_foreclosure_attorney`（两字段显示同源数据，用途略有侧重） |
-| Summary > Type | 止赎类型文本（将布尔值 judicial 转换为可读文本） | `summary_type` | `judicial` | `judicial=1` → `'Judicial'`；`judicial=0` → `'Non-Judicial'` |
+| Summary > Type | 止赎类型文本（将布尔值 judicial 转换为可读文本） | `summary_type` | `judicial` | 如果 `judicial=1`，则 `summary_type` = `'Judicial'`；如果 `judicial=0`，则 = `'Non Judicial'`；如果 `judicial` 为 `NULL`/空，则 = `NULL` |
 | Summary > SMS Days in FCL | Servicer（Newrez/SMS=Shellpoint）口径的 FCL 在途天数（自 servicer **建案日 fcsetupdate** 起算；消除数据截止日延迟） | `summary_sms_days_in_fcl` | `smsdaysinfc`(svc_days_infc), `dataasof` | **实时重算**：`smsdaysinfc + DATEDIFF(当天纽约时间, dataasof)`；基准=fcsetupdate，≤ Days in FCL（详见下方脚注） |
 | Summary > Days in FCL | 投资者/全程口径的 FCL 在途天数（自**转介日 fcreferraldate** 起算；消除数据截止日延迟） | `summary_days_in_fcl` | `daysinfc`, `dataasof` | **实时重算**：`daysinfc + DATEDIFF(当天纽约时间, dataasof)`；基准=fcreferraldate，≥ SMS Days in FCL |
-| Summary > Current Step | FCL 当前进行步骤（BPS 里程碑标签优先，其次为 Newrez 阶段描述） | `summary_current_step` | `currentmilestone` / `fcstage` | `currentmilestone` 非空则优先取；否则取 `fcstage` |
+| Summary > Current Step | FCL 当前进行步骤（BPS 里程碑标签优先，其次为 Newrez 阶段描述） | `summary_current_step` | `currentmilestone` / `fcstage` | 如果 `currentmilestone` 非空，则 `summary_current_step` = `currentmilestone`；否则 = `fcstage`（此处即 Newrez 阶段文本的去处） |
 | Summary > Last Step Completed | 最近已完成的 FCL 处理步骤文本描述（填充率 99.5%） | `summary_last_step_completed` | `lastfcstepcompleted` | 直接取值 |
 | Summary > Last Step Completed Date | 最近已完成步骤的完成日期（填充率 99.5%） | `summary_last_step_completed_date` | `lastfcstepcompleteddate` | 直接取值 |
 | Summary > Servicer Number | Newrez/Shellpoint 内部贷款编号（与投资者 loanid 区分；填充率 100%） | `summary_servicer_number` | `shellpointloanid` | 直接取值 |
-| Summary > Completed Foreclosure | 标记 FCL 是否不再活跃（布尔值；⚠️ 字段名为 "Completed" 但实为"不再活跃"标志） | `summary_completed_foreclosure` | `activefcflag` | `activefcflag = 0` → 1；`activefcflag = 1` → 0。⚠️ activefcflag=0 = **当前不处于活跃止赎**（实测含 Reinstated 26 / Loss Mitigation 16 / Paid in Full 11 / 真正完成 REO \| 3rd \| DiL 10），**并非都已完成** |
+| Summary > Completed Foreclosure | 标记 FCL 是否不再活跃（布尔值；⚠️ 字段名为 "Completed" 但实为"不再活跃"标志） | `summary_completed_foreclosure` | `activefcflag` | 如果 `activefcflag=0`，则 `summary_completed_foreclosure` = 1；如果 `activefcflag=1`，则 = 0（即对 `activefcflag` 取反）。⚠️ activefcflag=0 = **当前不处于活跃止赎**（实测含 Reinstated 26 / Loss Mitigation 16 / Paid in Full 11 / 真正完成 REO \| 3rd \| DiL 10），**并非都已完成** |
 | Summary > Servicer FC Bid Amount | Servicer 口径的 FCL 竞拍出价（与 Bid Approval 面板的 `fcapprbidprice` 字段区分） | `summary_srv_fc_bid_amount` | `fcbidamount` | 同 `summary_foreclosure_bid_amount`（Servicer 视角，与 BPS 批准出价 `fcapprbidprice` 区分） |
 | Summary > Judicial Foreclosure | 是否司法止赎（原始布尔值；`Type` 字段是其可读文本版本） | `summary_judicial_foreclosure` | `judicial` | 直接取值 |
 | Summary > Foreclosure Attorney | 负责止赎程序的律师事务所全称（`Firm` 字段同源） | `summary_foreclosure_attorney` | `fcfirm` | 直接取值 |
@@ -1083,7 +1085,7 @@ WHERE COALESCE(activefcflag, 1) = 1
 | `timeline_sale_date_projected_date` | 2026-08-06 | `fcscheduledsaledate` |
 | `summary_judicial_foreclosure` | 0（Non-Judicial） | `judicial` |
 | `summary_firm` | Orlans Law Group PLLC | `fcfirm` |
-| `summary_foreclosure_status` | Pre-Sale Review 1 (SCRA and PACER Check) | `fcstage`（activefcflag=1） |
+| `summary_foreclosure_status` | Pre-Sale Review 1 (SCRA and PACER Check) | ⚠️ 截图时点显示的是 `fcstage` 文本（旧 ETL 口径/陈旧样本）。**现行规则**：`activefcflag=1` → 固定文本 `'Active Foreclosure'`；此处的 `fcstage` 文本现归入 `summary_current_step`（见 §3.7） |
 | `summary_last_step_completed` | First Publication | `lastfcstepcompleted` |
 | `summary_last_step_completed_date` | 2026-03-25 | `lastfcstepcompleteddate` |
 | `summary_sms_days_in_fcl` | **79天** | `smsdaysinfc(77) + DATEDIFF(2026-05-26, 2026-05-24)` |
@@ -1100,7 +1102,7 @@ WHERE COALESCE(activefcflag, 1) = 1
 
 | BPS 展示字段 | UI 显示值 | Newrez 来源 |
 |---|---|---|
-| Foreclosure status | Active Foreclosure | `fcstage`（activefcflag=1） |
+| Foreclosure status | Active Foreclosure | `activefcflag=1` → 固定文本 `'Active Foreclosure'`（非 `fcstage`；`fcstage` 现入 `summary_current_step`） |
 | Foreclosure bid amount | （空） | `fcbidamount`（未填充） |
 | Foreclosure sale amount | （空） | `fcsaleamount`（未完成） |
 | Contested / Litigation | 0 | `fccontestedflag` |

@@ -37,6 +37,7 @@
 | 2026-06-02 | AI Agent (Claude Sonnet 4.6) | v17 | 源表错误修正（information_schema 实测）：① `delinquency_status` 来源表标注 `portnewrezgeneral`（非 portnewrezfc）；② `foreclosure_flag` 删除"`portnewrezfc.fcl_flag` 存在"的错误声称——Newrez 无此列，FCL 活跃状态实为 `activefcflag`；③ `state` 来源更正为 `portnewrezprop.propertystate`（portnewrezfc 无 state 列）；同步修正 14_servicer_fcl_field_spec.xlsx Field Spec 的 col4/验证SQL（含 lm_flag→portnewrezlm、lien_position→portnewrezgeneral.lienposition）；中英文同步 | DB 实测 2026-06-02 |
 | 2026-06-02 | AI Agent (Claude Sonnet 4.6) | v18 | Section 2.0 新增 `days360(nextduedate, dataasof)` 计算说明脚注（30/360 日历法公式、参数顺序、DPD 含义、C/D30/D60/D90/D120P 分档、源码 `PrefectFlow/flow/remit_validation/utils.py:14-21`）；Excel 同步加单元格批注 + 术语表 days360 词条；中英文同步 | 源码核实 PrefectFlow |
 | 2026-06-02 | AI Agent (Claude Sonnet 4.6) | v20 | Section 2.0–4.1 字段表改为**每字段卡片**（竖向属性表 + 验证SQL 代码块 + 实测结果），自 `14_servicer_fcl_field_spec.xlsx` 14 列经 `scripts/sync_fieldspec_excel_to_md.py` 同步生成（含取值范围/典型取值/验证SQL/实测结果 4 列新信息）；保留各节散文（允许值表/days360脚注/Judgement说明/零填充/监管术语等）；用 FS-CARDS 标记支持重跑。仅中文版（Excel 为中文，英文版本次不动） | Excel 同步 |
+| 2026-06-04 | AI Agent (Claude Opus 4.8) | v33 | 改正 `active_fcl_flag` 的「格式/计算规则」（Field Spec Excel `格式/计算规则` 列）——原仍作 `0=已完成 / 1=进行中`，与 v23 已更正的语义矛盾（0≠已完成）；改写为完整条件句（activefcflag=1→1；=0→0=当前不处于活跃止赎，BPS 统称 Closed Foreclosure；NULL→1）→ sync zh 卡片。属 doc 13/14/16 联动改正：依代码(basic_data_pool_config.py:273)+DB 改正 Foreclosure Status 映射规则（activefcflag=1→固定文本 `'Active Foreclosure'`，非 fcstage；fcstage→summary_current_step），并把 Type/Current Step/Completed Foreclosure 等箭头简写写全 | DB/代码核实 · doc 13 v35 · doc 16 v3 |
 | 2026-06-03 | AI Agent (Claude Opus 4.8) | v32 | 标准接口字段 `sms_days_in_fcl` → **`servicer_days_in_fcl`**（去除单一 servicer 品牌名 SMS=Shellpoint；标准接口应 servicer-中性，与 `days_in_fcl` 配对、与 ETL 别名 svc_days_infc 一致）。保留 Newrez 列 `smsdaysinfc`/BPS 列 `summary_sms_days_in_fcl`/UI "SMS Days" 不变。改 Excel col C+业务含义+col13注释→sync zh 卡片；en 横表、doc 13 §3.7 脚注、3 生成脚本 key 同步 | DB/代码核实 · doc 13 v34 |
 | 2026-06-03 | AI Agent (Claude Opus 4.8) | v31 | 明确 `sms_days_in_fcl` vs `days_in_fcl` 业务含义（代码+DB 核实）：days_in_fcl=投资人/全程，按 `fcreferraldate` 起算（ETL datediff+1）；sms_days_in_fcl=Newrez 原生 `smsdaysinfc`(svc_days_infc，servicer/SMS=Shellpoint 口径)，实测自 `fcsetupdate` 起算 → `sms ≤ days`；BPS 两者均 +DATEDIFF 实时修正。Excel+zh 卡片同步；doc 13 §3.7 同步 | 代码 basic_data_pool_config.py:280/1545/1628 · doc 13 v34 |
 | 2026-06-03 | AI Agent (Claude Opus 4.8) | v30 | `lm_status` 标准接口取值范围列全**实测 22 个** lmc_status（一值一行；原为「等20+种」省略），末注字典完整域约 150 码（完整 code→text 见数据字典/Redshift portnewrezdatadic）；状态流转图见 doc 18 §4.5 | DB 实测 · doc 18 v3 |
@@ -672,7 +673,7 @@ GROUP  BY dataasof, judicial ORDER BY cnt DESC;
 | Newrez 原始字段 | newrez.portnewrezfc.activefcflag |
 | 数据类型 | TINYINT |
 | 业务含义 | FCL 是否处于活跃止赎流程；1=活跃止赎中，0=当前不处于活跃止赎（BPS 统称 Closed Foreclosure，含完成/撤销/复议/付清，非都已完成）；历史 NULL 须 NULL-safe 处理（保守视为 1） |
-| 格式/计算规则 | 0=已完成 / 1=进行中（NULL保守处理为1） |
+| 格式/计算规则 | 取自 Newrez activefcflag：如果 activefcflag=1 则 = 1（活跃止赎中）；如果 activefcflag=0 则 = 0（当前不处于活跃止赎流程，BPS 统称 Closed Foreclosure，含完成/撤销/复议/付清，并非都已完成）；历史 NULL 保守视为 1 |
 | 标准接口取值范围 | 1（活跃止赎中）/ 0（当前不处于活跃止赎流程；含已完成 REO/3rd Party/DiL 或已退出 Reinstated/Loss Mitigation/Paid in Full）；NULL 保守视为 1 |
 | 典型取值（标准） | 1 |
 | BPS 面板/功能 | BPS入库条件（NULL-safe处理） |

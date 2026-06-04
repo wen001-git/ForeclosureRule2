@@ -15,6 +15,8 @@ from _excel_guard import col_by_header, assert_safe
 XLSX = Path("docs/14_servicer_fcl_field_spec.xlsx")
 NEW_RANGE = "1（活跃止赎中）/ 0（当前不处于活跃止赎流程；含已完成 REO/3rd Party/DiL 或已退出 Reinstated/Loss Mitigation/Paid in Full）；NULL 保守视为 1"
 NEW_MEANING = "FCL 是否处于活跃止赎流程；1=活跃止赎中，0=当前不处于活跃止赎（BPS 统称 Closed Foreclosure，含完成/撤销/复议/付清，非都已完成）；历史 NULL 须 NULL-safe 处理（保守视为 1）"
+# 「格式/计算规则」原作 "0=已完成 / 1=进行中"——与上面已更正的语义矛盾（0≠已完成），写全逻辑并去除该错误
+NEW_FMT = "取自 Newrez activefcflag：如果 activefcflag=1 则 = 1（活跃止赎中）；如果 activefcflag=0 则 = 0（当前不处于活跃止赎流程，BPS 统称 Closed Foreclosure，含完成/撤销/复议/付清，并非都已完成）；历史 NULL 保守视为 1"
 
 
 def main():
@@ -23,7 +25,8 @@ def main():
     field_col = col_by_header(ws, "标准接口字段") or 3
     range_col = col_by_header(ws, "标准接口取值范围")
     mean_col = col_by_header(ws, "业务含义")
-    for c in (range_col, mean_col):
+    fmt_col = col_by_header(ws, "格式/计算规则")
+    for c in (range_col, mean_col, fmt_col):
         if c:
             assert_safe(ws, c)
     done = False
@@ -37,6 +40,10 @@ def main():
                 oldm = ws.cell(r, mean_col).value
                 ws.cell(r, mean_col).value = NEW_MEANING
                 print(f"row {r} 业务含义(col {mean_col}) updated (OLD: {oldm!r})")
+            if fmt_col:
+                oldf = ws.cell(r, fmt_col).value
+                ws.cell(r, fmt_col).value = NEW_FMT
+                print(f"row {r} 格式/计算规则(col {fmt_col}):\n  OLD: {oldf!r}\n  NEW: {NEW_FMT!r}")
             done = True
             break
     if not done:

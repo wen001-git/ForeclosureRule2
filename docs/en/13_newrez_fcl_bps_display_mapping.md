@@ -18,6 +18,7 @@ Secondary: New ETL developers · FCL data governance team · Future AI sessions
 
 | Date | Author | Version | Changes | Related |
 |------|--------|---------|---------|---------|
+| 2026-06-04 | AI Agent (Claude Opus 4.8) | v35 | **Corrected §3.7 `summary_foreclosure_status` mapping rule** (code + DB verified): the old `activefcflag=1 → use fcstage; =0 → fcresults or fcremovaldesc` was **wrong**. Actual logic (basic_data_pool_config.py:273 GEN_FCL_DETAIL): `activefcflag=1` → fixed text `'Active Foreclosure'`; `activefcflag=0` and `fcremovaldesc` non-empty → `'Closed Foreclosure:'+fcremovaldesc`; else NULL. `fcstage` actually populates `summary_current_step`; `fcresults` is unused. Also updated: business meaning, §3 header note, two appendix source notes (flagged as stale dev sample), and expanded Type/Current Step/Completed Foreclosure arrow shorthand into full "if…then…". DB: Active 43/Closed 50/NULL 1 all match; 4 stale rows noted. Synced with doc 16/14 | basic_data_pool_config.py:273 · doc 14 v33 · doc 16 v3 |
 | 2026-06-03 | AI Agent (Claude Opus 4.8) | v34 | §3.7 footnote: added the start-date basis for `summary_sms_days_in_fcl` vs `summary_days_in_fcl` (code + DB verified): days ← `fcreferraldate` (datediff+1, :1628) = investor/full; sms ← Newrez native `smsdaysinfc` (svc_days_infc, :280/:1545) counted from `fcsetupdate` = servicer/SMS basis → sms≤days (only 2 of 91 differ); both get BPS +DATEDIFF real-time adjustment (:597-598). Synced with doc 14 v31 | basic_data_pool_config.py · doc 14 v31 |
 | 2026-06-03 | AI Agent (Claude Opus 4.8) | v33 | §5 numeric-decode mechanism traced (code + DB verified): lmdeal/lmprogram/lmstatus/lmdecision/borrowerintention/denialreason decode source = **Redshift dict table `newrez.portnewrezdatadic`** (not in dev MySQL); decode JOINs at `basic_data_pool_config.py:835-840` (BK at :367), not hardcoded; LMDeal dict = 13 codes, 8 observed; noted that a cross-table join `lmdeal=1→Evaluation` is a snapshot-timing artifact | basic_data_pool_config.py:835-840; Redshift portnewrezdatadic; data dictionary |
 | 2026-06-03 | AI Agent (Claude Opus 4.8) | v32 | [Readability] Unified middle-dot `·` separators in value/enum lists to `\|` (consistent with doc 14): currentmilestone / fchold descriptions / stage output fields / bk decode / Q7 (13 spots). Kept `·` in "X stage · sub-meaning" structural labels, audience line, env labels, cross-references, and revision history | doc 14 v24 |
@@ -339,6 +340,7 @@ Key fields shown in the BPS Loss Mitigation Cycle panel:
 > - `Direct`: ETL copies the Newrez field value into BPS unchanged
 > - `COALESCE(A, B)`: Uses the first non-null value of A or B
 > - `When fcresults='xxx' use...`: Conditional assignment based on another field's value
+> - `if …, then = …; otherwise …`: full conditional assignment (arrow shorthand avoided). ⚠️ Note the output may be a **fixed literal constant** (e.g. `'Active Foreclosure'`), not the value of the condition field — e.g. `summary_foreclosure_status` uses `activefcflag` as a test but stores a constant, not `activefcflag`'s value; `fcstage` is not written to this field either (it goes to `summary_current_step`).
 > - **Condition field note**: All field names appearing in rule expressions (e.g. `activefcflag`, `judicial`, `currentmilestone`) belong to the Newrez source table specified in that section's header (typically `newrez.portnewrezfc`). The ETL evaluates these conditions entirely on the Newrez side — **no BPS fields are referenced in mapping rule expressions**.
 
 ### 3.1 FCL Timeline Dates (timeline_*)
@@ -515,19 +517,19 @@ Formula: `var_{stage}_days = actual_{stage}_days − target_{stage}_days` (posit
 
 | BPS UI Label | Business Meaning | BPS Display Field | Newrez Field | Newrez Field → BPS Field |
 |---|---|---|---|---|
-| Summary > Foreclosure Status | Current FCL status text or final disposition result (`fcstage` 99.5%; `fcresults` 2.1%; `fcremovaldesc` 2.0%) | `summary_foreclosure_status` | `fcstage` / `fcresults` / `fcremovaldesc` | `activefcflag=1` → use `fcstage`; `activefcflag=0` → use `fcresults` or `fcremovaldesc` |
+| Summary > Foreclosure Status | FCL status text: fixed text `Active Foreclosure` when active; `Closed Foreclosure:` + removal reason when inactive with a reason (`fcremovaldesc` 2.0%); otherwise empty | `summary_foreclosure_status` | `activefcflag`, `fcremovaldesc` | if `activefcflag=1`, then `summary_foreclosure_status` = fixed text `'Active Foreclosure'`; if `activefcflag=0` and `fcremovaldesc` is non-empty, then = `'Closed Foreclosure:'` + `fcremovaldesc`; otherwise = `NULL`.<br>(Note: `fcstage` is **not** used by this field — it populates `summary_current_step`; `fcresults` is not used either. Code `basic_data_pool_config.py:273` GEN_FCL_DETAIL) |
 | Summary > Foreclosure Bid Amount | Servicer-reported bid amount (~9% fill rate in active FCL) | `summary_foreclosure_bid_amount` | `fcbidamount` | Direct |
 | Summary > Foreclosure Sale Amount | Actual auction sale amount (active FCL fill rate: 4.7% — anomalously higher than sale-held rate of 2.1%; indicates data lag issue) ⚠️ | `summary_foreclosure_sale_amount` | `fcsaleamount` | Direct |
 | Summary > Contested Litigation | Whether contested litigation exists (1=yes / 0=no) | `summary_contested_litigation` | `fccontestedflag` | Direct |
 | Summary > Firm | Foreclosure law firm name (same source as Foreclosure Attorney, displayed twice in BPS UI) | `summary_firm` | `fcfirm` | Same as `summary_foreclosure_attorney` (both fields display the same source, slightly different UI placement) |
-| Summary > Type | Foreclosure type as readable text (converts boolean judicial flag to label) | `summary_type` | `judicial` | `judicial=1` → `'Judicial'`; `judicial=0` → `'Non-Judicial'` |
+| Summary > Type | Foreclosure type as readable text (converts boolean judicial flag to label) | `summary_type` | `judicial` | if `judicial=1`, then `summary_type` = `'Judicial'`; if `judicial=0`, then = `'Non Judicial'`; if `judicial` is `NULL`/empty, then = `NULL` |
 | Summary > SMS Days in FCL | Servicer (Newrez/SMS=Shellpoint) FCL days in-flight — counted from the servicer **setup date fcsetupdate**; adjusted to eliminate Newrez data cutoff lag | `summary_sms_days_in_fcl` | `smsdaysinfc`(svc_days_infc), `dataasof` | **Real-time recalculation**: `smsdaysinfc + DATEDIFF(today_NY, dataasof)`; basis = fcsetupdate, ≤ Days in FCL (see footnote) |
 | Summary > Days in FCL | Investor/full-timeline FCL days in-flight — counted from the **referral date fcreferraldate**; adjusted to reflect actual days as of today | `summary_days_in_fcl` | `daysinfc`, `dataasof` | **Real-time recalculation**: `daysinfc + DATEDIFF(today_NY, dataasof)`; basis = fcreferraldate, ≥ SMS Days in FCL |
-| Summary > Current Step | Current FCL processing step (BPS milestone label preferred; falls back to Newrez stage description) | `summary_current_step` | `currentmilestone` / `fcstage` | `currentmilestone` takes priority if non-null; fall back to `fcstage` |
+| Summary > Current Step | Current FCL processing step (BPS milestone label preferred; falls back to Newrez stage description) | `summary_current_step` | `currentmilestone` / `fcstage` | if `currentmilestone` is non-null, then `summary_current_step` = `currentmilestone`; otherwise = `fcstage` (this is where the Newrez stage text goes) |
 | Summary > Last Step Completed | Text description of the most recently completed FCL processing step (99.5% fill rate) | `summary_last_step_completed` | `lastfcstepcompleted` | Direct |
 | Summary > Last Step Completed Date | Date the most recently completed step was finished (99.5% fill rate) | `summary_last_step_completed_date` | `lastfcstepcompleteddate` | Direct |
 | Summary > Servicer Number | Newrez/Shellpoint internal loan number (distinct from investor loanid; 100% fill rate) | `summary_servicer_number` | `shellpointloanid` | Direct |
-| Summary > Completed Foreclosure | Boolean flag for whether FCL is no longer active (⚠️ named "Completed" but really an "inactive" flag) | `summary_completed_foreclosure` | `activefcflag` | `activefcflag = 0` → 1; `activefcflag = 1` → 0. ⚠️ `activefcflag=0` = **not in active foreclosure** (DB: Reinstated 26 / Loss Mitigation 16 / Paid in Full 11 / truly-completed REO \| 3rd \| DiL 10), **not all completed** |
+| Summary > Completed Foreclosure | Boolean flag for whether FCL is no longer active (⚠️ named "Completed" but really an "inactive" flag) | `summary_completed_foreclosure` | `activefcflag` | if `activefcflag=0`, then `summary_completed_foreclosure` = 1; if `activefcflag=1`, then = 0 (i.e. the inverse of `activefcflag`). ⚠️ `activefcflag=0` = **not in active foreclosure** (DB: Reinstated 26 / Loss Mitigation 16 / Paid in Full 11 / truly-completed REO \| 3rd \| DiL 10), **not all completed** |
 | Summary > Servicer FC Bid Amount | Servicer-perspective FCL bid amount (distinguished from Bid Approval panel's `fcapprbidprice`) | `summary_srv_fc_bid_amount` | `fcbidamount` | Same as `summary_foreclosure_bid_amount` (Servicer-perspective bid; distinct from BPS-approved bid `fcapprbidprice`) |
 | Summary > Judicial Foreclosure | Raw boolean for judicial type (1=Judicial / 0=Non-Judicial); the Type field above is its readable text version | `summary_judicial_foreclosure` | `judicial` | Direct |
 | Summary > Foreclosure Attorney | Foreclosure law firm full name (same source as the Firm field above) | `summary_foreclosure_attorney` | `fcfirm` | Direct |
@@ -1085,7 +1087,7 @@ WHERE COALESCE(activefcflag, 1) = 1
 | `timeline_sale_date_projected_date` | 2026-08-06 | `fcscheduledsaledate` |
 | `summary_judicial_foreclosure` | 0 (Non-Judicial) | `judicial` |
 | `summary_firm` | Orlans Law Group PLLC | `fcfirm` |
-| `summary_foreclosure_status` | Pre-Sale Review 1 (SCRA and PACER Check) | `fcstage` (activefcflag=1) |
+| `summary_foreclosure_status` | Pre-Sale Review 1 (SCRA and PACER Check) | ⚠️ The screenshot shows the `fcstage` text (old ETL behavior / stale sample). **Current rule**: `activefcflag=1` → fixed text `'Active Foreclosure'`; this `fcstage` text now goes to `summary_current_step` (see §3.7) |
 | `summary_last_step_completed` | First Publication | `lastfcstepcompleted` |
 | `summary_last_step_completed_date` | 2026-03-25 | `lastfcstepcompleteddate` |
 | `summary_sms_days_in_fcl` | **79 days** | `smsdaysinfc(77) + DATEDIFF(2026-05-26, 2026-05-24)` |
@@ -1102,7 +1104,7 @@ WHERE COALESCE(activefcflag, 1) = 1
 
 | BPS Display Field | UI Value | Newrez Source |
 |---|---|---|
-| Foreclosure status | Active Foreclosure | `fcstage` (activefcflag=1) |
+| Foreclosure status | Active Foreclosure | `activefcflag=1` → fixed text `'Active Foreclosure'` (not `fcstage`; `fcstage` now goes to `summary_current_step`) |
 | Foreclosure bid amount | (empty) | `fcbidamount` (not yet populated) |
 | Foreclosure sale amount | (empty) | `fcsaleamount` (sale not yet complete) |
 | Contested / Litigation | 0 | `fccontestedflag` |

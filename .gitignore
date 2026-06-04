@@ -12,8 +12,13 @@ db_stats_mysql_output.json
 .codex/
 
 # Temp / binary files
+~$*
 docs/zh/~$*
 *.xlsx
+# …but DO track the single-source-of-truth workbooks (no DB creds; doc 14 holds the 人工 columns)
+!docs/14_servicer_fcl_field_spec.xlsx
+!docs/16_bps_fcl_display_mapping.xlsx
+!docs/19_fcl_sample_loan_raw_dump.xlsx
 docs/zh/image.zip
 
 # Python

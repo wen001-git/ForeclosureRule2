@@ -422,23 +422,29 @@ def build_summary(wb, data):
     ws, r = new_panel_sheet(wb, "① FCL Summary", "bps-loan-foreclosure-summary-panel.png", PANEL_W, "main")
     r = section_title(ws, r, "块A — BPS 字段映射规则（doc 13 §3.7；所有 BPS 字段位于 bpms_dev.sync_loan_foreclosure）", 6)
     mapA = [
-        ["Foreclosure Status", "summary_foreclosure_status", "fcstage / fcresults / fcremovaldesc",
-         "activefcflag=1 → fcstage；activefcflag=0 → fcresults 或 fcremovaldesc"],
+        ["Foreclosure Status", "summary_foreclosure_status", "activefcflag, fcremovaldesc",
+         "如果 activefcflag=1，则 summary_foreclosure_status = 固定文本 'Active Foreclosure'；"
+         "如果 activefcflag=0 且 fcremovaldesc 非空，则 = 'Closed Foreclosure:' + fcremovaldesc；"
+         "否则 = NULL。（注：fcstage 不参与本字段——它填充的是 Current Step / summary_current_step；fcresults 也不用于本字段。"
+         "代码 basic_data_pool_config.py:273 GEN_FCL_DETAIL）"],
         ["Foreclosure Bid Amount", "summary_foreclosure_bid_amount", "fcbidamount", "直接取值"],
         ["Foreclosure Sale Amount", "summary_foreclosure_sale_amount", "fcsaleamount", "直接取值"],
         ["Contested Litigation", "summary_contested_litigation", "fccontestedflag", "直接取值 1/0"],
         ["Firm", "summary_firm", "fcfirm", "同 Foreclosure Attorney（同源）"],
-        ["Type", "summary_type", "judicial", "judicial=1→'Judicial'；0→'Non-Judicial'"],
+        ["Type", "summary_type", "judicial",
+         "如果 judicial=1，则 summary_type = 'Judicial'；如果 judicial=0，则 = 'Non Judicial'；如果 judicial 为 NULL/空，则 = NULL"],
         ["SMS Days in FCL", "summary_sms_days_in_fcl", "smsdaysinfc(=svc_days_infc), dataasof",
          "Servicer(SMS=Shellpoint)口径，自 servicer 建案日 fcsetupdate 起算（Newrez 原生 smsdaysinfc 透传）；实时重算 smsdaysinfc + DATEDIFF(今日纽约, dataasof)；≤ Days in FCL"],
         ["Days in FCL", "summary_days_in_fcl", "daysinfc, dataasof",
          "投资人/全程口径，自转介日 fcreferraldate 起算（datediff+1）；实时重算 daysinfc + DATEDIFF(今日纽约, dataasof)；≥ SMS Days（因 setup≥referral）"],
-        ["Current Step", "summary_current_step", "currentmilestone / fcstage", "currentmilestone 非空优先，否则 fcstage"],
+        ["Current Step", "summary_current_step", "currentmilestone / fcstage",
+         "如果 currentmilestone 非空，则 summary_current_step = currentmilestone；否则 = fcstage"],
         ["Last Step Completed", "summary_last_step_completed", "lastfcstepcompleted", "直接取值"],
         ["Last Step Completed Date", "summary_last_step_completed_date", "lastfcstepcompleteddate", "直接取值"],
         ["Servicer Number", "summary_servicer_number", "shellpointloanid", "直接取值"],
         ["Completed Foreclosure", "summary_completed_foreclosure", "activefcflag",
-         "activefcflag=0→1；1→0。⚠️ activefcflag=0=当前不处于活跃止赎(含撤销/复议/付清)，非都已完成"],
+         "如果 activefcflag=0，则 summary_completed_foreclosure = 1；如果 activefcflag=1，则 = 0（即对 activefcflag 取反）。"
+         "⚠️ activefcflag=0 = 当前不处于活跃止赎流程（含撤销/复议/付清/完成），并非都已完成"],
         ["Servicer FC Bid Amount", "summary_srv_fc_bid_amount", "fcbidamount", "同 bid amount（servicer 视角）"],
         ["Judicial Foreclosure", "summary_judicial_foreclosure", "judicial", "直接取值（布尔）"],
         ["Foreclosure Attorney", "summary_foreclosure_attorney", "fcfirm", "直接取值"],

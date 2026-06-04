@@ -18,6 +18,7 @@ Secondary: New team members · Future AI sessions
 
 | Date | Author | Version | Changes | Related |
 |------|--------|---------|---------|---------|
+| 2026-06-04 | AI Agent (Claude Opus 4.8) | v3 | Corrected the Foreclosure Summary quickref "Foreclosure status" row (code + DB): the old `activefcflag=1 → use fcstage; =0 → fcresults or fcremovaldesc` was wrong → `activefcflag=1` fixed text `'Active Foreclosure'`; `=0` and fcremovaldesc non-empty → `'Closed Foreclosure:'+fcremovaldesc`; else NULL (fcstage→summary_current_step); Type/Current Step and the screenshot-verification line expanded/corrected | basic_data_pool_config.py:273 · doc 13 v35 · doc 14 v33 |
 | 2026-06-03 | AI Agent (Claude Opus 4.8) | v2 | SMS Days / Days in Foreclosure rows: added start-date basis (code + DB verified): SMS Days from fcsetupdate (servicer setup), Days from fcreferraldate (referral), hence SMS Days ≤ Days; synced with doc 13/14/16-xlsx/fcl_pipeline.html | doc 13 v34 · doc 14 v31 |
 | 2026-05-28 | AI Agent (Claude Sonnet 4.6) | v1 | Initial draft: 6-panel quick reference tables + screenshot; content derived from doc 13 MCP live measurements | doc 13 |
 
@@ -52,20 +53,20 @@ Secondary: New team members · Future AI sessions
 
 | UI Label | Newrez Source Field | Mapping Rule |
 |---|---|---|
-| Foreclosure status | `fcstage` / `fcresults` / `fcremovaldesc` | `activefcflag=1` → use `fcstage` (in-progress stage text); `activefcflag=0` → use `fcresults` or `fcremovaldesc` |
+| Foreclosure status | `activefcflag`, `fcremovaldesc` | if `activefcflag=1`, then = fixed text `'Active Foreclosure'`; if `activefcflag=0` and `fcremovaldesc` non-empty, then = `'Closed Foreclosure:'`+`fcremovaldesc`; otherwise `NULL` (note: `fcstage` is not used here — it goes to `summary_current_step`) |
 | Foreclosure bid amount | `fcbidamount` | Direct (~9% fill rate in active FCL) |
 | Foreclosure sale amount | `fcsaleamount` | Direct (4.7%; ⚠️ exceeds sale-held rate of 2.1%, see doc 13 Q9) |
 | Contested / Litigation | `fccontestedflag` | Direct (1=contested / 0=not) |
 | Firm | `fcfirm` | Direct (attorney firm full name) |
-| Type | `judicial` | `judicial=1` → `'Judicial'`; `judicial=0` → `'Non-Judicial'` |
+| Type | `judicial` | if `judicial=1`, then = `'Judicial'`; if `judicial=0`, then = `'Non Judicial'`; if `NULL`/empty, then = `NULL` |
 | SMS Days in Foreclosure | `smsdaysinfc`(=svc_days_infc) + `dataasof` | Servicer (SMS=Shellpoint) basis, counted from the **setup date fcsetupdate** (Newrez native, passed through); **Real-time recalculation**: `smsdaysinfc + DATEDIFF(today NY, dataasof)`; ≤ Days in Foreclosure |
 | Days in Foreclosure | `daysinfc` + `dataasof` | Investor/full-timeline basis, counted from the **referral date fcreferraldate**; **Real-time recalculation**: `daysinfc + DATEDIFF(today NY, dataasof)`; ≥ SMS Days |
-| Current Step | `currentmilestone` / `fcstage` | `currentmilestone` takes priority if non-null; otherwise falls back to `fcstage` |
+| Current Step | `currentmilestone` / `fcstage` | if `currentmilestone` is non-null, then = `currentmilestone`; otherwise = `fcstage` (where the Newrez stage text goes) |
 | Last Step Completed | `lastfcstepcompleted` | Direct (99.5% fill rate) |
 | Last Step Completed Date | `lastfcstepcompleteddate` | Direct |
 
 > **Screenshot verification (loanid=7727000088)**:  
-> "Active Foreclosure" ← `fcstage` (activefcflag=1); "Kelley Kronenberg, P.A." ← `fcfirm`; "Judicial" ← `judicial=1`; "298" ← `smsdaysinfc + DATEDIFF(screenshot date, dataasof)`; "Judgment Entered" ← `currentmilestone` (priority over fcstage); "Motion for Judgment Sent to Court" ← `lastfcstepcompleted`
+> "Active Foreclosure" ← fixed text (`activefcflag=1`, not `fcstage`); "Kelley Kronenberg, P.A." ← `fcfirm`; "Judicial" ← `judicial=1`; "298" ← `smsdaysinfc + DATEDIFF(screenshot date, dataasof)`; "Judgment Entered" ← `currentmilestone` (priority over fcstage); "Motion for Judgment Sent to Court" ← `lastfcstepcompleted`
 
 ---
 
