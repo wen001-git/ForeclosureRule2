@@ -2061,7 +2061,7 @@ GROUP BY l.borrowerintention, b.borrower_intentions ORDER BY l.borrowerintention
 >
 > **结构（6 列）**：`package` \| `module_name` \| `appendix` \| `field_name` \| `code` \| `description`。FCL 相关 `field_name`：LM 模块 LMDeal/LMProgram/LMStatus/LMDecision/DenialReason/BorrowerIntention；BK 模块 BKStatus/BKStage。
 >
-> **范围**：小字段（LMDeal/BorrowerIntention/BKStatus/BKStage）列**全量**；大字段（LMProgram/LMStatus/LMDecision/DenialReason）只列 **prod 最新快照实际出现的码**（去长尾；字典总码数见各表标题）。doc 19 `㉑ dict·portnewrezdatadic` 节只列 5 样例贷款用到的码。
+> **范围**：小字段（LMDeal/BorrowerIntention/BKStatus/BKStage）列**全量**；大字段（LMProgram/LMStatus/LMDecision/DenialReason）只列 **prod 最新快照实际出现的码**（去长尾；字典总码数见各表标题）。doc 19 `㉔ dict·portnewrezdatadic` 节只列 5 样例贷款用到的码。
 >
 > **查询 SQL（redshift_prod 只读）**：
 ```sql

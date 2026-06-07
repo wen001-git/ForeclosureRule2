@@ -23,6 +23,7 @@
 
 | Date | Author | Version | Changes |
 |------|--------|---------|---------|
+| 2026-06-07 | AI Agent (Claude Opus 4.8) | v5 | Added **§8.1 how the as-of date evolves + why BPS `sync_*` has no as-of, only `update_time`** (code + MCP-proven: DELETE+APPEND overwrite refresh `df_db_util.py:691,693`, two-step `UPDATE_FORECLOSURE`, `datediff` real-time correction absorbing the as-of `asset_managment_config.py:597-598`; real-data example loan 7727000088: 368+2=370); added **§9 per-table data-inspection SQL (latest data-date)** (as-of column verified across all tables via information_schema; same SQL injected into every node drawer of fcl_pipeline.html); §8.1 corrected the write mechanism (main `bpms.sync_loan_foreclosure` written via `UPDATE_FORECLOSURE`'s `ON DUPLICATE KEY UPDATE`, whose UPDATE list excludes create/update_time → NULL) | PrefectFlow source + mysql_prod/redshift_prod |
 | 2026-06-06 | AI Agent (Claude Opus 4.8) | v4 | **Corrected to MySQL+Redshift dual-write architecture** (the old "one platform per layer" was wrong): §1 diagram + §2/§3/§4/§5 per-layer "storage DB + file:line"; **§7 rewritten as the dual-write evidence table** + §7.1 other corrections (two branches / days360 / fcl_flag not normalized / Carrington whole-column gaps / delinq_clean producing code not in repo); cross-links doc 20 §B.6 / doc 21 | PrefectFlow source + mysql_prod/redshift |
 | 2026-06-05 | AI Agent (Claude Opus 4.8) | v3 | Renamed `portshellpoint*`→`portnewrez*` (DB-verified live newrez tables; renamed 2024-07-05) + naming note (DB-verified; doc 01) |
 | 2026-05-21 | AI Agent (Claude Sonnet 4.6) | v1 | Initial version, code analysis + DB evidence |
@@ -366,6 +367,111 @@ LEFT JOIN port.basic_data_monthly_loan_remit_clean b ON a.fctrdt=b.fctrdt AND a.
 | `fctrdt` | Report cutoff date (first of the following month) | 2025-02-01 (represents Jan data) |
 | `uploaddate` | Date uploaded to system | 2025-01-16 |
 | `create_time` / `update_time` | Record creation/update time (audit) | — |
+
+### 8.1 How the as-of date evolves + why the BPS `sync_*` tables have no as-of, only `update_time` (code + MCP-proven)
+
+**As-of (data date) across the layers:**
+
+| Layer | as-of column | Meaning | Grain |
+|---|---|---|---|
+| L1 source `newrez.portnewrez*` | `dataasof` | daily snapshot date (raw tables partitioned by it) | loanid+dataasof (1 row/loan/day) |
+| L2 `basic_data_daily_loan_common` | `asofdate` | unified daily date | loanid+asofdate |
+| L3 `basic_data_daily_loan_common_clean` | `fctrdt` | report cutoff date | loanid+fctrdt |
+| L4 `basic_data_loan_fcl` / `_foreclosure` | takes `MAX(dataasof)` | keeps only each loan's latest snapshot | 1 row/loan (latest) |
+| L4 `fcl_stage_info` | `fctrdt` | monthly stage snapshot | loanid+fctrdt |
+| **L5 main `bpms.sync_loan_foreclosure`** | **none** | current-state, audit cols only | 1 row/loan |
+| L5 `bpms.sync_fcl_stage_info` | **`fctrdt` (kept)** | retains as-of history | loanid+fctrdt (many rows/loan) |
+
+**MCP-verified columns (mysql_prod):**
+- `bpms.sync_loan_foreclosure`: business `timeline_*_date` cols + audit `create_time`/`update_time`/`update_user`; **no `asofdate`/`fctrdt`/`dataasof`**. `create_time`/`update_time` default NULL, written by the ETL (not MySQL-managed, **may be NULL**).
+- `bpms.sync_fcl_stage_info`: **has `fctrdt`** + stage dates + `create_time`(CURRENT_TIMESTAMP)/`update_time`(on update, MySQL-managed).
+
+**Write mechanism (PrefectFlow code) — two kinds:**
+- ① **Most `sync_*` tables**: written by `sync_to_mysql` as a **whole-table `DELETE` + `to_sql(append)` (overwrite refresh)** into bpms (`df_db_util.py:691,693`).
+- ② **The main table `bpms.sync_loan_foreclosure` is special (two-step)**: `sync_to_mysql` first clears + appends the **port staging** table `port.basic_data_loan_foreclosure` (MySQL, `:675-676,691-693`), then `update_to_mysql` runs `UPDATE_FORECLOSURE`: `INSERT…SELECT…ON DUPLICATE KEY UPDATE` into bpms (`:698,716`; SQL in `asset_managment_config.py`). That upsert's UPDATE list **excludes `create_time`/`update_time`** → so they stay NULL (doc 12 §14.0).
+- `flow/bps/bps_config/asset_managment_config.py:535-608` `GEN_FORECLOSURE`: output **omits `dataasof`**; the days fields = stored value `+ datediff(day, a.dataasof, tempfc.current_date_new_york)` (`:597-598`; `current_date_new_york` = run day / NY today, `:536-538`); filter `timeline_referred_to_foreclosure_date IS NOT NULL` (`:605`).
+
+**Why the main table has no as-of, only `update_time`:**
+1. **It's a current-state table**: only the latest snapshot per loan is taken, then the whole table is overwrite-refreshed — one row always means "latest", so an as-of column is redundant.
+2. **As-of history lives upstream** (L1 `dataasof` daily snapshots can reproduce any day); BPS only needs the current state.
+3. **`create_time`/`update_time` are audit columns** (when the row was synced), not a data date.
+4. **The days fields are recomputed to the run day**: `datediff(dataasof → run day)` absorbs the as-of gap into `summary_days_in_fcl`, so the table means "as of run time" — a frozen as-of column would mislead.
+5. **Exception**: the stage table `sync_fcl_stage_info` keeps many rows by `fctrdt` (the as-of carrier); only the main table collapses to 1 row.
+
+**Real-data example (MCP-verified, loan `7727000088`, doc 19 Loan 1):**
+
+| Location | Field | Verified value |
+|---|---|---|
+| Redshift `port.basic_data_loan_foreclosure` (source) | `dataasof` | **2026-06-04** |
+| same | `summary_days_in_fcl` (stored, as of dataasof) | **368** |
+| `bpms.sync_loan_foreclosure` (output main) | `summary_days_in_fcl` | **370** |
+| same | `dataasof` / `asofdate` / `fctrdt` | **column absent** |
+| same | `create_time` / `update_time` | **NULL** |
+| `bpms.sync_fcl_stage_info` | `fctrdt` (multiple rows, history kept) | 2026-05-24, 2026-05-23 … |
+| same | `update_time` (= BPS run day) | 2026-06-06 00:52:45 |
+
+Check: `368 + datediff('2026-06-04' → run day '2026-06-06') = 368 + 2 = 370` = the main table's value. **Those 2 days are the as-of**, absorbed into the days field by `datediff` — which is why the output stores no separate as-of column. Re-derive (read-only):
+
+```sql
+-- source (Redshift redshift_prod)
+SELECT dataasof, summary_days_in_fcl FROM port.basic_data_loan_foreclosure WHERE loanid='7727000088';
+-- output main (MySQL mysql_prod.bpms)
+SELECT summary_days_in_fcl, create_time, update_time FROM bpms.sync_loan_foreclosure WHERE loanid='7727000088';
+-- stage table keeps fctrdt history
+SELECT loanid, fctrdt, update_time FROM bpms.sync_fcl_stage_info WHERE loanid='7727000088' ORDER BY fctrdt DESC;
+```
+
+---
+
+## 9. Per-table data-inspection SQL (latest data-date)
+
+> Copy-paste to look at a table's data in the DB. The as-of column was verified for every table via `information_schema`. Connections: **L1=`mysql_prod`**, **L2–L4=`redshift_prod`**, **L5=`mysql_prod.bpms`**. Tables with no data-date column are anchored by `loanid`/`update_time` (noted). Adjust `LIMIT 50` as needed.
+
+### L1 sources (mysql_prod)
+| Table | Latest data-date SQL |
+|---|---|
+| `newrez.portnewrezfc` (`bk/lm/general/prop` same, all `dataasof`) | `SELECT * FROM newrez.portnewrezfc WHERE dataasof=(SELECT MAX(dataasof) FROM newrez.portnewrezfc) LIMIT 50;` |
+| `sls.portassetdaily` (history; `portfcldaily/bk/lm` use `uploaddate`) | `SELECT * FROM sls.portassetdaily WHERE dataasofdate=(SELECT MAX(dataasofdate) FROM sls.portassetdaily) LIMIT 50;` |
+| `carrington.portcarrington` (**no data-date column**) | `SELECT * FROM carrington.portcarrington ORDER BY update_time DESC LIMIT 50;` |
+| `mrc.portmrcforeclosure` | `SELECT * FROM mrc.portmrcforeclosure WHERE dataasof=(SELECT MAX(dataasof) FROM mrc.portmrcforeclosure) LIMIT 50;` |
+| `newrez.portnewrezdatadic` (dictionary, no date) | `SELECT * FROM newrez.portnewrezdatadic LIMIT 100;` |
+
+### L2–L3 delinquency branch (redshift_prod)
+| Table | Latest data-date SQL |
+|---|---|
+| `port.portdaily_v2` | `SELECT * FROM port.portdaily_v2 WHERE asofdate=(SELECT MAX(asofdate) FROM port.portdaily_v2) LIMIT 50;` |
+| `port.basic_data_daily_loan_common` | `SELECT * FROM port.basic_data_daily_loan_common WHERE asofdate=(SELECT MAX(asofdate) FROM port.basic_data_daily_loan_common) LIMIT 50;` |
+| `port.basic_data_daily_loan_common_clean` | `SELECT * FROM port.basic_data_daily_loan_common_clean WHERE fctrdt=(SELECT MAX(fctrdt) FROM port.basic_data_daily_loan_common_clean) LIMIT 50;` |
+| `port.port_daily_clean` | `SELECT * FROM port.port_daily_clean WHERE fctrdt=(SELECT MAX(fctrdt) FROM port.port_daily_clean) LIMIT 50;` |
+| `port.basic_data_loan_delinq_clean` | `SELECT * FROM port.basic_data_loan_delinq_clean WHERE fctrdt=(SELECT MAX(fctrdt) FROM port.basic_data_loan_delinq_clean) LIMIT 50;` |
+
+### L4 monthly / FCL business family (redshift_prod)
+| Table | Latest data-date SQL |
+|---|---|
+| `port.portmonthbase` | `SELECT * FROM port.portmonthbase WHERE fctrdt=(SELECT MAX(fctrdt) FROM port.portmonthbase) LIMIT 50;` |
+| `tempfc.temp_basic_data_fcl` | `SELECT * FROM tempfc.temp_basic_data_fcl WHERE dataasof=(SELECT MAX(dataasof) FROM tempfc.temp_basic_data_fcl) LIMIT 50;` |
+| `port.basic_data_loan_fcl` | `SELECT * FROM port.basic_data_loan_fcl WHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_loan_fcl) LIMIT 50;` |
+| `port.basic_data_loan_foreclosure` | `SELECT * FROM port.basic_data_loan_foreclosure WHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_loan_foreclosure) LIMIT 50;` |
+| `port.basic_data_fcl_related` | `SELECT * FROM port.basic_data_fcl_related WHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_fcl_related) LIMIT 50;` |
+| `port.fcl_stage_info` | `SELECT * FROM port.fcl_stage_info WHERE fctrdt=(SELECT MAX(fctrdt) FROM port.fcl_stage_info) LIMIT 50;` |
+| `port.basic_data_loan_foreclosure_hold` (many rows/loan) | `SELECT * FROM port.basic_data_loan_foreclosure_hold WHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_loan_foreclosure_hold) LIMIT 50;` |
+| `port.basic_data_loan_foreclosure_loss_mitigation` | `SELECT * FROM port.basic_data_loan_foreclosure_loss_mitigation WHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_loan_foreclosure_loss_mitigation) LIMIT 50;` |
+| `port.basic_data_loan_foreclosure_bankruptcy` | `SELECT * FROM port.basic_data_loan_foreclosure_bankruptcy WHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_loan_foreclosure_bankruptcy) LIMIT 50;` |
+| `port.portfunding` (**no data-date column**, dimension) | `SELECT * FROM port.portfunding WHERE loanid='7727000088';` |
+| `port.basic_data_loan_reo` (**no data-date column**) | `SELECT * FROM port.basic_data_loan_reo WHERE loanid='7727000088';` |
+
+### L5 BPS sync (mysql_prod.bpms)
+| Table | Latest data-date SQL |
+|---|---|
+| `bpms.sync_loan_foreclosure` (**no data-date column**, current-state 1 row/loan) | `SELECT * FROM bpms.sync_loan_foreclosure WHERE loanid='7727000088';` |
+| `bpms.sync_fcl_stage_info` | `SELECT * FROM bpms.sync_fcl_stage_info WHERE fctrdt=(SELECT MAX(fctrdt) FROM bpms.sync_fcl_stage_info) LIMIT 50;` |
+| `bpms.sync_loan_foreclosure_hold` | `SELECT * FROM bpms.sync_loan_foreclosure_hold WHERE fctrdt=(SELECT MAX(fctrdt) FROM bpms.sync_loan_foreclosure_hold) LIMIT 50;` |
+| `bpms.sync_loan_foreclosure_loss_mitigation` | `SELECT * FROM bpms.sync_loan_foreclosure_loss_mitigation WHERE fctrdt=(SELECT MAX(fctrdt) FROM bpms.sync_loan_foreclosure_loss_mitigation) LIMIT 50;` |
+| `bpms.sync_loan_foreclosure_bankruptcy` | `SELECT * FROM bpms.sync_loan_foreclosure_bankruptcy WHERE fctrdt=(SELECT MAX(fctrdt) FROM bpms.sync_loan_foreclosure_bankruptcy) LIMIT 50;` |
+| `bpms.biz_data_view_loan_details_foreclosure` (view) | `SELECT * FROM bpms.biz_data_view_loan_details_foreclosure WHERE fctrdt=(SELECT MAX(fctrdt) FROM bpms.biz_data_view_loan_details_foreclosure) LIMIT 50;` |
+| `port.basic_data_loan_foreclosure` (MySQL staging, **no data-date column**) | `SELECT * FROM port.basic_data_loan_foreclosure WHERE loanid='7727000088';` |
+
+> The same SQL is injected into every node drawer of the Pipeline view in `outputs/fcl_pipeline.html` (click a node).
 
 ---
 

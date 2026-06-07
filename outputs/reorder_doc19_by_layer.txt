@@ -1,0 +1,125 @@
+# -*- coding: utf-8 -*-
+# doc 19: reorder all carriers by pipeline layer L1->L5 and renumber circled ②–㉔ sequentially.
+# Run (cwd = project root):  python - < outputs/reorder_doc19_by_layer.txt
+# Idempotent: matches tables by NAME (not by old circled num), so re-running is a no-op once ordered.
+# Single source of truth: outputs/fcl_table_meta.json
+import json, re, openpyxl, sys
+try: sys.stdout.reconfigure(encoding='utf-8')   # console may be cp1252; circled chars need utf-8
+except Exception: pass
+
+JSON='outputs/fcl_table_meta.json'
+MD  ='docs/zh/19_fcl_sample_loan_raw_dump.md'
+XLSX='docs/19_fcl_sample_loan_raw_dump.xlsx'
+
+# canonical layer order (the single ordering authority)
+ORDER_KEYS=[
+ 'newrez.portnewrezfc','newrez.portnewrezbk','newrez.portnewrezlm','newrez.portnewrezgeneral','newrez.portnewrezprop',          # L1
+ 'port.basic_data_daily_loan_common',                                                                                          # L2
+ 'port.basic_data_daily_loan_common_clean',                                                                                    # L3
+ 'tempfc.temp_basic_data_fcl','port.basic_data_loan_fcl','port.basic_data_loan_foreclosure','port.basic_data_fcl_related',
+ 'port.fcl_stage_info','port.portfunding','port.basic_data_loan_foreclosure_hold',
+ 'port.basic_data_loan_foreclosure_loss_mitigation','port.basic_data_loan_foreclosure_bankruptcy',                             # L4
+ 'bpms.sync_loan_foreclosure','bpms.sync_fcl_stage_info','bpms.biz_data_view_loan_details_foreclosure',
+ 'bpms.sync_loan_foreclosure_hold','bpms.sync_loan_foreclosure_loss_mitigation','bpms.sync_loan_foreclosure_bankruptcy',       # L5
+ 'newrez.portnewrezdatadic',                                                                                                   # dict
+]
+CIRCLED='②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑㉒㉓㉔'
+assert len(ORDER_KEYS)==23 and len(CIRCLED)==23
+
+meta=json.load(open(JSON,encoding='utf-8')); T=meta['tables']
+assert set(T)==set(ORDER_KEYS), 'JSON tables != ORDER_KEYS: %s'%(set(T)^set(ORDER_KEYS))
+old_num={k:T[k]['num'] for k in T}
+new_num={k:CIRCLED[i] for i,k in enumerate(ORDER_KEYS)}
+o2n={old_num[k]:new_num[k] for k in T}                 # old circled char -> new circled char
+
+# ---------- 1) JSON: reorder keys + renumber ----------
+newT={}
+for k in ORDER_KEYS:
+    d=dict(T[k]); d['num']=new_num[k]; newT[k]=d
+meta['tables']=newT
+meta['_meta']['version']='v2 2026-06-07（按 L1–L5 层序重排 + 圆圈号 ②–㉔ 顺序化；业务/血缘文本不变）'
+json.dump(meta,open(JSON,'w',encoding='utf-8'),ensure_ascii=False,indent=2)
+
+# ---------- 2) MD: reorder + renumber sections, rebuild index by layer ----------
+md=open(MD,encoding='utf-8').read()
+lines=md.split('\n')
+HEAD=re.compile(r'^##\s+(\S+)\s+([a-z_]+\.[a-z0-9_]+)(.*)$')
+idxs=[i for i,l in enumerate(lines) if HEAD.match(l) and HEAD.match(l).group(2) in T]
+first=idxs[0]
+head='\n'.join(lines[:first])
+secs={}
+for n,i in enumerate(idxs):
+    j=idxs[n+1] if n+1<len(idxs) else len(lines)
+    m=HEAD.match(lines[i]); key=m.group(2)
+    body=lines[i:j]
+    body[0]='## %s %s%s'%(new_num[key],key,m.group(3))   # rewrite circled num in header
+    secs[key]='\n'.join(body).rstrip('\n')
+
+# rebuild the index table-list (group by layer); keep 不纳入 / 样例 / trailing intact
+ROW=re.compile(r'^\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*$')
+TKEY=re.compile(r'([a-z_]+\.[a-z0-9_]+)')
+rowinfo={}
+for l in head.split('\n'):
+    m=ROW.match(l)
+    if not m: continue
+    c1,usage,cols,hits=m.groups()
+    tk=TKEY.search(c1)
+    if not tk or tk.group(1) not in T: continue
+    rest=re.sub(r'^\S+\s+','',c1,count=1)               # drop leading old circled char
+    rowinfo[tk.group(1)]=(rest,usage,cols,hits)
+
+def layer_of(k):
+    L=T[k]['layer'][:2]
+    return L if L in ('L1','L2','L3','L4','L5') else 'DI'
+GROUPS=[('L1','一、L1 源数据表（mysql_prod.newrez）'),
+        ('L2','二、L2 逾期支线·统一日表（redshift_prod.port）'),
+        ('L3','三、L3 逾期支线·清洗日表（redshift_prod.port）'),
+        ('L4','四、L4 FCL 业务族 / 中间产物（redshift_prod.port · tempfc）'),
+        ('L5','五、L5 BPS 直接对接表（mysql_prod.bpms）'),
+        ('DI','六、解码字典（mysql_prod.newrez）')]
+ib=['## 一、表清单 / 索引（按 L1→L5 层序）','']
+for lyr,title in GROUPS:
+    keys=[k for k in ORDER_KEYS if layer_of(k)==lyr]
+    if not keys: continue
+    ib+=['### '+title,'','| Sheet / 表 | 用途 | 列数/字段 | 本dump行/命中 |','|---|---|---|---|']
+    for k in keys:
+        rest,usage,cols,hits=rowinfo.get(k,(k,'','',''))
+        ib.append('| %s %s | %s | %s | %s |'%(new_num[k],rest,usage,cols,hits))
+    ib.append('')
+index_block='\n'.join(ib)
+
+i_idx=head.find('## 一、表清单'); i_tail=head.find('### 不纳入')
+prehead=head[:i_idx].rstrip('\n'); tail=head[i_tail:].rstrip('\n')
+head_new=prehead+'\n\n'+index_block+'\n'+tail
+md_new=head_new.rstrip('\n')+'\n\n'+'\n\n'.join(secs[k] for k in ORDER_KEYS)+'\n'
+open(MD,'w',encoding='utf-8').write(md_new)
+
+# ---------- 3) XLSX: rename per-table tabs to new circled num + reorder tabs ----------
+wb=openpyxl.load_workbook(XLSX)
+manual=[]
+for ws in wb.worksheets:
+    hit=False
+    for r in range(1,min(ws.max_row,8)+1):
+        for c in range(1,ws.max_column+1):
+            v=ws.cell(r,c).value
+            if isinstance(v,str) and '人工' in v: hit=True
+    if hit: manual.append(ws.title)
+# rename (two-pass to avoid title collisions)
+finals={ws:(o2n.get(ws.title[:1],ws.title[:1])+ws.title[1:]) for ws in wb.worksheets if ws.title[:1] in o2n}
+t=0
+for ws,fin in finals.items():
+    if fin!=ws.title: ws.title='~t%d'%t; t+=1
+for ws,fin in finals.items(): ws.title=fin
+# reorder tabs: ⓪… , ① index, ②…㉔ by new order ; (⓪b diagram inserted by next script)
+def sk(ws):
+    fc=ws.title[:1]
+    if fc=='⓪': return (0,ws.title)
+    if fc=='①': return (1,ws.title)
+    if fc in CIRCLED: return (3,CIRCLED.index(fc))
+    return (2,ws.title)
+wb._sheets.sort(key=sk)
+wb.save(XLSX)
+
+print('JSON renumbered. MD sections:',len(secs),'| index groups rebuilt | renamed tabs:',len(finals),'| 人工 sheets(detected, not modified):',manual)
+print('MD header order:', ' '.join(new_num[k] for k in ORDER_KEYS))
+print('XLSX tab order:', ' | '.join(ws.title for ws in wb.worksheets))

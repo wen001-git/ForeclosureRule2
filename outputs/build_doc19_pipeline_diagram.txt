@@ -1,0 +1,147 @@
+# -*- coding: utf-8 -*-
+# doc 19: inject a global L1->L5 pipeline diagram into the MD (Mermaid) + a new xlsx sheet.
+# Run (cwd = project root):  python - < outputs/build_doc19_pipeline_diagram.txt
+# Idempotent: MD block is delimited by <!-- PIPE:DIAGRAM --> markers; xlsx sheet is recreated.
+# Source of truth for layers/nums: outputs/fcl_table_meta.json (must be run AFTER reorder).
+import json, re, openpyxl, sys
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
+try: sys.stdout.reconfigure(encoding='utf-8')
+except Exception: pass
+
+JSON='outputs/fcl_table_meta.json'
+MD  ='docs/zh/19_fcl_sample_loan_raw_dump.md'
+XLSX='docs/19_fcl_sample_loan_raw_dump.xlsx'
+T=json.load(open(JSON,encoding='utf-8'))['tables']
+N={k:T[k]['num'] for k in T}                 # table -> circled num (post-reorder)
+
+# ================= MD: Mermaid flowchart =================
+MM='''## 全局 L1→L5 Pipeline 图（总览）
+
+> 从 L0 Servicer 文件到 BPS 法拍详情页的端到端数据流；圆圈号与下方各表小节一致（②–㉔，按 L1→L5 层序）。
+> 两条支线：**FCL 业务族支线**（②→⑨→⑩→{⑪/⑬/⑮/⑯/⑰}）与**逾期支线**（⑤→⑦→⑧ 的 delinq/days360），二者在 **⑬ fcl_stage_info.group** 汇合。汇编自 outputs/fcl_pipeline.html + doc 21/20/02。
+
+```mermaid
+flowchart LR
+  S0["L0 Servicer 文件<br/>S3 brigaws"]
+  subgraph G1["L1 源（MySQL+Redshift 双写）"]
+    fc["② portnewrezfc<br/>FCL 主源"]
+    bk["③ portnewrezbk<br/>破产源"]
+    lm["④ portnewrezlm<br/>LM 源"]
+    gen["⑤ portnewrezgeneral<br/>通用/逾期源"]
+    prop["⑥ portnewrezprop<br/>房产/州"]
+    dic["㉔ portnewrezdatadic<br/>解码字典"]
+  end
+  subgraph G2["L2 统一日表（Redshift+MySQL 双写）"]
+    dlc["⑦ basic_data_daily_loan_common"]
+  end
+  subgraph G3["L3 清洗日表（Redshift+MySQL 双写）"]
+    dlcc["⑧ ..._common_clean<br/>delinq · days360"]
+  end
+  subgraph G4["L4 FCL 业务族（Redshift 建·MySQL 副本经 L5 同步）"]
+    temp["⑨ temp_basic_data_fcl<br/>改名"]
+    fcl["⑩ basic_data_loan_fcl<br/>UNION 事实表"]
+    fclo["⑪ basic_data_loan_foreclosure<br/>时间线 1行/贷款"]
+    rel["⑫ basic_data_fcl_related<br/>delq_status"]
+    stg["⑬ fcl_stage_info<br/>阶段（两支线汇合）"]
+    fund["⑭ portfunding<br/>融资池维度"]
+    hold["⑮ ..._foreclosure_hold"]
+    lm4["⑯ ..._loss_mitigation"]
+    bk4["⑰ ..._bankruptcy"]
+  end
+  subgraph G5["L5 BPS 直接对接（MySQL bpms）"]
+    s1["⑱ sync_loan_foreclosure"]
+    s2["⑲ sync_fcl_stage_info"]
+    s3["㉑ sync_loan_foreclosure_hold"]
+    s4["㉒ sync_..._loss_mitigation"]
+    s5["㉓ sync_..._bankruptcy"]
+    v["⑳ biz_data_view...（视图）"]
+  end
+  BPS["BPS 法拍详情页<br/>5 面板"]
+  S0 --> fc & bk & lm & gen & prop & dic
+  fc --> temp --> fcl
+  fcl --> fclo & rel & stg & hold & lm4 & bk4
+  bk --> bk4
+  lm --> lm4
+  prop --> fclo
+  dic -. 解码 .-> lm4 & bk4
+  fund -. JOIN .-> stg & s1
+  gen --> dlc --> dlcc
+  dlcc --> rel & stg
+  fclo --> s1
+  stg --> s2
+  hold --> s3
+  lm4 --> s4
+  bk4 --> s5
+  s1 & s2 & s3 & s4 & s5 --> v --> BPS
+```
+'''
+block='<!-- PIPE:DIAGRAM START -->\n'+MM+'<!-- PIPE:DIAGRAM END -->'
+md=open(MD,encoding='utf-8').read()
+md=re.sub(r'\n*<!-- PIPE:DIAGRAM START -->.*?<!-- PIPE:DIAGRAM END -->\n?', '\n', md, flags=re.S)  # idempotent
+anchor=md.find('## 一、表清单')
+assert anchor!=-1, 'index header not found'
+md=md[:anchor]+block+'\n\n'+md[anchor:]
+open(MD,'w',encoding='utf-8').write(md)
+
+# ================= XLSX: layered grid sheet at index 1 =================
+DARK='1F3864'; MID='2E75B6'; LIGHT='D6E4F0'; GREY='F2F2F2'
+PAL={'L1':'C9A86A','L2':'7FB069','L3':'5BA3A3','L4':'2E75B6','L5':'B05A8C','DI':'8C8C8C'}
+thin=Side(style='thin',color='BFBFBF'); BORDER=Border(left=thin,right=thin,top=thin,bottom=thin)
+F=lambda c:PatternFill('solid',fgColor=c)
+WRAP=Alignment(wrap_text=True,vertical='top',horizontal='left')
+CEN=Alignment(wrap_text=True,vertical='center',horizontal='center')
+
+def lyr(k):
+    L=T[k]['layer'][:2]; return L if L in('L1','L2','L3','L4','L5') else 'DI'
+order=list(T.keys())
+COLS=[('L1','L1 源\n(MySQL+RS 双写)'),('L2','L2 统一日表\n(Redshift+MySQL 双写)'),('L3','L3 清洗日表\n(Redshift+MySQL 双写)'),
+      ('L4','L4 FCL 业务族\n(Redshift 建·MySQL 副本经 L5)'),('L5','L5 BPS 对接\n(MySQL bpms)'),('DI','解码字典 / 输出')]
+colkeys={c:[k for k in order if lyr(k)==c] for c,_ in COLS}
+colkeys['DI']=colkeys['DI']+['__BPS__']   # append the BPS app sink to the last column
+
+wb=openpyxl.load_workbook(XLSX)
+NAME='⓪b 全局Pipeline图'
+if NAME in wb.sheetnames: del wb[NAME]
+ws=wb.create_sheet(NAME,1)
+ncol=len(COLS)
+ws.cell(1,1,'doc 19 · 全局 L1→L5 Pipeline 图（自动生成自 outputs/fcl_table_meta.json；详见 MD 的 Mermaid 流程图）')
+ws.merge_cells(start_row=1,start_column=1,end_row=1,end_column=ncol)
+ws.cell(1,1).font=Font(name='微软雅黑',size=12,bold=True,color='FFFFFF'); ws.cell(1,1).fill=F(DARK); ws.cell(1,1).alignment=CEN
+# layer header band
+for c,(lk,title) in enumerate(COLS,1):
+    cc=ws.cell(2,c,('►  ' if c>1 else '')+title)
+    cc.font=Font(name='微软雅黑',size=10,bold=True,color='FFFFFF'); cc.fill=F(PAL[lk]); cc.alignment=CEN; cc.border=BORDER
+# node boxes per column (one cell per table, stacked)
+maxrows=max(len(colkeys[lk]) for lk,_ in COLS)
+for c,(lk,_) in enumerate(COLS,1):
+    keys=colkeys[lk]
+    for r in range(maxrows):
+        cell=ws.cell(3+r,c)
+        if r<len(keys):
+            k=keys[r]
+            if k=='__BPS__':
+                cell.value='BPS 法拍详情页\n（5 面板 UI）'; cell.fill=F('5B2C6F'); cell.font=Font(name='微软雅黑',size=9,bold=True,color='FFFFFF')
+            else:
+                short=k.split('.')[-1]
+                cell.value='%s %s'%(N[k],short); cell.fill=F(LIGHT); cell.font=Font(name='微软雅黑',size=9)
+        else:
+            cell.fill=F('FFFFFF')
+        cell.alignment=WRAP; cell.border=BORDER
+        ws.row_dimensions[3+r].height=30
+# spine + branch + legend rows
+base=3+maxrows
+notes=[('主线（FCL 业务族）：L0 文件 → ② portnewrezfc → ⑨ 改名 → ⑩ 事实表 → {⑪ 时间线 / ⑬ 阶段 / ⑮ Hold / ⑯ LM / ⑰ BK} → ⑱/⑲/㉑/㉒/㉓ sync → ⑳ 视图 → BPS','D6E4F0'),
+       ('逾期支线：⑤ portnewrezgeneral → ⑦ 统一日表 → ⑧ 清洗日表(delinq, days360) → ⑫ related / ⑬ stage.group；两支线在 ⑬ fcl_stage_info.group 汇合','E8F0D9'),
+       ('维度/字典：⑭ portfunding 运行时 JOIN（funding_id/bid_id）；㉔ portnewrezdatadic 解码 LM/BK 编码（COALESCE(dict,raw)）','F2E6EF'),
+       ('图例：列＝层(L1→L5)；箭头＝跨层转换；实线＝主数据流，虚线(JOIN/解码)＝维度补齐。落库：L1–L4 为 MySQL+Redshift 双写（plain 配置→Redshift、mysql_ 前缀→MySQL，同名表两库各一份）；唯 FCL 业务族在 L4 仅 Redshift 构建（无 mysql_ 池配置），其 MySQL 副本 port.basic_data_loan_foreclosure 由 L5 同步产生——故两库都能查到该表（详见 doc 02 §7 / doc 20 §B.6）','F2F2F2')]
+for i,(txt,bg) in enumerate(notes):
+    r=base+i; cc=ws.cell(r,1,txt)
+    ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=ncol)
+    cc.font=Font(name='微软雅黑',size=9); cc.fill=F(bg); cc.alignment=WRAP; cc.border=BORDER
+    ws.row_dimensions[r].height=34
+for c in range(1,ncol+1): ws.column_dimensions[get_column_letter(c)].width=30
+ws.freeze_panes='A3'
+wb.save(XLSX)
+print('MD diagram injected (Mermaid). XLSX sheet:',NAME,'@ index 1 | cols:',[c for c,_ in COLS],'| sheets:',len(wb.sheetnames))
+print('sheet order:', ' | '.join(wb.sheetnames[:4]),'...')

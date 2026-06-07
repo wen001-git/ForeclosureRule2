@@ -23,6 +23,7 @@
 
 | 日期 | 作者 | 版本 | 变更内容 |
 |------|------|------|---------|
+| 2026-06-07 | AI Agent (Claude Opus 4.8) | v5 | 新增 **§8.1 as-of date 演变 + 为何 BPS `sync_*` 无 as-of、只有 `update_time`**（code + MCP 实证：DELETE+APPEND 覆盖刷新 `df_db_util.py:691,693`、两步 `UPDATE_FORECLOSURE`、`datediff` 实时校正吸收 as-of `asset_managment_config.py:597-598`；真实数据示例 loan 7727000088：368+2=370）；新增 **§9 各表取数验证 SQL（最新数据日期）**（as-of 列 information_schema 全量核验；同款 SQL 注入 fcl_pipeline.html 各节点抽屉）；§8.1 订正写入机制（主表 `bpms.sync_loan_foreclosure` 经 `UPDATE_FORECLOSURE` 的 `ON DUPLICATE KEY UPDATE` 写入，UPDATE 列表排除 create/update_time → NULL） | PrefectFlow 源码 + mysql_prod/redshift_prod 实测 |
 | 2026-06-06 | AI Agent (Claude Opus 4.8) | v4 | **更正为 MySQL+Redshift 双写架构**（原"一层一平台"有误）：§1 图 + §2/§3/§4/§5 各层补"落库 DB+file:line"，**§7 重写为双写证据表** + §7.1 今天其它更正（两支线/days360/fcl_flag 非归一/Carrington 整列缺失/delinq_clean 生成代码不在仓库）；交叉链接 doc 20 §B.6 / doc 21 | PrefectFlow 源码 + mysql_prod/redshift 实测 |
 | 2026-06-05 | AI Agent (Claude Opus 4.8) | v3 | 表名改正 `portshellpoint*`→`portnewrez*`（DB 实测 newrez 现役表，2024-07-05 改名）+ 加命名说明（DB 实测；doc 01） |
 | 2026-05-21 | AI Agent (Claude Sonnet 4.6) | v1 | 初始版本，代码分析 + DB 实证 |
@@ -375,6 +376,111 @@ LEFT JOIN port.basic_data_monthly_loan_remit_clean b ON a.fctrdt=b.fctrdt AND a.
 | `fctrdt` | 报告截止日（月末次日） | 2025-02-01（代表1月数据） |
 | `uploaddate` | 上传到系统的日期 | 2025-01-16 |
 | `create_time` / `update_time` | 记录创建/更新时间（审计） | — |
+
+### 8.1 as-of date 的演变 + 为何 BPS `sync_*` 无 as-of、只有 `update_time`（code + MCP 实证）
+
+**as-of（数据日期）在各层的演变：**
+
+| 层 | as-of 列 | 含义 | 粒度 |
+|---|---|---|---|
+| L1 源 `newrez.portnewrez*` | `dataasof` | 每日快照日（原始表按此分区） | loanid+dataasof（1 行/贷款/天） |
+| L2 `basic_data_daily_loan_common` | `asofdate` | 统一后的每日日期 | loanid+asofdate |
+| L3 `basic_data_daily_loan_common_clean` | `fctrdt` | 报告截止日 | loanid+fctrdt |
+| L4 `basic_data_loan_fcl` / `_foreclosure` | 取 `MAX(dataasof)` | 只保留每贷款最新快照 | 1 行/贷款（最新） |
+| L4 `fcl_stage_info` | `fctrdt` | 月度阶段快照 | loanid+fctrdt |
+| **L5 主表 `bpms.sync_loan_foreclosure`** | **无** | 当前态，只有审计列 | 1 行/贷款 |
+| L5 `bpms.sync_fcl_stage_info` | **`fctrdt`（保留）** | 保留 as-of 历史 | loanid+fctrdt（多行/贷款） |
+
+**MCP 实测列（mysql_prod）：**
+- `bpms.sync_loan_foreclosure`：只有业务里程碑 `timeline_*_date` + 审计 `create_time`/`update_time`/`update_user`；**无 `asofdate`/`fctrdt`/`dataasof`**。`create_time`/`update_time` 默认 NULL、由 ETL 写（非 MySQL 自动，**值可能为 NULL**）。
+- `bpms.sync_fcl_stage_info`：**有 `fctrdt`** + 各阶段日期 + `create_time`(CURRENT_TIMESTAMP)/`update_time`(on update，MySQL 自动维护)。
+
+**写入机制（PrefectFlow code）——分两类：**
+- ① **多数 `sync_*` 表**：由 `sync_to_mysql` **整表 `DELETE` + `to_sql(append)` 覆盖刷新**写入 bpms（`df_db_util.py:691,693`）。
+- ② **主表 `bpms.sync_loan_foreclosure` 特殊（两步）**：先 `sync_to_mysql` 清空+追加 **port 中转**表 `port.basic_data_loan_foreclosure`（MySQL，`:675-676,691-693`），再由 `update_to_mysql` 跑 `UPDATE_FORECLOSURE`：`INSERT…SELECT…ON DUPLICATE KEY UPDATE` 写入 bpms（`:698,716`；SQL 在 `asset_managment_config.py`）。该 upsert 的 UPDATE 列表**不含 `create_time`/`update_time`** → 故二者保持 NULL（doc 12 §14.0）。
+- `flow/bps/bps_config/asset_managment_config.py:535-608` `GEN_FORECLOSURE`：输出列**不含 `dataasof`**；天数 = 存储值 `+ datediff(day, a.dataasof, tempfc.current_date_new_york)`（`:597-598`；`current_date_new_york` = 运行日/纽约今天，`:536-538`）；过滤 `timeline_referred_to_foreclosure_date IS NOT NULL`（`:605`）。
+
+**为何主表无 as-of、只有 `update_time`：**
+1. **sync 主表是「当前态」表**：只取每贷款最新快照、再整表覆盖刷新，一行永远代表最新，单存 as-of 列冗余。
+2. **as-of 历史留在上游**（L1 `dataasof` 每日快照可复现任意一天）；BPS 只需当前态。
+3. **`create_time`/`update_time` 是审计列**（行何时被同步写），不是数据日期。
+4. **主表天数实时重算到「运行日」**：`datediff(dataasof → 运行日)` 把 as-of 的差吸收进 `summary_days_in_fcl`，故表语义是「截至运行此刻」，单存一个冻结 as-of 反而误导。
+5. **例外**：阶段表 `sync_fcl_stage_info` 按 `fctrdt` 保留多行历史（as-of 载体），只有主表坍缩成 1 行。
+
+**真实数据示例（MCP 实测，loan `7727000088`，doc 19 Loan 1）：**
+
+| 位置 | 字段 | 实测值 |
+|---|---|---|
+| Redshift `port.basic_data_loan_foreclosure`（源） | `dataasof` | **2026-06-04** |
+| 同上 | `summary_days_in_fcl`（存储，截至 dataasof） | **368** |
+| `bpms.sync_loan_foreclosure`（输出主表） | `summary_days_in_fcl` | **370** |
+| 同上 | `dataasof` / `asofdate` / `fctrdt` | **无此列** |
+| 同上 | `create_time` / `update_time` | **NULL** |
+| `bpms.sync_fcl_stage_info` | `fctrdt`（多行，保留历史） | 2026-05-24、2026-05-23 … |
+| 同上 | `update_time`（= BPS 运行日） | 2026-06-06 00:52:45 |
+
+验证：`368 + datediff('2026-06-04' → 运行日 '2026-06-06') = 368 + 2 = 370` = 主表实测值。**那 2 天就是 as-of**，被 `datediff` 吸收进天数 → 故输出不再单存 as-of 列。复算 SQL（只读）：
+
+```sql
+-- 源（Redshift redshift_prod）
+SELECT dataasof, summary_days_in_fcl FROM port.basic_data_loan_foreclosure WHERE loanid='7727000088';
+-- 输出主表（MySQL mysql_prod.bpms）
+SELECT summary_days_in_fcl, create_time, update_time FROM bpms.sync_loan_foreclosure WHERE loanid='7727000088';
+-- 阶段表保留 fctrdt 历史
+SELECT loanid, fctrdt, update_time FROM bpms.sync_fcl_stage_info WHERE loanid='7727000088' ORDER BY fctrdt DESC;
+```
+
+---
+
+## 9. 各表取数验证 SQL（最新数据日期）
+
+> 想在库里看某表数据时直接复制运行。as-of 列已用 `information_schema` 全量实测核验。验证库：**L1=`mysql_prod`**、**L2–L4=`redshift_prod`**、**L5=`mysql_prod.bpms`**。无数据日期列者按 `loanid`/`update_time` 取（已注明）。`LIMIT 50` 可自行调整。
+
+### L1 源（mysql_prod）
+| 表 | 最新数据日期取数 SQL |
+|---|---|
+| `newrez.portnewrezfc`（`bk/lm/general/prop` 换表名同理，均 `dataasof`） | `SELECT * FROM newrez.portnewrezfc WHERE dataasof=(SELECT MAX(dataasof) FROM newrez.portnewrezfc) LIMIT 50;` |
+| `sls.portassetdaily`（历史；`portfcldaily/bk/lm` 用 `uploaddate`） | `SELECT * FROM sls.portassetdaily WHERE dataasofdate=(SELECT MAX(dataasofdate) FROM sls.portassetdaily) LIMIT 50;` |
+| `carrington.portcarrington`（**无数据日期列**） | `SELECT * FROM carrington.portcarrington ORDER BY update_time DESC LIMIT 50;` |
+| `mrc.portmrcforeclosure` | `SELECT * FROM mrc.portmrcforeclosure WHERE dataasof=(SELECT MAX(dataasof) FROM mrc.portmrcforeclosure) LIMIT 50;` |
+| `newrez.portnewrezdatadic`（字典，无日期） | `SELECT * FROM newrez.portnewrezdatadic LIMIT 100;` |
+
+### L2–L3 逾期支线（redshift_prod）
+| 表 | 最新数据日期取数 SQL |
+|---|---|
+| `port.portdaily_v2` | `SELECT * FROM port.portdaily_v2 WHERE asofdate=(SELECT MAX(asofdate) FROM port.portdaily_v2) LIMIT 50;` |
+| `port.basic_data_daily_loan_common` | `SELECT * FROM port.basic_data_daily_loan_common WHERE asofdate=(SELECT MAX(asofdate) FROM port.basic_data_daily_loan_common) LIMIT 50;` |
+| `port.basic_data_daily_loan_common_clean` | `SELECT * FROM port.basic_data_daily_loan_common_clean WHERE fctrdt=(SELECT MAX(fctrdt) FROM port.basic_data_daily_loan_common_clean) LIMIT 50;` |
+| `port.port_daily_clean` | `SELECT * FROM port.port_daily_clean WHERE fctrdt=(SELECT MAX(fctrdt) FROM port.port_daily_clean) LIMIT 50;` |
+| `port.basic_data_loan_delinq_clean` | `SELECT * FROM port.basic_data_loan_delinq_clean WHERE fctrdt=(SELECT MAX(fctrdt) FROM port.basic_data_loan_delinq_clean) LIMIT 50;` |
+
+### L4 月度 / FCL 业务族（redshift_prod）
+| 表 | 最新数据日期取数 SQL |
+|---|---|
+| `port.portmonthbase` | `SELECT * FROM port.portmonthbase WHERE fctrdt=(SELECT MAX(fctrdt) FROM port.portmonthbase) LIMIT 50;` |
+| `tempfc.temp_basic_data_fcl` | `SELECT * FROM tempfc.temp_basic_data_fcl WHERE dataasof=(SELECT MAX(dataasof) FROM tempfc.temp_basic_data_fcl) LIMIT 50;` |
+| `port.basic_data_loan_fcl` | `SELECT * FROM port.basic_data_loan_fcl WHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_loan_fcl) LIMIT 50;` |
+| `port.basic_data_loan_foreclosure` | `SELECT * FROM port.basic_data_loan_foreclosure WHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_loan_foreclosure) LIMIT 50;` |
+| `port.basic_data_fcl_related` | `SELECT * FROM port.basic_data_fcl_related WHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_fcl_related) LIMIT 50;` |
+| `port.fcl_stage_info` | `SELECT * FROM port.fcl_stage_info WHERE fctrdt=(SELECT MAX(fctrdt) FROM port.fcl_stage_info) LIMIT 50;` |
+| `port.basic_data_loan_foreclosure_hold`（一贷款多行） | `SELECT * FROM port.basic_data_loan_foreclosure_hold WHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_loan_foreclosure_hold) LIMIT 50;` |
+| `port.basic_data_loan_foreclosure_loss_mitigation` | `SELECT * FROM port.basic_data_loan_foreclosure_loss_mitigation WHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_loan_foreclosure_loss_mitigation) LIMIT 50;` |
+| `port.basic_data_loan_foreclosure_bankruptcy` | `SELECT * FROM port.basic_data_loan_foreclosure_bankruptcy WHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_loan_foreclosure_bankruptcy) LIMIT 50;` |
+| `port.portfunding`（**无数据日期列**，维度） | `SELECT * FROM port.portfunding WHERE loanid='7727000088';` |
+| `port.basic_data_loan_reo`（**无数据日期列**） | `SELECT * FROM port.basic_data_loan_reo WHERE loanid='7727000088';` |
+
+### L5 BPS 直接对接（mysql_prod.bpms）
+| 表 | 最新数据日期取数 SQL |
+|---|---|
+| `bpms.sync_loan_foreclosure`（**无数据日期列**，当前态 1 行/贷款） | `SELECT * FROM bpms.sync_loan_foreclosure WHERE loanid='7727000088';` |
+| `bpms.sync_fcl_stage_info` | `SELECT * FROM bpms.sync_fcl_stage_info WHERE fctrdt=(SELECT MAX(fctrdt) FROM bpms.sync_fcl_stage_info) LIMIT 50;` |
+| `bpms.sync_loan_foreclosure_hold` | `SELECT * FROM bpms.sync_loan_foreclosure_hold WHERE fctrdt=(SELECT MAX(fctrdt) FROM bpms.sync_loan_foreclosure_hold) LIMIT 50;` |
+| `bpms.sync_loan_foreclosure_loss_mitigation` | `SELECT * FROM bpms.sync_loan_foreclosure_loss_mitigation WHERE fctrdt=(SELECT MAX(fctrdt) FROM bpms.sync_loan_foreclosure_loss_mitigation) LIMIT 50;` |
+| `bpms.sync_loan_foreclosure_bankruptcy` | `SELECT * FROM bpms.sync_loan_foreclosure_bankruptcy WHERE fctrdt=(SELECT MAX(fctrdt) FROM bpms.sync_loan_foreclosure_bankruptcy) LIMIT 50;` |
+| `bpms.biz_data_view_loan_details_foreclosure`（视图） | `SELECT * FROM bpms.biz_data_view_loan_details_foreclosure WHERE fctrdt=(SELECT MAX(fctrdt) FROM bpms.biz_data_view_loan_details_foreclosure) LIMIT 50;` |
+| `port.basic_data_loan_foreclosure`（MySQL 中转，**无数据日期列**） | `SELECT * FROM port.basic_data_loan_foreclosure WHERE loanid='7727000088';` |
+
+> 同款 SQL 已注入 `outputs/fcl_pipeline.html` Pipeline 视图每个节点抽屉（点节点即见）。
 
 ---
 

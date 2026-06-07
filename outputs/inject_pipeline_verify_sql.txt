@@ -1,0 +1,73 @@
+# -*- coding: utf-8 -*-
+# Inject per-node latest-data-date verify SQL into fcl_pipeline.html (Pipeline view drawer).
+# Run (cwd = project root):  python - < outputs/inject_pipeline_verify_sql.txt
+# Idempotent: for each node id, replaces its existing sql:"..." or inserts one after {id:'..'.
+# as-of columns are MCP-verified (information_schema, 2026-06-07). Prod schemas only.
+import re, sys
+try: sys.stdout.reconfigure(encoding='utf-8')
+except Exception: pass
+HTML='outputs/fcl_pipeline.html'
+s=open(HTML,encoding='utf-8').read()
+
+SQL={
+ 'portnewrez':"-- L1 Newrez FCL 主源（mysql_prod）· 最新数据日期 / latest data-date\nSELECT * FROM newrez.portnewrezfc\nWHERE dataasof=(SELECT MAX(dataasof) FROM newrez.portnewrezfc)\nLIMIT 50;",
+ 'sls':"-- L1 SLS（mysql_prod，历史）· 最新数据日期\nSELECT * FROM sls.portassetdaily\nWHERE dataasofdate=(SELECT MAX(dataasofdate) FROM sls.portassetdaily)\nLIMIT 50;",
+ 'carr':"-- L1 Carrington（mysql_prod）· 无数据日期列，按 update_time 取最新\nSELECT * FROM carrington.portcarrington\nORDER BY update_time DESC\nLIMIT 50;",
+ 'mrc':"-- L1 MRC（mysql_prod）· 最新数据日期\nSELECT * FROM mrc.portmrcforeclosure\nWHERE dataasof=(SELECT MAX(dataasof) FROM mrc.portmrcforeclosure)\nLIMIT 50;",
+ 'portdaily':"-- L2 统一日表前身（redshift_prod）· 最新数据日期\nSELECT * FROM port.portdaily_v2\nWHERE asofdate=(SELECT MAX(asofdate) FROM port.portdaily_v2)\nLIMIT 50;",
+ 'bddlc':"-- L2 统一日表（redshift_prod）· 最新数据日期\nSELECT * FROM port.basic_data_daily_loan_common\nWHERE asofdate=(SELECT MAX(asofdate) FROM port.basic_data_daily_loan_common)\nLIMIT 50;",
+ 'bddlcc':"-- L3 清洗日表（redshift_prod）· 最新报告日 fctrdt\nSELECT * FROM port.basic_data_daily_loan_common_clean\nWHERE fctrdt=(SELECT MAX(fctrdt) FROM port.basic_data_daily_loan_common_clean)\nLIMIT 50;",
+ 'pdc':"-- L3 日清洗（redshift_prod）· 最新 fctrdt\nSELECT * FROM port.port_daily_clean\nWHERE fctrdt=(SELECT MAX(fctrdt) FROM port.port_daily_clean)\nLIMIT 50;",
+ 'delinqclean':"-- L3 旁支逾期清洗（redshift_prod）· 最新 fctrdt\nSELECT * FROM port.basic_data_loan_delinq_clean\nWHERE fctrdt=(SELECT MAX(fctrdt) FROM port.basic_data_loan_delinq_clean)\nLIMIT 50;",
+ 'portmonthbase':"-- L4 月度主表（redshift_prod）· 最新报告月 fctrdt\nSELECT * FROM port.portmonthbase\nWHERE fctrdt=(SELECT MAX(fctrdt) FROM port.portmonthbase)\nLIMIT 50;",
+ 'bdlf':"-- L4 FCL 时间线聚合（redshift_prod）· 最新数据日期\nSELECT * FROM port.basic_data_loan_foreclosure\nWHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_loan_foreclosure)\nLIMIT 50;",
+ 'fclstage':"-- L4 阶段表（redshift_prod）· 最新报告月 fctrdt\nSELECT * FROM port.fcl_stage_info\nWHERE fctrdt=(SELECT MAX(fctrdt) FROM port.fcl_stage_info)\nLIMIT 50;",
+ 'bdlfcl':"-- L4 FCL 事实表（redshift_prod）· 最新数据日期\nSELECT * FROM port.basic_data_loan_fcl\nWHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_loan_fcl)\nLIMIT 50;",
+ 'hold':"-- L4 Hold 历史（redshift_prod）· 最新数据日期（一贷款多行）\nSELECT * FROM port.basic_data_loan_foreclosure_hold\nWHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_loan_foreclosure_hold)\nLIMIT 50;",
+ 'bk':"-- L4 破产历史（redshift_prod）· 最新数据日期\nSELECT * FROM port.basic_data_loan_foreclosure_bankruptcy\nWHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_loan_foreclosure_bankruptcy)\nLIMIT 50;",
+ 'lm':"-- L4 LM 历史（redshift_prod）· 最新数据日期\nSELECT * FROM port.basic_data_loan_foreclosure_loss_mitigation\nWHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_loan_foreclosure_loss_mitigation)\nLIMIT 50;",
+ 'fclrel':"-- L4 FCL 关联属性（redshift_prod）· 最新数据日期\nSELECT * FROM port.basic_data_fcl_related\nWHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_fcl_related)\nLIMIT 50;",
+ 'reo':"-- L4 REO（redshift_prod）· 无数据日期列，按 loanid 查\nSELECT * FROM port.basic_data_loan_reo\nWHERE loanid='7727000088';",
+ 'mysql_bdlf':"-- L5 MySQL 中转（mysql_prod.port）· 无数据日期列，按 loanid 查\nSELECT * FROM port.basic_data_loan_foreclosure\nWHERE loanid='7727000088';",
+ 'sync_fcl':"-- L5 BPS 主表（mysql_prod.bpms）· 无数据日期列（当前态 1 行/贷款）\nSELECT * FROM bpms.sync_loan_foreclosure\nWHERE loanid='7727000088';",
+ 'sync_lm':"-- L5 BPS LM（mysql_prod.bpms）· 最新报告月 fctrdt\nSELECT * FROM bpms.sync_loan_foreclosure_loss_mitigation\nWHERE fctrdt=(SELECT MAX(fctrdt) FROM bpms.sync_loan_foreclosure_loss_mitigation)\nLIMIT 50;",
+ 'sync_bk':"-- L5 BPS 破产（mysql_prod.bpms）· 最新报告月 fctrdt\nSELECT * FROM bpms.sync_loan_foreclosure_bankruptcy\nWHERE fctrdt=(SELECT MAX(fctrdt) FROM bpms.sync_loan_foreclosure_bankruptcy)\nLIMIT 50;",
+ 'sync_hold':"-- L5 BPS Hold（mysql_prod.bpms）· 最新报告月 fctrdt\nSELECT * FROM bpms.sync_loan_foreclosure_hold\nWHERE fctrdt=(SELECT MAX(fctrdt) FROM bpms.sync_loan_foreclosure_hold)\nLIMIT 50;",
+ 'sync_stage':"-- L5 BPS 阶段（mysql_prod.bpms）· 最新报告月 fctrdt\nSELECT * FROM bpms.sync_fcl_stage_info\nWHERE fctrdt=(SELECT MAX(fctrdt) FROM bpms.sync_fcl_stage_info)\nLIMIT 50;",
+ 'bizview':"-- L5 BPS 详情视图（mysql_prod.bpms）· 最新报告月 fctrdt\nSELECT * FROM bpms.biz_data_view_loan_details_foreclosure\nWHERE fctrdt=(SELECT MAX(fctrdt) FROM bpms.biz_data_view_loan_details_foreclosure)\nLIMIT 50;",
+}
+
+def esc(x): return x.replace('\\','\\\\').replace('"','\\"').replace('\n','\\n')
+
+def node_end(s, open_idx):           # quote/brace-aware scan from the node's '{'
+    depth=0; i=open_idx; instr=None
+    while i<len(s):
+        c=s[i]
+        if instr:
+            if c=='\\': i+=2; continue
+            if c==instr: instr=None
+        elif c in "'\"": instr=c
+        elif c=='{': depth+=1
+        elif c=='}':
+            depth-=1
+            if depth==0: return i
+        i+=1
+    return -1
+
+ins=upd=miss=0
+for nid,sql in SQL.items():
+    pat="{id:'%s'"%nid
+    idx=s.find(pat)
+    if idx<0: miss+=1; print('NOT FOUND:',nid); continue
+    end=node_end(s,idx)
+    node=s[idx:end+1]
+    esql=esc(sql)
+    m=re.search(r'sql:"(?:[^"\\]|\\.)*"', node)
+    if m:
+        newnode=node[:m.start()]+'sql:"%s"'%esql+node[m.end():]; upd+=1
+    else:
+        newnode=node.replace(pat, pat+',sql:"%s"'%esql, 1); ins+=1
+    s=s[:idx]+newnode+s[end+1:]
+
+open(HTML,'w',encoding='utf-8').write(s)
+print('nodes inserted:',ins,'| updated:',upd,'| missing:',miss)

@@ -15,17 +15,82 @@
 
 | 日期 | 作者 | 版本 | 变更 | 关联 |
 |---|---|---|---|---|
+| 2026-06-07 | AI Agent (Claude Opus 4.8) | v6 | 全表按 **L1→L5 层序重排** + 圆圈号 ②–㉔ 顺序化（MD 小节/索引、Excel 各表 sheet 与 ⓪ 总览同步）；新增 **全局 L1→L5 Pipeline 图**（MD Mermaid 流程图 + Excel ⓪b 全局Pipeline图 sheet）；与 doc 02 五层模型核对一致 | doc 02 · 20 · 21 · fcl_pipeline.html |
 | 2026-06-07 | AI Agent (Claude Opus 4.8) | v5 | 每张表新增「业务含义与全链路血缘」块（业务含义/目的·何时来查·为何这样处理·数据粒度 + 文字链全链路血缘：上游/下游、每跳标 PrefectFlow file:line）；并生成 Excel ⓪ 总览 sheet 与各表 sheet 顶部说明块；血缘汇编自 outputs/fcl_pipeline.html + doc 21/20/02 | doc 21 · 20 · 02 · fcl_pipeline.html |
 | 2026-06-06 | AI Agent (Claude Opus 4.8) | v4 | 补齐 doc 21 §0.1 图缺的 **逾期支线 L2/L3 + 改名临时表** 共 3 张中间表（`tempfc.temp_basic_data_fcl` / `port.basic_data_daily_loan_common`(asofdate) / `_clean`(fctrdt)）；全链路表 20→23 | doc 21 §0.1 |
 | 2026-06-04 | AI Agent (Claude Opus 4.8) | v3 | 每个表新增「查询 SQL」块（prod 只读、含 5 loanid，可复制复现）；新增 ㉑ `portnewrezdatadic` 解码字典节（仅列 5 样例贷款用到的码；完整见数据字典 表26） | doc 19 xlsx · 数据字典 表26 |
 | 2026-06-04 | AI Agent (Claude Opus 4.8) | v2 | 改用 **prod** 重取（替换原 dev 数据）并**新增 Redshift 中间层 8 表**（Newrez源→Redshift中间→BPS 全血缘，20 表）；数据经 mysql_prod + redshift_prod 只读预取 | doc 16 · doc 19 xlsx |
 | 2026-06-03 | AI Agent | v1 | 初稿：12 节（dev 数据），与 doc 19 xlsx 一一对应 | doc 16 |
 
-## 一、表清单 / 索引
+> 📌 **数据日期(as-of)如何处理、为何 BPS `sync_*` 主表无 as-of、只有 `update_time`** → 见 [doc 02 §8.1](02_etl_pipeline.md)（code + MCP 实证；真实数据示例 loan 7727000088：源 `dataasof=2026-06-04` 存储 368 天 → 主表 `+datediff=370` 天，无 as-of 列）。
 
-### 一、Newrez 源数据表（mysql_prod.newrez）
+<!-- PIPE:DIAGRAM START -->
+## 全局 L1→L5 Pipeline 图（总览）
 
-| Sheet / 表 | 用途 | 列数 | 本dump行/命中 |
+> 从 L0 Servicer 文件到 BPS 法拍详情页的端到端数据流；圆圈号与下方各表小节一致（②–㉔，按 L1→L5 层序）。
+> 两条支线：**FCL 业务族支线**（②→⑨→⑩→{⑪/⑬/⑮/⑯/⑰}）与**逾期支线**（⑤→⑦→⑧ 的 delinq/days360），二者在 **⑬ fcl_stage_info.group** 汇合。汇编自 outputs/fcl_pipeline.html + doc 21/20/02。
+
+```mermaid
+flowchart LR
+  S0["L0 Servicer 文件<br/>S3 brigaws"]
+  subgraph G1["L1 源（MySQL+Redshift 双写）"]
+    fc["② portnewrezfc<br/>FCL 主源"]
+    bk["③ portnewrezbk<br/>破产源"]
+    lm["④ portnewrezlm<br/>LM 源"]
+    gen["⑤ portnewrezgeneral<br/>通用/逾期源"]
+    prop["⑥ portnewrezprop<br/>房产/州"]
+    dic["㉔ portnewrezdatadic<br/>解码字典"]
+  end
+  subgraph G2["L2 统一日表（Redshift+MySQL 双写）"]
+    dlc["⑦ basic_data_daily_loan_common"]
+  end
+  subgraph G3["L3 清洗日表（Redshift+MySQL 双写）"]
+    dlcc["⑧ ..._common_clean<br/>delinq · days360"]
+  end
+  subgraph G4["L4 FCL 业务族（Redshift 建·MySQL 副本经 L5 同步）"]
+    temp["⑨ temp_basic_data_fcl<br/>改名"]
+    fcl["⑩ basic_data_loan_fcl<br/>UNION 事实表"]
+    fclo["⑪ basic_data_loan_foreclosure<br/>时间线 1行/贷款"]
+    rel["⑫ basic_data_fcl_related<br/>delq_status"]
+    stg["⑬ fcl_stage_info<br/>阶段（两支线汇合）"]
+    fund["⑭ portfunding<br/>融资池维度"]
+    hold["⑮ ..._foreclosure_hold"]
+    lm4["⑯ ..._loss_mitigation"]
+    bk4["⑰ ..._bankruptcy"]
+  end
+  subgraph G5["L5 BPS 直接对接（MySQL bpms）"]
+    s1["⑱ sync_loan_foreclosure"]
+    s2["⑲ sync_fcl_stage_info"]
+    s3["㉑ sync_loan_foreclosure_hold"]
+    s4["㉒ sync_..._loss_mitigation"]
+    s5["㉓ sync_..._bankruptcy"]
+    v["⑳ biz_data_view...（视图）"]
+  end
+  BPS["BPS 法拍详情页<br/>5 面板"]
+  S0 --> fc & bk & lm & gen & prop & dic
+  fc --> temp --> fcl
+  fcl --> fclo & rel & stg & hold & lm4 & bk4
+  bk --> bk4
+  lm --> lm4
+  prop --> fclo
+  dic -. 解码 .-> lm4 & bk4
+  fund -. JOIN .-> stg & s1
+  gen --> dlc --> dlcc
+  dlcc --> rel & stg
+  fclo --> s1
+  stg --> s2
+  hold --> s3
+  lm4 --> s4
+  bk4 --> s5
+  s1 & s2 & s3 & s4 & s5 --> v --> BPS
+```
+<!-- PIPE:DIAGRAM END -->
+
+## 一、表清单 / 索引（按 L1→L5 层序）
+
+### 一、L1 源数据表（mysql_prod.newrez）
+
+| Sheet / 表 | 用途 | 列数/字段 | 本dump行/命中 |
 |---|---|---|---|
 | ② newrez.portnewrezfc | FCL 主源表（时间线/状态/Hold槽/金额/律师） | 63 | 5/5 贷款 |
 | ③ newrez.portnewrezbk | 破产源表 | 60 | 5/5 贷款 |
@@ -33,25 +98,35 @@
 | ⑤ newrez.portnewrezgeneral | 通用源表（legalstatus / delinquency_status_mba 等） | 125 | 5/5 贷款 |
 | ⑥ newrez.portnewrezprop | 房产源表（propertystate 等） | 32 | 5/5 贷款 |
 
-### 二、Redshift 中间层（redshift_prod.port）
+### 二、L2 逾期支线·统一日表（redshift_prod.port）
 
-| Sheet / 表 | 用途 | 列数 | 本dump行/命中 |
+| Sheet / 表 | 用途 | 列数/字段 | 本dump行/命中 |
 |---|---|---|---|
-| ⑦ port.basic_data_loan_fcl | Redshift FCL 快照中间表（portnewrezfc 全量进此；每贷款取最新 dataasof） | 61 | 5/5 贷款 |
-| ⑧ port.basic_data_loan_foreclosure | Redshift FCL 聚合表（1 行/贷款，sync_loan_foreclosure 的直接上游） | 62 | 5/5 贷款 |
-| ⑨ port.basic_data_fcl_related | FCL 关联/过滤中间表（delq_status 等；每贷款最新 dataasof） | 14 | 5/5 贷款 |
-| ⑩ port.fcl_stage_info | Redshift 阶段表（sync_fcl_stage_info 上游；每贷款最新 fctrdt） | 48 | 5/5 贷款 |
-| ⑪ port.portfunding | 融资池表（入库 JOIN 过滤；1 行/贷款） | 57 | 5/5 贷款 |
-| ⑫ port.basic_data_loan_foreclosure_hold | Redshift Hold 历史（sync_loan_foreclosure_hold 上游） | 17 | 21 行 |
-| ⑬ port.basic_data_loan_foreclosure_loss_mitigation | Redshift LM 历史（上游） | 16 | 21 行 |
-| ⑭ port.basic_data_loan_foreclosure_bankruptcy | Redshift 破产历史（上游） | 15 | 3 行 |
-| ⑮ tempfc.temp_basic_data_fcl | Redshift 改名临时表（portnewrezfc 等原始列→统一列；运行时中间产物，basic_data_loan_fcl 的上游） | 37 | 5/5 贷款 |
-| ⑯ port.basic_data_daily_loan_common | 逾期支线 L2 统一日表（delq_status；每贷款最新 asofdate） | 78 | 5/5 贷款 |
-| ⑰ port.basic_data_daily_loan_common_clean | 逾期支线 L3 清洗日表（delinq / days360；每贷款最新 fctrdt） | 103 | 5/5 贷款 |
+| ⑦ port.basic_data_daily_loan_common | 逾期支线 L2 统一日表（delq_status；每贷款最新 asofdate） | 78 | 5/5 贷款 |
 
-### 三、BPS 直接对接表（mysql_prod.bpms）
+### 三、L3 逾期支线·清洗日表（redshift_prod.port）
 
-| Sheet / 表 | 用途 | 列数 | 本dump行/命中 |
+| Sheet / 表 | 用途 | 列数/字段 | 本dump行/命中 |
+|---|---|---|---|
+| ⑧ port.basic_data_daily_loan_common_clean | 逾期支线 L3 清洗日表（delinq / days360；每贷款最新 fctrdt） | 103 | 5/5 贷款 |
+
+### 四、L4 FCL 业务族 / 中间产物（redshift_prod.port · tempfc）
+
+| Sheet / 表 | 用途 | 列数/字段 | 本dump行/命中 |
+|---|---|---|---|
+| ⑨ tempfc.temp_basic_data_fcl | Redshift 改名临时表（portnewrezfc 等原始列→统一列；运行时中间产物，basic_data_loan_fcl 的上游） | 37 | 5/5 贷款 |
+| ⑩ port.basic_data_loan_fcl | Redshift FCL 快照中间表（portnewrezfc 全量进此；每贷款取最新 dataasof） | 61 | 5/5 贷款 |
+| ⑪ port.basic_data_loan_foreclosure | Redshift FCL 聚合表（1 行/贷款，sync_loan_foreclosure 的直接上游） | 62 | 5/5 贷款 |
+| ⑫ port.basic_data_fcl_related | FCL 关联/过滤中间表（delq_status 等；每贷款最新 dataasof） | 14 | 5/5 贷款 |
+| ⑬ port.fcl_stage_info | Redshift 阶段表（sync_fcl_stage_info 上游；每贷款最新 fctrdt） | 48 | 5/5 贷款 |
+| ⑭ port.portfunding | 融资池表（入库 JOIN 过滤；1 行/贷款） | 57 | 5/5 贷款 |
+| ⑮ port.basic_data_loan_foreclosure_hold | Redshift Hold 历史（sync_loan_foreclosure_hold 上游） | 17 | 21 行 |
+| ⑯ port.basic_data_loan_foreclosure_loss_mitigation | Redshift LM 历史（上游） | 16 | 21 行 |
+| ⑰ port.basic_data_loan_foreclosure_bankruptcy | Redshift 破产历史（上游） | 15 | 3 行 |
+
+### 五、L5 BPS 直接对接表（mysql_prod.bpms）
+
+| Sheet / 表 | 用途 | 列数/字段 | 本dump行/命中 |
 |---|---|---|---|
 | ⑱ bpms.sync_loan_foreclosure | Summary/Timeline/target 主表 | 72 | 4/5 贷款 |
 | ⑲ bpms.sync_fcl_stage_info | 聚合 Stage/Timeline 表 | 57 | 5/5 贷款 |
@@ -60,9 +135,9 @@
 | ㉒ bpms.sync_loan_foreclosure_loss_mitigation | LM 周期历史 | 22 | 21 行 |
 | ㉓ bpms.sync_loan_foreclosure_bankruptcy | 破产记录 | 22 | 3 行 |
 
-### 四、解码字典（redshift_prod.newrez.portnewrezdatadic）
+### 六、解码字典（mysql_prod.newrez）
 
-| Sheet / 表 | 用途 | 字段 | 本5贷款用到 |
+| Sheet / 表 | 用途 | 列数/字段 | 本dump行/命中 |
 |---|---|---|---|
 | ㉔ newrez.portnewrezdatadic | FCL 解码字典（仅列 5 样例用到的码；完整见数据字典 表26） | 8 | 55 码 |
 
@@ -560,583 +635,7 @@ SELECT t.* FROM newrez.portnewrezprop t JOIN (SELECT loanid, MAX(dataasof) AS _m
 
 ---
 
-## ⑦ port.basic_data_loan_fcl
-
-> Redshift FCL 快照中间表（portnewrezfc 全量进此；每贷款取最新 dataasof）。全 **61** 字段 · 取数口径：dataasof=MAX(每贷款) · 命中 5/5 贷款（无行的贷款列显示 `—`）。
-
-<!-- META:port.basic_data_loan_fcl START -->
-> **📋 业务含义与全链路血缘**
->
-> - **业务含义/目的**：Redshift FCL 事实表——portnewrezfc 等经改名后 UNION 全 6 家 servicer 的统一列宽表(每贷款最新 dataasof)。 FCL 计算的统一入口；屏蔽各 servicer 列名差异。
-> - **何时来查这张表**：查‘统一列名后的 FCL 字段值’，或定位某下游字段来自哪根统一列。
-> - **为什么 pipeline 这样处理**：各家列名不同，先改名(tempfc.temp_basic_data_fcl)再 UNION 成一张统一事实表，下游只面对一套列名。
-> - **数据粒度**：1 行/贷款（每贷款最新 dataasof）。
-> - **上游链路**：Servicer 文件(L0) → newrez.portnewrezfc(+各家对应表) → tempfc.temp_basic_data_fcl(改名) → port.basic_data_loan_fcl〔UNION，basic_data_pool_config.py〕
-> - **全部上游表**：Servicer 文件(L0)、newrez.portnewrezfc、(sls/carrington/mrc/fci/selene 对应源表)、tempfc.temp_basic_data_fcl
-> - **下游链路**：basic_data_loan_fcl → { port.basic_data_loan_foreclosure〔GEN_FCL_DETAIL :253-305〕 / port.fcl_stage_info〔GEN_FCL_STAGE :1774-2440〕 / port.basic_data_loan_foreclosure_hold〔:466-768〕 / port.basic_data_loan_foreclosure_loss_mitigation〔:799-843〕 / port.basic_data_loan_foreclosure_bankruptcy〔:331-370〕 } → bpms.sync_* → 视图 → BPS
-> - **全部下游表**：port.basic_data_loan_foreclosure、port.fcl_stage_info、port.basic_data_loan_foreclosure_hold、port.basic_data_loan_foreclosure_loss_mitigation、port.basic_data_loan_foreclosure_bankruptcy、bpms.sync_loan_foreclosure、bpms.sync_fcl_stage_info、bpms.sync_loan_foreclosure_hold、bpms.sync_loan_foreclosure_loss_mitigation、bpms.sync_loan_foreclosure_bankruptcy、bpms.biz_data_view_loan_details_foreclosure
-<!-- META:port.basic_data_loan_fcl END -->
-
-查询 SQL（prod 只读）：
-```sql
--- port.basic_data_loan_fcl · redshift_prod(只读) · 每贷款 dataasof=MAX(最新快照) · 业务日 2026-06-01
-SELECT t.* FROM port.basic_data_loan_fcl t JOIN (SELECT loanid, MAX(dataasof) AS _md FROM port.basic_data_loan_fcl WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') GROUP BY loanid) m ON t.loanid=m.loanid AND t.dataasof=m._md;
-```
-
-| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-|---|---|---|---|---|---|
-| dataasof | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
-| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-| servicer | Newrez | Newrez | Newrez | Newrez | Newrez |
-| svc_loanid | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
-| activefcflag | 0 | 0 | 0 | 0 | 0 |
-| titleordereddate | — | — | — | 2025-11-13 | — |
-| titlereceiveddate | — | — | — | 2025-12-02 | — |
-| titlecleardate | — | — | — | — | — |
-| noi_date | — | — | — | — | — |
-| fcsetupdate | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
-| referral_start_date | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
-| svc_days_infc | 368 | 79 | 294 | 254 | — |
-| daysinfc | 368 | 79 | 294 | 254 | — |
-| demandsentdate | 2025-02-18 | 2025-11-17 | 2025-05-20 | 2024-08-12 | 2026-04-10 |
-| demandexpirationdate | 2025-03-25 | 2025-12-22 | 2025-06-24 | 2024-09-18 | 2026-05-15 |
-| legal_start_date | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
-| service_start_date | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
-| fcjudgment_hearing_scheduled | 2026-03-27 | — | 2026-04-13 | 2025-10-15 | — |
-| fcjudgment_end_date | 2026-04-08 | — | 2026-02-13 | 2025-08-25 | — |
-| fcscheduled_sale_date | — | — | 2026-05-19 | — | — |
-| fcsale_held_date | 2026-05-22 | — | — | 2025-10-14 | — |
-| fcbidamount | 301500 | — | — | 390832.5 | — |
-| fcapprbidprice | 301500 | — | — | 390832.5 | — |
-| fcsaleamount | 200100 | — | — | 357200 | — |
-| fcl3rdpartyproceedsreceiveddate | — | — | — | — | — |
-| fcresults | REO |  |  | REO |  |
-| fcstage | Post Sale Review (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Post Sale Review (SCRA and PACER Check) |  |
-| lastfcstepcompleted | Post Sale Review (SCRA and PACER Check) | First Publication | Sale Scheduled For | Post Sale Review (SCRA and PACER Check) |  |
-| lastfcstepcompleteddate | 2026-05-26 | 2026-03-25 | 2026-05-19 | 2025-10-15 | — |
-| fcremovaldesc | Process Complete | Loss Mitigation | Paid in Full | Process Complete |  |
-| fcremovaldate | 2026-05-26 | 2026-05-27 | 2026-04-17 | 2025-10-15 | — |
-| judicial | 1.0 | 0.0 | 1.0 | 1.0 |  |
-| fcfirm | Kelley Kronenberg, P.A. | Orlans Law Group PLLC | Johnson, Blumberg & Associates, LLC | RAS (Primary) |  |
-| fccontestedflag | 0 | 0 | 0 | 0 | 0 |
-| jr_sr_lien_flag | 1.0 | 1.0 | 1.0 | 1.0 |  |
-| dtdeedrecorded | — | — | — | 2025-10-28 | — |
-| activejnrlienfcflag | 0 | 0 | 0 | 0 | 0 |
-| fchold1description | Court Delay | Delinquency Review | Delinquency Review | Court Delay | — |
-| fchold1startdate | 2026-04-09 | 2026-05-12 | 2026-04-17 | 2025-08-26 | — |
-| fchold1enddate | 2026-04-26 | 2026-05-27 | 2026-04-17 | 2025-08-28 | — |
-| fchold1projectedenddate | 2026-04-29 | 2026-07-11 | 2026-06-16 | 2025-09-15 | — |
-| fchold1comment | Delay Reason: Pending Ruling on Judgment, Hold Start Date: 2026-04-09, Date of Delay: 2026-04-06, Anticipated Resolution ETA: 2026-04-29, Additional Detail On Delay: We are pending judge's execution of the  proposed Order | Delinquency Review | Delinquency Review | Delay Reason: Pending Judges Decision/Ruling, Hold Start Date: 2025-08-26, Date of Delay: 2025-08-13, Anticipated Resolution ETA: 2025-09-15, Additional Detail On Delay: The Final Judgment was granted at NJT held 8/25/2025. At this time firm is pending the executed final Judgment with sale date scheduled to be docketed with the court a requirement to complete the Judgment entered.  | — |
-| holdmodified | 2026-04-27 | 2026-05-27 | 2026-04-17 | 2025-08-29 | — |
-| fchold2description | Hearing Set | Loss Mitigation Workout | Hearing Set | Court Delay | — |
-| fchold2startdate | 2026-03-16 | 2026-03-25 | 2026-01-29 | 2025-07-02 | — |
-| fchold2enddate | 2026-04-07 | 2026-05-27 | 2026-02-13 | 2025-07-14 | — |
-| fchold2projectedenddate | 2026-04-06 | 2026-06-01 | 2026-02-13 | 2025-07-22 | — |
-| fchold2comment | Hearing scheduled for 04/06/2026, Additional Detail: Plaintiff's Motion for Summary Judgment scheduled for 4.6.26. Please end court delay hold. Thanks | BRP Complete:  Complete Ack Sent:  RPP Approved: 03/24/2026 RPP Payments Due: 6 Last RPP Payment Made: 05/12/2026 Next Payment Due: 06/01/2026 | RID: 861849328; Judgment hearing scheduled for 2/13/26 | Delay Reason: Pending Judges Decision/Ruling, Hold Start Date: 2025-07-02, Date of Delay: 2025-07-01, Anticipated Resolution ETA: 2025-07-22, Additional Detail On Delay: Pending court's ruling on the Plaintiff's motion for clerk's default.  | — |
-| holdmodified2 | 2026-04-07 | 2026-05-27 | 2026-02-13 | 2025-07-15 | — |
-| fchold3description | Court Delay |  | Service Delay | Bankruptcy Filed | — |
-| fchold3startdate | 2026-01-16 | — | 2025-12-30 | 2025-05-06 | — |
-| fchold3enddate | 2026-03-16 | — | 2026-01-23 | 2025-06-27 | — |
-| fchold3projectedenddate | 2026-03-17 | — | 2026-01-23 | 2025-07-07 | — |
-| fchold3comment | Delay Reason: Pending Hearing Date for Judgment, Hold Start Date: 2026-01-16, Date of Delay: 2026-01-19, Anticipated Resolution ETA: 2026-03-17, Additional Detail On Delay: We have reached out to the JA for dates in April and is pending a response. The JA had advised there were only limited dates. Pending response to proceed., Actions Taken by the Firm: Called the court, Most Recent Follow-Up Date: 02/20/2026, Additional Info:  We have reached out to the JA for dates in April and is pending a response. The JA had advised there were only limited dates. Pending response to proceed. |  | Due to title identifying the incorrect HOA, the new correct HOA had to be served.  The HOA was served 12/24/25 and the time period for the correct HOA to file their Answer does not expire until 1-23-2026.  See Step 9.  We cannot proceed to judgment until after 1-23-2026.   | CaseNumber: 2500228 Chapter: 7 Filed Date: 04/30/2025 POC Bar Date:  Post-Petition Due Date:  MFR Referral Date: 05/15/2025 MFR Filed Date: 06/10/2025 MFR Granted Date:  Dismissal Date: | — |
-| holdmodified3 | 2026-03-17 | — | 2026-01-23 | 2025-06-27 | — |
-| fchold4description | — | — | — | — | — |
-| fchold4startdate | — | — | — | — | — |
-| fchold4enddate | — | — | — | — | — |
-| fchold4projectedenddate | — | — | — | — | — |
-| fchold4comment | — | — | — | — | — |
-| holdmodified4 | — | — | — | — | — |
-
----
-
-## ⑧ port.basic_data_loan_foreclosure
-
-> Redshift FCL 聚合表（1 行/贷款，sync_loan_foreclosure 的直接上游）。全 **62** 字段 · 取数口径：dataasof=MAX(每贷款) · 命中 5/5 贷款（无行的贷款列显示 `—`）。
-
-<!-- META:port.basic_data_loan_foreclosure START -->
-> **📋 业务含义与全链路血缘**
->
-> - **业务含义/目的**：Redshift FCL 聚合表(1 行/贷款)——一笔贷款端到端法拍时间线：各里程碑日期、当前状态(summary_foreclosure_status)、司法标志、在法拍天数(summary_days_in_fcl)。 bpms.sync_loan_foreclosure(BPS 主表)的直接上游；法拍主视图的数据底座。
-> - **何时来查这张表**：查某贷款法拍‘何时进入各里程碑/当前状态/在法拍多少天/为何退出’。
-> - **为什么 pipeline 这样处理**：把事实表里散落的里程碑/状态按业务规则(GEN_FCL_DETAIL CASE)收敛成 1 行/贷款的可读时间线；退出原因直接取 servicer 的 fcremovaldesc(无解码表)。
-> - **数据粒度**：1 行/贷款（含在途 + 已结）。
-> - **上游链路**：… → port.basic_data_loan_fcl → port.basic_data_loan_foreclosure〔GEN_FCL_DETAIL basic_data_pool_config.py:253-305；状态 CASE :273；司法 :277-279；在法拍天数 :1628〕
-> - **全部上游表**：port.basic_data_loan_fcl、tempfc.temp_basic_data_fcl、newrez.portnewrezfc、Servicer 文件(L0)
-> - **下游链路**：basic_data_loan_foreclosure → (Redshift→MySQL 同步 df_db_util.py:665-699 sync_to_mysql / 702-726 update_to_mysql) → bpms.sync_loan_foreclosure〔GEN_FORECLOSURE asset_managment_config.py:535-608；实时天数校正 :597-598〕 → bpms.biz_data_view_loan_details_foreclosure(视图) → BPS Summary/Timeline 面板
-> - **全部下游表**：bpms.sync_loan_foreclosure、bpms.biz_data_view_loan_details_foreclosure
-<!-- META:port.basic_data_loan_foreclosure END -->
-
-查询 SQL（prod 只读）：
-```sql
--- port.basic_data_loan_foreclosure · redshift_prod(只读) · 每贷款 dataasof=MAX(最新快照) · 业务日 2026-06-01
-SELECT t.* FROM port.basic_data_loan_foreclosure t JOIN (SELECT loanid, MAX(dataasof) AS _md FROM port.basic_data_loan_foreclosure WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') GROUP BY loanid) m ON t.loanid=m.loanid AND t.dataasof=m._md;
-```
-
-| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-|---|---|---|---|---|---|
-| dataasof | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
-| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-| svcloanid | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
-| servicer | Newrez | Newrez | Newrez | Newrez | Newrez |
-| timeline_notice_of_intent_date | — | — | — | — | — |
-| timeline_notice_of_intent_end_date | — | — | — | — | — |
-| timeline_approved_for_referral_date | — | — | — | — | — |
-| timeline_referred_to_attorney_date | — | — | — | — | — |
-| timeline_referred_to_foreclosure_date | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
-| timeline_title_report_received_date | — | — | — | 2025-12-02 | — |
-| timeline_preliminary_title_cleared_date | — | — | — | — | — |
-| timeline_first_legal_date | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
-| timeline_service_date | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
-| timeline_publication_date | — | — | — | — | — |
-| timeline_judgement_hearing_set_date | 2025-12-17 | — | 2026-02-13 | 2025-07-15 | — |
-| timeline_judgement_date | 2026-03-27 | — | 2026-04-13 | 2025-10-15 | — |
-| timeline_sale_date_projected_date | — | — | 2026-05-19 | — | — |
-| timeline_sale_date_set_date | — | — | 2026-02-19 | — | — |
-| timeline_final_title_cleared_date | — | — | — | — | — |
-| timeline_sale_date_held_date | 2026-05-22 | — | — | 2025-10-14 | — |
-| timeline_foreclosure_completed_date | — | — | — | — | — |
-| timeline_third_party_sold_date_date | — | — | — | — | — |
-| timeline_third_party_proceeds_received_date | — | — | — | — | — |
-| target_notice_of_intent_days | — | — | — | — | — |
-| target_notice_of_intent_expired_days | — | — | — | — | — |
-| target_approved_for_referral_days | — | — | — | — | — |
-| target_referred_to_attorney_days | — | — | — | — | — |
-| target_referred_to_foreclosure_days | — | — | — | — | — |
-| target_title_report_received_days | — | — | — | — | — |
-| target_preliminary_title_cleared_days | — | — | — | — | — |
-| target_first_legal_days | — | — | — | — | — |
-| target_service_days | — | — | — | — | — |
-| target_publication_days | — | — | — | — | — |
-| target_judgement_hearing_set_days | — | — | — | — | — |
-| target_judgement_days | — | — | — | — | — |
-| target_sale_date_set_days | — | — | — | — | — |
-| target_final_title_cleared_days | — | — | — | — | — |
-| target_sale_date_held_days | — | — | — | — | — |
-| variance_active_bankruptcy | — | — | — | — | — |
-| variance_completed_bankruptcy | — | — | — | — | — |
-| variance_estimated_hold_days | — | — | — | — | — |
-| variance_bankruptcies | — | — | — | — | — |
-| bid_approval_status | — | — | — | — | — |
-| bid_approval_sale_date | — | — | — | — | — |
-| bid_approval_bid_amount | 301500 | — | — | 390832.5 | — |
-| bid_approval_loan_resolution_holods | — | — | — | — | — |
-| summary_servicer_number | — | — | — | — | — |
-| summary_foreclosure_status | Closed Foreclosure:Process Complete | Closed Foreclosure:Loss Mitigation | Closed Foreclosure:Paid in Full | Closed Foreclosure:Process Complete | — |
-| summary_completed_foreclosure | — | — | — | — | — |
-| summary_foreclosure_bid_amount | 301500 | — | — | 390832.5 | — |
-| summary_srv_fc_bid_amount | 301500 | — | — | 390832.5 | — |
-| summary_foreclosure_sale_amount | 200100 | — | — | 357200 | — |
-| summary_judicial_foreclosure | 1 | 0 | 1 | 1 | — |
-| summary_foreclosure_attorney | — | — | — | — | — |
-| summary_contested_litigation | 0 | 0 | 0 | 0 | 0 |
-| summary_firm | Kelley Kronenberg, P.A. | Orlans Law Group PLLC | Johnson, Blumberg & Associates, LLC | RAS (Primary) |  |
-| summary_type | Judicial | Non Judicial | Judicial | Judicial | — |
-| summary_sms_days_in_fcl | 368 | 79 | 294 | 254 | — |
-| summary_days_in_fcl | 368 | 79 | 294 | 254 | — |
-| summary_current_step | Post Sale Review (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Post Sale Review (SCRA and PACER Check) |  |
-| summary_last_step_completed | Post Sale Review (SCRA and PACER Check) | First Publication | Sale Scheduled For | Post Sale Review (SCRA and PACER Check) |  |
-| summary_last_step_completed_date | 2026-05-26 | 2026-03-25 | 2026-05-19 | 2025-10-15 | — |
-
----
-
-## ⑨ port.basic_data_fcl_related
-
-> FCL 关联/过滤中间表（delq_status 等；每贷款最新 dataasof）。全 **14** 字段 · 取数口径：dataasof=MAX(每贷款) · 命中 5/5 贷款（无行的贷款列显示 `—`）。
-
-<!-- META:port.basic_data_fcl_related START -->
-> **📋 业务含义与全链路血缘**
->
-> - **业务含义/目的**：FCL 关联属性中间表(14 列)——诉讼标志、清算类型、BK 标志、违约原因、delq_status 等。 给 stage 计算与过滤提供‘关联属性/分组键’(delq_status → stage group)。
-> - **何时来查这张表**：查某贷款 stage 分组依据、关联诉讼/清算/违约属性。
-> - **为什么 pipeline 这样处理**：stage 计算需把逾期支线的 delq_status 与 FCL 属性合并；单列一张关联表承接，避免主时间线表过宽。
-> - **数据粒度**：1 行/贷款（最新 dataasof）。
-> - **上游链路**：{ port.basic_data_loan_fcl(FCL 属性) + port.basic_data_daily_loan_common_clean.delinq(逾期码) } → port.basic_data_fcl_related〔basic_data_pool_config.py〕
-> - **全部上游表**：port.basic_data_loan_fcl、port.basic_data_daily_loan_common_clean
-> - **下游链路**：basic_data_fcl_related.delq_status → port.fcl_stage_info.group(stage 分组) → bpms.sync_fcl_stage_info → 视图 → BPS Stage 面板
-> - **全部下游表**：port.fcl_stage_info、bpms.sync_fcl_stage_info、bpms.biz_data_view_loan_details_foreclosure
-<!-- META:port.basic_data_fcl_related END -->
-
-查询 SQL（prod 只读）：
-```sql
--- port.basic_data_fcl_related · redshift_prod(只读) · 每贷款 dataasof=MAX(最新快照) · 业务日 2026-06-01
-SELECT t.* FROM port.basic_data_fcl_related t JOIN (SELECT loanid, MAX(dataasof) AS _md FROM port.basic_data_fcl_related WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') GROUP BY loanid) m ON t.loanid=m.loanid AND t.dataasof=m._md;
-```
-
-| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-|---|---|---|---|---|---|
-| dataasof | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
-| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-| servicer | Newrez | Newrez | Newrez | Newrez | Newrez |
-| delq_status | REO | D120P | P | REO | D60 |
-| isloanlitigated | 0 | 0 | 0 | 0 | 0 |
-| deactreason | FC-BK | FC-BK |  | FC-BK |  |
-| reasonfordefault | Reduction in Borrower's Income |  |  | Unable to Contact Borrower |  |
-| inauctionflag | 0 | 0 | 0 | 1 | 0 |
-| liquidationdate | — | — | 2026-04-16 | — | — |
-| liquidationtype |  |  | 3.0 |  |  |
-| liquidationproceeds |  |  | 503557.98 |  |  |
-| pmt | 0 | 0 | 0 | 0 | 6339.72 |
-| bk_flag | 0 | 0 | 0 | 0 | 1 |
-| propertystate | FL | MI | IL | FL | FL |
-
----
-
-## ⑩ port.fcl_stage_info
-
-> Redshift 阶段表（sync_fcl_stage_info 上游；每贷款最新 fctrdt）。全 **48** 字段 · 取数口径：fctrdt=MAX(每贷款) · 命中 5/5 贷款（无行的贷款列显示 `—`）。
-
-<!-- META:port.fcl_stage_info START -->
-> **📋 业务含义与全链路血缘**
->
-> - **业务含义/目的**：Redshift 阶段表(48 列)——把法拍拆成 6 大阶段，每阶段 5 维(开始/天数/扣除 LM-Hold 重叠等)，每贷款最新 fctrdt。 bpms.sync_fcl_stage_info(BPS 聚合 Stage/Timeline)的上游；面板‘各阶段停留天数’的底座。
-> - **何时来查这张表**：查某贷款‘在每个阶段停留多久、扣除 LM/Hold 后净时长、当前在哪个阶段组’。
-> - **为什么 pipeline 这样处理**：业务关心‘卡在哪一步多久’；阶段口径复杂(N:N 扣 LM/Hold 重叠)，单列一张表算清，并 JOIN portfunding 取 funding 维。
-> - **数据粒度**：1 行/贷款/fctrdt。
-> - **上游链路**：{ port.basic_data_loan_fcl + port.basic_data_fcl_related(delq_status 分组) + port.portfunding(JOIN) } → port.fcl_stage_info〔GEN_FCL_STAGE basic_data_pool_config.py:1774-2440〕
-> - **全部上游表**：port.basic_data_loan_fcl、port.basic_data_fcl_related、port.basic_data_daily_loan_common_clean、port.portfunding
-> - **下游链路**：fcl_stage_info → bpms.sync_fcl_stage_info〔GET_FCL_STAGE_DATA asset_managment_config.py:925-929，JOIN port.portfunding〕 → 视图 → BPS Stage 面板
-> - **全部下游表**：bpms.sync_fcl_stage_info、bpms.biz_data_view_loan_details_foreclosure
-<!-- META:port.fcl_stage_info END -->
-
-查询 SQL（prod 只读）：
-```sql
--- port.fcl_stage_info · redshift_prod(只读) · 每贷款 fctrdt=MAX(最新快照) · 业务日 2026-06-01
-SELECT t.* FROM port.fcl_stage_info t JOIN (SELECT loanid, MAX(fctrdt) AS _md FROM port.fcl_stage_info WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') GROUP BY loanid) m ON t.loanid=m.loanid AND t.fctrdt=m._md;
-```
-
-| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-|---|---|---|---|---|---|
-| fctrdt | 2026-05-25 | 2026-05-26 | 2026-04-15 | 2025-10-14 | 2026-05-31 |
-| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-| group | REO | FCL | FCL | REO | D120P |
-| servicer | Newrez | Newrez | Newrez | Newrez | Newrez |
-| state | FL | MI | IL | FL | FL |
-| judicial | Y | N | Y | Y | Y |
-| demand_start_date | 2025-02-18 | 2025-11-17 | 2025-05-20 | 2024-08-12 | 2026-04-10 |
-| demand_end_date | 2025-03-25 | 2025-12-22 | 2025-06-24 | 2024-09-18 | 2026-05-15 |
-| demand_stage_days | 464 | 193 | 333 | 431 | 54 |
-| demand_in_lm_days | — | 93 | 197 | — | — |
-| demand_on_hold_days | — | 17 | — | — | — |
-| noi_start_date | — | — | — | — | — |
-| noi_end_date | — | — | — | — | — |
-| noi_stage_days | — | — | — | — | — |
-| noi_in_lm_days | — | — | — | — | — |
-| noi_on_hold_days | — | — | — | — | — |
-| referral_start_date | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
-| referral_end_date | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
-| referral_stage_days | 22 | 17 | 25 | 53 | — |
-| referral_in_lm_days | — | — | — | — | — |
-| referral_on_hold_days | — | 1 | — | — | — |
-| first_legal_start_date | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
-| first_legal_end_date | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
-| first_legal_stage_days | 36 | 65 | 157 | 38 | — |
-| first_legal_in_lm_days | — | — | 83 | — | — |
-| first_legal_on_hold_days | — | 17 | — | — | — |
-| first_legal_date_history | — | — | — | — | — |
-| service_start_date | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
-| service_end_date | 2025-12-17 | — | 2026-02-13 | 2025-07-15 | — |
-| service_stage_days | 153 | — | 52 | 74 | — |
-| service_in_lm_days | — | — | — | — | — |
-| service_on_hold_days | — | — | — | — | — |
-| publication_start_date | — | — | — | — | — |
-| publication_end_date | — | — | — | — | — |
-| publication_stage_days | — | — | — | — | — |
-| publication_in_lm_days | — | — | — | — | — |
-| publication_on_hold_days | — | — | — | — | — |
-| judgement_start_date | 2026-03-27 | — | 2026-04-13 | 2025-10-15 | — |
-| judgement_end_date | — | — | — | — | — |
-| to_judgement_days | 0 | — | 0 | 0 | — |
-| judgement_in_lm_days | — | — | — | — | — |
-| judgement_on_hold_days | — | — | — | — | — |
-| sale_start_date | — | 2026-08-06 | 2026-05-19 | — | — |
-| sale_end_date | — | — | — | — | — |
-| to_sale_days | — | 70 | 32 | — | — |
-| sale_in_lm_days | — | — | — | — | — |
-| sale_on_hold_days | — | — | — | — | — |
-| stage | JUDGEMENT | SALE | SALE | JUDGEMENT | DEMAND |
-
----
-
-## ⑪ port.portfunding
-
-> 融资池表（入库 JOIN 过滤；1 行/贷款）。全 **57** 字段 · 取数口径：当前态(1行/贷款) · 命中 5/5 贷款（无行的贷款列显示 `—`）。
-
-<!-- META:port.portfunding START -->
-> **📋 业务含义与全链路血缘**
->
-> - **业务含义/目的**：融资池表(57 列，1 行/贷款)——funding/deal 标识(fundingid/dealid)与池属性。 作为 JOIN 维度为 FCL 输出补 funding_id/bid_id，并做入库过滤。
-> - **何时来查这张表**：查某贷款属于哪个融资池/deal，或为何被 sync 过滤进/出。
-> - **为什么 pipeline 这样处理**：BPS 需按 funding/bid 维展示与归集；FCL 表本身不含，运行时 JOIN portfunding 补齐(dealid→bid_id, fundingid→funding_id)。
-> - **数据粒度**：1 行/贷款（当前态）。
-> - **上游链路**：投资/融资域(非 servicer FCL 文件) → port.portfunding
-> - **全部上游表**：投资/融资域来源（非 FCL servicer 文件）
-> - **下游链路**：portfunding ⋈ { port.fcl_stage_info / GEN_FORECLOSURE(asset_managment_config.py:535-608) } → bpms.sync_fcl_stage_info / bpms.sync_loan_foreclosure → 视图 → BPS
-> - **全部下游表**：port.fcl_stage_info、bpms.sync_fcl_stage_info、bpms.sync_loan_foreclosure、bpms.biz_data_view_loan_details_foreclosure
-<!-- META:port.portfunding END -->
-
-查询 SQL（prod 只读）：
-```sql
--- port.portfunding · redshift_prod(只读) · 当前态 1 行/贷款 · 业务日 2026-06-01
-SELECT * FROM port.portfunding WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') ORDER BY loanid;
-```
-
-| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-|---|---|---|---|---|---|
-| fundingid | HMP002 | IMPAC001 | BOA002 | HMP002 | HMP002 |
-| dealid | HMP002 | IMPAC001 | BOA002 | HMP002 | HMP002 |
-| cutoffdate | 2023-01-25 | 2023-07-05 | 2024-06-01 | 2023-01-25 | 2023-01-25 |
-| settledate | 2023-01-31 | 2023-07-18 | 2024-06-26 | 2023-01-31 | 2023-01-31 |
-| wal | 8.03 | 8.06 | 5.66 | 8.03 | 8.03 |
-| hurdlespread | 415 | 408 | 332 | 415 | 415 |
-| hurdleyield | 7.57 | 7.54 | 7.36 | 7.57 | 7.57 |
-| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-| sellerloanid | 9010021155 | 3111022026 | 3260057082 | 9014327961 | 9014059868 |
-| interestbearingupb | 324035.29 | 423410.11 | 449829.52 | 479480.42 | 277928.4 |
-| deferredprin | 0 | 0 | 14062.83 | 0 | 0 |
-| deferredint | 0 | 0 | 8753.85 | 0 | 0 |
-| netpurchasepriceinterestbearingupb | 82.5613812225759 | 101.540001016981 | 88.78 | 72.37 | 72.7996399257241 |
-| netpurchasepricedeferredprin | — | — | 88.78 | — | — |
-| netpurchasepricedeferredint | — | — | 88.78 | — | — |
-| interestbearingupbmv | — | — | 399358.647856 | — | — |
-| deferredprinbought | — | — | 12484.980474 | — | — |
-| deferredintbought | — | — | 7771.66803 | — | — |
-| sellercredit | — | — | 0 | — | — |
-| netmvtoseller | 267528.011072579 | 429930.63 | 419615.29636 | 346999.979954 | 202330.874451326 |
-| netpurchaseprice | 82.5613812225759 | 101.540001016981 | 88.78 | 72.37 | 72.7996399257241 |
-| intrate | 6.625 | 9.875 | 2.75 | 4.25 | 3.625 |
-| lastpaydt | 2023-01-01 | 2023-06-01 | 2024-05-01 | 2023-01-01 | 2023-01-01 |
-| nextduedate | 2023-02-01 | 2023-07-01 | 2024-06-01 | 2023-02-01 | 2023-02-01 |
-| escrowadvancebought | 0 | 0 | 0 | 0 | 0 |
-| corporateadvancerecoverablebought | 0 | 0 | 0 | 0 | 0 |
-| thirdpartyadvancebought | 0 | 0 | 0 | 0 | 0 |
-| daysaccrued | 30 | 47 | 55 | 30 | 30 |
-| interestaccrued | 1788.94483020833 | 5458.76 | 1889.90874722222 | 1698.15982083333 | 839.575375 |
-| totadv | 0 | 0 | 0 | 0 | 0 |
-| duetoseller | 269316.955902788 | 435389.39 | 421505.208747222 | 348698.139774833 | 203170.449826326 |
-| brokerfeepct | 0.5 | 0.5 | 0 | 0.5 | 0.5 |
-| brokerfee | 1620.17645 | 2117.05055 | 0 | 2397.4021 | 1389.642 |
-| ddcost | 629.56155 | 707.27 | 333.44 | 629.56155 | 629.56155 |
-| sourcingfeefactor | — | — | 0.9942 | — | — |
-| sourcingfeepct | — | — | 0.25 | — | — |
-| sourcingfee | 674.98 | 1089.18 | 1048.48 | 874.21 | 510 |
-| totaldiscount | 53582.56 | -10434.02 | 26942.39 | 128579.27 | 73068.32 |
-| discountpct | 0.165360260606183 | -0.0246428220620429 | 0.0598946685402061 | 0.268163755258244 | 0.262903395262953 |
-| managementfeefactor | — | — | 0.9942 | — | — |
-| managementfeepct | — | — | 0.375 | — | — |
-| managementfee | 84.5820850606723 | 136.485916807753 | 131.385744812653 | 109.548199189678 | 63.9083110583573 |
-| escrowadvance | 0 | 0 | 0 | 0 | 0 |
-| corporateadvancerecoverable | 0 | 0 | 0 | 0 | 0 |
-| thirdpartyadvance | 0 | 0 | 0 | 0 | 0 |
-| nonrecoverableadvance | 0 | 0 | 0 | 0 | 0 |
-| purchase_net_price | 82.5613812226 | 101.540001017 | 88.78 | 72.37 | 72.7996399257 |
-| internal_net_price | 83.0372862717 | 101.152267885 | 79.0130389449069 | 74.7014579014 | 71.4849405604 |
-| gross_irr | 8.8781698585 | 8.1359041454 | 7.9526963823298 | 8.8781698585 | 8.8781698585 |
-| actddcost | — | 744.758076923077 | — | — | — |
-| trust | Trestle | Trestle | Trestle | Trestle | Trestle |
-| semiannual | first_semi_annual | second_semi_annual | third_semi_annual | first_semi_annual | first_semi_annual |
-| servicing_retained | N | N | N | N | N |
-| net_mv_to_seller_internal | 269070.111378633 | 428288.928719373 | 373452.126077623 | 358178.864091756 | 198676.951540471 |
-| sourcingfee_internal | 678.811908006076 | 1085.09972903903 | 933.741392677152 | 901.997861086816 | 500.917058071928 |
-| managementfee_internal | 85.0623868754281 | 135.974593051944 | 117.007775863581 | 113.029972096318 | 62.7702609274707 |
-| pool | A | A | A | A | A |
-
----
-
-## ⑫ port.basic_data_loan_foreclosure_hold
-
-> Redshift Hold 历史（sync_loan_foreclosure_hold 上游）。全 **17** 字段 · 多行/贷款（全历史） · 共 **21** 行 · 各贷款行数：{'7727000065': 4, '7727000088': 9, '7727000672': 2, '7727004200': 6}。
-
-<!-- META:port.basic_data_loan_foreclosure_hold START -->
-> **📋 业务含义与全链路血缘**
->
-> - **业务含义/目的**：Redshift Hold 历史(长表，1 行/Hold)——把源表 4 个 Hold 槽(fchold1..4)拆成长格式；Carrington 多 Hold 先排名压进 4 槽。 bpms.sync_loan_foreclosure_hold(BPS Hold 全历史)的上游；支撑‘一笔法拍多个 Hold’。
-> - **何时来查这张表**：查某贷款全部 Hold 的起止/原因/历史。
-> - **为什么 pipeline 这样处理**：源表把 Hold 压成 4 个宽槽，业务要全历史，需拆槽(unpivot)成 1 行/Hold；一笔 FCL 多 Hold 是常态(非数据错误)。
-> - **数据粒度**：1 行/贷款/Hold 段。
-> - **上游链路**：newrez.portnewrezfc(fchold1..4) → port.basic_data_loan_fcl → port.basic_data_loan_foreclosure_hold〔拆槽 basic_data_pool_config.py:466-768；Carrington 排名 :504-629〕
-> - **全部上游表**：newrez.portnewrezfc、port.basic_data_loan_fcl
-> - **下游链路**：→ bpms.sync_loan_foreclosure_hold〔GEN_FORECLOSURE_HOLD asset_managment_config.py:847-894〕 → 视图 → BPS Hold 面板
-> - **全部下游表**：bpms.sync_loan_foreclosure_hold、bpms.biz_data_view_loan_details_foreclosure
-<!-- META:port.basic_data_loan_foreclosure_hold END -->
-
-查询 SQL（prod 只读）：
-```sql
--- port.basic_data_loan_foreclosure_hold · redshift_prod(只读) · 多行/贷款（全历史） · 业务日 2026-06-01
-SELECT * FROM port.basic_data_loan_foreclosure_hold WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') ORDER BY loanid, fctrdt;
-```
-
-| dataasof | servicer | loanid | svcloanid | fctrdt | description1 | description1_start_date | description1_end_date | description2 | description2_start_date | description2_end_date | description3 | description3_start_date | description3_end_date | description4 | description4_start_date | description4_end_date |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 2025-05-05 | Newrez | 7727000065 | 1031718621 | 2025-05-05 | Original Note | 2025-02-06 | 2025-03-10 |  | — | — |  | — | — | — | — | — |
-| 2025-07-02 | Newrez | 7727000065 | 1031718621 | 2025-07-02 | Bankruptcy Filed | 2025-05-06 | 2025-06-27 | Original Note | 2025-02-06 | 2025-03-10 |  | — | — | — | — | — |
-| 2025-08-26 | Newrez | 7727000065 | 1031718621 | 2025-08-26 | Court Delay | 2025-07-02 | 2025-07-14 | Bankruptcy Filed | 2025-05-06 | 2025-06-27 | Original Note | 2025-02-06 | 2025-03-10 | — | — | — |
-| 2026-06-04 | Newrez | 7727000065 | 1031718621 | 2026-06-04 | Court Delay | 2025-08-26 | 2025-08-28 | Court Delay | 2025-07-02 | 2025-07-14 | Bankruptcy Filed | 2025-05-06 | 2025-06-27 | — | — | — |
-| 2025-07-15 | Newrez | 7727000088 | 1031718838 | 2025-07-15 | Original Note | 2025-05-28 | 2025-06-11 |  | — | — |  | — | — | — | — | — |
-| 2025-07-30 | Newrez | 7727000088 | 1031718838 | 2025-07-30 | Service Delay | 2025-07-15 | — | Original Note | 2025-05-28 | 2025-06-11 |  | — | — | — | — | — |
-| 2025-08-12 | Newrez | 7727000088 | 1031718838 | 2025-08-12 | Loss Mitigation Workout | 2025-07-31 | 2025-08-01 | Service Delay | 2025-07-15 | 2025-07-31 | Original Note | 2025-05-28 | 2025-06-11 | — | — | — |
-| 2025-10-21 | Newrez | 7727000088 | 1031718838 | 2025-10-21 | Loss Mitigation Workout | 2025-08-13 | 2025-10-21 | Loss Mitigation Workout | 2025-07-31 | 2025-08-01 | Service Delay | 2025-07-15 | 2025-07-31 | — | — | — |
-| 2026-01-18 | Newrez | 7727000088 | 1031718838 | 2026-01-18 | Court Delay | 2025-10-21 | 2025-12-16 | Loss Mitigation Workout | 2025-08-13 | 2025-10-21 | Loss Mitigation Workout | 2025-07-31 | 2025-08-01 | — | — | — |
-| 2026-02-23 | Newrez | 7727000088 | 1031718838 | 2026-02-23 | Loss Mitigation Workout | 2026-02-20 | — | Court Delay | 2026-01-16 | — | Court Delay | 2025-10-21 | 2025-12-16 | — | — | — |
-| 2026-03-16 | Newrez | 7727000088 | 1031718838 | 2026-03-16 | Court Delay | 2026-01-16 | — | Loss Mitigation Workout | 2026-02-20 | 2026-02-24 | Court Delay | 2025-10-21 | 2025-12-16 | — | — | — |
-| 2026-04-09 | Newrez | 7727000088 | 1031718838 | 2026-04-09 | Hearing Set | 2026-03-16 | 2026-04-07 | Court Delay | 2026-01-16 | 2026-03-16 | Loss Mitigation Workout | 2026-02-20 | 2026-02-24 | — | — | — |
-| 2026-06-04 | Newrez | 7727000088 | 1031718838 | 2026-06-04 | Court Delay | 2026-04-09 | 2026-04-26 | Hearing Set | 2026-03-16 | 2026-04-07 | Court Delay | 2026-01-16 | 2026-03-16 | — | — | — |
-| 2026-05-11 | Newrez | 7727000672 | 1032761570 | 2026-05-11 | Loss Mitigation Workout | 2026-03-25 | — |  | — | — |  | — | — | — | — | — |
-| 2026-06-04 | Newrez | 7727000672 | 1032761570 | 2026-06-04 | Delinquency Review | 2026-05-12 | 2026-05-27 | Loss Mitigation Workout | 2026-03-25 | 2026-05-27 |  | — | — | — | — | — |
-| 2025-09-03 | Newrez | 7727004200 | 0688132141 | 2025-09-03 | Client Document Execution | 2025-07-08 | 2025-07-09 |  | — | — |  | — | — | — | — | — |
-| 2025-11-20 | Newrez | 7727004200 | 0688132141 | 2025-11-20 | Court Delay | 2025-09-03 | — | Client Document Execution | 2025-07-08 | 2025-07-09 |  | — | — | — | — | — |
-| 2025-12-30 | Newrez | 7727004200 | 0688132141 | 2025-12-30 | Hearing Set | 2025-11-21 | 2025-12-11 | Court Delay | 2025-09-03 | 2025-11-20 | Client Document Execution | 2025-07-08 | 2025-07-09 | — | — | — |
-| 2026-01-28 | Newrez | 7727004200 | 0688132141 | 2026-01-28 | Service Delay | 2025-12-30 | 2026-01-23 | Hearing Set | 2025-11-21 | 2025-12-11 | Court Delay | 2025-09-03 | 2025-11-20 | — | — | — |
-| 2026-04-16 | Newrez | 7727004200 | 0688132141 | 2026-04-16 | Hearing Set | 2026-01-29 | 2026-02-13 | Service Delay | 2025-12-30 | 2026-01-23 | Hearing Set | 2025-11-21 | 2025-12-11 | — | — | — |
-| 2026-06-04 | Newrez | 7727004200 | 0688132141 | 2026-06-04 | Delinquency Review | 2026-04-17 | 2026-04-17 | Hearing Set | 2026-01-29 | 2026-02-13 | Service Delay | 2025-12-30 | 2026-01-23 | — | — | — |
-
----
-
-## ⑬ port.basic_data_loan_foreclosure_loss_mitigation
-
-> Redshift LM 历史（上游）。全 **16** 字段 · 多行/贷款（全历史） · 共 **21** 行 · 各贷款行数：{'7727000010': 2, '7727000065': 2, '7727000088': 9, '7727000672': 2, '7727004200': 6}。
-
-<!-- META:port.basic_data_loan_foreclosure_loss_mitigation START -->
-> **📋 业务含义与全链路血缘**
->
-> - **业务含义/目的**：Redshift LM 历史(1 行/LM 周期)——按 (loanid, dealstartdate)，datadic 解码 lmdeal/lmprogram/lmstatus/lmdecision。 bpms.sync_loan_foreclosure_loss_mitigation 的上游；支撑‘一笔贷款多 LM 周期’。
-> - **何时来查这张表**：查某贷款全部 LM 周期/项目/决定(已解码)。
-> - **为什么 pipeline 这样处理**：LM 多周期是常态；编码需经 datadic 解码成业务文案(JOIN key 拼 code+'.0')。
-> - **数据粒度**：1 行/贷款/LM 周期。
-> - **上游链路**：{ newrez.portnewrezlm + newrez.portnewrezdatadic } → port.basic_data_loan_fcl 体系 → port.basic_data_loan_foreclosure_loss_mitigation〔basic_data_pool_config.py:799-843〕
-> - **全部上游表**：newrez.portnewrezlm、newrez.portnewrezdatadic、port.basic_data_loan_fcl
-> - **下游链路**：→ bpms.sync_loan_foreclosure_loss_mitigation〔asset_managment_config.py:799-819〕 → 视图 → BPS LM 面板
-> - **全部下游表**：bpms.sync_loan_foreclosure_loss_mitigation、bpms.biz_data_view_loan_details_foreclosure
-<!-- META:port.basic_data_loan_foreclosure_loss_mitigation END -->
-
-查询 SQL（prod 只读）：
-```sql
--- port.basic_data_loan_foreclosure_loss_mitigation · redshift_prod(只读) · 多行/贷款（全历史） · 业务日 2026-06-01
-SELECT * FROM port.basic_data_loan_foreclosure_loss_mitigation WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') ORDER BY loanid, fctrdt;
-```
-
-| dataasof | servicer | loanid | svcloanid | fctrdt | deal | program | lmc_status | cycle_opened_date | cycle_closed_date | final_disposition | improgram | denialreason | borrower_intentions | imminent_default | single_point_of_contact |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 2026-04-15 | Newrez | 7727000010 | 1031718692 | 2026-04-15 | Evaluation | Evaluation | Pending Financials  | 2024-11-26 | 2024-12-23 | Request Incomplete/Failed to Provide Information | 21.0 |  |  | — | — |
-| 2026-06-04 | Newrez | 7727000010 | 1031718692 | 2026-06-04 | Modification | 498.0 | Workout Denial | 2026-04-16 | 2026-04-28 | Referral to FC | 498.0 | Hardship not resolved |  | — | — |
-| 2025-06-30 | Newrez | 7727000065 | 1031718621 | 2025-06-30 | Evaluation | Evaluation | Pending Financials  | 2024-11-26 | 2024-12-23 | Request Incomplete/Failed to Provide Information | 21.0 |  |  | — | — |
-| 2026-06-04 | Newrez | 7727000065 | 1031718621 | 2026-06-04 | Evaluation | Evaluation | Pending Financials  | 2025-07-01 | 2025-07-01 | LMS Opened in Error | 21.0 |  |  | — | — |
-| 2025-01-29 | Newrez | 7727000088 | 1031718838 | 2025-01-29 | Evaluation | Evaluation | Pending Financials  | 2024-09-20 | 2024-10-21 | Request Incomplete/Failed to Provide Information | 21.0 |  |  | — | — |
-| 2025-03-16 | Newrez | 7727000088 | 1031718838 | 2025-03-16 | Modification | Bridger mod | Workout Denial | 2025-01-30 | 2025-03-11 | Referral to FC | 419.0 |  |  | — | — |
-| 2025-05-07 | Newrez | 7727000088 | 1031718838 | 2025-05-07 | Modification | Bridger mod | Workout Denial | 2025-03-17 | 2025-04-29 | Referral to FC | 419.0 | Request Incomplete/Failed to Provide Documentation |  | — | — |
-| 2025-06-19 | Newrez | 7727000088 | 1031718838 | 2025-06-19 | Modification | Bridger mod | Workout Denial | 2025-05-08 | 2025-06-14 | Referral to FC | 419.0 | Request Incomplete/Failed to Provide Documentation |  | — | — |
-| 2025-10-20 | Newrez | 7727000088 | 1031718838 | 2025-10-20 | Modification | 496.0 | Workout Denial | 2025-06-20 | 2025-10-20 | Referral to FC | 496.0 |  |  | — | — |
-| 2025-12-09 | Newrez | 7727000088 | 1031718838 | 2025-12-09 | Short Sale | Short Sale | Document Follow-up | 2025-10-20 | 2025-11-21 | Request Incomplete/Failed to Provide Information | 8.0 |  |  | — | — |
-| 2026-01-27 | Newrez | 7727000088 | 1031718838 | 2026-01-27 | DIL | Deed-in-Lieu | DIL Title Ordered | 2025-12-10 | 2026-01-27 | LMS Opened in Error | 10.0 |  |  | — | — |
-| 2026-02-17 | Newrez | 7727000088 | 1031718838 | 2026-02-17 | DIL | Deed-in-Lieu | Negotiate DIL liens | 2026-01-27 | 2026-02-17 | LMS Opened in Error | 10.0 |  |  | — | — |
-| 2026-06-04 | Newrez | 7727000088 | 1031718838 | 2026-06-04 | DIL | Deed-in-Lieu | Workout Denial | 2026-02-17 | 2026-04-24 | Referral to FC | 10.0 | PMI Company Decline |  | — | — |
-| 2026-02-24 | Newrez | 7727000672 | 1032761570 | 2026-02-24 | Payment Plan | Repayment Plan | Workout Denial | 2025-04-11 | 2025-08-14 | Referral to FC | 29.0 | Trial Plan Default | Retention | — | — |
-| 2026-06-04 | Newrez | 7727000672 | 1032761570 | 2026-06-04 | Payment Plan | Repayment Plan | Monitor for pmts/funds | 2026-02-25 | — | Pending | 29.0 |  |  | — | — |
-| 2025-05-06 | Newrez | 7727004200 | 0688132141 | 2025-05-06 | Forbearance | Unemployment Forbearance | Monitor Forbearance | 2025-01-24 | 2025-05-02 | Forbearance Complete | 14.0 |  |  | — | — |
-| 2025-07-26 | Newrez | 7727004200 | 0688132141 | 2025-07-26 | Evaluation | Evaluation | Document Follow-up | 2025-05-07 | 2025-05-30 | LMS Opened in Error | 21.0 |  |  | — | — |
-| 2025-10-02 | Newrez | 7727004200 | 0688132141 | 2025-10-02 | Modification | 496.0 | Workout Denial | 2025-07-27 | 2025-09-19 | Referral to FC | 496.0 |  |  | — | — |
-| 2025-11-16 | Newrez | 7727004200 | 0688132141 | 2025-11-16 | Modification | 496.0 | Workout Denial | 2025-10-03 | — | Pending | 496.0 |  |  | — | — |
-| 2026-01-05 | Newrez | 7727004200 | 0688132141 | 2026-01-05 | Modification | 496.0 | Workout Denial | 2025-11-17 | 2026-01-02 | Referral to FC | 496.0 |  |  | — | — |
-| 2026-06-04 | Newrez | 7727004200 | 0688132141 | 2026-06-04 | Modification | 496.0 | Document Follow-up | 2026-01-06 | 2026-02-02 | Request Incomplete/Failed to Provide Information | 496.0 |  |  | — | — |
-
----
-
-## ⑭ port.basic_data_loan_foreclosure_bankruptcy
-
-> Redshift 破产历史（上游）。全 **15** 字段 · 多行/贷款（全历史） · 共 **3** 行 · 各贷款行数：{'7727000010': 2, '7727000065': 1}。
-
-<!-- META:port.basic_data_loan_foreclosure_bankruptcy START -->
-> **📋 业务含义与全链路血缘**
->
-> - **业务含义/目的**：Redshift 破产历史(1 行/破产申请)——datadic 解码 bkstatus；Carrington 专有 mfr_filed_date(Newrez 为 NULL)。 bpms.sync_loan_foreclosure_bankruptcy 的上游。
-> - **何时来查这张表**：查某贷款全部破产申请/章节/状态(已解码)。
-> - **为什么 pipeline 这样处理**：破产可多次申请；编码经 datadic 解码。
-> - **数据粒度**：1 行/贷款/破产申请。
-> - **上游链路**：{ newrez.portnewrezbk + newrez.portnewrezdatadic } → port.basic_data_loan_foreclosure_bankruptcy〔basic_data_pool_config.py:331-370〕
-> - **全部上游表**：newrez.portnewrezbk、newrez.portnewrezdatadic、port.basic_data_loan_fcl
-> - **下游链路**：→ bpms.sync_loan_foreclosure_bankruptcy〔asset_managment_config.py:822-843〕 → 视图 → BPS 破产面板
-> - **全部下游表**：bpms.sync_loan_foreclosure_bankruptcy、bpms.biz_data_view_loan_details_foreclosure
-<!-- META:port.basic_data_loan_foreclosure_bankruptcy END -->
-
-查询 SQL（prod 只读）：
-```sql
--- port.basic_data_loan_foreclosure_bankruptcy · redshift_prod(只读) · 多行/贷款（全历史） · 业务日 2026-06-01
-SELECT * FROM port.basic_data_loan_foreclosure_bankruptcy WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') ORDER BY loanid, fctrdt;
-```
-
-| dataasof | servicer | loanid | svcloanid | fctrdt | bankruptcy_status | legal_status | status_date | chapter | lien_status | mfr_status | mfr_filed_date | claim_status | proof_of_claim_date | post_petition_due_date |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 2024-07-24 | Newrez | 7727000010 | 1031718692 | 2024-07-24 | Active | BK13 | 2023-08-23 | 13 | — | — | — | — | 2023-09-30 | 2023-09-01 |
-| 2026-06-04 | Newrez | 7727000010 | 1031718692 | 2026-06-04 | Active | BK13 | 2024-02-06 | 13 | — | — | — | — | 2023-09-30 | 2026-06-01 |
-| 2026-06-04 | Newrez | 7727000065 | 1031718621 | 2026-06-04 | Discharged | REO | 2025-04-30 | 7 | — | — | — | — | — | — |
-
----
-
-## ⑮ tempfc.temp_basic_data_fcl
-
-> Redshift 改名临时表（portnewrezfc 等原始列→统一列；运行时中间产物，basic_data_loan_fcl 的上游）。全 **37** 字段 · 取数口径：dataasof=MAX(每贷款) · 命中 5/5 贷款（无行的贷款列显示 `—`）。
-
-<!-- META:tempfc.temp_basic_data_fcl START -->
-> **📋 业务含义与全链路血缘**
->
-> - **业务含义/目的**：Redshift 运行时改名临时表(37 列)——把各 servicer 原始列(如 fcreferraldate)改成统一列(referral_start_date)的中间产物。 port.basic_data_loan_fcl 的直接上游；承接‘改名’这一步。
-> - **何时来查这张表**：排查‘统一列名 ↔ 源列名’映射、定位改名是否正确。
-> - **为什么 pipeline 这样处理**：UNION 前必须先统一列名；单列一张临时表做改名，逻辑清晰、便于调试；运行时产物。
-> - **数据粒度**：1 行/贷款/dataasof。
-> - **上游链路**：newrez.portnewrezfc(各家源) → tempfc.temp_basic_data_fcl〔改名 basic_data_pool_config.py ~:1538-1565〕
-> - **全部上游表**：newrez.portnewrezfc、Servicer 文件(L0)
-> - **下游链路**：→ port.basic_data_loan_fcl(UNION) → FCL 业务族(foreclosure/stage/hold/lm/bk) → bpms.sync_* → BPS
-> - **全部下游表**：port.basic_data_loan_fcl、port.basic_data_loan_foreclosure、port.fcl_stage_info、port.basic_data_loan_foreclosure_hold、port.basic_data_loan_foreclosure_loss_mitigation、port.basic_data_loan_foreclosure_bankruptcy
-<!-- META:tempfc.temp_basic_data_fcl END -->
-
-查询 SQL（prod 只读）：
-```sql
--- tempfc.temp_basic_data_fcl · redshift_prod(只读) · 每贷款 dataasof=MAX(最新快照) · 业务日 2026-06-01
-SELECT t.* FROM tempfc.temp_basic_data_fcl t JOIN (SELECT loanid, MAX(dataasof) AS _md FROM tempfc.temp_basic_data_fcl WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') GROUP BY loanid) m ON t.loanid=m.loanid AND t.dataasof=m._md;
-```
-
-| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-|---|---|---|---|---|---|
-| dataasof | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
-| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-| servicer | Newrez | Newrez | Newrez | Newrez | Newrez |
-| svc_loanid | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
-| activefcflag | 0 | 0 | 0 | 0 | 0 |
-| titleordereddate | — | — | — | 2025-11-13 | — |
-| titlereceiveddate | — | — | — | 2025-12-02 | — |
-| titlecleardate | — | — | — | — | — |
-| noi_date | — | — | — | — | — |
-| fcsetupdate | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
-| referral_start_date | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
-| svc_days_infc | 368 | 79 | 294 | 254 | — |
-| daysinfc | 368 | 79 | 294 | 254 | — |
-| demandsentdate | 2025-02-18 | 2025-11-17 | 2025-05-20 | 2024-08-12 | 2026-04-10 |
-| demandexpirationdate | 2025-03-25 | 2025-12-22 | 2025-06-24 | 2024-09-18 | 2026-05-15 |
-| legal_start_date | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
-| service_start_date | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
-| fcjudgment_hearing_scheduled | 2026-03-27 | — | 2026-04-13 | 2025-10-15 | — |
-| fcjudgment_end_date | 2026-04-08 | — | 2026-02-13 | 2025-08-25 | — |
-| fcscheduled_sale_date | — | — | 2026-05-19 | — | — |
-| fcsale_held_date | 2026-05-22 | — | — | 2025-10-14 | — |
-| fcbidamount | 301500 | — | — | 390832.5 | — |
-| fcapprbidprice | 301500 | — | — | 390832.5 | — |
-| fcsaleamount | 200100 | — | — | 357200 | — |
-| fcl3rdpartyproceedsreceiveddate | — | — | — | — | — |
-| fcresults | REO |  |  | REO |  |
-| fcstage | Post Sale Review (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Post Sale Review (SCRA and PACER Check) |  |
-| lastfcstepcompleted | Post Sale Review (SCRA and PACER Check) | First Publication | Sale Scheduled For | Post Sale Review (SCRA and PACER Check) |  |
-| lastfcstepcompleteddate | 2026-05-26 | 2026-03-25 | 2026-05-19 | 2025-10-15 | — |
-| fcremovaldesc | Process Complete | Loss Mitigation | Paid in Full | Process Complete |  |
-| fcremovaldate | 2026-05-26 | 2026-05-27 | 2026-04-17 | 2025-10-15 | — |
-| judicial | 1.0 | 0.0 | 1.0 | 1.0 |  |
-| fcfirm | Kelley Kronenberg, P.A. | Orlans Law Group PLLC | Johnson, Blumberg & Associates, LLC | RAS (Primary) |  |
-| fccontestedflag | 0 | 0 | 0 | 0 | 0 |
-| jr_sr_lien_flag | 1.0 | 1.0 | 1.0 | 1.0 |  |
-| dtdeedrecorded | — | — | — | 2025-10-28 | — |
-| activejnrlienfcflag | 0 | 0 | 0 | 0 | 0 |
-
----
-
-## ⑯ port.basic_data_daily_loan_common
+## ⑦ port.basic_data_daily_loan_common
 
 > 逾期支线 L2 统一日表（delq_status；每贷款最新 asofdate）。全 **78** 字段 · 取数口径：asofdate=MAX(每贷款) · 命中 5/5 贷款（无行的贷款列显示 `—`）。
 
@@ -1243,7 +742,7 @@ SELECT t.* FROM port.basic_data_daily_loan_common t JOIN (SELECT loanid, MAX(aso
 
 ---
 
-## ⑰ port.basic_data_daily_loan_common_clean
+## ⑧ port.basic_data_daily_loan_common_clean
 
 > 逾期支线 L3 清洗日表（delinq / days360；每贷款最新 fctrdt）。全 **103** 字段 · 取数口径：fctrdt=MAX(每贷款) · 命中 5/5 贷款（无行的贷款列显示 `—`）。
 
@@ -1372,6 +871,582 @@ SELECT t.* FROM port.basic_data_daily_loan_common_clean t JOIN (SELECT loanid, M
 | lm_flag | N | Y | N | N | N |
 | lastcontactdate | 2026-04-28 | 2026-04-20 | 2026-02-27 | — | 2026-05-05 |
 | reasonfordefault | Reduction in Borrower's Income |  |  | Unable to Contact Borrower |  |
+
+---
+
+## ⑨ tempfc.temp_basic_data_fcl
+
+> Redshift 改名临时表（portnewrezfc 等原始列→统一列；运行时中间产物，basic_data_loan_fcl 的上游）。全 **37** 字段 · 取数口径：dataasof=MAX(每贷款) · 命中 5/5 贷款（无行的贷款列显示 `—`）。
+
+<!-- META:tempfc.temp_basic_data_fcl START -->
+> **📋 业务含义与全链路血缘**
+>
+> - **业务含义/目的**：Redshift 运行时改名临时表(37 列)——把各 servicer 原始列(如 fcreferraldate)改成统一列(referral_start_date)的中间产物。 port.basic_data_loan_fcl 的直接上游；承接‘改名’这一步。
+> - **何时来查这张表**：排查‘统一列名 ↔ 源列名’映射、定位改名是否正确。
+> - **为什么 pipeline 这样处理**：UNION 前必须先统一列名；单列一张临时表做改名，逻辑清晰、便于调试；运行时产物。
+> - **数据粒度**：1 行/贷款/dataasof。
+> - **上游链路**：newrez.portnewrezfc(各家源) → tempfc.temp_basic_data_fcl〔改名 basic_data_pool_config.py ~:1538-1565〕
+> - **全部上游表**：newrez.portnewrezfc、Servicer 文件(L0)
+> - **下游链路**：→ port.basic_data_loan_fcl(UNION) → FCL 业务族(foreclosure/stage/hold/lm/bk) → bpms.sync_* → BPS
+> - **全部下游表**：port.basic_data_loan_fcl、port.basic_data_loan_foreclosure、port.fcl_stage_info、port.basic_data_loan_foreclosure_hold、port.basic_data_loan_foreclosure_loss_mitigation、port.basic_data_loan_foreclosure_bankruptcy
+<!-- META:tempfc.temp_basic_data_fcl END -->
+
+查询 SQL（prod 只读）：
+```sql
+-- tempfc.temp_basic_data_fcl · redshift_prod(只读) · 每贷款 dataasof=MAX(最新快照) · 业务日 2026-06-01
+SELECT t.* FROM tempfc.temp_basic_data_fcl t JOIN (SELECT loanid, MAX(dataasof) AS _md FROM tempfc.temp_basic_data_fcl WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') GROUP BY loanid) m ON t.loanid=m.loanid AND t.dataasof=m._md;
+```
+
+| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+|---|---|---|---|---|---|
+| dataasof | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
+| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+| servicer | Newrez | Newrez | Newrez | Newrez | Newrez |
+| svc_loanid | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
+| activefcflag | 0 | 0 | 0 | 0 | 0 |
+| titleordereddate | — | — | — | 2025-11-13 | — |
+| titlereceiveddate | — | — | — | 2025-12-02 | — |
+| titlecleardate | — | — | — | — | — |
+| noi_date | — | — | — | — | — |
+| fcsetupdate | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
+| referral_start_date | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
+| svc_days_infc | 368 | 79 | 294 | 254 | — |
+| daysinfc | 368 | 79 | 294 | 254 | — |
+| demandsentdate | 2025-02-18 | 2025-11-17 | 2025-05-20 | 2024-08-12 | 2026-04-10 |
+| demandexpirationdate | 2025-03-25 | 2025-12-22 | 2025-06-24 | 2024-09-18 | 2026-05-15 |
+| legal_start_date | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
+| service_start_date | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
+| fcjudgment_hearing_scheduled | 2026-03-27 | — | 2026-04-13 | 2025-10-15 | — |
+| fcjudgment_end_date | 2026-04-08 | — | 2026-02-13 | 2025-08-25 | — |
+| fcscheduled_sale_date | — | — | 2026-05-19 | — | — |
+| fcsale_held_date | 2026-05-22 | — | — | 2025-10-14 | — |
+| fcbidamount | 301500 | — | — | 390832.5 | — |
+| fcapprbidprice | 301500 | — | — | 390832.5 | — |
+| fcsaleamount | 200100 | — | — | 357200 | — |
+| fcl3rdpartyproceedsreceiveddate | — | — | — | — | — |
+| fcresults | REO |  |  | REO |  |
+| fcstage | Post Sale Review (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Post Sale Review (SCRA and PACER Check) |  |
+| lastfcstepcompleted | Post Sale Review (SCRA and PACER Check) | First Publication | Sale Scheduled For | Post Sale Review (SCRA and PACER Check) |  |
+| lastfcstepcompleteddate | 2026-05-26 | 2026-03-25 | 2026-05-19 | 2025-10-15 | — |
+| fcremovaldesc | Process Complete | Loss Mitigation | Paid in Full | Process Complete |  |
+| fcremovaldate | 2026-05-26 | 2026-05-27 | 2026-04-17 | 2025-10-15 | — |
+| judicial | 1.0 | 0.0 | 1.0 | 1.0 |  |
+| fcfirm | Kelley Kronenberg, P.A. | Orlans Law Group PLLC | Johnson, Blumberg & Associates, LLC | RAS (Primary) |  |
+| fccontestedflag | 0 | 0 | 0 | 0 | 0 |
+| jr_sr_lien_flag | 1.0 | 1.0 | 1.0 | 1.0 |  |
+| dtdeedrecorded | — | — | — | 2025-10-28 | — |
+| activejnrlienfcflag | 0 | 0 | 0 | 0 | 0 |
+
+---
+
+## ⑩ port.basic_data_loan_fcl
+
+> Redshift FCL 快照中间表（portnewrezfc 全量进此；每贷款取最新 dataasof）。全 **61** 字段 · 取数口径：dataasof=MAX(每贷款) · 命中 5/5 贷款（无行的贷款列显示 `—`）。
+
+<!-- META:port.basic_data_loan_fcl START -->
+> **📋 业务含义与全链路血缘**
+>
+> - **业务含义/目的**：Redshift FCL 事实表——portnewrezfc 等经改名后 UNION 全 6 家 servicer 的统一列宽表(每贷款最新 dataasof)。 FCL 计算的统一入口；屏蔽各 servicer 列名差异。
+> - **何时来查这张表**：查‘统一列名后的 FCL 字段值’，或定位某下游字段来自哪根统一列。
+> - **为什么 pipeline 这样处理**：各家列名不同，先改名(tempfc.temp_basic_data_fcl)再 UNION 成一张统一事实表，下游只面对一套列名。
+> - **数据粒度**：1 行/贷款（每贷款最新 dataasof）。
+> - **上游链路**：Servicer 文件(L0) → newrez.portnewrezfc(+各家对应表) → tempfc.temp_basic_data_fcl(改名) → port.basic_data_loan_fcl〔UNION，basic_data_pool_config.py〕
+> - **全部上游表**：Servicer 文件(L0)、newrez.portnewrezfc、(sls/carrington/mrc/fci/selene 对应源表)、tempfc.temp_basic_data_fcl
+> - **下游链路**：basic_data_loan_fcl → { port.basic_data_loan_foreclosure〔GEN_FCL_DETAIL :253-305〕 / port.fcl_stage_info〔GEN_FCL_STAGE :1774-2440〕 / port.basic_data_loan_foreclosure_hold〔:466-768〕 / port.basic_data_loan_foreclosure_loss_mitigation〔:799-843〕 / port.basic_data_loan_foreclosure_bankruptcy〔:331-370〕 } → bpms.sync_* → 视图 → BPS
+> - **全部下游表**：port.basic_data_loan_foreclosure、port.fcl_stage_info、port.basic_data_loan_foreclosure_hold、port.basic_data_loan_foreclosure_loss_mitigation、port.basic_data_loan_foreclosure_bankruptcy、bpms.sync_loan_foreclosure、bpms.sync_fcl_stage_info、bpms.sync_loan_foreclosure_hold、bpms.sync_loan_foreclosure_loss_mitigation、bpms.sync_loan_foreclosure_bankruptcy、bpms.biz_data_view_loan_details_foreclosure
+<!-- META:port.basic_data_loan_fcl END -->
+
+查询 SQL（prod 只读）：
+```sql
+-- port.basic_data_loan_fcl · redshift_prod(只读) · 每贷款 dataasof=MAX(最新快照) · 业务日 2026-06-01
+SELECT t.* FROM port.basic_data_loan_fcl t JOIN (SELECT loanid, MAX(dataasof) AS _md FROM port.basic_data_loan_fcl WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') GROUP BY loanid) m ON t.loanid=m.loanid AND t.dataasof=m._md;
+```
+
+| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+|---|---|---|---|---|---|
+| dataasof | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
+| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+| servicer | Newrez | Newrez | Newrez | Newrez | Newrez |
+| svc_loanid | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
+| activefcflag | 0 | 0 | 0 | 0 | 0 |
+| titleordereddate | — | — | — | 2025-11-13 | — |
+| titlereceiveddate | — | — | — | 2025-12-02 | — |
+| titlecleardate | — | — | — | — | — |
+| noi_date | — | — | — | — | — |
+| fcsetupdate | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
+| referral_start_date | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
+| svc_days_infc | 368 | 79 | 294 | 254 | — |
+| daysinfc | 368 | 79 | 294 | 254 | — |
+| demandsentdate | 2025-02-18 | 2025-11-17 | 2025-05-20 | 2024-08-12 | 2026-04-10 |
+| demandexpirationdate | 2025-03-25 | 2025-12-22 | 2025-06-24 | 2024-09-18 | 2026-05-15 |
+| legal_start_date | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
+| service_start_date | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
+| fcjudgment_hearing_scheduled | 2026-03-27 | — | 2026-04-13 | 2025-10-15 | — |
+| fcjudgment_end_date | 2026-04-08 | — | 2026-02-13 | 2025-08-25 | — |
+| fcscheduled_sale_date | — | — | 2026-05-19 | — | — |
+| fcsale_held_date | 2026-05-22 | — | — | 2025-10-14 | — |
+| fcbidamount | 301500 | — | — | 390832.5 | — |
+| fcapprbidprice | 301500 | — | — | 390832.5 | — |
+| fcsaleamount | 200100 | — | — | 357200 | — |
+| fcl3rdpartyproceedsreceiveddate | — | — | — | — | — |
+| fcresults | REO |  |  | REO |  |
+| fcstage | Post Sale Review (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Post Sale Review (SCRA and PACER Check) |  |
+| lastfcstepcompleted | Post Sale Review (SCRA and PACER Check) | First Publication | Sale Scheduled For | Post Sale Review (SCRA and PACER Check) |  |
+| lastfcstepcompleteddate | 2026-05-26 | 2026-03-25 | 2026-05-19 | 2025-10-15 | — |
+| fcremovaldesc | Process Complete | Loss Mitigation | Paid in Full | Process Complete |  |
+| fcremovaldate | 2026-05-26 | 2026-05-27 | 2026-04-17 | 2025-10-15 | — |
+| judicial | 1.0 | 0.0 | 1.0 | 1.0 |  |
+| fcfirm | Kelley Kronenberg, P.A. | Orlans Law Group PLLC | Johnson, Blumberg & Associates, LLC | RAS (Primary) |  |
+| fccontestedflag | 0 | 0 | 0 | 0 | 0 |
+| jr_sr_lien_flag | 1.0 | 1.0 | 1.0 | 1.0 |  |
+| dtdeedrecorded | — | — | — | 2025-10-28 | — |
+| activejnrlienfcflag | 0 | 0 | 0 | 0 | 0 |
+| fchold1description | Court Delay | Delinquency Review | Delinquency Review | Court Delay | — |
+| fchold1startdate | 2026-04-09 | 2026-05-12 | 2026-04-17 | 2025-08-26 | — |
+| fchold1enddate | 2026-04-26 | 2026-05-27 | 2026-04-17 | 2025-08-28 | — |
+| fchold1projectedenddate | 2026-04-29 | 2026-07-11 | 2026-06-16 | 2025-09-15 | — |
+| fchold1comment | Delay Reason: Pending Ruling on Judgment, Hold Start Date: 2026-04-09, Date of Delay: 2026-04-06, Anticipated Resolution ETA: 2026-04-29, Additional Detail On Delay: We are pending judge's execution of the  proposed Order | Delinquency Review | Delinquency Review | Delay Reason: Pending Judges Decision/Ruling, Hold Start Date: 2025-08-26, Date of Delay: 2025-08-13, Anticipated Resolution ETA: 2025-09-15, Additional Detail On Delay: The Final Judgment was granted at NJT held 8/25/2025. At this time firm is pending the executed final Judgment with sale date scheduled to be docketed with the court a requirement to complete the Judgment entered.  | — |
+| holdmodified | 2026-04-27 | 2026-05-27 | 2026-04-17 | 2025-08-29 | — |
+| fchold2description | Hearing Set | Loss Mitigation Workout | Hearing Set | Court Delay | — |
+| fchold2startdate | 2026-03-16 | 2026-03-25 | 2026-01-29 | 2025-07-02 | — |
+| fchold2enddate | 2026-04-07 | 2026-05-27 | 2026-02-13 | 2025-07-14 | — |
+| fchold2projectedenddate | 2026-04-06 | 2026-06-01 | 2026-02-13 | 2025-07-22 | — |
+| fchold2comment | Hearing scheduled for 04/06/2026, Additional Detail: Plaintiff's Motion for Summary Judgment scheduled for 4.6.26. Please end court delay hold. Thanks | BRP Complete:  Complete Ack Sent:  RPP Approved: 03/24/2026 RPP Payments Due: 6 Last RPP Payment Made: 05/12/2026 Next Payment Due: 06/01/2026 | RID: 861849328; Judgment hearing scheduled for 2/13/26 | Delay Reason: Pending Judges Decision/Ruling, Hold Start Date: 2025-07-02, Date of Delay: 2025-07-01, Anticipated Resolution ETA: 2025-07-22, Additional Detail On Delay: Pending court's ruling on the Plaintiff's motion for clerk's default.  | — |
+| holdmodified2 | 2026-04-07 | 2026-05-27 | 2026-02-13 | 2025-07-15 | — |
+| fchold3description | Court Delay |  | Service Delay | Bankruptcy Filed | — |
+| fchold3startdate | 2026-01-16 | — | 2025-12-30 | 2025-05-06 | — |
+| fchold3enddate | 2026-03-16 | — | 2026-01-23 | 2025-06-27 | — |
+| fchold3projectedenddate | 2026-03-17 | — | 2026-01-23 | 2025-07-07 | — |
+| fchold3comment | Delay Reason: Pending Hearing Date for Judgment, Hold Start Date: 2026-01-16, Date of Delay: 2026-01-19, Anticipated Resolution ETA: 2026-03-17, Additional Detail On Delay: We have reached out to the JA for dates in April and is pending a response. The JA had advised there were only limited dates. Pending response to proceed., Actions Taken by the Firm: Called the court, Most Recent Follow-Up Date: 02/20/2026, Additional Info:  We have reached out to the JA for dates in April and is pending a response. The JA had advised there were only limited dates. Pending response to proceed. |  | Due to title identifying the incorrect HOA, the new correct HOA had to be served.  The HOA was served 12/24/25 and the time period for the correct HOA to file their Answer does not expire until 1-23-2026.  See Step 9.  We cannot proceed to judgment until after 1-23-2026.   | CaseNumber: 2500228 Chapter: 7 Filed Date: 04/30/2025 POC Bar Date:  Post-Petition Due Date:  MFR Referral Date: 05/15/2025 MFR Filed Date: 06/10/2025 MFR Granted Date:  Dismissal Date: | — |
+| holdmodified3 | 2026-03-17 | — | 2026-01-23 | 2025-06-27 | — |
+| fchold4description | — | — | — | — | — |
+| fchold4startdate | — | — | — | — | — |
+| fchold4enddate | — | — | — | — | — |
+| fchold4projectedenddate | — | — | — | — | — |
+| fchold4comment | — | — | — | — | — |
+| holdmodified4 | — | — | — | — | — |
+
+---
+
+## ⑪ port.basic_data_loan_foreclosure
+
+> Redshift FCL 聚合表（1 行/贷款，sync_loan_foreclosure 的直接上游）。全 **62** 字段 · 取数口径：dataasof=MAX(每贷款) · 命中 5/5 贷款（无行的贷款列显示 `—`）。
+
+<!-- META:port.basic_data_loan_foreclosure START -->
+> **📋 业务含义与全链路血缘**
+>
+> - **业务含义/目的**：Redshift FCL 聚合表(1 行/贷款)——一笔贷款端到端法拍时间线：各里程碑日期、当前状态(summary_foreclosure_status)、司法标志、在法拍天数(summary_days_in_fcl)。 bpms.sync_loan_foreclosure(BPS 主表)的直接上游；法拍主视图的数据底座。
+> - **何时来查这张表**：查某贷款法拍‘何时进入各里程碑/当前状态/在法拍多少天/为何退出’。
+> - **为什么 pipeline 这样处理**：把事实表里散落的里程碑/状态按业务规则(GEN_FCL_DETAIL CASE)收敛成 1 行/贷款的可读时间线；退出原因直接取 servicer 的 fcremovaldesc(无解码表)。
+> - **数据粒度**：1 行/贷款（含在途 + 已结）。
+> - **上游链路**：… → port.basic_data_loan_fcl → port.basic_data_loan_foreclosure〔GEN_FCL_DETAIL basic_data_pool_config.py:253-305；状态 CASE :273；司法 :277-279；在法拍天数 :1628〕
+> - **全部上游表**：port.basic_data_loan_fcl、tempfc.temp_basic_data_fcl、newrez.portnewrezfc、Servicer 文件(L0)
+> - **下游链路**：basic_data_loan_foreclosure → (Redshift→MySQL 同步 df_db_util.py:665-699 sync_to_mysql / 702-726 update_to_mysql) → bpms.sync_loan_foreclosure〔GEN_FORECLOSURE asset_managment_config.py:535-608；实时天数校正 :597-598〕 → bpms.biz_data_view_loan_details_foreclosure(视图) → BPS Summary/Timeline 面板
+> - **全部下游表**：bpms.sync_loan_foreclosure、bpms.biz_data_view_loan_details_foreclosure
+<!-- META:port.basic_data_loan_foreclosure END -->
+
+查询 SQL（prod 只读）：
+```sql
+-- port.basic_data_loan_foreclosure · redshift_prod(只读) · 每贷款 dataasof=MAX(最新快照) · 业务日 2026-06-01
+SELECT t.* FROM port.basic_data_loan_foreclosure t JOIN (SELECT loanid, MAX(dataasof) AS _md FROM port.basic_data_loan_foreclosure WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') GROUP BY loanid) m ON t.loanid=m.loanid AND t.dataasof=m._md;
+```
+
+| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+|---|---|---|---|---|---|
+| dataasof | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
+| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+| svcloanid | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
+| servicer | Newrez | Newrez | Newrez | Newrez | Newrez |
+| timeline_notice_of_intent_date | — | — | — | — | — |
+| timeline_notice_of_intent_end_date | — | — | — | — | — |
+| timeline_approved_for_referral_date | — | — | — | — | — |
+| timeline_referred_to_attorney_date | — | — | — | — | — |
+| timeline_referred_to_foreclosure_date | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
+| timeline_title_report_received_date | — | — | — | 2025-12-02 | — |
+| timeline_preliminary_title_cleared_date | — | — | — | — | — |
+| timeline_first_legal_date | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
+| timeline_service_date | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
+| timeline_publication_date | — | — | — | — | — |
+| timeline_judgement_hearing_set_date | 2025-12-17 | — | 2026-02-13 | 2025-07-15 | — |
+| timeline_judgement_date | 2026-03-27 | — | 2026-04-13 | 2025-10-15 | — |
+| timeline_sale_date_projected_date | — | — | 2026-05-19 | — | — |
+| timeline_sale_date_set_date | — | — | 2026-02-19 | — | — |
+| timeline_final_title_cleared_date | — | — | — | — | — |
+| timeline_sale_date_held_date | 2026-05-22 | — | — | 2025-10-14 | — |
+| timeline_foreclosure_completed_date | — | — | — | — | — |
+| timeline_third_party_sold_date_date | — | — | — | — | — |
+| timeline_third_party_proceeds_received_date | — | — | — | — | — |
+| target_notice_of_intent_days | — | — | — | — | — |
+| target_notice_of_intent_expired_days | — | — | — | — | — |
+| target_approved_for_referral_days | — | — | — | — | — |
+| target_referred_to_attorney_days | — | — | — | — | — |
+| target_referred_to_foreclosure_days | — | — | — | — | — |
+| target_title_report_received_days | — | — | — | — | — |
+| target_preliminary_title_cleared_days | — | — | — | — | — |
+| target_first_legal_days | — | — | — | — | — |
+| target_service_days | — | — | — | — | — |
+| target_publication_days | — | — | — | — | — |
+| target_judgement_hearing_set_days | — | — | — | — | — |
+| target_judgement_days | — | — | — | — | — |
+| target_sale_date_set_days | — | — | — | — | — |
+| target_final_title_cleared_days | — | — | — | — | — |
+| target_sale_date_held_days | — | — | — | — | — |
+| variance_active_bankruptcy | — | — | — | — | — |
+| variance_completed_bankruptcy | — | — | — | — | — |
+| variance_estimated_hold_days | — | — | — | — | — |
+| variance_bankruptcies | — | — | — | — | — |
+| bid_approval_status | — | — | — | — | — |
+| bid_approval_sale_date | — | — | — | — | — |
+| bid_approval_bid_amount | 301500 | — | — | 390832.5 | — |
+| bid_approval_loan_resolution_holods | — | — | — | — | — |
+| summary_servicer_number | — | — | — | — | — |
+| summary_foreclosure_status | Closed Foreclosure:Process Complete | Closed Foreclosure:Loss Mitigation | Closed Foreclosure:Paid in Full | Closed Foreclosure:Process Complete | — |
+| summary_completed_foreclosure | — | — | — | — | — |
+| summary_foreclosure_bid_amount | 301500 | — | — | 390832.5 | — |
+| summary_srv_fc_bid_amount | 301500 | — | — | 390832.5 | — |
+| summary_foreclosure_sale_amount | 200100 | — | — | 357200 | — |
+| summary_judicial_foreclosure | 1 | 0 | 1 | 1 | — |
+| summary_foreclosure_attorney | — | — | — | — | — |
+| summary_contested_litigation | 0 | 0 | 0 | 0 | 0 |
+| summary_firm | Kelley Kronenberg, P.A. | Orlans Law Group PLLC | Johnson, Blumberg & Associates, LLC | RAS (Primary) |  |
+| summary_type | Judicial | Non Judicial | Judicial | Judicial | — |
+| summary_sms_days_in_fcl | 368 | 79 | 294 | 254 | — |
+| summary_days_in_fcl | 368 | 79 | 294 | 254 | — |
+| summary_current_step | Post Sale Review (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Post Sale Review (SCRA and PACER Check) |  |
+| summary_last_step_completed | Post Sale Review (SCRA and PACER Check) | First Publication | Sale Scheduled For | Post Sale Review (SCRA and PACER Check) |  |
+| summary_last_step_completed_date | 2026-05-26 | 2026-03-25 | 2026-05-19 | 2025-10-15 | — |
+
+---
+
+## ⑫ port.basic_data_fcl_related
+
+> FCL 关联/过滤中间表（delq_status 等；每贷款最新 dataasof）。全 **14** 字段 · 取数口径：dataasof=MAX(每贷款) · 命中 5/5 贷款（无行的贷款列显示 `—`）。
+
+<!-- META:port.basic_data_fcl_related START -->
+> **📋 业务含义与全链路血缘**
+>
+> - **业务含义/目的**：FCL 关联属性中间表(14 列)——诉讼标志、清算类型、BK 标志、违约原因、delq_status 等。 给 stage 计算与过滤提供‘关联属性/分组键’(delq_status → stage group)。
+> - **何时来查这张表**：查某贷款 stage 分组依据、关联诉讼/清算/违约属性。
+> - **为什么 pipeline 这样处理**：stage 计算需把逾期支线的 delq_status 与 FCL 属性合并；单列一张关联表承接，避免主时间线表过宽。
+> - **数据粒度**：1 行/贷款（最新 dataasof）。
+> - **上游链路**：{ port.basic_data_loan_fcl(FCL 属性) + port.basic_data_daily_loan_common_clean.delinq(逾期码) } → port.basic_data_fcl_related〔basic_data_pool_config.py〕
+> - **全部上游表**：port.basic_data_loan_fcl、port.basic_data_daily_loan_common_clean
+> - **下游链路**：basic_data_fcl_related.delq_status → port.fcl_stage_info.group(stage 分组) → bpms.sync_fcl_stage_info → 视图 → BPS Stage 面板
+> - **全部下游表**：port.fcl_stage_info、bpms.sync_fcl_stage_info、bpms.biz_data_view_loan_details_foreclosure
+<!-- META:port.basic_data_fcl_related END -->
+
+查询 SQL（prod 只读）：
+```sql
+-- port.basic_data_fcl_related · redshift_prod(只读) · 每贷款 dataasof=MAX(最新快照) · 业务日 2026-06-01
+SELECT t.* FROM port.basic_data_fcl_related t JOIN (SELECT loanid, MAX(dataasof) AS _md FROM port.basic_data_fcl_related WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') GROUP BY loanid) m ON t.loanid=m.loanid AND t.dataasof=m._md;
+```
+
+| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+|---|---|---|---|---|---|
+| dataasof | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
+| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+| servicer | Newrez | Newrez | Newrez | Newrez | Newrez |
+| delq_status | REO | D120P | P | REO | D60 |
+| isloanlitigated | 0 | 0 | 0 | 0 | 0 |
+| deactreason | FC-BK | FC-BK |  | FC-BK |  |
+| reasonfordefault | Reduction in Borrower's Income |  |  | Unable to Contact Borrower |  |
+| inauctionflag | 0 | 0 | 0 | 1 | 0 |
+| liquidationdate | — | — | 2026-04-16 | — | — |
+| liquidationtype |  |  | 3.0 |  |  |
+| liquidationproceeds |  |  | 503557.98 |  |  |
+| pmt | 0 | 0 | 0 | 0 | 6339.72 |
+| bk_flag | 0 | 0 | 0 | 0 | 1 |
+| propertystate | FL | MI | IL | FL | FL |
+
+---
+
+## ⑬ port.fcl_stage_info
+
+> Redshift 阶段表（sync_fcl_stage_info 上游；每贷款最新 fctrdt）。全 **48** 字段 · 取数口径：fctrdt=MAX(每贷款) · 命中 5/5 贷款（无行的贷款列显示 `—`）。
+
+<!-- META:port.fcl_stage_info START -->
+> **📋 业务含义与全链路血缘**
+>
+> - **业务含义/目的**：Redshift 阶段表(48 列)——把法拍拆成 6 大阶段，每阶段 5 维(开始/天数/扣除 LM-Hold 重叠等)，每贷款最新 fctrdt。 bpms.sync_fcl_stage_info(BPS 聚合 Stage/Timeline)的上游；面板‘各阶段停留天数’的底座。
+> - **何时来查这张表**：查某贷款‘在每个阶段停留多久、扣除 LM/Hold 后净时长、当前在哪个阶段组’。
+> - **为什么 pipeline 这样处理**：业务关心‘卡在哪一步多久’；阶段口径复杂(N:N 扣 LM/Hold 重叠)，单列一张表算清，并 JOIN portfunding 取 funding 维。
+> - **数据粒度**：1 行/贷款/fctrdt。
+> - **上游链路**：{ port.basic_data_loan_fcl + port.basic_data_fcl_related(delq_status 分组) + port.portfunding(JOIN) } → port.fcl_stage_info〔GEN_FCL_STAGE basic_data_pool_config.py:1774-2440〕
+> - **全部上游表**：port.basic_data_loan_fcl、port.basic_data_fcl_related、port.basic_data_daily_loan_common_clean、port.portfunding
+> - **下游链路**：fcl_stage_info → bpms.sync_fcl_stage_info〔GET_FCL_STAGE_DATA asset_managment_config.py:925-929，JOIN port.portfunding〕 → 视图 → BPS Stage 面板
+> - **全部下游表**：bpms.sync_fcl_stage_info、bpms.biz_data_view_loan_details_foreclosure
+<!-- META:port.fcl_stage_info END -->
+
+查询 SQL（prod 只读）：
+```sql
+-- port.fcl_stage_info · redshift_prod(只读) · 每贷款 fctrdt=MAX(最新快照) · 业务日 2026-06-01
+SELECT t.* FROM port.fcl_stage_info t JOIN (SELECT loanid, MAX(fctrdt) AS _md FROM port.fcl_stage_info WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') GROUP BY loanid) m ON t.loanid=m.loanid AND t.fctrdt=m._md;
+```
+
+| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+|---|---|---|---|---|---|
+| fctrdt | 2026-05-25 | 2026-05-26 | 2026-04-15 | 2025-10-14 | 2026-05-31 |
+| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+| group | REO | FCL | FCL | REO | D120P |
+| servicer | Newrez | Newrez | Newrez | Newrez | Newrez |
+| state | FL | MI | IL | FL | FL |
+| judicial | Y | N | Y | Y | Y |
+| demand_start_date | 2025-02-18 | 2025-11-17 | 2025-05-20 | 2024-08-12 | 2026-04-10 |
+| demand_end_date | 2025-03-25 | 2025-12-22 | 2025-06-24 | 2024-09-18 | 2026-05-15 |
+| demand_stage_days | 464 | 193 | 333 | 431 | 54 |
+| demand_in_lm_days | — | 93 | 197 | — | — |
+| demand_on_hold_days | — | 17 | — | — | — |
+| noi_start_date | — | — | — | — | — |
+| noi_end_date | — | — | — | — | — |
+| noi_stage_days | — | — | — | — | — |
+| noi_in_lm_days | — | — | — | — | — |
+| noi_on_hold_days | — | — | — | — | — |
+| referral_start_date | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
+| referral_end_date | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
+| referral_stage_days | 22 | 17 | 25 | 53 | — |
+| referral_in_lm_days | — | — | — | — | — |
+| referral_on_hold_days | — | 1 | — | — | — |
+| first_legal_start_date | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
+| first_legal_end_date | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
+| first_legal_stage_days | 36 | 65 | 157 | 38 | — |
+| first_legal_in_lm_days | — | — | 83 | — | — |
+| first_legal_on_hold_days | — | 17 | — | — | — |
+| first_legal_date_history | — | — | — | — | — |
+| service_start_date | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
+| service_end_date | 2025-12-17 | — | 2026-02-13 | 2025-07-15 | — |
+| service_stage_days | 153 | — | 52 | 74 | — |
+| service_in_lm_days | — | — | — | — | — |
+| service_on_hold_days | — | — | — | — | — |
+| publication_start_date | — | — | — | — | — |
+| publication_end_date | — | — | — | — | — |
+| publication_stage_days | — | — | — | — | — |
+| publication_in_lm_days | — | — | — | — | — |
+| publication_on_hold_days | — | — | — | — | — |
+| judgement_start_date | 2026-03-27 | — | 2026-04-13 | 2025-10-15 | — |
+| judgement_end_date | — | — | — | — | — |
+| to_judgement_days | 0 | — | 0 | 0 | — |
+| judgement_in_lm_days | — | — | — | — | — |
+| judgement_on_hold_days | — | — | — | — | — |
+| sale_start_date | — | 2026-08-06 | 2026-05-19 | — | — |
+| sale_end_date | — | — | — | — | — |
+| to_sale_days | — | 70 | 32 | — | — |
+| sale_in_lm_days | — | — | — | — | — |
+| sale_on_hold_days | — | — | — | — | — |
+| stage | JUDGEMENT | SALE | SALE | JUDGEMENT | DEMAND |
+
+---
+
+## ⑭ port.portfunding
+
+> 融资池表（入库 JOIN 过滤；1 行/贷款）。全 **57** 字段 · 取数口径：当前态(1行/贷款) · 命中 5/5 贷款（无行的贷款列显示 `—`）。
+
+<!-- META:port.portfunding START -->
+> **📋 业务含义与全链路血缘**
+>
+> - **业务含义/目的**：融资池表(57 列，1 行/贷款)——funding/deal 标识(fundingid/dealid)与池属性。 作为 JOIN 维度为 FCL 输出补 funding_id/bid_id，并做入库过滤。
+> - **何时来查这张表**：查某贷款属于哪个融资池/deal，或为何被 sync 过滤进/出。
+> - **为什么 pipeline 这样处理**：BPS 需按 funding/bid 维展示与归集；FCL 表本身不含，运行时 JOIN portfunding 补齐(dealid→bid_id, fundingid→funding_id)。
+> - **数据粒度**：1 行/贷款（当前态）。
+> - **上游链路**：投资/融资域(非 servicer FCL 文件) → port.portfunding
+> - **全部上游表**：投资/融资域来源（非 FCL servicer 文件）
+> - **下游链路**：portfunding ⋈ { port.fcl_stage_info / GEN_FORECLOSURE(asset_managment_config.py:535-608) } → bpms.sync_fcl_stage_info / bpms.sync_loan_foreclosure → 视图 → BPS
+> - **全部下游表**：port.fcl_stage_info、bpms.sync_fcl_stage_info、bpms.sync_loan_foreclosure、bpms.biz_data_view_loan_details_foreclosure
+<!-- META:port.portfunding END -->
+
+查询 SQL（prod 只读）：
+```sql
+-- port.portfunding · redshift_prod(只读) · 当前态 1 行/贷款 · 业务日 2026-06-01
+SELECT * FROM port.portfunding WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') ORDER BY loanid;
+```
+
+| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+|---|---|---|---|---|---|
+| fundingid | HMP002 | IMPAC001 | BOA002 | HMP002 | HMP002 |
+| dealid | HMP002 | IMPAC001 | BOA002 | HMP002 | HMP002 |
+| cutoffdate | 2023-01-25 | 2023-07-05 | 2024-06-01 | 2023-01-25 | 2023-01-25 |
+| settledate | 2023-01-31 | 2023-07-18 | 2024-06-26 | 2023-01-31 | 2023-01-31 |
+| wal | 8.03 | 8.06 | 5.66 | 8.03 | 8.03 |
+| hurdlespread | 415 | 408 | 332 | 415 | 415 |
+| hurdleyield | 7.57 | 7.54 | 7.36 | 7.57 | 7.57 |
+| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+| sellerloanid | 9010021155 | 3111022026 | 3260057082 | 9014327961 | 9014059868 |
+| interestbearingupb | 324035.29 | 423410.11 | 449829.52 | 479480.42 | 277928.4 |
+| deferredprin | 0 | 0 | 14062.83 | 0 | 0 |
+| deferredint | 0 | 0 | 8753.85 | 0 | 0 |
+| netpurchasepriceinterestbearingupb | 82.5613812225759 | 101.540001016981 | 88.78 | 72.37 | 72.7996399257241 |
+| netpurchasepricedeferredprin | — | — | 88.78 | — | — |
+| netpurchasepricedeferredint | — | — | 88.78 | — | — |
+| interestbearingupbmv | — | — | 399358.647856 | — | — |
+| deferredprinbought | — | — | 12484.980474 | — | — |
+| deferredintbought | — | — | 7771.66803 | — | — |
+| sellercredit | — | — | 0 | — | — |
+| netmvtoseller | 267528.011072579 | 429930.63 | 419615.29636 | 346999.979954 | 202330.874451326 |
+| netpurchaseprice | 82.5613812225759 | 101.540001016981 | 88.78 | 72.37 | 72.7996399257241 |
+| intrate | 6.625 | 9.875 | 2.75 | 4.25 | 3.625 |
+| lastpaydt | 2023-01-01 | 2023-06-01 | 2024-05-01 | 2023-01-01 | 2023-01-01 |
+| nextduedate | 2023-02-01 | 2023-07-01 | 2024-06-01 | 2023-02-01 | 2023-02-01 |
+| escrowadvancebought | 0 | 0 | 0 | 0 | 0 |
+| corporateadvancerecoverablebought | 0 | 0 | 0 | 0 | 0 |
+| thirdpartyadvancebought | 0 | 0 | 0 | 0 | 0 |
+| daysaccrued | 30 | 47 | 55 | 30 | 30 |
+| interestaccrued | 1788.94483020833 | 5458.76 | 1889.90874722222 | 1698.15982083333 | 839.575375 |
+| totadv | 0 | 0 | 0 | 0 | 0 |
+| duetoseller | 269316.955902788 | 435389.39 | 421505.208747222 | 348698.139774833 | 203170.449826326 |
+| brokerfeepct | 0.5 | 0.5 | 0 | 0.5 | 0.5 |
+| brokerfee | 1620.17645 | 2117.05055 | 0 | 2397.4021 | 1389.642 |
+| ddcost | 629.56155 | 707.27 | 333.44 | 629.56155 | 629.56155 |
+| sourcingfeefactor | — | — | 0.9942 | — | — |
+| sourcingfeepct | — | — | 0.25 | — | — |
+| sourcingfee | 674.98 | 1089.18 | 1048.48 | 874.21 | 510 |
+| totaldiscount | 53582.56 | -10434.02 | 26942.39 | 128579.27 | 73068.32 |
+| discountpct | 0.165360260606183 | -0.0246428220620429 | 0.0598946685402061 | 0.268163755258244 | 0.262903395262953 |
+| managementfeefactor | — | — | 0.9942 | — | — |
+| managementfeepct | — | — | 0.375 | — | — |
+| managementfee | 84.5820850606723 | 136.485916807753 | 131.385744812653 | 109.548199189678 | 63.9083110583573 |
+| escrowadvance | 0 | 0 | 0 | 0 | 0 |
+| corporateadvancerecoverable | 0 | 0 | 0 | 0 | 0 |
+| thirdpartyadvance | 0 | 0 | 0 | 0 | 0 |
+| nonrecoverableadvance | 0 | 0 | 0 | 0 | 0 |
+| purchase_net_price | 82.5613812226 | 101.540001017 | 88.78 | 72.37 | 72.7996399257 |
+| internal_net_price | 83.0372862717 | 101.152267885 | 79.0130389449069 | 74.7014579014 | 71.4849405604 |
+| gross_irr | 8.8781698585 | 8.1359041454 | 7.9526963823298 | 8.8781698585 | 8.8781698585 |
+| actddcost | — | 744.758076923077 | — | — | — |
+| trust | Trestle | Trestle | Trestle | Trestle | Trestle |
+| semiannual | first_semi_annual | second_semi_annual | third_semi_annual | first_semi_annual | first_semi_annual |
+| servicing_retained | N | N | N | N | N |
+| net_mv_to_seller_internal | 269070.111378633 | 428288.928719373 | 373452.126077623 | 358178.864091756 | 198676.951540471 |
+| sourcingfee_internal | 678.811908006076 | 1085.09972903903 | 933.741392677152 | 901.997861086816 | 500.917058071928 |
+| managementfee_internal | 85.0623868754281 | 135.974593051944 | 117.007775863581 | 113.029972096318 | 62.7702609274707 |
+| pool | A | A | A | A | A |
+
+---
+
+## ⑮ port.basic_data_loan_foreclosure_hold
+
+> Redshift Hold 历史（sync_loan_foreclosure_hold 上游）。全 **17** 字段 · 多行/贷款（全历史） · 共 **21** 行 · 各贷款行数：{'7727000065': 4, '7727000088': 9, '7727000672': 2, '7727004200': 6}。
+
+<!-- META:port.basic_data_loan_foreclosure_hold START -->
+> **📋 业务含义与全链路血缘**
+>
+> - **业务含义/目的**：Redshift Hold 历史(长表，1 行/Hold)——把源表 4 个 Hold 槽(fchold1..4)拆成长格式；Carrington 多 Hold 先排名压进 4 槽。 bpms.sync_loan_foreclosure_hold(BPS Hold 全历史)的上游；支撑‘一笔法拍多个 Hold’。
+> - **何时来查这张表**：查某贷款全部 Hold 的起止/原因/历史。
+> - **为什么 pipeline 这样处理**：源表把 Hold 压成 4 个宽槽，业务要全历史，需拆槽(unpivot)成 1 行/Hold；一笔 FCL 多 Hold 是常态(非数据错误)。
+> - **数据粒度**：1 行/贷款/Hold 段。
+> - **上游链路**：newrez.portnewrezfc(fchold1..4) → port.basic_data_loan_fcl → port.basic_data_loan_foreclosure_hold〔拆槽 basic_data_pool_config.py:466-768；Carrington 排名 :504-629〕
+> - **全部上游表**：newrez.portnewrezfc、port.basic_data_loan_fcl
+> - **下游链路**：→ bpms.sync_loan_foreclosure_hold〔GEN_FORECLOSURE_HOLD asset_managment_config.py:847-894〕 → 视图 → BPS Hold 面板
+> - **全部下游表**：bpms.sync_loan_foreclosure_hold、bpms.biz_data_view_loan_details_foreclosure
+<!-- META:port.basic_data_loan_foreclosure_hold END -->
+
+查询 SQL（prod 只读）：
+```sql
+-- port.basic_data_loan_foreclosure_hold · redshift_prod(只读) · 多行/贷款（全历史） · 业务日 2026-06-01
+SELECT * FROM port.basic_data_loan_foreclosure_hold WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') ORDER BY loanid, fctrdt;
+```
+
+| dataasof | servicer | loanid | svcloanid | fctrdt | description1 | description1_start_date | description1_end_date | description2 | description2_start_date | description2_end_date | description3 | description3_start_date | description3_end_date | description4 | description4_start_date | description4_end_date |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 2025-05-05 | Newrez | 7727000065 | 1031718621 | 2025-05-05 | Original Note | 2025-02-06 | 2025-03-10 |  | — | — |  | — | — | — | — | — |
+| 2025-07-02 | Newrez | 7727000065 | 1031718621 | 2025-07-02 | Bankruptcy Filed | 2025-05-06 | 2025-06-27 | Original Note | 2025-02-06 | 2025-03-10 |  | — | — | — | — | — |
+| 2025-08-26 | Newrez | 7727000065 | 1031718621 | 2025-08-26 | Court Delay | 2025-07-02 | 2025-07-14 | Bankruptcy Filed | 2025-05-06 | 2025-06-27 | Original Note | 2025-02-06 | 2025-03-10 | — | — | — |
+| 2026-06-04 | Newrez | 7727000065 | 1031718621 | 2026-06-04 | Court Delay | 2025-08-26 | 2025-08-28 | Court Delay | 2025-07-02 | 2025-07-14 | Bankruptcy Filed | 2025-05-06 | 2025-06-27 | — | — | — |
+| 2025-07-15 | Newrez | 7727000088 | 1031718838 | 2025-07-15 | Original Note | 2025-05-28 | 2025-06-11 |  | — | — |  | — | — | — | — | — |
+| 2025-07-30 | Newrez | 7727000088 | 1031718838 | 2025-07-30 | Service Delay | 2025-07-15 | — | Original Note | 2025-05-28 | 2025-06-11 |  | — | — | — | — | — |
+| 2025-08-12 | Newrez | 7727000088 | 1031718838 | 2025-08-12 | Loss Mitigation Workout | 2025-07-31 | 2025-08-01 | Service Delay | 2025-07-15 | 2025-07-31 | Original Note | 2025-05-28 | 2025-06-11 | — | — | — |
+| 2025-10-21 | Newrez | 7727000088 | 1031718838 | 2025-10-21 | Loss Mitigation Workout | 2025-08-13 | 2025-10-21 | Loss Mitigation Workout | 2025-07-31 | 2025-08-01 | Service Delay | 2025-07-15 | 2025-07-31 | — | — | — |
+| 2026-01-18 | Newrez | 7727000088 | 1031718838 | 2026-01-18 | Court Delay | 2025-10-21 | 2025-12-16 | Loss Mitigation Workout | 2025-08-13 | 2025-10-21 | Loss Mitigation Workout | 2025-07-31 | 2025-08-01 | — | — | — |
+| 2026-02-23 | Newrez | 7727000088 | 1031718838 | 2026-02-23 | Loss Mitigation Workout | 2026-02-20 | — | Court Delay | 2026-01-16 | — | Court Delay | 2025-10-21 | 2025-12-16 | — | — | — |
+| 2026-03-16 | Newrez | 7727000088 | 1031718838 | 2026-03-16 | Court Delay | 2026-01-16 | — | Loss Mitigation Workout | 2026-02-20 | 2026-02-24 | Court Delay | 2025-10-21 | 2025-12-16 | — | — | — |
+| 2026-04-09 | Newrez | 7727000088 | 1031718838 | 2026-04-09 | Hearing Set | 2026-03-16 | 2026-04-07 | Court Delay | 2026-01-16 | 2026-03-16 | Loss Mitigation Workout | 2026-02-20 | 2026-02-24 | — | — | — |
+| 2026-06-04 | Newrez | 7727000088 | 1031718838 | 2026-06-04 | Court Delay | 2026-04-09 | 2026-04-26 | Hearing Set | 2026-03-16 | 2026-04-07 | Court Delay | 2026-01-16 | 2026-03-16 | — | — | — |
+| 2026-05-11 | Newrez | 7727000672 | 1032761570 | 2026-05-11 | Loss Mitigation Workout | 2026-03-25 | — |  | — | — |  | — | — | — | — | — |
+| 2026-06-04 | Newrez | 7727000672 | 1032761570 | 2026-06-04 | Delinquency Review | 2026-05-12 | 2026-05-27 | Loss Mitigation Workout | 2026-03-25 | 2026-05-27 |  | — | — | — | — | — |
+| 2025-09-03 | Newrez | 7727004200 | 0688132141 | 2025-09-03 | Client Document Execution | 2025-07-08 | 2025-07-09 |  | — | — |  | — | — | — | — | — |
+| 2025-11-20 | Newrez | 7727004200 | 0688132141 | 2025-11-20 | Court Delay | 2025-09-03 | — | Client Document Execution | 2025-07-08 | 2025-07-09 |  | — | — | — | — | — |
+| 2025-12-30 | Newrez | 7727004200 | 0688132141 | 2025-12-30 | Hearing Set | 2025-11-21 | 2025-12-11 | Court Delay | 2025-09-03 | 2025-11-20 | Client Document Execution | 2025-07-08 | 2025-07-09 | — | — | — |
+| 2026-01-28 | Newrez | 7727004200 | 0688132141 | 2026-01-28 | Service Delay | 2025-12-30 | 2026-01-23 | Hearing Set | 2025-11-21 | 2025-12-11 | Court Delay | 2025-09-03 | 2025-11-20 | — | — | — |
+| 2026-04-16 | Newrez | 7727004200 | 0688132141 | 2026-04-16 | Hearing Set | 2026-01-29 | 2026-02-13 | Service Delay | 2025-12-30 | 2026-01-23 | Hearing Set | 2025-11-21 | 2025-12-11 | — | — | — |
+| 2026-06-04 | Newrez | 7727004200 | 0688132141 | 2026-06-04 | Delinquency Review | 2026-04-17 | 2026-04-17 | Hearing Set | 2026-01-29 | 2026-02-13 | Service Delay | 2025-12-30 | 2026-01-23 | — | — | — |
+
+---
+
+## ⑯ port.basic_data_loan_foreclosure_loss_mitigation
+
+> Redshift LM 历史（上游）。全 **16** 字段 · 多行/贷款（全历史） · 共 **21** 行 · 各贷款行数：{'7727000010': 2, '7727000065': 2, '7727000088': 9, '7727000672': 2, '7727004200': 6}。
+
+<!-- META:port.basic_data_loan_foreclosure_loss_mitigation START -->
+> **📋 业务含义与全链路血缘**
+>
+> - **业务含义/目的**：Redshift LM 历史(1 行/LM 周期)——按 (loanid, dealstartdate)，datadic 解码 lmdeal/lmprogram/lmstatus/lmdecision。 bpms.sync_loan_foreclosure_loss_mitigation 的上游；支撑‘一笔贷款多 LM 周期’。
+> - **何时来查这张表**：查某贷款全部 LM 周期/项目/决定(已解码)。
+> - **为什么 pipeline 这样处理**：LM 多周期是常态；编码需经 datadic 解码成业务文案(JOIN key 拼 code+'.0')。
+> - **数据粒度**：1 行/贷款/LM 周期。
+> - **上游链路**：{ newrez.portnewrezlm + newrez.portnewrezdatadic } → port.basic_data_loan_fcl 体系 → port.basic_data_loan_foreclosure_loss_mitigation〔basic_data_pool_config.py:799-843〕
+> - **全部上游表**：newrez.portnewrezlm、newrez.portnewrezdatadic、port.basic_data_loan_fcl
+> - **下游链路**：→ bpms.sync_loan_foreclosure_loss_mitigation〔asset_managment_config.py:799-819〕 → 视图 → BPS LM 面板
+> - **全部下游表**：bpms.sync_loan_foreclosure_loss_mitigation、bpms.biz_data_view_loan_details_foreclosure
+<!-- META:port.basic_data_loan_foreclosure_loss_mitigation END -->
+
+查询 SQL（prod 只读）：
+```sql
+-- port.basic_data_loan_foreclosure_loss_mitigation · redshift_prod(只读) · 多行/贷款（全历史） · 业务日 2026-06-01
+SELECT * FROM port.basic_data_loan_foreclosure_loss_mitigation WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') ORDER BY loanid, fctrdt;
+```
+
+| dataasof | servicer | loanid | svcloanid | fctrdt | deal | program | lmc_status | cycle_opened_date | cycle_closed_date | final_disposition | improgram | denialreason | borrower_intentions | imminent_default | single_point_of_contact |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-04-15 | Newrez | 7727000010 | 1031718692 | 2026-04-15 | Evaluation | Evaluation | Pending Financials  | 2024-11-26 | 2024-12-23 | Request Incomplete/Failed to Provide Information | 21.0 |  |  | — | — |
+| 2026-06-04 | Newrez | 7727000010 | 1031718692 | 2026-06-04 | Modification | 498.0 | Workout Denial | 2026-04-16 | 2026-04-28 | Referral to FC | 498.0 | Hardship not resolved |  | — | — |
+| 2025-06-30 | Newrez | 7727000065 | 1031718621 | 2025-06-30 | Evaluation | Evaluation | Pending Financials  | 2024-11-26 | 2024-12-23 | Request Incomplete/Failed to Provide Information | 21.0 |  |  | — | — |
+| 2026-06-04 | Newrez | 7727000065 | 1031718621 | 2026-06-04 | Evaluation | Evaluation | Pending Financials  | 2025-07-01 | 2025-07-01 | LMS Opened in Error | 21.0 |  |  | — | — |
+| 2025-01-29 | Newrez | 7727000088 | 1031718838 | 2025-01-29 | Evaluation | Evaluation | Pending Financials  | 2024-09-20 | 2024-10-21 | Request Incomplete/Failed to Provide Information | 21.0 |  |  | — | — |
+| 2025-03-16 | Newrez | 7727000088 | 1031718838 | 2025-03-16 | Modification | Bridger mod | Workout Denial | 2025-01-30 | 2025-03-11 | Referral to FC | 419.0 |  |  | — | — |
+| 2025-05-07 | Newrez | 7727000088 | 1031718838 | 2025-05-07 | Modification | Bridger mod | Workout Denial | 2025-03-17 | 2025-04-29 | Referral to FC | 419.0 | Request Incomplete/Failed to Provide Documentation |  | — | — |
+| 2025-06-19 | Newrez | 7727000088 | 1031718838 | 2025-06-19 | Modification | Bridger mod | Workout Denial | 2025-05-08 | 2025-06-14 | Referral to FC | 419.0 | Request Incomplete/Failed to Provide Documentation |  | — | — |
+| 2025-10-20 | Newrez | 7727000088 | 1031718838 | 2025-10-20 | Modification | 496.0 | Workout Denial | 2025-06-20 | 2025-10-20 | Referral to FC | 496.0 |  |  | — | — |
+| 2025-12-09 | Newrez | 7727000088 | 1031718838 | 2025-12-09 | Short Sale | Short Sale | Document Follow-up | 2025-10-20 | 2025-11-21 | Request Incomplete/Failed to Provide Information | 8.0 |  |  | — | — |
+| 2026-01-27 | Newrez | 7727000088 | 1031718838 | 2026-01-27 | DIL | Deed-in-Lieu | DIL Title Ordered | 2025-12-10 | 2026-01-27 | LMS Opened in Error | 10.0 |  |  | — | — |
+| 2026-02-17 | Newrez | 7727000088 | 1031718838 | 2026-02-17 | DIL | Deed-in-Lieu | Negotiate DIL liens | 2026-01-27 | 2026-02-17 | LMS Opened in Error | 10.0 |  |  | — | — |
+| 2026-06-04 | Newrez | 7727000088 | 1031718838 | 2026-06-04 | DIL | Deed-in-Lieu | Workout Denial | 2026-02-17 | 2026-04-24 | Referral to FC | 10.0 | PMI Company Decline |  | — | — |
+| 2026-02-24 | Newrez | 7727000672 | 1032761570 | 2026-02-24 | Payment Plan | Repayment Plan | Workout Denial | 2025-04-11 | 2025-08-14 | Referral to FC | 29.0 | Trial Plan Default | Retention | — | — |
+| 2026-06-04 | Newrez | 7727000672 | 1032761570 | 2026-06-04 | Payment Plan | Repayment Plan | Monitor for pmts/funds | 2026-02-25 | — | Pending | 29.0 |  |  | — | — |
+| 2025-05-06 | Newrez | 7727004200 | 0688132141 | 2025-05-06 | Forbearance | Unemployment Forbearance | Monitor Forbearance | 2025-01-24 | 2025-05-02 | Forbearance Complete | 14.0 |  |  | — | — |
+| 2025-07-26 | Newrez | 7727004200 | 0688132141 | 2025-07-26 | Evaluation | Evaluation | Document Follow-up | 2025-05-07 | 2025-05-30 | LMS Opened in Error | 21.0 |  |  | — | — |
+| 2025-10-02 | Newrez | 7727004200 | 0688132141 | 2025-10-02 | Modification | 496.0 | Workout Denial | 2025-07-27 | 2025-09-19 | Referral to FC | 496.0 |  |  | — | — |
+| 2025-11-16 | Newrez | 7727004200 | 0688132141 | 2025-11-16 | Modification | 496.0 | Workout Denial | 2025-10-03 | — | Pending | 496.0 |  |  | — | — |
+| 2026-01-05 | Newrez | 7727004200 | 0688132141 | 2026-01-05 | Modification | 496.0 | Workout Denial | 2025-11-17 | 2026-01-02 | Referral to FC | 496.0 |  |  | — | — |
+| 2026-06-04 | Newrez | 7727004200 | 0688132141 | 2026-06-04 | Modification | 496.0 | Document Follow-up | 2026-01-06 | 2026-02-02 | Request Incomplete/Failed to Provide Information | 496.0 |  |  | — | — |
+
+---
+
+## ⑰ port.basic_data_loan_foreclosure_bankruptcy
+
+> Redshift 破产历史（上游）。全 **15** 字段 · 多行/贷款（全历史） · 共 **3** 行 · 各贷款行数：{'7727000010': 2, '7727000065': 1}。
+
+<!-- META:port.basic_data_loan_foreclosure_bankruptcy START -->
+> **📋 业务含义与全链路血缘**
+>
+> - **业务含义/目的**：Redshift 破产历史(1 行/破产申请)——datadic 解码 bkstatus；Carrington 专有 mfr_filed_date(Newrez 为 NULL)。 bpms.sync_loan_foreclosure_bankruptcy 的上游。
+> - **何时来查这张表**：查某贷款全部破产申请/章节/状态(已解码)。
+> - **为什么 pipeline 这样处理**：破产可多次申请；编码经 datadic 解码。
+> - **数据粒度**：1 行/贷款/破产申请。
+> - **上游链路**：{ newrez.portnewrezbk + newrez.portnewrezdatadic } → port.basic_data_loan_foreclosure_bankruptcy〔basic_data_pool_config.py:331-370〕
+> - **全部上游表**：newrez.portnewrezbk、newrez.portnewrezdatadic、port.basic_data_loan_fcl
+> - **下游链路**：→ bpms.sync_loan_foreclosure_bankruptcy〔asset_managment_config.py:822-843〕 → 视图 → BPS 破产面板
+> - **全部下游表**：bpms.sync_loan_foreclosure_bankruptcy、bpms.biz_data_view_loan_details_foreclosure
+<!-- META:port.basic_data_loan_foreclosure_bankruptcy END -->
+
+查询 SQL（prod 只读）：
+```sql
+-- port.basic_data_loan_foreclosure_bankruptcy · redshift_prod(只读) · 多行/贷款（全历史） · 业务日 2026-06-01
+SELECT * FROM port.basic_data_loan_foreclosure_bankruptcy WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') ORDER BY loanid, fctrdt;
+```
+
+| dataasof | servicer | loanid | svcloanid | fctrdt | bankruptcy_status | legal_status | status_date | chapter | lien_status | mfr_status | mfr_filed_date | claim_status | proof_of_claim_date | post_petition_due_date |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 2024-07-24 | Newrez | 7727000010 | 1031718692 | 2024-07-24 | Active | BK13 | 2023-08-23 | 13 | — | — | — | — | 2023-09-30 | 2023-09-01 |
+| 2026-06-04 | Newrez | 7727000010 | 1031718692 | 2026-06-04 | Active | BK13 | 2024-02-06 | 13 | — | — | — | — | 2023-09-30 | 2026-06-01 |
+| 2026-06-04 | Newrez | 7727000065 | 1031718621 | 2026-06-04 | Discharged | REO | 2025-04-30 | 7 | — | — | — | — | — | — |
 
 ---
 
@@ -1942,4 +2017,3 @@ WHERE (module_name='LossMitigation' AND field_name IN
 | 13 | Transfer of Claim |
 | 17 | Termination |
 | 21 | Motion to Determine Final Cure |
-

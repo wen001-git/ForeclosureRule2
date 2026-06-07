@@ -3,6 +3,13 @@
 ## [2026-06-07 UTC] 研究本项目，准备继续推进
 > pls reserch this project, I want to proceed this project
 
+## [2026-06-07 UTC] doc 19 表按 L1–L5 重排 + 增加全局 pipeline 图（Excel+MD）
+> doc 19 的表的排序没有按L1 L2 L3 L4 L5的顺序来。请增加一个 L1 L2 L3 L4 L5 pipline全局的图，在doc 19 excel和md中
+
+## [2026-06-07 UTC] 核对 doc 19 与 doc 02 是否一致
+> doc 19 跟 doc 2是一致的吗？请核对
+> 核对结论（只读）：五层模型 L1–L5 与表→层映射一致；doc 19 更细（多列 portnewrezprop / temp_basic_data_fcl / basic_data_fcl_related / portfunding / datadic 字典桶），无矛盾。两支线（FCL 业务族 + 逾期支线，汇于 fcl_stage_info.group）一致。差异：doc 02 §7 已更正 L1–L4 为 MySQL+Redshift 双写，doc 19 层标签仍只标「（Redshift）」——非矛盾、是完整度差距（可选对齐）。另 doc 02 §5.3/§6 仍残留 bpms_dev 旧名（doc 02 自身问题，不在本次范围）。
+
 ## [2026-06-07 02:05 UTC] doc 19 MD+Excel：每表加 业务含义/目的/何时查/为何这样处理 + 全链路血缘
 > doc 19 MD and Excel，给每个表加上业务含义/业务目的/用户在遇到什么问题时可以来查这张表，为什么pipline要这样处理？加上这个表在整个数据流中的全部相关链路（所有相关的表，上游下游、穷尽所有多级上下游），就像pipline，可以参考 outputs/fcl_pipeline.html，不明确的地方就去查代码 PrefectFlow，查数据库。
 > 落地：新增 outputs/fcl_table_meta.json（23 表业务+血缘单一真源）+ outputs/enrich_doc19_table_meta.txt（幂等注入脚本，python - < 运行）；doc 19 zh MD 每表标题下插「业务含义与全链路血缘」块×23，Excel 各表 sheet 顶部插同款块 + 新增 ⓪ 总览 sheet（共 25 sheets）；血缘汇编自 fcl_pipeline.html + doc 21/20/02，每跳标 PrefectFlow file:line；DB 只读。
@@ -2120,3 +2127,15 @@
 
 ## [2026-06-07 ~UTC] Research this project
 > pls research this project
+
+### Milestone: lineage graph 图例可点高亮 + tip 注释 [2026-06-07]
+- outputs/fcl_pipeline.html：7 个边类别图例(copy/decode/coalesce/track/computed/config/map)改为可点击 → 高亮该类全部规则边+相关节点(其余变暗)，再点取消；每个图例加双语 title tip(释义对齐 edgeCat 逻辑)。
+- 复用既有 lit/litEdges 高亮管线，新增 graphCatFilter 状态 + graphCatClick；与"点字段聚焦"互斥，reset/collapse 一并清除。CSS .lgchip/.lgon，gHint 中英更新。
+- preview 实测：点 decode 高亮边数=模型 decode 边数(7)、其余变暗、toggle 取消、互斥、renderGraph 无抛错、既有功能不受影响。
+
+### Milestone: Pipeline 页同步 doc02 双写 + doc20/21 补充 + doc13 核对 [2026-06-07]
+- outputs/fcl_pipeline.html（唯一改动）：
+  - A 双写（doc02 §7 / doc20 §B.6）：新增 PLAT.dual + 顶部图例 + legDual 译文；L1/L2/L3 层及节点 plat→dual、layerColors 改色；L4 portmonthbase→dual、FCL 业务族保持 redshift 且注"MySQL 副本由 L5 同步"；各层 sub 补双写 file:line；pipeline meta desc 加双写总述。
+  - B 补充：renderPipeline 顶部加样本贷款 7727000088 三层证据链 note（doc20 §B.5）；L5 层/审计节点加"每日约 4:35 ET 调度（不在版本库）+ sync_to_bps_status 审计"；L3/L4 标注逾期支线 vs FCL 业务族（doc21 §0.1）；各层 sub 补 doc/验证库指针（doc20 §B.3）。
+  - C doc13 核对：bk_statusdt 来源 bkrcurrentstatusdate→bkfileddate（doc13 v30/doc21 §5.2），其 worked-example 由"stale"订正为"match"。
+- preview 实测：L1-L3 dual、portmonthbase dual、bdlf redshift、图例含 dual、样本链/4:35/bkfileddate 均在；renderPipeline/renderGraph 无抛错，既有交互不受影响。

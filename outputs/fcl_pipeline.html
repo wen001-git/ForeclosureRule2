@@ -133,6 +133,16 @@
   .gnode.glit rect{filter:drop-shadow(0 0 5px rgba(120,200,255,.6))}
   .gnode.gfocus rect{stroke:var(--accent)!important}
   path.glitedge{filter:drop-shadow(0 0 3px rgba(120,200,255,.5))}
+  .glegend .lgchip{cursor:pointer;padding:1px 6px;border-radius:5px}
+  .glegend .lgchip:hover{background:#222b38}
+  .glegend .lgchip.lgon{background:#2d3a4d;outline:1px solid var(--accent)}
+  .fbtn{cursor:pointer;background:#1c2230;color:var(--txt);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:14px}
+  .fbtn:hover{border-color:var(--accent)} .fbtn:disabled{opacity:.4;cursor:not-allowed}
+  #flowmodes{display:flex;gap:6px;flex-wrap:wrap}
+  #flowmodes .fm{cursor:pointer;padding:6px 11px;border:1px solid var(--border);border-radius:8px;background:#1c2230;color:var(--txt);font-size:13px}
+  #flowmodes .fm.on{border-color:var(--accent);background:#23324a;font-weight:700}
+  #flowmodes .fm small{display:block;color:var(--muted);font-weight:400;font-size:10px}
+  #flow-svg .fbox rect{transition:opacity .25s} .flowdim{opacity:.2}
   .gelabel{fill:#8b96a5}
   .gcolhead{fill:#8b96a5;font-weight:700}
   .miniln{display:block;margin-bottom:8px}
@@ -164,6 +174,7 @@
   <div class="views">
     <button id="v-fields" class="on" onclick="setView('fields')"></button>
     <button id="v-pipeline" onclick="setView('pipeline')"></button>
+    <button id="v-flow" onclick="setView('flow')"></button>
     <button id="v-graph" onclick="setView('graph')"></button>
     <button id="v-status" onclick="setView('status')"></button>
     <button id="v-primer" onclick="setView('primer')"></button>
@@ -176,6 +187,14 @@
   <div class="canvas" id="canvas"></div>
   <div class="drawer empty" id="drawer"></div>
 </div>
+<details class="asof-note" id="asof-note" style="margin:10px 16px;border:1px solid var(--border);border-radius:10px;background:var(--panel);padding:8px 14px;font-size:13px;line-height:1.55">
+  <summary style="cursor:pointer;font-weight:600">📅 as-of date（数据日期）— why the BPS <code>sync_*</code> tables have no as-of, only <code>update_time</code> / 为何 BPS sync_* 无 as-of、只有 update_time</summary>
+  <div style="margin-top:8px;color:var(--muted)">
+    <p><b>EN:</b> The as-of date is renamed down the layers — L1 <code>dataasof</code> (daily snapshot) → L2 <code>asofdate</code> → L3/stage <code>fctrdt</code> → L4 keeps <code>MAX(dataasof)</code> latest. At L5 the main table <code>bpms.sync_loan_foreclosure</code> drops the as-of entirely: it is a <b>current-state</b> table, whole-table DELETE+APPEND overwrite-refreshed (<code>df_db_util.py:691,693</code>), and "days in fcl" is recomputed to the run day via <code>+ datediff(dataasof, today_NY)</code> (<code>asset_managment_config.py:597-598</code>). So <code>create_time</code>/<code>update_time</code> are only audit columns (may be NULL). Exception: <code>sync_fcl_stage_info</code> keeps <code>fctrdt</code> history.</p>
+    <p><b>中文：</b> as-of 在各层换名：L1 <code>dataasof</code>（每日快照）→ L2 <code>asofdate</code> → L3/阶段 <code>fctrdt</code> → L4 取 <code>MAX(dataasof)</code> 最新。到 L5 主表 <code>bpms.sync_loan_foreclosure</code> 不再保留 as-of：它是<b>当前态</b>表，整表 DELETE+APPEND 覆盖刷新（<code>df_db_util.py:691,693</code>），且在法拍天数用 <code>+ datediff(dataasof, 运行日)</code> 实时重算（<code>asset_managment_config.py:597-598</code>）。故 <code>create_time</code>/<code>update_time</code> 只是审计列（可能 NULL）。例外：阶段表 <code>sync_fcl_stage_info</code> 保留 <code>fctrdt</code> 历史。</p>
+    <p style="margin:6px 0 0"><b>Real example / 真实数据 (MCP-verified, loan 7727000088):</b> Redshift <code>port.basic_data_loan_foreclosure.dataasof=2026-06-04</code>, stored <code>summary_days_in_fcl=368</code> → BPS run 2026-06-06 → <code>368 + datediff(2026-06-04 → 2026-06-06) = 368 + 2 = 370</code> = <code>bpms.sync_loan_foreclosure.summary_days_in_fcl</code>（无 as-of 列；<code>create_time/update_time</code> NULL）。那 2 天就是 as-of，被吸收进天数。详见 <code>docs/02_etl_pipeline.md §8.1</code>.</p>
+  </div>
+</details>
 <div class="foot" id="foot"></div>
 
 <script>
@@ -183,9 +202,9 @@
 const I18N={
  en:{
   sub:"Click any table to see its schema, lineage, verified row counts, and ready-to-run <b>validation SQL</b>. Built for analysts / reconciliation. Source: DB-verified docs 02 / 04 / 13.",
-  vPipeline:"🔀 Pipeline (Layer 0→5)", vStatus:"🏷️ Status codes", vBps:"🖥️ BPS UI panels", vFields:"🔎 BPS field lineage", vGraph:"🕸 Lineage graph",
+  vPipeline:"🔀 Pipeline (Layer 0→5)", vStatus:"🏷️ Status codes", vBps:"🖥️ BPS UI panels", vFields:"🔎 BPS field lineage", vGraph:"🕸 Lineage graph", vFlow:"🌊 Data flow",
   gCol0:"Newrez raw (mysql_dev.newrez)", gCol1:"Redshift (redshift_prod.port)", gCol2:"BPS table (bpms_dev)", gCol3:"BPS view (bpms_dev)",
-  gCollapse:"Collapse all", gReset:"Reset focus", gCollapseOne:"click the ▾ header to collapse this table", gHint:"Click a table to expand · click a field to highlight its full lineage chain (others dim) · ▾ header collapses · click an edge for fields · Reset focus clears the highlight",
+  gCollapse:"Collapse all", gReset:"Reset focus", gCollapseOne:"click the ▾ header to collapse this table", gHint:"Click a table to expand · click a field to highlight its full lineage chain (others dim) · click a legend chip to highlight that rule-type's edges · ▾ header collapses · click an edge for fields · Reset focus clears the highlight",
   gMini:"Lineage graph", gEdgeFields:"Fields on this edge",
   vPrimer:"📚 Primer", primIntro:"Foreclosure business primer (from doc 17) — for analysts & onboarding. Status codes are clickable → jump to the Status codes tab; the BPS pipeline links to the Stage Tab.",
   pr1:"1 · Why FCL judgment & its two bases", pr2:"2 · days360 buckets & MBA standard", pr3:"3 · Loan lifecycle (state machine)", pr4:"4 · FCL — 6 stages & 5 exits", pr5:"5 · Judicial vs Non-Judicial", pr6:"6 · BPS 7-stage operational pipeline", pr7:"7 · Bankruptcy deep dive",
@@ -207,7 +226,7 @@ const I18N={
   ovTitle:"Overview", stageLogic:"Stage assignment logic (waterfall priority)", stageCols:"Per-stage table columns (shared)",
   thPriority:"Priority", thStageCode:"stage code (DB)", thCond:"Condition (newrez.portnewrezfc, via Redshift)", thOut:"BPS output fields",
   selectField:"Select a field to inspect it.",
-  legRaw:"Raw files", legMysql:"MySQL", legRedshift:"Redshift", legBps:"BPS app layer",
+  legRaw:"Raw files", legMysql:"MySQL", legRedshift:"Redshift", legBps:"BPS app layer", legDual:"dual-write (MySQL+Redshift)",
   legGreen:"● green number = DB-verified row count",
   search:"🔍 Filter by name / field / servicer…",
   drawerEmpty:"Select a node to inspect it.<br><br>Each node shows where the data comes from, where it goes, and a SQL snippet you can run to validate it.",
@@ -236,9 +255,9 @@ const I18N={
  },
  zh:{
   sub:"点击任意表查看其结构、血缘、实测行数，以及可直接运行的<b>验证 SQL</b>。面向分析 / 数据核对。来源：经数据库验证的文档 02 / 04 / 13。",
-  vPipeline:"🔀 管道（Layer 0→5）", vStatus:"🏷️ 状态码", vBps:"🖥️ BPS 界面面板", vFields:"🔎 BPS 字段血缘", vGraph:"🕸 血缘图谱",
+  vPipeline:"🔀 管道（Layer 0→5）", vStatus:"🏷️ 状态码", vBps:"🖥️ BPS 界面面板", vFields:"🔎 BPS 字段血缘", vGraph:"🕸 血缘图谱", vFlow:"🌊 数据流动",
   gCol0:"Newrez 原始 (mysql_dev.newrez)", gCol1:"Redshift 中间 (redshift_prod.port)", gCol2:"BPS 表 (bpms_dev)", gCol3:"BPS 视图 (bpms_dev)",
-  gCollapse:"全部折叠", gReset:"重置聚焦", gCollapseOne:"点 ▾ 表头折叠该表", gHint:"点表展开 · 点字段=高亮它的整条数据链（其余变暗）· 点 ▾ 表头折叠 · 点边看承载字段 · 重置聚焦清除高亮",
+  gCollapse:"全部折叠", gReset:"重置聚焦", gCollapseOne:"点 ▾ 表头折叠该表", gHint:"点表展开 · 点字段=高亮它的整条数据链（其余变暗）· 点图例=高亮该类规则边 · 点 ▾ 表头折叠 · 点边看承载字段 · 重置聚焦清除高亮",
   gMini:"血缘图", gEdgeFields:"该边承载的字段",
   vPrimer:"📚 业务科普", primIntro:"止赎业务入门（取自 doc 17）——面向分析/新人。状态码可点击 → 跳到 Status codes tab；BPS 管道可联动 Stage Tab。",
   pr1:"1 · 为什么需要 FCL 判断 + 两种依据", pr2:"2 · days360 逾期档位 + MBA 标准", pr3:"3 · 贷款全生命周期状态机", pr4:"4 · FCL 6 阶段 + 5 种出口", pr5:"5 · 司法 vs 非司法止赎", pr6:"6 · BPS 7 运营阶段管道", pr7:"7 · 破产（Bankruptcy）深度解析",
@@ -260,7 +279,7 @@ const I18N={
   ovTitle:"Overview 概览", stageLogic:"阶段划分判断逻辑（瀑布式优先级）", stageCols:"各阶段表列定义（通用）",
   thPriority:"优先级", thStageCode:"stage 代码(DB)", thCond:"判断条件（newrez.portnewrezfc，经 Redshift 传递）", thOut:"BPS 输出字段",
   selectField:"选择一个字段查看注释。",
-  legRaw:"原始文件", legMysql:"MySQL", legRedshift:"Redshift", legBps:"BPS 应用层",
+  legRaw:"原始文件", legMysql:"MySQL", legRedshift:"Redshift", legBps:"BPS 应用层", legDual:"双写 (MySQL+Redshift)",
   legGreen:"● 绿色数字 = 数据库实测行数",
   search:"🔍 按表名 / 字段 / 服务商筛选…",
   drawerEmpty:"选择一个节点查看详情。<br><br>每个节点会显示数据从哪来、到哪去，以及一段可运行的验证 SQL。",
@@ -292,12 +311,19 @@ const t=k=>I18N[lang][k];
 /* =================== PER-PAGE HEADER (说明/目标用户/如何使用) =================== */
 const PAGEDOC={
   pipeline:{
-    desc:{en:"End-to-end FCL ETL pipeline: Layer 0 (raw servicer files) → MySQL → Redshift → BPS app (Layer 5), showing every table/node and the transform between layers.",
-          zh:"端到端展示止赎数据 ETL 管道分层：Layer 0 原始服务商文件 → MySQL → Redshift → BPS 应用（Layer 5），含每个表/节点及层间转换。"},
+    desc:{en:"End-to-end FCL ETL pipeline, Layer 0→5. NOTE: L1–L4 are MySQL+Redshift DUAL-WRITE (same-named tables in both: plain config→Redshift, mysql_-prefixed config→MySQL); only the L4 FCL business family is Redshift-built then synced to MySQL at L5 (doc 02 §7 / doc 20 §B.6, code+MCP verified 2026-06-06).",
+          zh:"端到端止赎 ETL 管道，Layer 0→5。注意：L1–L4 为 MySQL+Redshift 双写（同名表两库各存一份：plain 配置→Redshift、mysql_ 前缀配置→MySQL）；仅 L4 的 FCL 业务族 Redshift 单建、再于 L5 同步进 MySQL（doc 02 §7 / doc 20 §B.6，2026-06-06 code+MCP 实证）。"},
     who:{en:"Data engineers · reconciliation/validation · onboarding engineers learning the architecture.",
          zh:"数据工程师 · 数据核对/验证 · 了解整体架构的新成员。"},
     how:{en:"Click any node → the right drawer shows its source / target / verified row count / runnable validation SQL. The arrow between layers labels the transform.",
          zh:"点击任意节点 → 右侧抽屉显示该表的来源 / 去向 / 实测行数 / 可运行的验证 SQL；层间箭头标注转换动作。"}},
+  flow:{
+    desc:{en:"Watch HOW the data flows and in WHAT ORDER: L0 files → L1 staging → L2 unified → L3 clean → L4 monthly business → L5 sync → BPS. Four modes: A step-player, B particles, C volume, D sample-loan.",
+          zh:"动态看数据如何流动、流动顺序：L0 文件 → L1 落库 → L2 统一 → L3 清洗 → L4 月度业务 → L5 同步 → BPS。四种模式：A 分步播放、B 流动粒子、C 体量、D 单贷款。"},
+    who:{en:"Anyone wanting the big-picture data-flow order · onboarding · business presentation.",
+         zh:"想快速理解数据流动顺序的人 · 新成员 · 业务讲解。"},
+    how:{en:"Pick a mode (A recommended). A/D: ▶ play, ◀/▶| step, speed slider; B: continuous particles; C: edge width ≈ volume.",
+         zh:"选模式（推荐 A）。A/D：▶ 播放、◀/▶| 单步、速度滑块；B：连续粒子；C：边宽≈体量。"}},
   status:{
     desc:{en:"Inventory of all delinq / FCL / REO status codes, their lifecycle (state machine), DB-measured counts, and payment-history character encoding.",
           zh:"系统全部 delinq / FCL / REO 状态码清单、生命周期（状态机）、实测计数，以及还款历史字符编码。"},
@@ -344,7 +370,7 @@ function pageHeader(key){
 }
 
 /* =================== PIPELINE DATA (doc 02) =================== */
-const PLAT={raw:{c:'var(--raw)',t:{en:'Files',zh:'文件'}},mysql:{c:'var(--mysql)',t:{en:'MySQL',zh:'MySQL'}},redshift:{c:'var(--redshift)',t:{en:'Redshift',zh:'Redshift'}},bps:{c:'var(--bps)',t:{en:'MySQL (BPS app)',zh:'MySQL（BPS 应用）'}}};
+const PLAT={raw:{c:'var(--raw)',t:{en:'Files',zh:'文件'}},mysql:{c:'var(--mysql)',t:{en:'MySQL',zh:'MySQL'}},redshift:{c:'var(--redshift)',t:{en:'Redshift',zh:'Redshift'}},bps:{c:'var(--bps)',t:{en:'MySQL (BPS app)',zh:'MySQL（BPS 应用）'}},dual:{c:'#4db6a0',t:{en:'MySQL + Redshift (dual-write)',zh:'MySQL + Redshift 双写'}}};
 
 const LAYERS=[
  {n:0,title:{en:'Raw Data Sources',zh:'原始数据源'},sub:{en:'S3 / SMB / SFTP — servicer files, daily',zh:'S3 / SMB / SFTP — 服务商文件，每日'},plat:'raw',nodes:[
@@ -353,88 +379,88 @@ const LAYERS=[
     fields:['Newrez/Shellpoint → s3://brigaws/shellpoint_new/','SLS → s3://brigaws/sls_new/','Carrington → s3://brigaws/carrington_new/','MRC → s3://brigaws/mrc_new/','FCI / Selene → per-category files'],
     code:'flow/basic_data/load_monthly_raw_data.py',up:[],down:['Layer 1 staging tables (one schema per servicer)']},
  ]},
- {n:1,title:{en:'Servicer Staging',zh:'服务商暂存层'},sub:{en:'Raw files landed as-is, per-servicer schemas',zh:'原始文件原样落库，按服务商分 schema'},plat:'mysql',nodes:[
-   {id:'portnewrez',name:'newrez.portnewrez* (fc/bk/lm/general/pmt/prop)',plat:'mysql',
+ {n:1,title:{en:'Servicer Staging',zh:'服务商暂存层'},sub:{en:'Raw files landed as-is, per-servicer schemas · DUAL-WRITE MySQL+Redshift (load_daily_*_flow.py:9-47; daily_task.py:923-942 MySQL / :960-983 RS) · verify: mysql_prod',zh:'原始文件原样落库，按服务商分 schema · 双写 MySQL+Redshift（load_daily_*_flow.py:9-47；daily_task.py:923-942 MySQL / :960-983 RS）· 验证库：mysql_prod'},plat:'dual',nodes:[
+   {id:'portnewrez',name:'newrez.portnewrez* (fc/bk/lm/general/pmt/prop)',plat:'dual',
     ds:{en:'Newrez/Shellpoint raw foreclosure, bankruptcy, loss-mit, general, payment, property tables.',zh:'Newrez/Shellpoint 原始止赎、破产、损失缓释、通用、还款、房产表。'},
     fields:['portnewrezfc — FCL milestones','portnewrezbk — bankruptcy','portnewrezlm — loss mitigation','portnewrezgeneral — delinquency_status_mba, legalstatus, lienposition','portnewrezprop — propertystate'],
     rows:'~63 cols (fc)',code:'portdaily_config.py',schema:'newrez',
-    sql:"-- peek latest Newrez FCL rows\nSELECT * FROM newrez.portnewrezfc\nORDER BY dataasof DESC\nLIMIT 10;",
+    sql:"-- L1 Newrez FCL 主源（mysql_prod）· 最新数据日期 / latest data-date\nSELECT * FROM newrez.portnewrezfc\nWHERE dataasof=(SELECT MAX(dataasof) FROM newrez.portnewrezfc)\nLIMIT 50;",
     up:['Layer 0 Newrez files'],down:['port.portdaily_v2 (Newrez branch, from 2024-07-05)']},
-   {id:'sls',name:'sls.port*daily (fcl/bk/lm/asset/standard)',plat:'mysql',
+   {id:'sls',name:'sls.port*daily (fcl/bk/lm/asset/standard)',plat:'dual',
     ds:{en:'SLS raw daily tables. Historical only — switched to Newrez on 2024-07-05.',zh:'SLS 原始日表。仅历史数据 — 2024-07-05 起切换到 Newrez。'},
     fields:['portfcldaily','portbkdaily','portlmdaily','portassetdaily — delq_status_mba, fcl_active_flag','portstandarddaily'],
     code:'portdaily_config.py',schema:'sls',
-    sql:"SELECT * FROM sls.portassetdaily\nORDER BY dataasofdate DESC\nLIMIT 10;",
+    sql:"-- L1 SLS（mysql_prod，历史）· 最新数据日期\nSELECT * FROM sls.portassetdaily\nWHERE dataasofdate=(SELECT MAX(dataasofdate) FROM sls.portassetdaily)\nLIMIT 50;",
     up:['Layer 0 SLS files'],down:['port.portdaily_v2 (SLS branch, before 2024-07-05)']},
-   {id:'carr',name:'carrington.portcarrington',plat:'mysql',
+   {id:'carr',sql:"-- L1 Carrington（mysql_prod）· 无数据日期列，按 update_time 取最新\nSELECT * FROM carrington.portcarrington\nORDER BY update_time DESC\nLIMIT 50;",name:'carrington.portcarrington',plat:'dual',
     ds:{en:'Carrington single wide raw table. fcl_flag mapped directly from foreclosure_status_code.',zh:'Carrington 单一宽表。fcl_flag 直接来自 foreclosure_status_code。'},
     fields:['foreclosure_status_code → fcl_flag'],code:'daily_data_loan_common_config.py',schema:'carrington',
     up:['Layer 0 Carrington files'],down:['port.basic_data_daily_loan_common']},
-   {id:'mrc',name:'mrc.portmrcforeclosure  ·  fci.*  ·  selene.*',plat:'mysql',
+   {id:'mrc',sql:"-- L1 MRC（mysql_prod）· 最新数据日期\nSELECT * FROM mrc.portmrcforeclosure\nWHERE dataasof=(SELECT MAX(dataasof) FROM mrc.portmrcforeclosure)\nLIMIT 50;",name:'mrc.portmrcforeclosure  ·  fci.*  ·  selene.*',plat:'dual',
     ds:{en:'MRC foreclosure table + FCI / Selene per-category tables.',zh:'MRC 止赎表 + FCI / Selene 分类表。'},
     fields:['MRC: fc_flag → fcl_flag'],code:'daily_data_loan_common_config.py',schema:'mrc',
     up:['Layer 0 MRC/FCI/Selene files'],down:['port.basic_data_daily_loan_common']},
  ]},
- {n:2,title:{en:'Unified Daily Layer',zh:'统一日表层'},sub:{en:'All servicers UNIONed + normalized',zh:'全部服务商 UNION + 归一化'},plat:'redshift',nodes:[
-   {id:'portdaily',name:'port.portdaily_v2',plat:'redshift',
+ {n:2,title:{en:'Unified Daily Layer',zh:'统一日表层'},sub:{en:'All servicers UNIONed + normalized · DUAL-WRITE (plain config→Redshift, mysql_… →MySQL; gen_daily_data_loan_common_flow.py:17-48 RS / :52-84 MySQL) · verify: redshift_prod',zh:'全部服务商 UNION + 归一化 · 双写（plain 配置→Redshift、mysql_…→MySQL；gen_daily_data_loan_common_flow.py:17-48 RS / :52-84 MySQL）· 验证库：redshift_prod'},plat:'dual',nodes:[
+   {id:'portdaily',sql:"-- L2 统一日表前身（redshift_prod）· 最新数据日期\nSELECT * FROM port.portdaily_v2\nWHERE asofdate=(SELECT MAX(asofdate) FROM port.portdaily_v2)\nLIMIT 50;",name:'port.portdaily_v2',plat:'dual',
     ds:{en:'SLS history + Newrez (switch 2024-07-05) unified via UNION ALL. fcl_flag is NULL here for SLS & Newrez (filled lower down).',zh:'SLS 历史 + Newrez（2024-07-05 切换）经 UNION ALL 合并。此层 SLS 与 Newrez 的 fcl_flag 为 NULL（在下层填充）。'},
     fields:['asofdate','loanid','servicer','delq_status','fcl_flag (NULL for SLS/Newrez)','lm_flag'],
     code:'portdaily_config.py — GEN_PORTDAILY_v2 (SLS_TO_NEWREZ_DATE=2024-07-05)',schema:'port',
     note:{en:'fcl_flag NULL here is by design, not a data bug — it is filled at Layer 2→3.',zh:'此处 fcl_flag 为 NULL 是设计如此，并非数据缺陷 — 在 Layer 2→3 填充。'},
     up:['newrez.portnewrez* / sls.port*daily'],down:['port.basic_data_daily_loan_common']},
-   {id:'bddlc',name:'port.basic_data_daily_loan_common',plat:'redshift',
+   {id:'bddlc',sql:"-- L2 统一日表（redshift_prod）· 最新数据日期\nSELECT * FROM port.basic_data_daily_loan_common\nWHERE asofdate=(SELECT MAX(asofdate) FROM port.basic_data_daily_loan_common)\nLIMIT 50;",name:'port.basic_data_daily_loan_common',plat:'dual',
     ds:{en:'Every servicer (incl. Carrington/MRC/FCI/Selene) UNIONed into one schema. fcl_flag mapped per servicer.',zh:'所有服务商（含 Carrington/MRC/FCI/Selene）UNION 进统一 schema。fcl_flag 按服务商映射。'},
     fields:['delq_status (raw desc)','fcl_flag','lm_flag (Y/N)','bankruptcy (Y/N)'],
     code:'daily_data_loan_common_config.py (47KB)',schema:'port',
     fclmap:[['Newrez','activefcflag','1/0'],['SLS','fcl_active_flag','"1"/"0"'],['Carrington','foreclosure_status_code','raw'],['MRC','fc_flag','raw']],
     up:['port.portdaily_v2 + Carrington/MRC/FCI/Selene staging'],down:['port.basic_data_daily_loan_common_clean']},
  ]},
- {n:3,title:{en:'Clean Daily Layer',zh:'清洗日表层'},sub:{en:'Raw delq_status → standardized delinq codes',zh:'原始 delq_status → 标准化 delinq 码'},plat:'redshift',nodes:[
-   {id:'bddlcc',name:'port.basic_data_daily_loan_common_clean',plat:'redshift',
+ {n:3,title:{en:'Clean Daily Layer',zh:'清洗日表层'},sub:{en:'Raw delq_status → standardized delinq codes · DELINQUENCY BRANCH (delq_status→delinq via days360) · DUAL-WRITE (gen_daily_data_loan_common_clean_flow.py:78-139 RS / :186-243 MySQL) · verify: redshift_prod',zh:'原始 delq_status → 标准化 delinq 码 · 逾期支线（delq_status→delinq，经 days360）· 双写（gen_daily_data_loan_common_clean_flow.py:78-139 RS / :186-243 MySQL）· 验证库：redshift_prod'},plat:'dual',nodes:[
+   {id:'bddlcc',sql:"-- L3 清洗日表（redshift_prod）· 最新报告日 fctrdt\nSELECT * FROM port.basic_data_daily_loan_common_clean\nWHERE fctrdt=(SELECT MAX(fctrdt) FROM port.basic_data_daily_loan_common_clean)\nLIMIT 50;",name:'port.basic_data_daily_loan_common_clean',plat:'dual',
     ds:{en:'Standardized daily full data — raw delq_status normalized to delinq codes.',zh:'标准化日全量数据 — 原始 delq_status 归一化为 delinq 码。'},
     fields:['delinq (C/D30/.../FCL/REO/P)','fcl_flag','lm_flag','bankruptcy'],
     code:'daily_data_loan_common_clean_config.py (72KB)',schema:'port',
     up:['port.basic_data_daily_loan_common'],down:['port.portmonthbase','port.port_daily_clean']},
-   {id:'pdc',name:'port.port_daily_clean',plat:'redshift',
+   {id:'pdc',sql:"-- L3 日清洗（redshift_prod）· 最新 fctrdt\nSELECT * FROM port.port_daily_clean\nWHERE fctrdt=(SELECT MAX(fctrdt) FROM port.port_daily_clean)\nLIMIT 50;",name:'port.port_daily_clean',plat:'dual',
     ds:{en:'Daily clean with standard fields delinq / fcl_flag / lm_flag / bankruptcy.',zh:'日清洗表，含标准字段 delinq / fcl_flag / lm_flag / bankruptcy。'},
     fields:['delinq','fcl_flag','lm_flag','bankruptcy'],code:'daily_data_loan_common_clean_config.py',schema:'port',
     up:['port.basic_data_daily_loan_common'],down:['monthly business tables']},
-   {id:'delinqclean',name:'port.basic_data_loan_delinq_clean',plat:'redshift',
+   {id:'delinqclean',sql:"-- L3 旁支逾期清洗（redshift_prod）· 最新 fctrdt\nSELECT * FROM port.basic_data_loan_delinq_clean\nWHERE fctrdt=(SELECT MAX(fctrdt) FROM port.basic_data_loan_delinq_clean)\nLIMIT 50;",name:'port.basic_data_loan_delinq_clean',plat:'dual',
     ds:{en:'Refined delinquency table with ghost-payoff detection and prior-month LAG. ⚠️ OQ#7: producing code is NOT in the PrefectFlow repo (full-repo grep 0 hits, 2026-06-07) — likely maintained by another repo/manual process; do not assume the rule.',zh:'精细化逾期表，含幽灵还清检测与上月 LAG。⚠️ OQ#7：生成代码不在 PrefectFlow 版本库（全仓 grep 0 命中，2026-06-07）——疑由另一 repo/手工流程维护，规则勿臆断。'},
     fields:['delinq','ots_delinq','prevdelinq','ots_prevdelinq','delinq_source','is_ghost_payoff','ghost_reason','paymthist'],
     code:'(未在 PrefectFlow 版本库定位 / not located in PrefectFlow repo — OQ#7)',schema:'port',
     up:['port.basic_data_daily_loan_common'],down:['delinquency rollups / portmonthbase']},
  ]},
- {n:4,title:{en:'Monthly Business Layer',zh:'月度业务层'},sub:{en:'Monthly snapshots + FCL business tables (core)',zh:'月度快照 + FCL 业务表（核心）'},plat:'redshift',nodes:[
-   {id:'portmonthbase',name:'port.portmonthbase',plat:'redshift',
-    ds:{en:'PRIMARY analytical table — monthly loan-state snapshots. JOINs clean daily + remittance.',zh:'主分析表 — 月度贷款状态快照。JOIN 清洗日表 + 汇款。'},
-    rows:'2,197 rows (snapshot fctrdt 2025-08-01)',code:'gen_portmonth_config.py (90KB)',schema:'port',
+ {n:4,title:{en:'Monthly Business Layer',zh:'月度业务层'},sub:{en:'Monthly snapshots + FCL business tables (core) · MIXED: monthly-common/portmonthbase = DUAL-WRITE; FCL business family (foreclosure/stage/hold/lm/bk/fcl/related/reo) = Redshift-built, MySQL copy via L5 sync (no mysql_ pool config) · two branches meet at fcl_stage_info.group',zh:'月度快照 + FCL 业务表（核心）· 混合：月度通用/portmonthbase = 双写；FCL 业务族（foreclosure/stage/hold/lm/bk/fcl/related/reo）= Redshift 单建，MySQL 副本由 L5 同步（无 mysql_ 池配置）· 两条支线在 fcl_stage_info.group 汇合'},plat:'redshift',nodes:[
+   {id:'portmonthbase',name:'port.portmonthbase',plat:'dual',
+    ds:{en:'PRIMARY analytical table — monthly loan-state snapshots. JOINs clean daily + remittance. DUAL-WRITE: gen_portmonth_v4.py:45-46 (Redshift) + gen_portmonth_mysql.py:42-43 (MySQL).',zh:'主分析表 — 月度贷款状态快照。JOIN 清洗日表 + 汇款。双写：gen_portmonth_v4.py:45-46（Redshift）+ gen_portmonth_mysql.py:42-43（MySQL）。'},
+    rows:'2,197 rows (snapshot fctrdt 2025-08-01)',code:'gen_portmonth_config.py (90KB) · gen_portmonth_mysql.py',schema:'port',
     dist:[['C',1255,57.1],['D30',652,29.7],['P',188,8.6],['D60',44,2.0],['FCL',24,1.1],['D120P',16,0.7],['D90',11,0.5],['VASP',5,0.2],['REO',2,0.1]],
     linkStatus:true,
-    sql:"-- delinq distribution (latest snapshot)\nSELECT delinq, COUNT(*) AS cnt\nFROM port.portmonthbase\nWHERE fctrdt=(SELECT MAX(fctrdt) FROM port.portmonthbase)\nGROUP BY delinq\nORDER BY cnt DESC;",
+    sql:"-- L4 月度主表（redshift_prod）· 最新报告月 fctrdt\nSELECT * FROM port.portmonthbase\nWHERE fctrdt=(SELECT MAX(fctrdt) FROM port.portmonthbase)\nLIMIT 50;",
     up:['basic_data_daily_loan_common_clean ⋈ basic_data_monthly_loan_remit_clean'],down:['port.portmonth (MySQL) → bpms_dev.sync_portmonth']},
    {id:'bdlf',name:'port.basic_data_loan_foreclosure',plat:'redshift',
-    ds:{en:'Full FCL timeline: 23 milestone dates + target days + variance + 7 closure reasons.',zh:'完整 FCL 时间线：23 个里程碑日期 + 目标天数 + 偏差 + 7 种关闭原因。'},
+    ds:{en:'Full FCL timeline: 23 milestone dates + target days + variance + 7 closure reasons. FCL business family — Redshift-built only; its MySQL copy is produced by the L5 sync (no mysql_ pool config).',zh:'完整 FCL 时间线：23 个里程碑日期 + 目标天数 + 偏差 + 7 种关闭原因。FCL 业务族 — 仅 Redshift 单建；其 MySQL 副本由 L5 同步产生（无 mysql_ 池配置）。'},
     rows:'~6K rows',code:'basic_data_pool_config.py (2400+ lines)',schema:'port',
     closure:[['Active Foreclosure',43],['Closed:Reinstated',25],['Closed:Loss Mitigation',15],['Closed:Paid in Full',10],['Closed:Process Complete',7],['Closed:Deed in Lieu Cmplte',1],['NULL',5942]],
-    sql:"-- closure-reason breakdown\nSELECT summary_foreclosure_status, COUNT(*) AS cnt\nFROM port.basic_data_loan_foreclosure\nGROUP BY summary_foreclosure_status\nORDER BY cnt DESC;",
+    sql:"-- L4 FCL 时间线聚合（redshift_prod）· 最新数据日期\nSELECT * FROM port.basic_data_loan_foreclosure\nWHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_loan_foreclosure)\nLIMIT 50;",
     up:['port.basic_data_daily_loan_common_clean'],down:['port.basic_data_loan_foreclosure (MySQL) → bpms_dev.sync_loan_foreclosure (5-FORECLOSURE)']},
    {id:'fclstage',name:'port.fcl_stage_info',plat:'redshift',
     ds:{en:'FCL stage tracking — 6 stages × 5 dimensions (dates, stage days, in-LM days, on-hold days).',zh:'FCL 阶段追踪 — 6 阶段 × 5 维度（日期、阶段天数、LM 内天数、暂停天数）。'},
     rows:'~8,733 rows',code:'basic_data_pool_config.py — GEN_FCL_STAGE',schema:'port',
     stages:[['DEMAND',{en:'Demand letter / NOI',zh:'催告函 / 意向通知'},448],['REFERRAL',{en:'Attorney referral',zh:'转交律师'},3341],['FIRST_LEGAL',{en:'First legal filed',zh:'首次法律行动'},800],['SERVICE',{en:'Doc service',zh:'文书送达'},1486],['JUDGEMENT',{en:'Judgment phase',zh:'判决阶段'},700],['SALE',{en:'Foreclosure sale',zh:'止赎拍卖'},1958]],
     groups:[['FCL',{en:'Formally in foreclosure',zh:'正式进入止赎'},8277],['D120P',{en:'120+ delinquent, tracked',zh:'120+ 逾期，已追踪'},411],['D90',{en:'90-day, tracked',zh:'90 天，已追踪'},39],['REO',{en:'Already REO',zh:'已 REO'},6]],
-    sql:"-- stage record counts\nSELECT stage, COUNT(*) AS cnt\nFROM port.fcl_stage_info\nGROUP BY stage\nORDER BY cnt DESC;",
+    sql:"-- L4 阶段表（redshift_prod）· 最新报告月 fctrdt\nSELECT * FROM port.fcl_stage_info\nWHERE fctrdt=(SELECT MAX(fctrdt) FROM port.fcl_stage_info)\nLIMIT 50;",
     up:['port.basic_data_daily_loan_common_clean'],down:['bpms_dev.sync_fcl_stage_info (12-FCL_STAGE)']},
-   {id:'bdlfcl',name:'port.basic_data_loan_fcl',plat:'redshift',ds:{en:'FCL detail + 4 hold descriptions (projected end dates, comments).',zh:'FCL 明细 + 4 个暂停描述（预计结束日期、备注）。'},code:'basic_data_pool_config.py',schema:'port',up:['clean daily'],down:['FCL detail consumers']},
-   {id:'hold',name:'port.basic_data_loan_foreclosure_hold',plat:'redshift',ds:{en:'Structured holds — 4 levels, description + start/end dates.',zh:'结构化暂停 — 4 级，描述 + 起止日期。'},code:'basic_data_pool_config.py',schema:'port',up:['clean daily'],down:['bpms_dev.sync_loan_foreclosure_hold (10-FORECLOSURE_HOLD)']},
-   {id:'bk',name:'port.basic_data_loan_foreclosure_bankruptcy',plat:'redshift',ds:{en:'FCL + BK combined view: BK status, chapter, MFR, claim.',zh:'FCL + 破产合并视图：破产状态、章节、MFR、债权。'},code:'basic_data_pool_config.py',schema:'port',up:['clean daily + BK'],down:['bpms_dev.sync_loan_foreclosure_bankruptcy (9-FORECLOSURE_BK)']},
-   {id:'lm',name:'port.basic_data_loan_foreclosure_loss_mitigation',plat:'redshift',ds:{en:'FCL + LM combined view (16 fields: program, cycle, final disposition).',zh:'FCL + LM 合并视图（16 字段：方案、周期、最终处置）。'},code:'basic_data_pool_config.py',schema:'port',up:['clean daily + LM'],down:['bpms_dev.sync_loan_foreclosure_loss_mitigation (8-FORECLOSURE_LM)']},
-   {id:'fclrel',name:'port.basic_data_fcl_related',plat:'redshift',ds:{en:'FCL related attributes: litigation flag, liquidation type, BK flag, default reason.',zh:'FCL 相关属性：诉讼标志、清算类型、破产标志、违约原因。'},code:'basic_data_pool_config.py',schema:'port',up:['clean daily'],down:['attribute consumers']},
-   {id:'reo',name:'port.basic_data_loan_reo',plat:'redshift',ds:{en:'Simple REO record: loanid + start_date + end_date.',zh:'简单 REO 记录：loanid + 起始日 + 结束日。'},code:'basic_data_pool_config.py',schema:'port',up:['clean daily'],down:['REO reporting']},
+   {id:'bdlfcl',sql:"-- L4 FCL 事实表（redshift_prod）· 最新数据日期\nSELECT * FROM port.basic_data_loan_fcl\nWHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_loan_fcl)\nLIMIT 50;",name:'port.basic_data_loan_fcl',plat:'redshift',ds:{en:'FCL detail + 4 hold descriptions (projected end dates, comments).',zh:'FCL 明细 + 4 个暂停描述（预计结束日期、备注）。'},code:'basic_data_pool_config.py',schema:'port',up:['clean daily'],down:['FCL detail consumers']},
+   {id:'hold',sql:"-- L4 Hold 历史（redshift_prod）· 最新数据日期（一贷款多行）\nSELECT * FROM port.basic_data_loan_foreclosure_hold\nWHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_loan_foreclosure_hold)\nLIMIT 50;",name:'port.basic_data_loan_foreclosure_hold',plat:'redshift',ds:{en:'Structured holds — 4 levels, description + start/end dates.',zh:'结构化暂停 — 4 级，描述 + 起止日期。'},code:'basic_data_pool_config.py',schema:'port',up:['clean daily'],down:['bpms_dev.sync_loan_foreclosure_hold (10-FORECLOSURE_HOLD)']},
+   {id:'bk',sql:"-- L4 破产历史（redshift_prod）· 最新数据日期\nSELECT * FROM port.basic_data_loan_foreclosure_bankruptcy\nWHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_loan_foreclosure_bankruptcy)\nLIMIT 50;",name:'port.basic_data_loan_foreclosure_bankruptcy',plat:'redshift',ds:{en:'FCL + BK combined view: BK status, chapter, MFR, claim.',zh:'FCL + 破产合并视图：破产状态、章节、MFR、债权。'},code:'basic_data_pool_config.py',schema:'port',up:['clean daily + BK'],down:['bpms_dev.sync_loan_foreclosure_bankruptcy (9-FORECLOSURE_BK)']},
+   {id:'lm',sql:"-- L4 LM 历史（redshift_prod）· 最新数据日期\nSELECT * FROM port.basic_data_loan_foreclosure_loss_mitigation\nWHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_loan_foreclosure_loss_mitigation)\nLIMIT 50;",name:'port.basic_data_loan_foreclosure_loss_mitigation',plat:'redshift',ds:{en:'FCL + LM combined view (16 fields: program, cycle, final disposition).',zh:'FCL + LM 合并视图（16 字段：方案、周期、最终处置）。'},code:'basic_data_pool_config.py',schema:'port',up:['clean daily + LM'],down:['bpms_dev.sync_loan_foreclosure_loss_mitigation (8-FORECLOSURE_LM)']},
+   {id:'fclrel',sql:"-- L4 FCL 关联属性（redshift_prod）· 最新数据日期\nSELECT * FROM port.basic_data_fcl_related\nWHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_fcl_related)\nLIMIT 50;",name:'port.basic_data_fcl_related',plat:'redshift',ds:{en:'FCL related attributes: litigation flag, liquidation type, BK flag, default reason.',zh:'FCL 相关属性：诉讼标志、清算类型、破产标志、违约原因。'},code:'basic_data_pool_config.py',schema:'port',up:['clean daily'],down:['attribute consumers']},
+   {id:'reo',sql:"-- L4 REO（redshift_prod）· 无数据日期列，按 loanid 查\nSELECT * FROM port.basic_data_loan_reo\nWHERE loanid='7727000088';",name:'port.basic_data_loan_reo',plat:'redshift',ds:{en:'Simple REO record: loanid + start_date + end_date.',zh:'简单 REO 记录：loanid + 起始日 + 结束日。'},code:'basic_data_pool_config.py',schema:'port',up:['clean daily'],down:['REO reporting']},
  ]},
- {n:5,title:{en:'BPS Sync Layer',zh:'BPS 同步层'},sub:{en:'MySQL — port (ETL targets) + bpms_dev (what the BPS app reads)',zh:'MySQL — port（ETL 目标）+ bpms_dev（BPS 应用读取）'},plat:'bps',nodes:[
-   {id:'mysql_bdlf',name:'port.basic_data_loan_foreclosure (MySQL)',plat:'mysql',
+ {n:5,title:{en:'BPS Sync Layer',zh:'BPS 同步层'},sub:{en:'MySQL — port (ETL targets) + bpms_dev (what the BPS app reads) · runs daily ~4:35 ET (schedule on the Prefect server, NOT in the repo — treat ops as truth) · each run logs to port.sync_to_bps_status',zh:'MySQL — port（ETL 目标）+ bpms_dev（BPS 应用读取）· 每日约 4:35 ET 自动跑（调度在 Prefect 服务端，不在版本库 — 以运维为准）· 每次同步写 port.sync_to_bps_status'},plat:'bps',nodes:[
+   {id:'mysql_bdlf',sql:"-- L5 MySQL 中转（mysql_prod.port）· 无数据日期列，按 loanid 查\nSELECT * FROM port.basic_data_loan_foreclosure\nWHERE loanid='7727000088';",name:'port.basic_data_loan_foreclosure (MySQL)',plat:'mysql',
     ds:{en:'STAGING target of 5-FORECLOSURE sync. sync_to_mysql() clears + appends Redshift data here.',zh:'5-FORECLOSURE 同步的暂存目标。sync_to_mysql() 清空并追加 Redshift 数据。'},
     rows:'96 rows (Newrez)',code:'sync_to_bps_config.py',schema:'port',
     up:['port.basic_data_loan_foreclosure (Redshift) via sync_to_mysql()'],down:['bpms_dev.sync_loan_foreclosure via UPDATE_FORECLOSURE']},
@@ -443,19 +469,19 @@ const LAYERS=[
     ds:{en:'PRIMARY FCL table the BPS app reads. Written by update_to_mysql() → UPDATE_FORECLOSURE: INSERT … SELECT FROM port.basic_data_loan_foreclosure … ON DUPLICATE KEY UPDATE.',zh:'BPS 应用读取的主 FCL 表。由 update_to_mysql() → UPDATE_FORECLOSURE 写入：INSERT … SELECT FROM port.basic_data_loan_foreclosure … ON DUPLICATE KEY UPDATE。'},
     rows:'86 cols',code:'df_db_util.py:698,710 → UPDATE_FORECLOSURE (asset_managment_config.py:644)',schema:'bpms_dev',
     note:{en:'create_time/update_time are NULL because the ON DUPLICATE KEY UPDATE clause excludes them — NOT because ETL is bypassed (corrected 2026-05-28, doc 12 §14.0).',zh:'create_time/update_time 为 NULL 是因为 ON DUPLICATE KEY UPDATE 子句排除了这两列 — 并非 ETL 被绕过（2026-05-28 已订正，doc 12 §14.0）。'},
-    sql:"-- confirm freshness of BPS FCL table\nSELECT COUNT(*) AS n,\n       MAX(create_time) AS max_create,\n       MAX(update_time) AS max_update\nFROM bpms_dev.sync_loan_foreclosure;",
+    sql:"-- L5 BPS 主表（mysql_prod.bpms）· 无数据日期列（当前态 1 行/贷款）\nSELECT * FROM bpms.sync_loan_foreclosure\nWHERE loanid='7727000088';",
     up:['port.basic_data_loan_foreclosure (MySQL staging)'],down:['bpms_dev.biz_data_view_loan_details_foreclosure','BPS Foreclosure UI panels']},
-   {id:'sync_lm',name:'bpms_dev.sync_loan_foreclosure_loss_mitigation',plat:'bps',ds:{en:'LM panel source (8-FORECLOSURE_LM), 22 cols.',zh:'LM 面板来源（8-FORECLOSURE_LM），22 列。'},code:'sync_to_bps_config.py',schema:'bpms_dev',up:['port…loss_mitigation'],down:['BPS LM Cycle panel']},
-   {id:'sync_bk',name:'bpms_dev.sync_loan_foreclosure_bankruptcy',plat:'bps',ds:{en:'Bankruptcy panel source (9-FORECLOSURE_BK), 22 cols.',zh:'破产面板来源（9-FORECLOSURE_BK），22 列。'},code:'sync_to_bps_config.py',schema:'bpms_dev',up:['port…bankruptcy'],down:['BPS Bankruptcy panel']},
-   {id:'sync_hold',name:'bpms_dev.sync_loan_foreclosure_hold',plat:'bps',ds:{en:'Hold history source (10-FORECLOSURE_HOLD), 15 cols.',zh:'暂停历史来源（10-FORECLOSURE_HOLD），15 列。'},code:'sync_to_bps_config.py',schema:'bpms_dev',up:['port…hold'],down:['BPS Hold panel']},
-   {id:'sync_stage',name:'bpms_dev.sync_fcl_stage_info',plat:'bps',ds:{en:'Stage / Days-in-Stage source (12-FCL_STAGE), 57 cols.',zh:'阶段 / Days-in-Stage 来源（12-FCL_STAGE），57 列。'},code:'sync_to_bps_config.py',schema:'bpms_dev',up:['port.fcl_stage_info'],down:['BPS Days in Stage / LM / Hold']},
+   {id:'sync_lm',sql:"-- L5 BPS LM（mysql_prod.bpms）· 最新报告月 fctrdt\nSELECT * FROM bpms.sync_loan_foreclosure_loss_mitigation\nWHERE fctrdt=(SELECT MAX(fctrdt) FROM bpms.sync_loan_foreclosure_loss_mitigation)\nLIMIT 50;",name:'bpms_dev.sync_loan_foreclosure_loss_mitigation',plat:'bps',ds:{en:'LM panel source (8-FORECLOSURE_LM), 22 cols.',zh:'LM 面板来源（8-FORECLOSURE_LM），22 列。'},code:'sync_to_bps_config.py',schema:'bpms_dev',up:['port…loss_mitigation'],down:['BPS LM Cycle panel']},
+   {id:'sync_bk',sql:"-- L5 BPS 破产（mysql_prod.bpms）· 最新报告月 fctrdt\nSELECT * FROM bpms.sync_loan_foreclosure_bankruptcy\nWHERE fctrdt=(SELECT MAX(fctrdt) FROM bpms.sync_loan_foreclosure_bankruptcy)\nLIMIT 50;",name:'bpms_dev.sync_loan_foreclosure_bankruptcy',plat:'bps',ds:{en:'Bankruptcy panel source (9-FORECLOSURE_BK), 22 cols.',zh:'破产面板来源（9-FORECLOSURE_BK），22 列。'},code:'sync_to_bps_config.py',schema:'bpms_dev',up:['port…bankruptcy'],down:['BPS Bankruptcy panel']},
+   {id:'sync_hold',sql:"-- L5 BPS Hold（mysql_prod.bpms）· 最新报告月 fctrdt\nSELECT * FROM bpms.sync_loan_foreclosure_hold\nWHERE fctrdt=(SELECT MAX(fctrdt) FROM bpms.sync_loan_foreclosure_hold)\nLIMIT 50;",name:'bpms_dev.sync_loan_foreclosure_hold',plat:'bps',ds:{en:'Hold history source (10-FORECLOSURE_HOLD), 15 cols.',zh:'暂停历史来源（10-FORECLOSURE_HOLD），15 列。'},code:'sync_to_bps_config.py',schema:'bpms_dev',up:['port…hold'],down:['BPS Hold panel']},
+   {id:'sync_stage',sql:"-- L5 BPS 阶段（mysql_prod.bpms）· 最新报告月 fctrdt\nSELECT * FROM bpms.sync_fcl_stage_info\nWHERE fctrdt=(SELECT MAX(fctrdt) FROM bpms.sync_fcl_stage_info)\nLIMIT 50;",name:'bpms_dev.sync_fcl_stage_info',plat:'bps',ds:{en:'Stage / Days-in-Stage source (12-FCL_STAGE), 57 cols.',zh:'阶段 / Days-in-Stage 来源（12-FCL_STAGE），57 列。'},code:'sync_to_bps_config.py',schema:'bpms_dev',up:['port.fcl_stage_info'],down:['BPS Days in Stage / LM / Hold']},
    {id:'bizview',name:'bpms_dev.biz_data_view_loan_details_foreclosure',plat:'bps',
     ds:{en:'104-column BPS view: timeline / target / actual / var / variance / bid_approval / summary. The view the FCL UI binds to.',zh:'104 列 BPS 视图：timeline / target / actual / var / variance / bid_approval / summary。FCL 界面绑定的视图。'},
     rows:'104 cols',code:'SHOW CREATE VIEW',schema:'bpms_dev',
-    sql:"-- inspect the view definition\nSHOW CREATE VIEW bpms_dev.biz_data_view_loan_details_foreclosure;",
+    sql:"-- L5 BPS 详情视图（mysql_prod.bpms）· 最新报告月 fctrdt\nSELECT * FROM bpms.biz_data_view_loan_details_foreclosure\nWHERE fctrdt=(SELECT MAX(fctrdt) FROM bpms.biz_data_view_loan_details_foreclosure)\nLIMIT 50;",
     up:['bpms_dev.sync_loan_foreclosure (+ stage/hold/lm/bk)'],down:['BPS Foreclosure detail screen']},
    {id:'audit',name:'port.sync_to_bps_status (Redshift — audit only)',plat:'redshift',
-    ds:{en:'Sync run log: servicer, row count, max asofdate per run. NOT a data table.',zh:'同步运行日志：每次运行的服务商、行数、最大 asofdate。非数据表。'},
+    ds:{en:'Sync run log: servicer, row count, max asofdate per run — written on every sync success/failure by the status decorator in df_db_util.py. NOT a data table. The daily run fires ~4:35 ET (schedule lives on the Prefect server, not in the version-controlled code).',zh:'同步运行日志：每次运行的服务商、行数、最大 asofdate — 由 df_db_util.py 的状态装饰器在每次同步成功/失败时写入。非数据表。每日约 4:35 ET 触发（调度在 Prefect 服务端，不在版本库代码内）。'},
     code:'sync_to_bps_config.py',schema:'port (Redshift)',
     sql:"-- last sync per servicer\nSELECT servicer, MAX(asofdate) AS max_asof, row_count\nFROM port.sync_to_bps_status\nGROUP BY servicer, row_count\nORDER BY servicer;",
     up:['every sync writes here'],down:['(observability only)']},
@@ -526,7 +552,7 @@ const BPS_PANELS=[
 ];
 
 /* =================== RENDER =================== */
-const layerColors=['#6e7681','#f29d50','#9d7bff','#9d7bff','#9d7bff','#ff7b9c'];
+const layerColors=['#6e7681','#4db6a0','#4db6a0','#4db6a0','#9d7bff','#ff7b9c'];
 const idIndex={}; LAYERS.forEach(L=>L.nodes.forEach(n=>idIndex[n.id]=n));
 const delinqIndex={}; DELINQ.forEach(d=>delinqIndex[d.c]=d);
 let activeSel=null; // {type:'node'|'panel'|'delinq', id}
@@ -537,6 +563,7 @@ function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 function applyStaticLabels(){
   document.getElementById('h-sub').innerHTML=t('sub');
   document.getElementById('v-pipeline').textContent=t('vPipeline');
+  document.getElementById('v-flow').textContent=t('vFlow');
   document.getElementById('v-status').textContent=t('vStatus');
   document.getElementById('v-fields').textContent=t('vFields');
   document.getElementById('v-graph').textContent=t('vGraph');
@@ -547,10 +574,11 @@ function applyStaticLabels(){
     `<span><i class="dot" style="background:var(--raw)"></i>${t('legRaw')}</span>
      <span><i class="dot" style="background:var(--mysql)"></i>${t('legMysql')}</span>
      <span><i class="dot" style="background:var(--redshift)"></i>${t('legRedshift')}</span>
+     <span><i class="dot" style="background:#4db6a0"></i>${t('legDual')}</span>
      <span><i class="dot" style="background:var(--bps)"></i>${t('legBps')}</span>
      <span style="color:var(--accent2)">${t('legGreen')}</span>`;
   document.querySelectorAll('#lang-en,#lang-zh').forEach(b=>b.classList.toggle('on',b.id==='lang-'+lang));
-  ['fields','pipeline','graph','status','primer'].forEach(v=>document.getElementById('v-'+v).classList.toggle('on',v===view));
+  ['fields','pipeline','flow','graph','status','primer'].forEach(v=>document.getElementById('v-'+v).classList.toggle('on',v===view));
   document.documentElement.lang=lang;
 }
 
@@ -562,6 +590,11 @@ function transformLabel(n){
 
 function renderPipeline(){
   const c=document.getElementById('canvas'); c.innerHTML=pageHeader('pipeline');
+  // sample-loan evidence chain (doc 20 §B.5) — one loan, the same value traced L1 → L4 → L5
+  c.innerHTML+=`<div class="note" style="margin:10px 0;border-left:3px solid #4db6a0">${L({
+    zh:'🔎 <b>样本贷款证据链</b>（loan <code>7727000088</code>，prod 实测 2026-06-06）：<b>L1</b> <code>newrez.portnewrezfc.fcreferraldate=2025-05-23</code> → <b>L4</b> <code>port.fcl_stage_info</code> 六阶段日期齐（referral 2025-05-22…，sale_start=NULL 未拍卖）→ <b>L5</b> <code>bpms.sync_loan_foreclosure</code>：<code>timeline_referred_to_foreclosure_date=2025-05-23</code>、<code>summary_foreclosure_status="Closed Foreclosure:Process Complete"</code>、<code>summary_judicial_foreclosure=1</code>（FL 司法州 ✓）。源→计算→BPS 三处一致——这就是「准不准、能否追溯」的证据链。逐字段见 doc 19，串讲见 doc 20 §B.5。',
+    en:'🔎 <b>Sample-loan evidence chain</b> (loan <code>7727000088</code>, prod-verified 2026-06-06): <b>L1</b> <code>newrez.portnewrezfc.fcreferraldate=2025-05-23</code> → <b>L4</b> <code>port.fcl_stage_info</code> all six stage dates present (referral 2025-05-22…, sale_start=NULL not yet sold) → <b>L5</b> <code>bpms.sync_loan_foreclosure</code>: <code>timeline_referred_to_foreclosure_date=2025-05-23</code>, <code>summary_foreclosure_status="Closed Foreclosure:Process Complete"</code>, <code>summary_judicial_foreclosure=1</code> (FL judicial ✓). Source→compute→BPS all agree — the traceability proof. Field-by-field in doc 19, narrated in doc 20 §B.5.'
+  })}</div>`;
   LAYERS.forEach((Ly,i)=>{
     const lc=layerColors[Ly.n];
     const layer=document.createElement('div'); layer.className='layer';
@@ -584,6 +617,135 @@ function renderPipeline(){
     if(i<LAYERS.length-1){const a=document.createElement('div');a.className='arrow';a.innerHTML=`▼ &nbsp;<b>${transformLabel(Ly.n)}</b>`;c.appendChild(a);}
   });
 }
+
+/* =================== DATA-FLOW VIEW (animated L0→BPS order) =================== */
+const FNS='http://www.w3.org/2000/svg';
+function fEl(tag,attrs,txt){const e=document.createElementNS(FNS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(txt!=null)e.textContent=txt;return e;}
+const FPCOL={Files:'var(--raw)',Dual:'#4db6a0',RS:'var(--redshift)',BPS:'var(--bps)'};
+const FLOW_STAGES=[
+ {k:'L0',plat:'Files',vol:8,t:{zh:'L0 来源文件',en:'L0 Source files'},tables:['Servicer 文件 (S3)'],
+  loan:{zh:'文件中的一行',en:'a row in the file'},
+  nar:{zh:'各 Servicer（Newrez/SLS/Carrington/MRC/FCI/Selene）每天把贷款最新状态打包成文件投递到 S3（CSV/TXT/XLSX）。',en:'Each servicer drops daily loan-state files (CSV/TXT/XLSX) to S3.'}},
+ {k:'L1',plat:'Dual',vol:8,t:{zh:'L1 落库 · 双写',en:'L1 Staging · dual-write'},tables:['newrez.portnewrezfc/bk/lm/general','carrington.portcarrington · sls/mrc/…'],
+  loan:{zh:'fcreferraldate = 2025-05-23',en:'fcreferraldate = 2025-05-23'},
+  nar:{zh:'原始文件按 servicer 落库；同名表 MySQL+Redshift 双写，按 dataasof 存每日快照（plain→Redshift、mysql_→MySQL）。',en:'Raw files landed per servicer; same-named tables dual-written to MySQL+Redshift, daily snapshots by dataasof.'}},
+ {k:'L2',plat:'Dual',vol:7,t:{zh:'L2 统一日表 · 双写',en:'L2 Unified daily · dual-write'},tables:['port.basic_data_daily_loan_common'],
+  loan:{zh:"delq_status = 'Foreclosure'",en:"delq_status = 'Foreclosure'"},
+  nar:{zh:'把 6 家 servicer UNION 成一套统一口径；fcl_flag / lm_flag 按家映射。仍是 Redshift+MySQL 双写。',en:'All 6 servicers UNIONed into one schema; fcl_flag/lm_flag mapped per servicer. Still dual-write.'}},
+ {k:'L3',plat:'Dual',vol:6,t:{zh:'L3 清洗日表 · 双写',en:'L3 Clean daily · dual-write'},tables:['…_common_clean (delinq)','basic_data_loan_delinq_clean'],
+  loan:{zh:'delinq = FCL',en:'delinq = FCL'},
+  nar:{zh:'逾期支线：delq_status 经 days360 标准化为 delinq 码（C/D30/…/FCL/REO/P）。FCL 只来自 servicer 明确标志，不由天数推导。',en:'Delinquency branch: delq_status → delinq codes via days360. FCL only from an explicit servicer flag.'}},
+ {k:'L4',plat:'RS',vol:5,t:{zh:'L4 月度业务层 ⭐',en:'L4 Monthly business ⭐'},tables:['portmonthbase (双写)','basic_data_loan_fcl → foreclosure / fcl_stage_info','…_hold / _loss_mitigation / _bankruptcy (FCL 族·RS 建)'],
+  loan:{zh:'referral_start=2025-05-22 · 6 阶段算出',en:'referral_start=2025-05-22 · 6 stages computed'},
+  nar:{zh:'核心计算：FCL 业务族扇出——时间线 / 6 阶段 / Hold / LM / BK。FCL 族仅 Redshift 构建，MySQL 副本由 L5 同步产生。两条支线在 fcl_stage_info.group 汇合。',en:'Core compute: FCL family fan-out — timeline / 6 stages / Hold / LM / BK. FCL family is Redshift-built; MySQL copy produced by L5. Two branches meet at fcl_stage_info.group.'}},
+ {k:'L5',plat:'RS',vol:2,t:{zh:'L5 同步进 BPS',en:'L5 Sync to BPS'},tables:['bpms.sync_loan_foreclosure (+stage/hold/lm/bk)','port.basic_data_loan_foreclosure (MySQL 中转)'],
+  loan:{zh:"summary_foreclosure_status = 'Closed Foreclosure:Process Complete'",en:"summary_foreclosure_status = 'Closed Foreclosure:Process Complete'"},
+  nar:{zh:'每日约 4:35 ET：把 Redshift 结果同步进 MySQL（覆盖刷新）。FCL 族的 MySQL 副本就在这一步产生（故 mysql 也能查到 port.basic_data_loan_foreclosure）。',en:'~4:35 ET daily: sync Redshift→MySQL (overwrite). The FCL-family MySQL copy is produced here.'}},
+ {k:'BPS',plat:'BPS',vol:2,t:{zh:'BPS 系统',en:'BPS app'},tables:['Foreclosure 5 面板 / 视图'],
+  loan:{zh:'界面显示：已完结止赎（司法州 FL）',en:'UI shows: Closed foreclosure (judicial, FL)'},
+  nar:{zh:'业务与管理层在 BPS 止赎模块看到 5 个面板（时间线/Hold/LM/破产/阶段汇总）。这是数据流的终点。',en:'Business sees the 5 BPS Foreclosure panels. End of the flow.'}},
+];
+const FLOW_MODES=[
+ {k:'A',t:{zh:'A 分步播放 ⭐',en:'A Step player ⭐'},d:{zh:'逐层点亮+旁白，最清楚"顺序+每步干啥"',en:'Step layers with narration — clearest for order'}},
+ {k:'B',t:{zh:'B 流动粒子',en:'B Particles'},d:{zh:'小圆点持续从 L0 流向 BPS',en:'Dots flow L0→BPS continuously'}},
+ {k:'C',t:{zh:'C 体量流向',en:'C Volume'},d:{zh:'边粗细≈数据量，看哪步收窄',en:'Edge width ≈ volume'}},
+ {k:'D',t:{zh:'D 单贷款追踪',en:'D Sample-loan'},d:{zh:'贷款 7727000088 沿管道走，看值如何变',en:'Watch loan 7727000088 flow & transform'}},
+];
+let flowMode='A', flowStep=0, flowPlaying=false, flowTimer=null, flowRaf=null;
+const FBW=160, FBH=104, FGAP=44, FX0=18, FY=130; const fcx=FY+FBH/2;
+const fx=i=>FX0+i*(FBW+FGAP);
+function flowEdgePath(i){const x1=fx(i)+FBW,x2=fx(i+1),mx=(x1+x2)/2;return `M${x1},${fcx} C${mx},${fcx} ${mx},${fcx} ${x2},${fcx}`;}
+
+function renderFlow(){
+  flowPause(); stopFlowParticles();
+  const c=document.getElementById('canvas');
+  c.innerHTML=pageHeader('flow')
+   +`<div id="flowmodes" style="margin-bottom:8px"></div>`
+   +`<div style="display:flex;gap:6px;align-items:center;margin:10px 0;flex-wrap:wrap">
+       <button class="fbtn" onclick="flowGoto(flowStep-1)">◀</button>
+       <button class="fbtn" id="flowplay" onclick="flowToggle()">▶</button>
+       <button class="fbtn" onclick="flowGoto(flowStep+1)">▶|</button>
+       <button class="fbtn" onclick="flowReset()">⟲</button>
+       <span style="font-size:11px;color:var(--muted)">${L({zh:'速度',en:'speed'})}</span>
+       <input type="range" id="flowspeed" min="400" max="2600" step="200" value="1400" oninput="if(flowPlaying){flowPause();flowPlay();}">
+     </div>`
+   +`<div class="note" id="flow-cap" style="border-left:3px solid var(--accent);min-height:50px"></div>`
+   +`<div id="flow-svg-wrap" style="overflow:auto;margin-top:10px"></div>`;
+  buildFlowModes(); flowStep=0; flowDraw();
+}
+function buildFlowModes(){
+  const c=document.getElementById('flowmodes'); if(!c)return; c.innerHTML='';
+  FLOW_MODES.forEach(m=>{const d=document.createElement('div');d.className='fm'+(m.k===flowMode?' on':'');
+    d.innerHTML=`${L(m.t)}<small>${L(m.d)}</small>`;d.onclick=()=>flowSetMode(m.k);c.appendChild(d);});
+}
+function flowDraw(){
+  stopFlowParticles();
+  const wrap=document.getElementById('flow-svg-wrap'); if(!wrap)return;
+  const W=fx(FLOW_STAGES.length-1)+FBW+18, H=320;
+  const svg=fEl('svg',{id:'flow-svg',width:W,height:H,style:'background:#0b0e12;border:1px solid var(--border);border-radius:10px'});
+  const defs=fEl('defs',{}); defs.innerHTML='<marker id="fah" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#5b6b7d"></path></marker>'; svg.appendChild(defs);
+  const stepMode=(flowMode==='A'||flowMode==='D');
+  // edges
+  for(let i=0;i<FLOW_STAGES.length-1;i++){
+    let w=2; if(flowMode==='C') w=Math.max(2,FLOW_STAGES[i+1].vol*2.4);
+    const lit=stepMode&&i+1===flowStep;
+    const p=fEl('path',{d:flowEdgePath(i),fill:'none',stroke:lit?'var(--accent)':'#3a4654','stroke-width':lit?4:w,'marker-end':'url(#fah)'});
+    if(lit)p.setAttribute('filter','drop-shadow(0 0 4px rgba(120,200,255,.6))');
+    svg.appendChild(p);
+  }
+  // boxes
+  FLOW_STAGES.forEach((s,i)=>{
+    const g=fEl('g',{class:'fbox'}); const active=stepMode&&i===flowStep, dim=stepMode&&flowStep>0&&i>flowStep, col=FPCOL[s.plat]||'#888';
+    const rect=fEl('rect',{x:fx(i),y:FY,width:FBW,height:FBH,rx:10,fill:active?'#1d2533':'#12161d',stroke:col,'stroke-width':active?3:1.6});
+    if(dim)rect.setAttribute('class','flowdim'); if(active)rect.setAttribute('filter','drop-shadow(0 0 7px rgba(120,200,255,.5))');
+    g.appendChild(rect);
+    g.appendChild(fEl('circle',{cx:fx(i)+14,cy:FY+16,r:5,fill:col}));
+    g.appendChild(fEl('text',{x:fx(i)+26,y:FY+20,fill:'#fff','font-size':12,'font-weight':'bold'},s.k));
+    g.appendChild(fEl('text',{x:fx(i)+26,y:FY+32,fill:col,'font-size':9},({Files:'Files',Dual:'双写',RS:'Redshift 建',BPS:'BPS'})[s.plat]));
+    const title=L(s.t);
+    g.appendChild(fEl('text',{x:fx(i)+10,y:FY+50,fill:'#cfe3ff','font-size':11.5,'font-weight':'bold'},title.length>13?title.slice(0,13):title));
+    if(title.length>13)g.appendChild(fEl('text',{x:fx(i)+10,y:FY+64,fill:'#cfe3ff','font-size':11.5,'font-weight':'bold'},title.slice(13,26)));
+    s.tables.slice(0,2).forEach((tb,r)=>{const tt=tb.length>23?tb.slice(0,22)+'…':tb;
+      g.appendChild(fEl('text',{x:fx(i)+10,y:FY+82+r*13,fill:'#8b96a5','font-size':8.6,'font-family':'Consolas,monospace'},tt));});
+    svg.appendChild(g);
+  });
+  if(flowMode==='C'){ const counts=['全组合量级','UNION 后','清洗后','foreclosure 6,152(RS)','→ MySQL 83 / BPS 90'];
+    for(let i=1;i<=5&&i<FLOW_STAGES.length-1;i++){const xm=(fx(i-1)+FBW+fx(i))/2;
+      svg.appendChild(fEl('text',{x:xm,y:fcx-12,fill:'#7ee787','font-size':9,'text-anchor':'middle'},counts[i-1]||''));}}
+  if(flowMode==='D'){ const s=FLOW_STAGES[flowStep],tx=fx(flowStep)+FBW/2;
+    const tk=fEl('g',{}); tk.appendChild(fEl('rect',{x:tx-82,y:FY-48,width:164,height:34,rx:8,fill:'#23324a',stroke:'var(--accent)','stroke-width':1.5}));
+    tk.appendChild(fEl('text',{x:tx,y:FY-32,fill:'#fff','font-size':9,'text-anchor':'middle','font-weight':'bold'},'📦 loan 7727000088'));
+    const v=L(s.loan),vt=v.length>32?v.slice(0,31)+'…':v;
+    tk.appendChild(fEl('text',{x:tx,y:FY-20,fill:'#7ee787','font-size':8.4,'text-anchor':'middle','font-family':'Consolas,monospace'},vt));
+    tk.appendChild(fEl('path',{d:`M${tx},${FY-14} L${tx-5},${FY-6} L${tx+5},${FY-6} Z`,fill:'var(--accent)'})); svg.appendChild(tk);}
+  wrap.innerHTML=''; wrap.appendChild(svg);
+  if(flowMode==='B') startFlowParticles();
+  flowCaption();
+  const pb=document.getElementById('flowplay'); if(pb)pb.disabled=(flowMode==='B'||flowMode==='C');
+}
+let flowParts=[];
+function startFlowParticles(){ stopFlowParticles(); const svg=document.getElementById('flow-svg'); if(!svg)return; flowParts=[];
+  for(let i=0;i<FLOW_STAGES.length-1;i++)for(let p=0;p<3;p++){const c=fEl('circle',{r:4,fill:'var(--accent2)'});svg.appendChild(c);flowParts.push({c,i,ph:p/3});}
+  function tick(ts){ if(!document.getElementById('flow-svg')){flowRaf=null;return;}
+    flowParts.forEach(pt=>{const pr=((ts/2200)+pt.ph)%1,x1=fx(pt.i)+FBW,x2=fx(pt.i+1);
+      pt.c.setAttribute('cx',x1+(x2-x1)*pr);pt.c.setAttribute('cy',fcx);pt.c.setAttribute('opacity',(pr<0.1||pr>0.9)?0.2:0.9);});
+    flowRaf=requestAnimationFrame(tick);}
+  flowRaf=requestAnimationFrame(tick);
+}
+function stopFlowParticles(){ if(flowRaf){cancelAnimationFrame(flowRaf);flowRaf=null;} flowParts=[]; }
+function flowCaption(){ const cap=document.getElementById('flow-cap'); if(!cap)return; const s=FLOW_STAGES[flowStep];
+  const head=(flowMode==='B')?L({zh:'连续流动模式',en:'Continuous flow'}):(flowMode==='C')?L({zh:'体量流向模式',en:'Volume mode'}):L({zh:`第 ${flowStep+1} / ${FLOW_STAGES.length} 步 · ${s.k} ${L(s.t)}`,en:`Step ${flowStep+1} / ${FLOW_STAGES.length} · ${s.k} ${L(s.t)}`});
+  const body=(flowMode==='C')?L({zh:'边的粗细≈数据体量。注意 L4→L5：FCL 时间线表从 Redshift 6,152 行，经 L5 同步过滤落到 MySQL 仅 83 行——这就是"在哪一步被收窄"。',en:'Edge width ≈ volume. L4→L5: FCL timeline narrows from 6,152 (Redshift) to 83 rows (MySQL) after the L5 sync filter.'})
+    :(flowMode==='D')?(L(s.nar)+`<br><span style="color:var(--accent2)">📦 这笔贷款此刻：</span> <code>${L(s.loan)}</code>`):L(s.nar);
+  cap.innerHTML=`<div style="color:var(--accent);font-weight:700;font-size:12px">${head}</div><div style="margin-top:4px;font-size:13.5px;line-height:1.5">${body}</div>`;
+}
+function flowGoto(n){ flowStep=Math.max(0,Math.min(FLOW_STAGES.length-1,n)); flowDraw(); }
+function flowPlay(){ if(flowMode==='B'||flowMode==='C')return; flowPlaying=true; const pb=document.getElementById('flowplay'); if(pb)pb.textContent='⏸';
+  clearInterval(flowTimer); const sp=document.getElementById('flowspeed'); flowTimer=setInterval(()=>{ if(flowStep>=FLOW_STAGES.length-1){flowPause();return;} flowGoto(flowStep+1); }, sp?+sp.value:1400); }
+function flowPause(){ flowPlaying=false; const pb=document.getElementById('flowplay'); if(pb)pb.textContent='▶'; if(flowTimer){clearInterval(flowTimer);flowTimer=null;} }
+function flowToggle(){ flowPlaying?flowPause():(flowStep>=FLOW_STAGES.length-1?(flowGoto(0),flowPlay()):flowPlay()); }
+function flowReset(){ flowPause(); flowGoto(0); }
+function flowSetMode(m){ flowMode=m; flowPause(); if(m==='B'||m==='C')flowStep=0; buildFlowModes(); flowDraw(); }
 
 function renderStatus(){
   const c=document.getElementById('canvas');
@@ -625,6 +787,7 @@ function panelsHTML(){
 function renderView(){
   document.getElementById('searchbar').classList.toggle('hidden',view!=='pipeline');
   if(view==='pipeline') renderPipeline();
+  else if(view==='flow') renderFlow();
   else if(view==='status') renderStatus();
   else if(view==='fields') renderFields();
   else if(view==='graph') renderGraph();
@@ -739,6 +902,7 @@ function setLang(l){lang=l;applyStaticLabels();renderView();
   else drawerEmpty();
 }
 function setView(v){view=v;
+  if(v!=='flow'){ if(typeof flowPause==='function')flowPause(); if(typeof stopFlowParticles==='function')stopFlowParticles(); }
   if(v!=='pipeline'&&activeSel&&activeSel.type==='node')activeSel=null;
   if(v!=='fields'&&activeSel&&activeSel.type==='panel')activeSel=null;
   if(v!=='fields'&&activeSel&&activeSel.type==='field')activeSel=null;
@@ -896,7 +1060,7 @@ function bkF(id,col,label,biz,nz,nzTbl,calc,note){
 }
 bkF('bk_status','bankruptcy_status',{en:'Status',zh:'Status 破产状态'},{en:'Bankruptcy status text (decoded).',zh:'破产状态文本（已解码）。'},'bkstatus',null,{en:'ETL decode: 1→Active,2→Discharged,3→Dismissed,4→Closed,5→ReliefGranted',zh:'ETL 解码：1→Active,2→Discharged,3→Dismissed,4→Closed,5→ReliefGranted'});
 bkF('bk_legal','legal_status',{en:'Legal Status',zh:'Legal Status 法律状态'},{en:'Legal status text (FCBU/BK13/BK7/...).',zh:'法律状态文本（FCBU/BK13/BK7/…）。'},'legalstatus','portnewrezgeneral',{en:'Direct text — actually from portnewrezgeneral.legalstatus (not a bkstage decode)',zh:'直接取文本 — 实际源为 portnewrezgeneral.legalstatus（非 bkstage 解码）'},{en:'Live-schema confirmed: source is newrez.portnewrezgeneral.legalstatus.',zh:'已 live schema 确认：源为 newrez.portnewrezgeneral.legalstatus。'});
-bkF('bk_statusdt','status_date',{en:'Status Date',zh:'Status Date 状态日期'},{en:'Current status effective date.',zh:'当前状态生效日期。'},'bkrcurrentstatusdate',null,DIRECT);
+bkF('bk_statusdt','status_date',{en:'Status Date',zh:'Status Date 状态日期'},{en:'Bankruptcy FILING date (not the current-status date).',zh:'破产【申请日】（非当前状态生效日）。'},'bkfileddate',null,DIRECT,{en:'Source is bkfileddate, NOT bkrcurrentstatusdate — code + doc 13 v30 + doc 21 §5.2 verified; bkrcurrentstatusdate is mostly NULL in dev.',zh:'来源是 bkfileddate，非 bkrcurrentstatusdate — 代码 + doc 13 v30 + doc 21 §5.2 核实；bkrcurrentstatusdate 在 dev 多为 NULL。'});
 bkF('bk_chapter','chapter',{en:'Chapter',zh:'Chapter 破产章节'},{en:'Bankruptcy chapter (7/11/13).',zh:'破产章节（7/11/13）。'},'bkchapter',null,DIRECT);
 bkF('bk_lien','lien_status',{en:'Lien Status',zh:'Lien Status 留置权状态'},{en:'Lien status — Newrez source field unconfirmed.',zh:'留置权状态 — Newrez 来源字段待确认。'},null,null,{en:'TBD',zh:'待确认'},{en:'BPS column exists; Newrez source possibly cramdown/adversarial fields — needs confirmation.',zh:'BPS 列存在；Newrez 源可能来自 cramdown/adversarial 字段，待确认。'});
 bkF('bk_mfr','mfr_status',{en:'MFR Status',zh:'MFR Status'},{en:'Motion-for-relief hearing result (numeric code).',zh:'解除自动中止动议（MFR）听证结果（数值编码）。'},'mfrhearingresults',null,{en:'Numeric code',zh:'数值编码'},{en:'dev measured all-null (0/64) — downstream fill TBD.',zh:'dev 实测全空（0/64），下游填充待确认。'});
@@ -1206,7 +1370,7 @@ const EXAMPLES={
       {fid:'bk_legal',f:'Legal Status',raw:"portnewrezgeneral.legalstatus = 'BK13'",rule:DC,bps:"legal_status = 'BK13'",st:'match'},
       {fid:'bk_chapter',f:'Chapter',raw:'bkchapter = 13',rule:DC,bps:"chapter = '13'",st:'match'},
       {fid:'bk_poc',f:'Proof of Claim Date',raw:'pocfileddate = 2023-09-30',rule:DC,bps:'proof_of_claim_date = 2023-09-30',st:'match'},
-      {fid:'bk_statusdt',f:'Status Date',raw:'bkrcurrentstatusdate = 2026-05-26',rule:DC,bps:'status_date = 2024-02-06',st:'stale',note:{en:'BPS shows an earlier history snapshot — dev lag.',zh:'BPS 显示较早历史快照 — dev 滞后。'}},
+      {fid:'bk_statusdt',f:'Status Date',raw:'bkfileddate = 2024-02-06',rule:DC,bps:'status_date = 2024-02-06',st:'match',note:{en:'status_date maps from bkfileddate (BK filing date), NOT bkrcurrentstatusdate — so this is a match, not staleness (corrected per doc 13 v30 / doc 21).',zh:'status_date 来源是 bkfileddate（破产申请日），非 bkrcurrentstatusdate——故此为一致、非滞后（按 doc 13 v30 / doc 21 订正）。'}},
     ]},
     {t:{en:'Stage (D120P)',zh:'阶段（D120P）'},rows:[
       {fid:'stg_demand_date',f:'NOI/Demand · Send Date',raw:'demandsentdate = 2026-04-10',rule:DC,bps:'demand_start_date = 2026-04-10 (group D120P)',st:'match'},
@@ -1291,11 +1455,21 @@ function selectField(id){
 function copyText(btn,txt){navigator.clipboard.writeText(txt).then(()=>{const o=btn.textContent;btn.textContent='✓';setTimeout(()=>btn.textContent=o,1000);});}
 
 /* =================== LINEAGE GRAPH (pure SVG layered DAG, auto-derived from FIELDS) =================== */
-let graphExpanded=new Set(), graphFocus=null, graphZoom=1;
+let graphExpanded=new Set(), graphFocus=null, graphZoom=1, graphCatFilter=null;
 const NODE_DB_COLOR={newrez:'#f29d50',port:'#9d7bff',bpms:'#ff7b9c',view:'#e0a3c0',cfg:'#6e7681'};
 const EDGE_COLOR={copy:'#6e7681',decode:'#7ee787',coalesce:'#4da3ff',track:'#f29d50',computed:'#9d7bff',config:'#ff7b9c',map:'#8b96a5'};
 const ORIGIN_IDS=new Set(['__CFG__','__DERIVE__','__NOSRC__']);  // synthetic origin nodes (no raw upstream)
 const ORIGIN_TIP={__CFG__:'config / ETL constant (no servicer source)',__DERIVE__:'ETL-computed / BPS-internal (no servicer source)',__NOSRC__:'no servicer source (servicer does not provide this field)'};
+// legend tooltips — what each edge category (edgeCat result) means; click a chip to highlight that rule type
+const EDGE_MEANING={
+  copy:{zh:'直接取值：上游列原样照搬，无转换。',en:'Direct copy: value taken as-is from the upstream column, no transform.'},
+  decode:{zh:'解码：上游存的是编码(数字/代码)，ETL 用字典表翻成业务文本(如 lmstatus 112 → Workout Denial)。',en:'Decode: upstream stores a code; ETL maps it to business text via a dictionary (e.g. lmstatus 112 → Workout Denial).'},
+  coalesce:{zh:'取首个非空(COALESCE)：从多个候选列取第一个非空值。',en:'COALESCE: take the first non-null value among several candidate columns.'},
+  track:{zh:'快照追踪：取该值在历史快照中首次出现的日期 MIN(dataasof)(用于 set-date 类字段)。',en:'Snapshot tracking: MIN(dataasof) — the date the value first appeared in snapshot history (set-date fields).'},
+  computed:{zh:'计算：由日期差/聚合等算出(如 DATEDIFF 算天数)。',en:'Computed: derived via date-diff / aggregation (e.g. DATEDIFF for day-counts).'},
+  config:{zh:'配置常量：来自系统配置/常量，非数据来源(如 target 目标天数)。',en:'Config constant: from system config, not a data source (e.g. target days).'},
+  map:{zh:'映射：经条件/CASE 等规则得到(非简单照搬，也非上述具体类型)。',en:'Mapped: via conditional / CASE rules (neither plain copy nor a specific type above).'}
+};
 function _ghop(p){ if(!p||p.indexOf('—')===0) return null; const a=p.split('.'); if(a.length<4) return null; return {db:a[0],schema:a[1],table:a[2],col:a.slice(3).join('.'),tbl:a[0]+'.'+a[1]+'.'+a[2],path:p}; }
 function _gtier(h){ if(h.schema==='newrez') return 0; if(h.schema==='port') return 1; if(/biz_data_view/.test(h.table)) return 3; return 2; }
 function _gkey(h){ if(h.schema==='newrez') return 'newrez'; if(h.schema==='port') return 'port'; if(/biz_data_view/.test(h.table)) return 'view'; return 'bpms'; }
@@ -1377,12 +1551,17 @@ function renderGraph(){
     } else {
       lit=new Set([graphFocus]); const adj={}; g.edges.forEach(e=>{ (adj[e.from]=adj[e.from]||[]).push(e.to); (adj[e.to]=adj[e.to]||[]).push(e.from); }); const st=[graphFocus]; while(st.length){ const c=st.pop(); (adj[c]||[]).forEach(x=>{ if(!lit.has(x)){lit.add(x);st.push(x);} }); }
     }
+  } else if(graphCatFilter){
+    // legend-click: highlight every edge of this rule category + the nodes it connects
+    lit=new Set(); litEdges=new Set();
+    g.edges.forEach(e=>{ if(e.cat===graphCatFilter){ lit.add(e.from); lit.add(e.to); litEdges.add(e.from+'>>'+e.to); } });
   }
+  const hl=graphFocus||graphCatFilter;  // highlighting active (field focus OR legend category)
   let cardSvg=cards.map(c=>`<rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="10" fill="${c.col}" fill-opacity="0.06" stroke="${c.col}" stroke-opacity="0.4" stroke-width="1"></rect>`).join('');
   let ed='',lb='';
   g.edges.forEach(e=>{ const a=pos[e.from],b=pos[e.to]; if(!a||!b) return;
     const x1=a.x+(a.w||NW),y1=a.y+NH/2,x2=b.x,y2=b.y+NH/2,mx=(x1+x2)/2;
-    const on=litEdges?litEdges.has(e.from+'>>'+e.to):(lit&&lit.has(e.from)&&lit.has(e.to)), dim=graphFocus&&!on?' class="gdim"':'';
+    const on=litEdges?litEdges.has(e.from+'>>'+e.to):(lit&&lit.has(e.from)&&lit.has(e.to)), dim=hl&&!on?' class="gdim"':'';
     ed+=`<path d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" fill="none" stroke="${EDGE_COLOR[e.cat]||'#3a4654'}" stroke-width="${on?3:1.4}"${on?' class="glitedge"':''}${dim} style="cursor:pointer" onclick="graphEdgeClick('${e.from}','${e.to}')"></path>`;
     lb+=`<text x="${mx}" y="${(y1+y2)/2-3}" text-anchor="middle" class="gelabel" font-size="10"${dim} style="pointer-events:none">${e.cat}</text>`;
   });
@@ -1394,8 +1573,8 @@ function renderGraph(){
         +`<text x="${p.x+10}" y="${p.y+NH/2+4}" fill="#d7dde5" font-size="11" font-weight="bold">▾ ${esc(lab)} (${cnt})</text>`
         +`<text x="${p.x+w-7}" y="${p.y+NH/2+3}" text-anchor="end" fill="#8b96a5" font-size="8.5">✕ collapse</text></g>`;
       return; }
-    const isLit=graphFocus&&lit&&lit.has(n.id), isFocus=n.id===graphFocus;
-    const dim=graphFocus&&!isLit?' gdim':'';
+    const isLit=hl&&lit&&lit.has(n.id), isFocus=n.id===graphFocus;
+    const dim=hl&&!isLit?' gdim':'';
     const cls=isFocus?' glit gfocus':(isLit?' glit':'');
     const sw=isFocus?3.4:(isLit?2.6:(n.kind==='field'?1.2:1.8));
     const fill=isLit?'#1d2533':'#161b22';
@@ -1407,7 +1586,7 @@ function renderGraph(){
   });
   let heads=''; for(let ti=0;ti<4;ti++) heads+=`<text x="${LEFT+ti*COL}" y="26" class="gcolhead" font-size="12">${esc(t('gCol'+ti))}</text>`;
   const svg=`<svg class="glineage" width="${W}" height="${H}" style="transform:scale(${graphZoom});transform-origin:0 0">${heads}${cardSvg}${ed}${lb}${nd}</svg>`;
-  const legend=Object.keys(EDGE_COLOR).map(k=>`<span><i style="display:inline-block;width:16px;border-top:3px solid ${EDGE_COLOR[k]}"></i>${k}</span>`).join('');
+  const legend=Object.keys(EDGE_COLOR).map(k=>`<span class="lgchip${graphCatFilter===k?' lgon':''}" title="${esc(L(EDGE_MEANING[k]))}" onclick="graphCatClick('${k}')"><i style="display:inline-block;width:16px;border-top:3px solid ${EDGE_COLOR[k]}"></i>${k}</span>`).join('');
   const tb=`<div class="gtoolbar"><button onclick="graphCollapseAll()">${t('gCollapse')}</button><button onclick="graphResetFocus()">${t('gReset')}</button>`
     +`<button onclick="graphZoomBy(0.1)">＋</button><button onclick="graphZoomBy(-0.1)">－</button>`
     +`<span style="color:var(--muted);font-size:11px">${t('gHint')}</span><div class="glegend">${legend}</div></div>`;
@@ -1415,19 +1594,20 @@ function renderGraph(){
 }
 function graphNodeClick(id,kind){
   if(kind==='thead'){ graphExpanded.delete(id); renderGraph(); return; }
-  if(kind==='table'){ if(ORIGIN_IDS.has(id)){ graphFocus=id; renderGraph(); return; } if(graphExpanded.has(id)) graphExpanded.delete(id); else graphExpanded.add(id); renderGraph(); }
-  else { graphFocus=id; const fid=fieldOfPath(id); renderGraph(); if(fid) selectField(fid); }
+  if(kind==='table'){ if(ORIGIN_IDS.has(id)){ graphCatFilter=null; graphFocus=id; renderGraph(); return; } if(graphExpanded.has(id)) graphExpanded.delete(id); else graphExpanded.add(id); renderGraph(); }
+  else { graphCatFilter=null; graphFocus=id; const fid=fieldOfPath(id); renderGraph(); if(fid) selectField(fid); }
 }
 function graphEdgeClick(from,to){
   const g=buildGraph(graphExpanded); const e=g.edges.find(x=>x.from===from&&x.to===to); if(!e) return;
-  graphFocus=to; renderGraph();
+  graphCatFilter=null; graphFocus=to; renderGraph();
   if(e.fields.length===1){ selectField(e.fields[0]); return; }
   const d=document.getElementById('drawer'); d.className='drawer';
   d.innerHTML=`<div class="d-head"><span class="pill" style="background:var(--accent)">edge</span><h2>${t('gEdgeFields')} (${e.fields.length})</h2><div class="path">${esc(from.split('.').slice(1).join('.'))} → ${esc(to.split('.').slice(1).join('.'))}</div></div><div class="d-body"><div class="chips">`
     +e.fields.map(fid=>`<span class="chip" style="cursor:pointer" onclick="selectField('${fid}')">${esc(L(FIELDS[fid].label))}</span>`).join('')+`</div></div>`;
 }
-function graphCollapseAll(){ graphExpanded.clear(); graphFocus=null; renderGraph(); }
-function graphResetFocus(){ graphFocus=null; renderGraph(); }
+function graphCollapseAll(){ graphExpanded.clear(); graphFocus=null; graphCatFilter=null; renderGraph(); }
+function graphResetFocus(){ graphFocus=null; graphCatFilter=null; renderGraph(); }
+function graphCatClick(cat){ graphCatFilter=(graphCatFilter===cat)?null:cat; graphFocus=null; renderGraph(); }  // legend click: toggle highlight of that rule-type's edges
 function graphZoomBy(d){ graphZoom=Math.min(2,Math.max(0.5,Math.round((graphZoom+d)*10)/10)); renderGraph(); }
 
 /* per-field mini lineage SVG (used in selectField) */

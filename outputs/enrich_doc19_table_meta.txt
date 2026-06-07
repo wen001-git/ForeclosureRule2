@@ -4,15 +4,17 @@
 # Run (cwd = project root):  python - < outputs/enrich_doc19_table_meta.txt
 #   (run via stdin because endpoint security blocks reading .py files under the user dir)
 # Idempotent: re-running replaces the META blocks / overview sheet.
-import json, re, openpyxl
+import json, re, openpyxl, sys
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
+try: sys.stdout.reconfigure(encoding='utf-8')   # console may be cp1252; circled chars need utf-8
+except Exception: pass
 
 MD  = 'docs/zh/19_fcl_sample_loan_raw_dump.md'
 XLSX= 'docs/19_fcl_sample_loan_raw_dump.xlsx'
 META= json.load(open('outputs/fcl_table_meta.json', encoding='utf-8'))
 T   = META['tables']
-ORDER=['②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳','㉑','㉒','㉓','㉔']
+ORDER=[v['num'] for v in T.values()]   # self-derive from JSON key order (now L1→L5 layer order)
 NUM2KEY={v['num']:k for k,v in T.items()}
 JOIN=lambda xs:'、'.join(xs)
 
@@ -65,6 +67,11 @@ if '| v5 |' not in md:
     idx=md.find('### 修订历史'); sep=md.find('\n|---',idx); eol=md.find('\n',sep+1)
     v5='\n| 2026-06-07 | AI Agent (Claude Opus 4.8) | v5 | 每张表新增「业务含义与全链路血缘」块（业务含义/目的·何时来查·为何这样处理·数据粒度 + 文字链全链路血缘：上游/下游、每跳标 PrefectFlow file:line）；并生成 Excel ⓪ 总览 sheet 与各表 sheet 顶部说明块；血缘汇编自 outputs/fcl_pipeline.html + doc 21/20/02 | doc 21 · 20 · 02 · fcl_pipeline.html |'
     md=md[:eol]+v5+md[eol:]
+# v6 revision row (idempotent)
+if '| v6 |' not in md:
+    idx=md.find('### 修订历史'); sep=md.find('\n|---',idx); eol=md.find('\n',sep+1)
+    v6='\n| 2026-06-07 | AI Agent (Claude Opus 4.8) | v6 | 全表按 **L1→L5 层序重排** + 圆圈号 ②–㉔ 顺序化（MD 小节/索引、Excel 各表 sheet 与 ⓪ 总览同步）；新增 **全局 L1→L5 Pipeline 图**（MD Mermaid 流程图 + Excel ⓪b 全局Pipeline图 sheet）；与 doc 02 五层模型核对一致 | doc 02 · 20 · 21 · fcl_pipeline.html |'
+    md=md[:eol]+v6+md[eol:]
 open(MD,'w',encoding='utf-8').write(md)
 
 # ================= XLSX =================
