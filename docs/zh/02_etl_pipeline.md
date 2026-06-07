@@ -1,13 +1,15 @@
 # 02 — ETL 管道分析：数据流与表谱系
 
+> **命名说明（2024-07-05）：** 本文源表前缀现为 `portnewrez*`（此前为 `portshellpoint*`，Shellpoint 时期）；DB 实测 `newrez` schema 仅 `portnewrez*`，现役以此为准，改名史详见 doc 01。
+
 ---
 
 ## 文档信息
 
 | 项目 | 内容 |
 |------|------|
-| **文档目的** | 完整描述 PrefectFlow 系统中止赎相关数据从原始摄入到下游报告的五层 ETL 管道，包括每层的关键表、转换逻辑触发点、以及 MySQL vs Redshift 的分层策略。 |
-| **解决的问题** | 管道跨越 MySQL staging、Redshift analytics、BPS sync 三个平台，逻辑分散在多个配置文件中，本文档提供统一的全景视图。 |
+| **文档目的** | 完整描述 PrefectFlow 系统中止赎相关数据从原始摄入到下游报告的五层 ETL 管道，包括每层的关键表、转换逻辑触发点、以及 **MySQL + Redshift 双写策略**（§7，2026-06-06 code+MCP 更正）。 |
+| **解决的问题** | 管道在 **L1–L4 双写 MySQL 与 Redshift**、L5 同步进 BPS（MySQL），逻辑分散在多个配置文件中，本文档提供统一的全景视图。 |
 | **覆盖范围** | Layer 0（原始数据）→ Layer 4（BPS 同步输出），止赎相关表的完整谱系 |
 | **系统归属** | `PrefectFlow/flow/servicer_data/`、`flow/basic_data/`、`flow/servicer_business/`、`flow/bps/` |
 
@@ -21,6 +23,8 @@
 
 | 日期 | 作者 | 版本 | 变更内容 |
 |------|------|------|---------|
+| 2026-06-06 | AI Agent (Claude Opus 4.8) | v4 | **更正为 MySQL+Redshift 双写架构**（原"一层一平台"有误）：§1 图 + §2/§3/§4/§5 各层补"落库 DB+file:line"，**§7 重写为双写证据表** + §7.1 今天其它更正（两支线/days360/fcl_flag 非归一/Carrington 整列缺失/delinq_clean 生成代码不在仓库）；交叉链接 doc 20 §B.6 / doc 21 | PrefectFlow 源码 + mysql_prod/redshift 实测 |
+| 2026-06-05 | AI Agent (Claude Opus 4.8) | v3 | 表名改正 `portshellpoint*`→`portnewrez*`（DB 实测 newrez 现役表，2024-07-05 改名）+ 加命名说明（DB 实测；doc 01） |
 | 2026-05-21 | AI Agent (Claude Sonnet 4.6) | v1 | 初始版本，代码分析 + DB 实证 |
 | 2026-05-28 | AI Agent (Claude Sonnet 4.6) | v2 | MCP 实证修正：(1) Layer 5 平台由 Redshift 更正为 MySQL（`port` + `bpms_dev` 两个 schema）；(2) 补充缺失的 `bpms_dev.sync_loan_foreclosure`（主 FCL BPS 表）；(3) `5-FORECLOSURE` 目标更正为 `port.basic_data_loan_foreclosure`（MySQL）；(4) Layer 3→4 补充 `basic_data_pool_config.py`；(5) 新增 `bpms_dev.biz_data_view_loan_details_foreclosure` |
 
@@ -36,8 +40,8 @@
                   │  Prefect 摄入 Flow（每日调度）
                   ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  Layer 1 — 服务商 Staging（MySQL）                           │
-│  newrez.portshellpointfc/bk/lm/general                      │
+│  Layer 1 — 服务商 Staging（MySQL + Redshift 双写）           │
+│  newrez.portnewrezfc/bk/lm/general                      │
 │  sls.portfcldaily/portbkdaily/portlmdaily/portassetdaily     │
 │  carrington.portcarrington                                   │
 │  mrc.portmrcforeclosure | fci.* | selene.*                  │
@@ -45,14 +49,14 @@
                   │  portdaily_config.py（UNION ALL + 标准化）
                   ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  Layer 2 — 统一 Daily 层（Redshift）                         │
+│  Layer 2 — 统一 Daily 层（Redshift + MySQL 双写）            │
 │  port.portdaily_v2                                          │
 │  port.basic_data_daily_loan_common                          │
 └─────────────────┬───────────────────────────────────────────┘
                   │  daily_data_loan_common_clean_config.py
                   ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  Layer 3 — Clean Daily 层（Redshift）                        │
+│  Layer 3 — Clean Daily 层（Redshift + MySQL 双写）           │
 │  port.basic_data_daily_loan_common_clean                    │
 │  port.port_daily_clean                                      │
 │  port.basic_data_loan_delinq_clean  ← 新增精细逾期表        │
@@ -61,7 +65,7 @@
                   │  basic_data_pool_config.py（FCL 业务表构建）
                   ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  Layer 4 — 月度业务层（Redshift）                            │
+│  Layer 4 — 月度业务层（月度双写; FCL业务族 RS建→L5同步）     │
 │  port.portmonthbase          ← 主分析表                     │
 │  port.basic_data_loan_foreclosure   ← FCL 时间线           │
 │  port.basic_data_loan_foreclosure_hold                      │
@@ -96,18 +100,21 @@
 └─────────────────────────────────────────────────────────────┘
 ```
 
+> ⚠️ **双写架构更正（2026-06-06，code+MCP 实证）**：上图各层**不是"一层一平台"**——**L1–L4 同时写入 MySQL 与 Redshift 两套库**（同名表各一份）：plain 配置→Redshift、`mysql_` 前缀配置→MySQL，由各自 flow 分别构建。只有 **L4 的 FCL 业务族**（`basic_data_loan_foreclosure`/`fcl_stage_info`/`_hold`/`_loss_mitigation`/`_bankruptcy`）是 **Redshift 单建、再由 L5 同步进 MySQL**。逐层代码证据见 **§7**；落库证据表另见 [doc 20 §B.6](20_end_to_end_walkthrough.md)，字段级血缘见 [doc 21](21_fcl_field_lineage.md)。
+
 ---
 
 ## 2. Layer 0 → Layer 1：原始数据摄入
 
 **触发方式：** Prefect 调度 Flow，每日自动执行  
-**代码位置：** `flow/basic_data/load_monthly_raw_data.py`、各服务商摄入 Flow  
-**数据格式：** CSV / TXT / XLSX → MySQL 表（按 `dataasof` 分区存储）
+**代码位置：** 各服务商摄入 Flow `flow/basic_data/load_daily_data_flow/load_daily_<servicer>_flow.py`  
+**数据格式：** CSV / TXT / XLSX → 原始表（按 `dataasof` 分区存储）  
+**落库：MySQL + Redshift 双写**（code 实证）——每家有两条 flow：`update_<svc>_daily_to_mysql(save_to_new=True)`→MySQL、`_to_redshift(save_to_new=False)`→Redshift（`load_daily_shellpoint_flow.py:9-47`）；分流 `servicer_task.py:158-163`；写库 `daily_task.py:923-942`(MySQL)/`960-983`(RS)。MCP 实测 `newrez.portnewrezfc` 两库都在。
 
 **摄入路径：**
 | 服务商 | S3 路径 | MySQL Schema | 核心止赎表 |
 |--------|---------|-------------|-----------|
-| Newrez/Shellpoint | `s3://brigaws/shellpoint_new/` | `newrez` | `portshellpointfc`, `portshellpointbk`, `portshellpointlm` |
+| Newrez/Shellpoint | `s3://brigaws/shellpoint_new/` | `newrez` | `portnewrezfc`, `portnewrezbk`, `portnewrezlm` |
 | SLS | `s3://brigaws/sls_new/` | `sls` | `portfcldaily`, `portbkdaily`, `portlmdaily`, `portassetdaily` |
 | Carrington | `s3://brigaws/carrington_new/` | `carrington` | `portcarrington` |
 | MRC | `s3://brigaws/mrc_new/` | `mrc` | `portmrcforeclosure` |
@@ -118,7 +125,8 @@
 
 ## 3. Layer 1 → Layer 2：统一 Daily 层
 
-**代码文件：** `flow/servicer_data/sericer_data_config/portdaily_config.py`（60KB）
+**代码文件：** `flow/servicer_data/sericer_data_config/portdaily_config.py`（60KB）  
+**落库：Redshift + MySQL 双写**——plain `daily_data_loan_common_config.py:5,97`→Redshift `port.basic_data_daily_loan_common`；`mysql_daily_data_loan_common_config.py:5,94`→MySQL 同名表；两条 flow `gen_daily_data_loan_common_flow.py:17-48(RS)/52-84(MySQL)`。
 
 ### 3.1 `port.portdaily_v2` 生成（关键：SLS/Newrez 切换处理）
 
@@ -182,9 +190,11 @@ CREATE TABLE port.basic_data_daily_loan_common (
 
 ## 4. Layer 2 → Layer 3：Clean Daily 层
 
-**代码文件：** `flow/basic_data/transfer_daily_data_config/daily_data_loan_common_clean_config.py`（72KB）
+**代码文件：** `flow/basic_data/transfer_daily_data_config/daily_data_loan_common_clean_config.py`（72KB）  
+**落库：Redshift + MySQL 双写**——plain config→Redshift `port.basic_data_daily_loan_common_clean`；`mysql_daily_data_loan_common_clean_config.py`→MySQL 同名；两条 flow `gen_daily_data_loan_common_clean_flow.py:78-139(RS)/186-243(MySQL)`。
 
-**核心变换：** 将原始 `delq_status` 映射为标准化 `delinq` 代码
+**核心变换：** 将原始 `delq_status` 映射为标准化 `delinq` 代码  
+> 实测口径（见 doc 21 §5.4）：逐家一个 CASE，`Foreclosure*→FCL`/`REO→REO`/`Payoff*→P`，**其余一律 `days360(nextduedate, fctrdt)` 分档**（<30→C…≥120→D120P）。**`FCL` 是法律状态、不由天数推导**（`days360` 永不产 `FCL`，须 servicer 显式标注）。`delinq` 实测现存值 `C/D30/D60/D90/D120P/FCL/REO/P/VASP`（无 `REPUR`/独立 `D`）。
 
 关键产出：
 - `port.basic_data_daily_loan_common_clean`：标准化后的日度全量数据
@@ -212,6 +222,10 @@ CREATE TABLE port.basic_data_daily_loan_common (
 - `flow/servicer_business/sericer_business_data_config/gen_portmonth_config.py`（90KB）— `portmonthbase` 主分析表
 - `flow/servicer_business/sericer_business_data_config/gen_portmonth_config_v4.py`（77KB）— 月度更新版
 - `flow/basic_data/basic_data_config/basic_data_pool_config.py`（2,400+行）— **所有 FCL 业务表**（`basic_data_loan_foreclosure`、`basic_data_loan_fcl`、`fcl_stage_info` 等 7 张表）及 `GEN_FCL_STAGE` 阶段计算
+
+**落库（分两类，code 实证）：**
+- **月度通用表 / `portmonthbase` = 双写**：`monthly_data_loan_common_config.py`(RS) + `mysql_monthly_data_loan_common_config.py`(MySQL)，flow `gen_monthly_data_loan_common_flow.py:24-30/78-84`；portmonthbase 由 `gen_portmonth_v4.py:45-46`(RS) + `gen_portmonth_mysql.py:42-43`(MySQL) 分别建。
+- **FCL 业务族 = 仅 Redshift 构建**（`basic_data_pool_config.py`，目标 `{REDSHIFT_PORT}.`，无 `mysql_` 池配置）；其 **MySQL 副本由 Layer 5 同步**产生。MCP 实测 `port.basic_data_loan_foreclosure` 两库都在（RS 建 / MySQL 经 L5）。
 
 ### 5.1 `port.portmonthbase` 生成
 
@@ -323,15 +337,33 @@ LEFT JOIN port.basic_data_monthly_loan_remit_clean b ON a.fctrdt=b.fctrdt AND a.
 
 ---
 
-## 7. MySQL vs Redshift 分层说明
+## 7. MySQL ⇄ Redshift：双写架构（2026-06-06 code+MCP 实证，更正旧"一层一平台"说法）
 
-| 层次 | 平台 | 原因 |
-|------|------|------|
-| Layer 1（Staging） | MySQL | 服务商数据多样、频率高，MySQL 易于增量写入 |
-| Layer 2–4（Analytics） | Redshift | 大规模 SQL 计算、UNION ALL、窗口函数效率更高 |
-| Layer 5（BPS Sync） | MySQL（两个 schema） | `port` schema 接收 ETL 直接同步目标；`bpms_dev` schema 是 BPS 应用层读取来源 |
+> **更正**：早期本节认为"Layer 1=MySQL、Layer 2–4=Redshift、Layer 5=MySQL"（一层一平台）。读 PrefectFlow 源码 + MCP 实测后确认：**L1–L4 是 MySQL + Redshift 双写**（同名表在两套库各存一份），由 **plain 配置→Redshift、`mysql_` 前缀配置→MySQL** 两套 config/flow 分别构建；只有 **L4 的 FCL 业务族**是 Redshift 单建、再由 L5 同步进 MySQL。
 
-**重要说明：** Layer 5 全部在 MySQL，Redshift 中无 `sync_*` 数据表。Redshift 的 `port.sync_to_bps_status` 仅为同步执行审计日志，不是数据表。
+**连接层判据**：`config/db_conn.py` 中 MySQL=`pymysql.connect`(:15-25)、Redshift=`redshift_connector.connect`(:26-34)；统一入口 `execute_sql(sql, DbTypeEnum.{MYSQL|REDSHIFT}.value, db)` 决定落哪库（`flow/__init__.py:19 REDSHIFT_PORT="port"`）。
+
+| 层 | 落 MySQL? | 落 Redshift? | 代码证据（file:line） | MCP 实测 |
+|---|---|---|---|---|
+| **L1 原始落库** | ✅ | ✅ | 双 flow `load_daily_<svc>_flow.py:9-47`；分流 `servicer_task.py:158-163`；写库 `daily_task.py:923-942`(MySQL)/`960-983`(RS)；`MYSQL_DB_MAP servicer_config.py:374-387` | `newrez.portnewrezfc` 两库都在 |
+| **L2 统一日表** | ✅ | ✅ | plain→RS `daily_data_loan_common_config.py:5,97`；`mysql_…:5,94`；flow `gen_daily_data_loan_common_flow.py:17-48(RS)/52-84(MySQL)` | `port.basic_data_daily_loan_common` 两库都在 |
+| **L3 清洗日表** | ✅ | ✅ | `daily_data_loan_common_clean_config.py`(RS)/`mysql_…clean_config.py`(MySQL)；flow `gen_daily_data_loan_common_clean_flow.py:78-139/186-243` | `port.basic_data_daily_loan_common_clean` 两库都在 |
+| **L4 月度通用 / portmonthbase** | ✅ | ✅ | `monthly_data_loan_common_config.py`(RS)/`mysql_monthly_…`(MySQL)；`gen_portmonth_v4.py:45-46`(RS)+`gen_portmonth_mysql.py:42-43`(MySQL) | RS 有 `portmonthbase`；MySQL 有 `basic_data_monthly_loan_common` |
+| **L4 FCL 业务族**（foreclosure/stage/hold/lm/bk） | ⛔（由 L5 同步） | ✅（单建） | `basic_data_pool_config.py`（仅 `{REDSHIFT_PORT}.`，无 `mysql_` 池配置） | `port.basic_data_loan_foreclosure` 两库都在（MySQL 经 L5） |
+| **L5 BPS 同步** | ✅（写） | ✅（读） | 读 RS `df_db_util.py:117-137`；写 MySQL `:665-699`/`:702-726`；`sync_asset_management.py` | `bpms.sync_*`、`port.basic_data_loan_foreclosure`(中转) |
+
+**为什么双写（观察推断）**：Redshift 跑重分析 SQL（UNION ALL、窗口函数、days360）；MySQL 供 **BPS / 应用低延迟直查**。二者表名相同、各存一份。
+> 落库证据表同源见 [doc 20 §B.6](20_end_to_end_walkthrough.md)；字段级血缘 + 业务理由见 [doc 21](21_fcl_field_lineage.md)。
+
+**Layer 5 要点（保留）**：`sync_*` 数据表只在 MySQL（prod=`bpms`，dev=`bpms_dev`；及 `port` 中转）。Redshift 的 `port.sync_to_bps_status` 仅为同步执行审计日志，不是数据表。
+
+### 7.1 今天补充的其它更正（code + MCP，与 doc 20/21 一致）
+
+1. **两条支线**：止赎里程碑/状态走 **FCL 业务族支线**（直取 `portnewrezfc`/`portcarrington` → `basic_data_loan_fcl` → `basic_data_loan_foreclosure`/`fcl_stage_info`）；`delinq` 走**逾期支线**（`portnewrezgeneral.delinquency_status_mba` → `basic_data_daily_loan_common` → `_clean`）。两者在 `fcl_stage_info`（`group=delq_status`）汇合。
+2. **L2 `fcl_flag` 非跨家归一**：该列在统一日表是**直传**（Newrez/SLS 恒 NULL），FCL 口径实际在 **L3 `delinq` CASE** 判定；真正跨家归一 `activefcflag` 的是 FCL 业务族支线（`basic_data_pool_config.py`），不在统一日表。
+3. **`FCL` 是法律状态、不由天数推导**：`days360` 永不产 `FCL`（详见 §4 注与 doc 21 §5.4/§6）。
+4. **Carrington 整列缺失（prod 实测）**：`timeline_first_legal_date`、`timeline_judgement_date`、`summary_judicial_foreclosure` 对 Carrington **全 NULL**（`portcarrington` 无对应源列）；跨 Servicer 差异见 doc 21 §6/§7。
+5. **`basic_data_loan_delinq_clean`（含 `is_ghost_payoff/ghost_reason/delinq_source`）**：prod 实测列存在且有数据，但**生成代码在 PrefectFlow 版本库 grep 全仓 0 命中**（可能由另一 repo/手工流程维护）——被问到时如实说明，不臆断（doc 21 §9#7）。
 
 ---
 

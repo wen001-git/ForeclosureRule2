@@ -1,5 +1,7 @@
 # 05 — Loan Attribute ↔ FCL Status Mapping
 
+> **Naming note (2024-07-05):** the source-table prefix is now `portnewrez*` (formerly `portshellpoint*`, the Shellpoint era); the live `newrez` schema only has `portnewrez*` — authoritative now; rename history in doc 01.
+
 ---
 
 ## Document Information
@@ -19,6 +21,7 @@
 
 | Date | Author | Version | Changes |
 |------|--------|---------|---------|
+| 2026-06-05 | AI Agent (Claude Opus 4.8) | v2 | Renamed `portshellpoint*`→`portnewrez*` (DB-verified live newrez tables; renamed 2024-07-05) + naming note (DB-verified; doc 01) |
 | 2026-05-21 | AI Agent (Claude Sonnet 4.6) | v1 | Initial version, code reverse-engineering + DB evidence |
 
 ---
@@ -74,17 +77,17 @@ These fields do not directly determine `delinq`, but provide supplementary statu
 | Field | Source Servicer | Source Table | Target Table | Usage |
 |-------|----------------|-------------|-------------|-------|
 | `activefcflag` / `fcl_active_flag` / `fc_flag` | Newrez/SLS/MRC | Servicer MySQL | `port.basic_data_loan_foreclosure` | Active FCL flag |
-| `fcstage` / `fcl_current_status_desc` | Newrez/SLS | `portshellpointfc`/`portfcldaily` | `port.basic_data_loan_fcl`, `port.fcl_stage_info` | Current FCL stage |
-| `fcsetupdate` | Newrez | `portshellpointfc` | `port.basic_data_loan_fcl` | FCL setup date |
+| `fcstage` / `fcl_current_status_desc` | Newrez/SLS | `portnewrezfc`/`portfcldaily` | `port.basic_data_loan_fcl`, `port.fcl_stage_info` | Current FCL stage |
+| `fcsetupdate` | Newrez | `portnewrezfc` | `port.basic_data_loan_fcl` | FCL setup date |
 | `fcreferraldate` / `fcl_referred_to_attorney_date` | Newrez/SLS | Servicer FC table | `port.fcl_stage_info.referral_start_date` | Attorney referral date |
 | `firstlegaldate` / `fcl_first_legal_action_date` | Newrez/SLS | Servicer FC table | `port.fcl_stage_info.legal_start_date` | First legal action date |
 | `servicecompletedate` / `fcl_service_complete_date` | Newrez/SLS | Servicer FC table | `port.fcl_stage_info.service_start_date` | Service completion date |
 | `fcjudgmenthearingscheduled` / `fcl_judgement_entered_date` | Newrez/SLS | Servicer FC table | `port.fcl_stage_info.judgement_start_date` | Judgment date |
 | `fcscheduledsaledate` / `fcl_sale_scheduled_date` | Newrez/SLS | Servicer FC table | `port.fcl_stage_info.sale_start_date` | Scheduled sale date |
 | `fcsalehelddate` / `fcl_sale_held_date` | Newrez/SLS | Servicer FC table | `port.basic_data_loan_fcl` | Actual sale date |
-| `fcresults` | Newrez | `portshellpointfc` | `port.basic_data_loan_fcl` | Foreclosure outcome description |
-| `fcremovaldesc` / `fcremovaldate` | Newrez | `portshellpointfc` | `port.basic_data_loan_fcl` | Removal reason and date |
-| `judicial` | Newrez | `portshellpointfc` | `port.basic_data_loan_fcl` | Judicial foreclosure flag |
+| `fcresults` | Newrez | `portnewrezfc` | `port.basic_data_loan_fcl` | Foreclosure outcome description |
+| `fcremovaldesc` / `fcremovaldate` | Newrez | `portnewrezfc` | `port.basic_data_loan_fcl` | Removal reason and date |
+| `judicial` | Newrez | `portnewrezfc` | `port.basic_data_loan_fcl` | Judicial foreclosure flag |
 | `daysinfc` / `fcl_days` | Newrez/SLS | Servicer FC table | `port.basic_data_loan_foreclosure` | Days in foreclosure |
 | `fcbidamount` / `fcsaleamount` | Newrez/SLS | Servicer FC table | `port.basic_data_loan_fcl` | Bid/sale amounts |
 
@@ -92,7 +95,7 @@ These fields do not directly determine `delinq`, but provide supplementary statu
 
 | Field | Source | Target Table | Usage |
 |-------|--------|-------------|-------|
-| `fchold1description` / `fchold2description` / ... | Newrez `portshellpointfc` | `port.basic_data_loan_foreclosure_hold`, `port.basic_data_loan_fcl` | FCL hold reasons (up to 4 levels) |
+| `fchold1description` / `fchold2description` / ... | Newrez `portnewrezfc` | `port.basic_data_loan_foreclosure_hold`, `port.basic_data_loan_fcl` | FCL hold reasons (up to 4 levels) |
 | `fchold1startdate` / `fchold1enddate` | Newrez | Same | Hold start/end dates |
 | `fchold1projectedenddate` | Newrez | Same | Projected end date |
 | `fchold1comment` | Newrez | Same | Hold notes/comments |
@@ -104,11 +107,11 @@ These fields do not directly determine `delinq`, but provide supplementary statu
 | Field | Source Servicer | Source Table | Target Table | Usage |
 |-------|----------------|-------------|-------------|-------|
 | `activebkflag` / `bk_active_flag` | Newrez/SLS | BK table | `port.basic_data_loan_foreclosure_bankruptcy` | Active BK flag |
-| `bkstatus` | Newrez | `portshellpointbk` | Same | Bankruptcy status code |
+| `bkstatus` | Newrez | `portnewrezbk` | Same | Bankruptcy status code |
 | `bkchapter` / `bk_chapter_code` | Newrez/SLS | BK table | Same | Bankruptcy chapter (7/11/13) |
 | `bkfileddate` / `bk_filed_date` | Newrez/SLS | BK table | Same | BK filing date |
-| `mfrfileddate` / `mfrhearingdate` | Newrez | `portshellpointbk` | Same | MFR (Motion for Relief) dates |
-| `bkcasenumber` | Newrez | `portshellpointbk` | Same | Bankruptcy case number |
+| `mfrfileddate` / `mfrhearingdate` | Newrez | `portnewrezbk` | Same | MFR (Motion for Relief) dates |
+| `bkcasenumber` | Newrez | `portnewrezbk` | Same | Bankruptcy case number |
 
 `bankruptcy` flag (Y/N) generation:
 - Newrez: `delinquency_status_mba LIKE '%Bankruptcy%'` → `'Y'`
@@ -118,9 +121,9 @@ These fields do not directly determine `delinq`, but provide supplementary statu
 
 | Field | Source Servicer | Source Table | Target Table | Usage |
 |-------|----------------|-------------|-------------|-------|
-| `activelmflag` | Newrez | `portshellpointlm` | `port.basic_data_loan_foreclosure_loss_mitigation` | Active LM flag |
-| `lmstatus` | Newrez | `portshellpointlm` | Same | LM status code |
-| `lmdeal` / `lmprogram` | Newrez | `portshellpointlm` | Same | LM deal/program type |
+| `activelmflag` | Newrez | `portnewrezlm` | `port.basic_data_loan_foreclosure_loss_mitigation` | Active LM flag |
+| `lmstatus` | Newrez | `portnewrezlm` | Same | LM status code |
+| `lmdeal` / `lmprogram` | Newrez | `portnewrezlm` | Same | LM deal/program type |
 | `loss_mit_evaluation_status` | SLS | `portlmdaily` | Same | SLS LM evaluation status |
 | `loss_mit_workout_type_code_desc` | SLS | `portlmdaily` | Same | SLS workout type description |
 | `lm_flag` | Carrington | `portcarrington` | Same | Carrington LM flag (`'Active'`=Y) |

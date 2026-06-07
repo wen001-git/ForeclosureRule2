@@ -1,5 +1,7 @@
 # Foreclosure Data Dictionary — PrefectFlow
 
+> **命名说明（2024-07-05）：** 本文源表前缀现为 `portnewrez*`（此前为 `portshellpoint*`，Shellpoint 时期）；DB 实测 `newrez` schema 仅 `portnewrez*`，现役以此为准，改名史详见 doc 01。
+
 ---
 
 ## Document Purpose
@@ -18,6 +20,8 @@
 
 | Date | Author | Version | Changes | Related |
 |------|--------|---------|---------|---------|
+| 2026-06-05 | AI Agent (Claude Opus 4.8) | v14 | 表名改正 `portshellpoint*`→`portnewrez*`（DB 实测 newrez 现役表，2024-07-05 改名）+ 加命名说明 | DB 实测 · doc 01 |
+| 2026-06-04 | AI Agent (Claude Opus 4.8) | v13 | 新增**表26 `newrez.portnewrezdatadic`**（Redshift 解码字典）：结构+角色+解码表（小字段 LMDeal/BorrowerIntention/BKStatus/BKStage 全量；大字段 LMProgram/LMStatus/LMDecision/DenialReason 去长尾=prod 最新快照出现的码）；「表19 LM 解码参考」加表26交叉引用。数据经 redshift_prod 只读预取 | doc 19 v3 · redshift_prod |
 | 2026-06-03 | AI Agent (Claude Opus 4.8) | v12 | 「表19 LM 编码字段解码参考」补充解码机制溯源：映射数据在 **Redshift 字典表 `newrez.portnewrezdatadic`**（dev MySQL 无），解码 JOIN 在代码 `basic_data_pool_config.py:835-840`（BK :367），非硬编码；LMDeal 字典 13 码（实测 8） | basic_data_pool_config.py · Redshift portnewrezdatadic · doc 13 v33 |
 | 2026-06-03 | AI Agent (Claude Opus 4.8) | v11 | 【可读性】把值/枚举取值列表的中点 `·` 分隔符统一改为 `\|`（与 doc 14 一致）：summary_foreclosure_status / fchold1description / fcresults / currentmilestone / lmdeal·lmstatus·lmprogram·lmdecision·denialreason 编码列表 / bk 解码 共 10 处；保留「X 阶段 · 子含义」结构标签、读者行、修订史里的 `·` | doc 14 v24 · doc 13 v32 |
 | 2026-05-23 | AI Agent | v1 | Initial draft — reverse engineered from PrefectFlow Python/SQL source | prompt.md |
@@ -119,8 +123,8 @@
 │                                                                     │
 │  sls.portassetdaily    sls.portfcldaily     sls.portbkdaily         │
 │  sls.portlmdaily       sls.portreodaily                             │
-│  shellpoint.portshellpointfc   shellpoint.portshellpointbk          │
-│  shellpoint.portshellpointlm   shellpoint.portshellpointreo         │
+│  newrez.portnewrezfc   newrez.portnewrezbk          │
+│  newrez.portnewrezlm   newrez.portnewrezreo         │
 │  mrc.portmrcforeclosure        carrington.portcarringtonfcl         │
 │  selene.portselenemain         fci.portfciwebforeclosure            │
 └─────────────────────────────────────────────────────────────────────┘
@@ -416,12 +420,12 @@
 
 ---
 
-### 表 08：`shellpoint.portshellpointfc` — Shellpoint/Newrez Foreclosure
+### 表 08：`newrez.portnewrezfc` — Shellpoint/Newrez Foreclosure
 
 | 属性 | 值 |
 |------|----|
-| **表名** | `portshellpointfc` |
-| **所属 Schema** | MySQL `shellpoint`（后迁移到 `newrez`） |
+| **表名** | `portnewrezfc` |
+| **所属 Schema** | MySQL `newrez`（原 `shellpoint`，2024-07-05 迁移） |
 | **数据层** | Raw / Servicer-specific |
 | **业务作用** | Shellpoint/Newrez 的法拍流程追踪表，包含法拍阶段（stage）、里程碑节点、Hold 原因和拍卖信息 |
 | **业务意图** | 与 SLS 的 `portfcldaily` 类似，但字段名称和结构不同，反映 Shellpoint 的系统设计 |
@@ -463,12 +467,12 @@
 
 ---
 
-### 表 09：`shellpoint.portshellpointbk` — Shellpoint Bankruptcy
+### 表 09：`newrez.portnewrezbk` — Shellpoint Bankruptcy
 
 | 属性 | 值 |
 |------|----|
-| **表名** | `portshellpointbk` |
-| **所属 Schema** | MySQL `shellpoint` |
+| **表名** | `portnewrezbk` |
+| **所属 Schema** | MySQL `newrez`（原 `shellpoint`） |
 | **数据层** | Raw / Servicer-specific |
 | **业务作用** | Shellpoint/Newrez 的破产案件追踪表 |
 | **业务意图** | 与 SLS `portbkdaily` 对应，但字段名称不同 |
@@ -494,12 +498,12 @@
 
 ---
 
-### 表 10：`shellpoint.portshellpointlm` — Shellpoint Loss Mitigation
+### 表 10：`newrez.portnewrezlm` — Shellpoint Loss Mitigation
 
 | 属性 | 值 |
 |------|----|
-| **表名** | `portshellpointlm` |
-| **所属 Schema** | MySQL `shellpoint` |
+| **表名** | `portnewrezlm` |
+| **所属 Schema** | MySQL `newrez`（原 `shellpoint`） |
 | **数据层** | Raw / Servicer-specific |
 | **业务作用** | Shellpoint/Newrez 的 LM 状态追踪表（forbearance、trial period、repayment plan 等） |
 | **业务意图** | 与 SLS `portlmdaily` 对应，追踪 LM 流程中的关键时间节点和当前状态 |
@@ -523,12 +527,12 @@
 
 ---
 
-### 表 11：`shellpoint.portshellpointreo` — Shellpoint REO
+### 表 11：`newrez.portnewrezreo` — Shellpoint REO
 
 | 属性 | 值 |
 |------|----|
-| **表名** | `portshellpointreo` |
-| **所属 Schema** | MySQL `shellpoint` |
+| **表名** | `portnewrezreo` |
+| **所属 Schema** | MySQL `newrez`（原 `shellpoint`） |
 | **数据层** | Raw / Servicer-specific |
 | **业务作用** | Shellpoint/Newrez 的 REO 处置追踪表 |
 | **上游来源** | Newrez/Shellpoint 系统每日上报 |
@@ -577,14 +581,14 @@
 | `loanid` | 贷款ID | `port.basic_data_daily_loan_common_clean` | 直接映射 | VARCHAR | — | — | join key | ✅ Confirmed |
 | `servicer` | 服务商 | `port.basic_data_daily_loan_common_clean` | 直接映射 | VARCHAR | `Newrez`, `Carrington` | — | 按 Servicer 分组分析 | ✅ Confirmed |
 | `delinq` | 标准化逾期状态 | `port.basic_data_daily_loan_common_clean` | 直接映射 | VARCHAR | `D120P`, `FCL` | — | 面板过滤主键（通常只看 D120P+） | ✅ Confirmed |
-| `fc_referral_date` | FCL Referral 日期（委托律师启动法拍） | Servicer FC 表 | 直接映射 | DATE | `2023-11-15` | `portfcldaily.fcl_referred_to_attorney_date`<br>`portshellpointfc.fcreferraldate` | 核心监控字段：NOI 发出 >60天未 referral = 高风险 | ✅ Confirmed |
+| `fc_referral_date` | FCL Referral 日期（委托律师启动法拍） | Servicer FC 表 | 直接映射 | DATE | `2023-11-15` | `portfcldaily.fcl_referred_to_attorney_date`<br>`portnewrezfc.fcreferraldate` | 核心监控字段：NOI 发出 >60天未 referral = 高风险 | ✅ Confirmed |
 | `noi_demand_letter_date` | NOI（Notice of Intent）或 Demand Letter 发出日期 | Servicer 标准日报 | 直接映射 | DATE | `2023-09-15` | `sls.portstandarddaily.lm_demand_expire_date`（推算） | FCL referral 时效检查的起点 | 🟡 Strong Inference |
 | `bankruptcy_ind` | 破产标志 | `port.basic_data_daily_loan_common_clean.bankruptcy` | 直接映射 | VARCHAR | `Y`, `N` | `port.basic_data_daily_loan_common_clean.bankruptcy` | BK + FCL 并行分析 | ✅ Confirmed |
 | `bk_chapter` | 破产章节 | Servicer BK 表 | 直接映射 | VARCHAR | `7`, `13` | `portbkdaily.bk_chapter_code` | — | ✅ Confirmed |
 | `bk_filed_date` | 破产申请日 | Servicer BK 表 | 直接映射 | DATE | — | `portbkdaily.bk_filed_date` | BK 持续时间 | ✅ Confirmed |
 | `inlossmit_ind` | LM 激活标志 | `port.basic_data_daily_loan_common_clean.lm_flag` | 直接映射 | VARCHAR | `Y`, `N` | — | LM 追踪 | ✅ Confirmed |
-| `lm_plan_active_flag` | LM 计划是否活跃（区别于 LM 评估中） | Servicer LM 表 | 直接映射 | VARCHAR | `Y`, `N` | `portshellpointlm.activelmflag`（推算） | — | 🟡 Strong Inference |
-| `contact_attempts_30d` | 过去30天内接触尝试次数 | Servicer 接触记录表 | 聚合计算：30天滚动窗口内 attempt 次数 | INT | `3`, `0` | `portshellpointcontact.mtdoutbound` 等 | CFPB 合规（要求定期接触 D120P 借款人） | 🟡 Strong Inference |
+| `lm_plan_active_flag` | LM 计划是否活跃（区别于 LM 评估中） | Servicer LM 表 | 直接映射 | VARCHAR | `Y`, `N` | `portnewrezlm.activelmflag`（推算） | — | 🟡 Strong Inference |
+| `contact_attempts_30d` | 过去30天内接触尝试次数 | Servicer 接触记录表 | 聚合计算：30天滚动窗口内 attempt 次数 | INT | `3`, `0` | `portnewrezcontact.mtdoutbound` 等 | CFPB 合规（要求定期接触 D120P 借款人） | 🟡 Strong Inference |
 | `risk_tier` | 风险等级（HIGH/LOW） | 计算字段 | 规则推断：如"D120P 且 NOI > 60天且未 referral" → HIGH | VARCHAR | `HIGH`, `LOW` | 多字段组合 | Servicer 管理优先级排序 | 🟡 Strong Inference（规则来自 `create_risk_panel_delinq.sql`） |
 
 ---
@@ -1430,6 +1434,8 @@
 
 #### 表19 LM 编码字段解码参考（BPS JOIN 实测，2026-06-01）
 
+> **权威全量见 [表 26 `newrez.portnewrezdatadic`](#表-26newrezportnewrezdatadic--redshift-解码字典)**（本节为 BPS JOIN 观测子集）。
+
 > 以下解码来自 `newrez.portnewrezlm JOIN bpms_dev.sync_loan_foreclosure_loss_mitigation`，以最高频率映射为准（ETL 可能因版本差异产生少量多对多）。
 >
 > **解码机制（代码 + DB 验证 2026-06-03）**：映射数据存于 **Redshift 字典表 `newrez.portnewrezdatadic`**（长表 `field_name | code | description`；dev MySQL 无此表），解码逻辑（`LEFT JOIN`）在 ETL 代码 `basic_data_pool_config.py:835-840`（`LMDeal→deal`/`LMProgram→program`/`LMStatus→lmc_status`/`LMDecision→final_disposition`/`BorrowerIntention`/`DenialReason`；BK 在 `:367 BKStatus`），`concat(code,'.0')` 对齐 `lmdeal` 小数串存法 —— 非硬编码 Python 字典。`field_name='LMDeal'` 字典共 **13 码**（实测数据仅出现 8 码）：1 Modification · 2 Evaluation · 3 Reinstatement · 4 Payment Plan · 5 Forbearance · 6 Short Sale · 7 DIL · 8 Loan Sale · 9 Payoff · 10 Settlement · 11 Deferment · 12 CFK · 13 Consent Judgement。
@@ -2048,6 +2054,180 @@ GROUP BY l.borrowerintention, b.borrower_intentions ORDER BY l.borrowerintention
 | `target_total` | 目标天数合计 | 视图计算 | Σ(target_*_days) | bigint NOT NULL | {637}（1种） | 637 | 本视图 target_* | 总目标=637 | ✅；填充 122550/122550=100% |
 | `actual_total` | 实际历时合计 | 视图计算 | Σ(actual_*_days) | bigint | 实测全为 NULL | — | 本视图 actual_* | 总历时 | ✅ 任一分项 NULL 则为 NULL；填充 0/122550=0% |
 
+<!-- DATADIC26 START -->
+### 表 26：`newrez.portnewrezdatadic` — Redshift 解码字典
+
+> **角色**：Newrez 数值编码 → 文本 的字典（长表）。FCL ETL 在 Redshift 把 LM/BK 整数码 `LEFT JOIN` 本表解码为文本后写入 BPS（`basic_data_pool_config.py:835-840` LM、`:367` BK；`concat(code,'.0')` 对齐源存法）。**dev MySQL 无此表**，仅 prod Redshift `newrez` schema 有。
+>
+> **结构（6 列）**：`package` \| `module_name` \| `appendix` \| `field_name` \| `code` \| `description`。FCL 相关 `field_name`：LM 模块 LMDeal/LMProgram/LMStatus/LMDecision/DenialReason/BorrowerIntention；BK 模块 BKStatus/BKStage。
+>
+> **范围**：小字段（LMDeal/BorrowerIntention/BKStatus/BKStage）列**全量**；大字段（LMProgram/LMStatus/LMDecision/DenialReason）只列 **prod 最新快照实际出现的码**（去长尾；字典总码数见各表标题）。doc 19 `㉑ dict·portnewrezdatadic` 节只列 5 样例贷款用到的码。
+>
+> **查询 SQL（redshift_prod 只读）**：
+```sql
+SELECT field_name, code, description FROM newrez.portnewrezdatadic
+WHERE (module_name='LossMitigation' AND field_name IN
+       ('LMDeal','LMProgram','LMStatus','LMDecision','DenialReason','BorrowerIntention'))
+   OR (module_name='Bankruptcy' AND field_name IN ('BKStatus','BKStage'));
+```
+
+#### LMDeal ← `newrez.portnewrezlm.lmdeal`（LossMitigation；字典 13 码，本表全量列出）
+
+| 编码 | 解码（description） |
+|---|---|
+| 1 | Modification |
+| 2 | Evaluation |
+| 3 | Reinstatement |
+| 4 | Payment Plan |
+| 5 | Forbearance |
+| 6 | Short Sale |
+| 7 | DIL |
+| 8 | Loan Sale |
+| 9 | Payoff |
+| 10 | Settlement |
+| 11 | Deferment |
+| 12 | CFK |
+| 13 | Consent Judgement |
+
+#### LMProgram ← `newrez.portnewrezlm.lmprogram`（LossMitigation；字典 388 码 · prod 实际 22 码，本表列 prod 出现的码）
+
+| 编码 | 解码（description） |
+|---|---|
+| 8 | Short Sale |
+| 10 | Deed-in-Lieu |
+| 12 | Short-term Forbearance |
+| 21 | Evaluation |
+| 25 | Payoff |
+| 29 | Repayment Plan |
+| 73 | Deferment |
+| 151 | Disaster Forbearance |
+| 215 | Short-term FB COVID (RETIRED 2023-11-01) |
+| 240 | SLS Standard Mod |
+| 273 | Standard Proprietary Modification |
+| 348 | FHA Recovery SAPC |
+| 359 | Standard Proprietary Mod - IA Required |
+| 365 | VA 40 Year Modification |
+| 396 | VA Traditional |
+| 419 | Bridger mod |
+| 491 | （字典无此码） |
+| 496 | （字典无此码） |
+| 498 | （字典无此码） |
+| 499 | （字典无此码） |
+| 527 | （字典无此码） |
+| 531 | （字典无此码） |
+
+#### LMStatus ← `newrez.portnewrezlm.lmstatus`（LossMitigation；字典 149 码 · prod 实际 17 码，本表列 prod 出现的码）
+
+| 编码 | 解码（description） |
+|---|---|
+| 5 | Document Follow-up |
+| 13 | Follow up for 1st Trial Payment |
+| 20 | Book mod |
+| 25 | Monitor for pmts/funds |
+| 45 | Countered by Supervisor |
+| 48 | Underwriting Follow Up Required |
+| 101 | Resubmitted to Underwriting |
+| 112 | Workout Denial |
+| 113 | Monitor Forbearance |
+| 116 | Not Assigned |
+| 126 | DIL Title Ordered |
+| 135 | DIL Sent for Recording |
+| 139 | Deferment Plan In Progress |
+| 140 | Deferment Agreement Ordered |
+| 166 | Pending Financials  |
+| 172 | Liquidation Referral |
+| 186 | Monitor for Mod Agreement – Final Trial Payment Due |
+
+#### LMDecision ← `newrez.portnewrezlm.lmdecision`（LossMitigation；字典 23 码 · prod 实际 13 码，本表列 prod 出现的码）
+
+| 编码 | 解码（description） |
+|---|---|
+| 1 | Modification Complete |
+| 3 | DIL Complete |
+| 4 | Forbearance Complete |
+| 5 | Reinstated/Current |
+| 6 | Referral to FC |
+| 7 | Not Eligible for Loss Mitigation |
+| 10 | Request Incomplete/Failed to Provide Information |
+| 11 | LMS Opened in Error |
+| 12 | No Change in Circumstance |
+| 14 | Deferment Completed |
+| 17 | Full Pay Off |
+| 18 | FC Sale Held |
+| 99 | Pending |
+
+#### DenialReason ← `newrez.portnewrezlm.denialreason`（LossMitigation；字典 130 码 · prod 实际 18 码，本表列 prod 出现的码）
+
+| 编码 | 解码（description） |
+|---|---|
+| 4 | Withdrawal of Request/Non-Acceptance |
+| 6 | Ineligible Borrower |
+| 9 | Investor Not Participating |
+| 19 | Exceeds Allowable Timeframe |
+| 21 | Request Incomplete/Failed to Provide Documentation |
+| 30 | Failed Plan |
+| 34 | Ineligible Borrower: Not a Natural Person |
+| 40 | PMI Company Decline |
+| 50 | Request Withdrawn Before Offer |
+| 75 | Declined Mod Review in favor of SS/DIL |
+| 76 | HAMP Sunset |
+| 86 | Request Withdrawn |
+| 95 | Loan not eligible for deferment |
+| 108 | Unable to achieve target payment |
+| 109 | Loan not due for 3 or more monthly payments |
+| 112 | No verifiable Hardship |
+| 118 | Loan not 90+ DPD  |
+| 124 | Hardship not resolved |
+
+#### BorrowerIntention ← `newrez.portnewrezlm.borrowerintention`（LossMitigation；字典 3 码，本表全量列出）
+
+| 编码 | 解码（description） |
+|---|---|
+| 1 | Unknown |
+| 2 | Retention |
+| 3 | Disposition |
+
+#### BKStatus ← `newrez.portnewrezbk.bkstatus`（Bankruptcy；字典 5 码，本表全量列出）
+
+| 编码 | 解码（description） |
+|---|---|
+| 1 | Active |
+| 2 | Discharged |
+| 3 | Dismissed |
+| 4 | Closed |
+| 5 | ReliefGranted |
+
+#### BKStage ← `newrez.portnewrezbk.bkstage`（Bankruptcy；字典 22 码，本表全量列出）
+
+| 编码 | 解码（description） |
+|---|---|
+| 0 | Petition |
+| 1 | Received |
+| 2 | 341 Meeting |
+| 3 | Objection to Plan |
+| 4 | Confirmation |
+| 5 | Discharge Ability |
+| 6 | POC Bar |
+| 7 | Proof of Claim |
+| 8 | Discharged |
+| 9 | Discharged Review |
+| 10 | Dismissed |
+| 11 | Reaffirmed |
+| 12 | Vacated |
+| 13 | Transfer of Claim |
+| 14 | Final Cure (Chapter 13) |
+| 15 | Attorney Consent |
+| 16 | Chapter Converted |
+| 17 | Termination |
+| 18 | Trustee No Asset CH 7 |
+| 19 | Trustee Abandonment CH 7  |
+| 20 | Plan Review |
+| 21 | Motion to Determine Final Cure |
+
+<!-- DATADIC26 END -->
+
+---
+
 ---
 
 ## 4. Foreclosure 状态机（`delinq` 字段推导逻辑）
@@ -2112,9 +2292,9 @@ END AS delinq
 | LM 激活 | `lm_flag` | `null` | `portnewrezlm.activelmflag` → `'1'='Y'` | `portcarrington.lm_flag` → `'Active'='Y'` | `portselenemain.lm_setup_date` not null → `'Y'` |
 | Forbearance | `forbearance` | `portassetdaily.forbearance_flag` | `portnewrezlm.forbearancestatus`（数字码） | `portcarrington.covid_forbearance_flag` | `null` |
 | 最后联系日 | `lastcontactdate` | `null` | `portnewrezcontact.lastcontactdate` | `portcarrington.date_delinq_contact` | `null` |
-| FCL Referral 日期 | — | `portfcldaily.fcl_referred_to_attorney_date` | `portshellpointfc.fcreferraldate` | — | — |
-| BK 申请日 | — | `portbkdaily.bk_filed_date` | `portshellpointbk.bkfileddate` | — | — |
-| MFR 获批日 | — | `portbkdaily.bk_mfr_granted_date` | `portshellpointbk.mfrgranteddate` | — | — |
+| FCL Referral 日期 | — | `portfcldaily.fcl_referred_to_attorney_date` | `portnewrezfc.fcreferraldate` | — | — |
+| BK 申请日 | — | `portbkdaily.bk_filed_date` | `portnewrezbk.bkfileddate` | — | — |
+| MFR 获批日 | — | `portbkdaily.bk_mfr_granted_date` | `portnewrezbk.mfrgranteddate` | — | — |
 
 ---
 

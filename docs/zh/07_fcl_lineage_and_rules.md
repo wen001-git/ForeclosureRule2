@@ -29,6 +29,7 @@
 | 2026-05-24 | AI Agent (Claude Sonnet 4.6) | v1.4 | 新增 2.5 节：Foreclosure 深度解析（发起方/6阶段过程/5种结束方式）、Ch.7 Lien 概念、Ch.7 vs Ch.13 对比、FCL+BK 并存状态说明 | — |
 | 2026-05-25 | AI Agent (Claude Sonnet 4.6) | v1.5 | 新增 1.2 节：basic_data_loan_fcl vs basic_data_loan_foreclosure 上下游关系、61/62列字段分组详解、INSERT实际填充vs NULL分析、3 Servicer覆盖说明（源码+Redshift实证） | — |
 | 2026-05-26 | AI Agent (Claude Sonnet 4.6) | v2 | 新增 Section 2.4.6：BPS FCL 运营阶段管道（含 Mermaid 流程图、7阶段说明、Upcoming 命名逻辑、设计合理性分析、与理论模型对应关系） | — |
+| 2026-06-05 | AI Agent (Claude Opus 4.8) | v2.1 | §2.4.6 ① NOI/Demand Letter 节点：流程图区分 NOI vs Demand Letter（司法州=NOI/NOD，非司法州=Demand Letter，同字段 demandsentdate，~30天催告，FCL 启动前，按 doc 10 术语表）；核心字段 demand_date/noi_date → demand_start_date（noi_start_date 恒空）；补准确口径（该阶段在 agg-summary 通常为 0——入库需 fcreferraldate 非空、DEMAND 需其为空，仅 pre-referral D90/D120P）。doc 17 §4.6 / fcl_pipeline.html 同步 | doc 10 · doc 17 · fcl_pipeline.html |
 
 ---
 
@@ -658,7 +659,7 @@ DEMAND → REFERRAL → FIRST_LEGAL → SERVICE → JUDGEMENT → SALE
 
 ```mermaid
 flowchart LR
-    NOI["① NOI / Demand Letter\ndemandsentdate\n止赎通知发出"]
+    NOI["① NOI / Demand Letter\ndemandsentdate（~30天催告期）\n司法州=NOI/NOD ｜ 非司法州=Demand Letter"]
     REF["② Referral\nfcreferraldate\n案件转介律师"]
     FL["③ First Legal\nfirst_legal_date\n首次法律行动"]
     SVC["④ Service\nservice_date\n文件送达被告"]
@@ -680,11 +681,15 @@ flowchart LR
     style REO fill:#fce4ec,stroke:#e91e63
 ```
 
+> **NOI vs Demand Letter（同一前置催告，按州法称谓不同）**：均为 Newrez 字段 `demandsentdate`（~30 天补救期），在 FCL 正式启动**之前**发出（≠ FCL 已启动）。**司法州**（如 NY/NJ/FL）称 **NOI（Notice of Intent）/ NOD（Notice of Default）**；**非司法州**（如 CA/TX）称 **Demand Letter**（详见 doc 10 术语表）。
+>
+> ⚠️ **数据口径**：在 BPS agg-summary 阶段表 `sync_fcl_stage_info` 中，本阶段（DEMAND）**通常为 0**——入库要求 `fcreferraldate` 非空，而 DEMAND 判定要求 `fcreferraldate IS NULL`，故仅 **pre-referral（有 Demand 但未转介、逾期 D90/D120P）** 贷款落入此阶段；Newrez `noi_start_date` 恒空。
+
 **阶段说明**
 
 | # | BPS 阶段 | 监控口径 | 适用类型 | 核心字段 | 说明 |
 |---|---------|---------|---------|---------|-----|
-| 1 | **NOI / Demand Letter** | 已完成 | 通用 | `demand_date`, `noi_date` | 止赎正式启动前的法律通知。Judicial 州称 NOI（Notice of Intent）；Non-Judicial 州称 Demand Letter。Newrez 原始字段：`demandsentdate` |
+| 1 | **NOI / Demand Letter** | 已完成 | 通用 | `demand_start_date`（源 `demandsentdate`；`noi_start_date` 恒空） | 止赎正式启动前的法律通知（~30天催告期），**≠ FCL 已启动**。**司法州**（NY/NJ/FL）称 **NOI（Notice of Intent）/ NOD（Notice of Default）**；**非司法州**（CA/TX）称 **Demand Letter**——同一字段 `demandsentdate`。⚠️ BPS agg-summary 阶段表此阶段**通常为 0**：入库需 `fcreferraldate` 非空、DEMAND 判定需其为空，故仅 **pre-referral（D90/D120P）** 贷款出现 |
 | 2 | **Referral** | 已完成 | 通用 | `referral_date` | 案件移交止赎律师。`fcreferraldate` 非空是 BPS 收录的入库条件，同时是 FCL 时间线计算起点 |
 | 3 | **First Legal** | 已完成 | 通用 | `first_legal_date` | 第一次正式法律行动：Judicial 州 = 向法院提交起诉状；Non-Judicial 州 = 首次公告。法律时钟开始计时 |
 | 4 | **Service** | 已完成 | 通用 | `service_date` | 法律文件送达借款人及相关被告。多被告案件可显著延长此阶段 |

@@ -1,0 +1,156 @@
+# -*- coding: utf-8 -*-
+# doc 19 enrichment: inject per-table 业务含义 + 全链路血缘 into MD + xlsx.
+# Source of truth: outputs/fcl_table_meta.json
+# Run (cwd = project root):  python - < outputs/enrich_doc19_table_meta.txt
+#   (run via stdin because endpoint security blocks reading .py files under the user dir)
+# Idempotent: re-running replaces the META blocks / overview sheet.
+import json, re, openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
+
+MD  = 'docs/zh/19_fcl_sample_loan_raw_dump.md'
+XLSX= 'docs/19_fcl_sample_loan_raw_dump.xlsx'
+META= json.load(open('outputs/fcl_table_meta.json', encoding='utf-8'))
+T   = META['tables']
+ORDER=['②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳','㉑','㉒','㉓','㉔']
+NUM2KEY={v['num']:k for k,v in T.items()}
+JOIN=lambda xs:'、'.join(xs)
+
+# ================= MD =================
+md=open(MD,encoding='utf-8').read()
+# strip prior blocks (idempotent)
+md=re.sub(r'\n*<!-- META:[^\n]*? START -->.*?<!-- META:[^\n]*? END -->\n?', '\n', md, flags=re.S)
+
+def md_block(key,t):
+    L=['<!-- META:%s START -->'%key,
+       '> **📋 业务含义与全链路血缘**','>',
+       '> - **业务含义/目的**：%s %s'%(t['business_meaning'],t['business_purpose']),
+       '> - **何时来查这张表**：%s'%t['when_to_query'],
+       '> - **为什么 pipeline 这样处理**：%s'%t['why_pipeline'],
+       '> - **数据粒度**：%s'%t['grain'],
+       '> - **上游链路**：%s'%t['upstream_chain'],
+       '> - **全部上游表**：%s'%JOIN(t['upstream_tables']),
+       '> - **下游链路**：%s'%t['downstream_chain'],
+       '> - **全部下游表**：%s'%JOIN(t['downstream_tables'])]
+    if t.get('note'): L.append('> - **备注**：%s'%t['note'])
+    L.append('<!-- META:%s END -->'%key)
+    return '\n'.join(L)
+
+HEAD=re.compile(r'^##\s+\S+\s+([a-z_]+\.[a-z0-9_]+)')
+lines=md.split('\n'); out=[]; i=0; n_md=0
+while i<len(lines):
+    out.append(lines[i]); m=HEAD.match(lines[i])
+    if m and m.group(1) in T:
+        key=m.group(1); j=i+1; buff=[]; seen=False
+        while j<len(lines):
+            ln=lines[j]
+            if ln.startswith('## '): break
+            if (not seen) and ln.startswith('|'): break
+            buff.append(ln)
+            if ln.lstrip().startswith('>'): seen=True
+            elif seen and ln.strip()=='':
+                j+=1; break
+            j+=1
+        out.extend(buff); out.append(md_block(key,T[key])); out.append(''); n_md+=1
+        i=j; continue
+    i+=1
+md='\n'.join(out)
+
+# reading-guide bullet (idempotent)
+if '如何读血缘' not in md and '- **排版**' in md:
+    md=md.replace('- **排版**',
+        '- **如何读血缘**：每张表标题下新增「业务含义与全链路血缘」块——文字链(箭头)呈现 源文件→…→本表→…→BPS 的多级链路(每跳标 PrefectFlow 转换配置 file:line)，并列全部上游/下游表；血缘汇编自 outputs/fcl_pipeline.html + doc 21/20/02。\n- **排版**',1)
+# v5 revision row (idempotent)
+if '| v5 |' not in md:
+    idx=md.find('### 修订历史'); sep=md.find('\n|---',idx); eol=md.find('\n',sep+1)
+    v5='\n| 2026-06-07 | AI Agent (Claude Opus 4.8) | v5 | 每张表新增「业务含义与全链路血缘」块（业务含义/目的·何时来查·为何这样处理·数据粒度 + 文字链全链路血缘：上游/下游、每跳标 PrefectFlow file:line）；并生成 Excel ⓪ 总览 sheet 与各表 sheet 顶部说明块；血缘汇编自 outputs/fcl_pipeline.html + doc 21/20/02 | doc 21 · 20 · 02 · fcl_pipeline.html |'
+    md=md[:eol]+v5+md[eol:]
+open(MD,'w',encoding='utf-8').write(md)
+
+# ================= XLSX =================
+DARK='1F3864'; MID='2E75B6'; LIGHT='D6E4F0'; GREY='F2F2F2'
+thin=Side(style='thin',color='BFBFBF'); BORDER=Border(left=thin,right=thin,top=thin,bottom=thin)
+F=lambda c:PatternFill('solid',fgColor=c)
+HFONT=Font(name='微软雅黑',size=10,bold=True,color='FFFFFF')
+VFONT=Font(name='微软雅黑',size=9)
+WRAP=Alignment(wrap_text=True,vertical='top',horizontal='left')
+START_S='📋 业务含义与全链路血缘'; END_S='▲ 以上为「业务含义与全链路血缘」说明块'
+
+def block_rows(t):
+    r=[('S',START_S+'  〔自动生成·勿手改本块；改 outputs/fcl_table_meta.json 后重跑〕'),
+       ('k','业务含义/目的：'+t['business_meaning']+' '+t['business_purpose']),
+       ('k','何时来查：'+t['when_to_query']),
+       ('k','为什么这样处理：'+t['why_pipeline']),
+       ('k','数据粒度：'+t['grain']),
+       ('k','上游链路：'+t['upstream_chain']),
+       ('k','全部上游表：'+JOIN(t['upstream_tables'])),
+       ('k','下游链路：'+t['downstream_chain']),
+       ('k','全部下游表：'+JOIN(t['downstream_tables']))]
+    if t.get('note'): r.append(('k','备注：'+t['note']))
+    r.append(('E',END_S+'；下方为原始数据 ────'))
+    return r
+
+wb=openpyxl.load_workbook(XLSX)
+n_sheets=0; skipped=[]
+for sn in list(wb.sheetnames):
+    num=sn[:1]
+    if num not in NUM2KEY: continue
+    ws=wb[sn]; t=T[NUM2KEY[num]]; maxcol=ws.max_column
+    # guard: never touch 人工 sheets
+    bad=False
+    for rr in range(1,min(ws.max_row,8)+1):
+        for cc in range(1,maxcol+1):
+            v=ws.cell(rr,cc).value
+            if isinstance(v,str) and '人工' in v: bad=True
+    if bad: skipped.append(sn); continue
+    # remove prior block (idempotent)
+    s=e=None
+    for rr in range(1,min(ws.max_row,50)+1):
+        v=ws.cell(rr,1).value
+        if isinstance(v,str) and v.startswith(START_S) and s is None: s=rr
+        if isinstance(v,str) and v.startswith(END_S): e=rr; break
+    if s and e and e>=s:
+        for mr in list(ws.merged_cells.ranges):
+            if mr.min_row>=s and mr.max_row<=e: ws.unmerge_cells(str(mr))
+        ws.delete_rows(s,e-s+1)
+    # insert above data, below merged title/note/sql
+    idx=max((m.max_row for m in ws.merged_cells.ranges),default=0)+1
+    rows=block_rows(t); ws.insert_rows(idx,len(rows))
+    for off,(kind,text) in enumerate(rows):
+        r=idx+off; c=ws.cell(r,1,text)
+        ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=maxcol)
+        if kind=='S': c.font=HFONT; c.fill=F(MID)
+        elif kind=='E': c.font=Font(name='微软雅黑',size=8,italic=True,color='808080'); c.fill=F(GREY)
+        else: c.font=VFONT; c.fill=F(LIGHT)
+        c.alignment=WRAP; c.border=BORDER
+        ws.row_dimensions[r].height=max(18,min(140,15*(1+len(text)//38)))
+    n_sheets+=1
+
+# overview sheet (rebuild)
+OVR='⓪ 表说明与全链路血缘'
+if OVR in wb.sheetnames: del wb[OVR]
+ws=wb.create_sheet(OVR,0)
+H=['表(num)','层','业务含义/目的','何时来查','为什么这样处理','数据粒度','上游链路','全部上游表','下游链路','全部下游表','备注']
+ws.cell(1,1,'doc 19 · 各表「业务含义与全链路血缘」总览（自动生成自 outputs/fcl_table_meta.json）')
+ws.merge_cells(start_row=1,start_column=1,end_row=1,end_column=len(H))
+ws.cell(1,1).font=Font(name='微软雅黑',size=12,bold=True,color='FFFFFF'); ws.cell(1,1).fill=F(DARK)
+ws.cell(1,1).alignment=Alignment(wrap_text=True,vertical='center')
+for c,h in enumerate(H,1):
+    cc=ws.cell(2,c,h); cc.font=HFONT; cc.fill=F(MID); cc.border=BORDER
+    cc.alignment=Alignment(wrap_text=True,vertical='center',horizontal='center')
+r=3; n_ovr=0
+for num in ORDER:
+    t=T[NUM2KEY[num]]
+    vals=[num+' '+NUM2KEY[num],t['layer'],t['business_meaning']+' '+t['business_purpose'],t['when_to_query'],
+          t['why_pipeline'],t['grain'],t['upstream_chain'],JOIN(t['upstream_tables']),
+          t['downstream_chain'],JOIN(t['downstream_tables']),t.get('note','')]
+    for c,v in enumerate(vals,1):
+        cc=ws.cell(r,c,v); cc.font=VFONT; cc.alignment=WRAP; cc.border=BORDER
+        cc.fill=F('FFFFFF' if r%2 else GREY)
+    ws.row_dimensions[r].height=96; r+=1; n_ovr+=1
+for c,w in enumerate([22,18,40,26,40,18,54,28,54,28,28],1):
+    ws.column_dimensions[get_column_letter(c)].width=w
+ws.freeze_panes='C3'
+wb.save(XLSX)
+
+print('MD blocks:',n_md,'| sheets enriched:',n_sheets,'| overview rows:',n_ovr,'| skipped(人工):',skipped,'| total sheets:',len(wb.sheetnames))

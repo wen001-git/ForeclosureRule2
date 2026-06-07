@@ -1,5 +1,7 @@
 # 06 — System Diagrams
 
+> **Naming note (2024-07-05):** the source-table prefix is now `portnewrez*` (formerly `portshellpoint*`, the Shellpoint era); the live `newrez` schema only has `portnewrez*` — authoritative now; rename history in doc 01.
+
 ---
 
 ## Document Information
@@ -19,6 +21,7 @@
 
 | Date | Author | Version | Changes |
 |------|--------|---------|---------|
+| 2026-06-05 | AI Agent (Claude Opus 4.8) | v2 | Renamed `portshellpoint*`→`portnewrez*` (DB-verified live newrez tables; renamed 2024-07-05) + naming note (DB-verified; doc 01) |
 | 2026-05-21 | AI Agent (Claude Sonnet 4.6) | v1 | Initial version, six Mermaid diagram types |
 
 ---
@@ -32,7 +35,7 @@ flowchart TD
     end
 
     subgraph L1["Layer 1 — Servicer Staging (MySQL)"]
-        NR["newrez.*\nportshellpointfc/bk/lm/general"]
+        NR["newrez.*\nportnewrezfc/bk/lm/general"]
         SLS["sls.*\nportfcldaily/portbkdaily/portlmdaily"]
         CAR["carrington.portcarrington"]
         MRC["mrc.portmrcforeclosure"]
@@ -206,10 +209,10 @@ stateDiagram-v2
 ```mermaid
 graph LR
     subgraph MySQL["MySQL (Servicer Staging)"]
-        SPFC["portshellpointfc"]
-        SPBK["portshellpointbk"]
-        SPLM["portshellpointlm"]
-        SPGEN["portshellpointgeneral"]
+        SPFC["portnewrezfc"]
+        SPBK["portnewrezbk"]
+        SPLM["portnewrezlm"]
+        SPGEN["portnewrezgeneral"]
         SLSFC["portfcldaily"]
         SLSBK["portbkdaily"]
         SLSLM["portlmdaily"]

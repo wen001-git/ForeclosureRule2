@@ -1,5 +1,7 @@
 # 06 — 系统图表汇总
 
+> **命名说明（2024-07-05）：** 本文源表前缀现为 `portnewrez*`（此前为 `portshellpoint*`，Shellpoint 时期）；DB 实测 `newrez` schema 仅 `portnewrez*`，现役以此为准，改名史详见 doc 01。
+
 ---
 
 ## 文档信息
@@ -19,6 +21,7 @@
 
 | 日期 | 作者 | 版本 | 变更内容 |
 |------|------|------|---------|
+| 2026-06-05 | AI Agent (Claude Opus 4.8) | v2 | 表名改正 `portshellpoint*`→`portnewrez*`（DB 实测 newrez 现役表，2024-07-05 改名）+ 加命名说明（DB 实测；doc 01） |
 | 2026-05-21 | AI Agent (Claude Sonnet 4.6) | v1 | 初始版本，六类 Mermaid 图 |
 
 ---
@@ -32,7 +35,7 @@ flowchart TD
     end
 
     subgraph L1["Layer 1 — 服务商暂存（MySQL）"]
-        NR["newrez.*\nportshellpointfc/bk/lm/general"]
+        NR["newrez.*\nportnewrezfc/bk/lm/general"]
         SLS["sls.*\nportfcldaily/portbkdaily/portlmdaily"]
         CAR["carrington.portcarrington"]
         MRC["mrc.portmrcforeclosure"]
@@ -206,10 +209,10 @@ stateDiagram-v2
 ```mermaid
 graph LR
     subgraph MySQL["MySQL（服务商暂存）"]
-        SPFC["portshellpointfc"]
-        SPBK["portshellpointbk"]
-        SPLM["portshellpointlm"]
-        SPGEN["portshellpointgeneral"]
+        SPFC["portnewrezfc"]
+        SPBK["portnewrezbk"]
+        SPLM["portnewrezlm"]
+        SPGEN["portnewrezgeneral"]
         SLSFC["portfcldaily"]
         SLSBK["portbkdaily"]
         SLSLM["portlmdaily"]

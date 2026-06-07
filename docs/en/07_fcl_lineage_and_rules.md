@@ -29,6 +29,7 @@
 | 2026-05-24 | AI Agent (Claude Sonnet 4.6) | v1.4 | New section 2.5: Foreclosure deep dive (who/why/6-stage process/5 exit paths), Ch.7 Lien concept, Ch.7 vs Ch.13 comparison, FCL+BK concurrent state | — |
 | 2026-05-25 | AI Agent (Claude Sonnet 4.6) | v1.5 | New section 1.2: basic_data_loan_fcl vs basic_data_loan_foreclosure upstream/downstream relationship, 61/62-column field group breakdown, INSERT-populated vs NULL field analysis, 3-servicer coverage note (source-code + Redshift verified) | — |
 | 2026-05-26 | AI Agent (Claude Sonnet 4.6) | v2 | New section 2.4.6: BPS FCL Operational Stage Pipeline (Mermaid flowchart, 7-stage table, "Upcoming" naming rationale, design rationale analysis, comparison with theoretical model) | — |
+| 2026-06-05 | AI Agent (Claude Opus 4.8) | v2.1 | §2.4.6 ① NOI/Demand Letter node: flowchart now distinguishes NOI vs Demand Letter (Judicial=NOI/NOD, Non-Judicial=Demand Letter, same field demandsentdate, ~30-day cure, pre-FCL, per doc 10 glossary); Key Fields demand_date/noi_date → demand_start_date (noi_start_date always NULL); added the data caveat (this DEMAND stage is normally 0 in agg-summary — ingestion needs fcreferraldate non-null, DEMAND needs it NULL, only pre-referral D90/D120P). Synced to doc 17 §4.6 / fcl_pipeline.html | doc 10 · doc 17 · fcl_pipeline.html |
 
 ---
 
@@ -650,7 +651,7 @@ Section 2.4.4 introduced the 6 internal FCL milestones the system tracks (the th
 
 ```mermaid
 flowchart LR
-    NOI["① NOI / Demand Letter\ndemandsentdate\nForeclosure notice sent"]
+    NOI["① NOI / Demand Letter\ndemandsentdate (~30-day cure)\nJudicial=NOI/NOD ｜ Non-Judicial=Demand Letter"]
     REF["② Referral\nfcreferraldate\nCase transferred to attorney"]
     FL["③ First Legal\nfirst_legal_date\nFirst legal action filed"]
     SVC["④ Service\nservice_date\nDocuments served on defendants"]
@@ -672,11 +673,15 @@ flowchart LR
     style REO fill:#fce4ec,stroke:#e91e63
 ```
 
+> **NOI vs Demand Letter (same pre-foreclosure notice, different name by state law)**: both are the Newrez field `demandsentdate` (~30-day cure period), sent **before** foreclosure formally starts (≠ FCL started). **Judicial states** (e.g. NY/NJ/FL) call it **NOI (Notice of Intent) / NOD (Notice of Default)**; **Non-Judicial states** (e.g. CA/TX) call it **Demand Letter** (see doc 10 glossary).
+>
+> ⚠️ **Data caveat**: in the BPS agg-summary stage table `sync_fcl_stage_info`, this DEMAND stage is **normally 0** — ingestion requires `fcreferraldate` non-null while the DEMAND test requires `fcreferraldate IS NULL`, so only **pre-referral (Demand sent but not yet referred, D90/D120P)** loans land here; Newrez `noi_start_date` is always NULL.
+
 **Stage Reference**
 
 | # | BPS Stage | Tracking Mode | Applicable | Key Fields | Description |
 |---|-----------|--------------|-----------|-----------|-------------|
-| 1 | **NOI / Demand Letter** | Completed | Universal | `demand_date`, `noi_date` | Formal pre-foreclosure notice. Judicial states call it NOI (Notice of Intent); Non-Judicial states call it Demand Letter. Newrez raw field: `demandsentdate` |
+| 1 | **NOI / Demand Letter** | Completed | Universal | `demand_start_date` (from `demandsentdate`; `noi_start_date` always NULL) | Formal pre-foreclosure notice (~30-day cure), **≠ FCL started**. **Judicial states** (NY/NJ/FL) call it **NOI (Notice of Intent) / NOD (Notice of Default)**; **Non-Judicial states** (CA/TX) call it **Demand Letter** — same field `demandsentdate`. ⚠️ In the BPS agg-summary stage table this stage is **normally 0**: ingestion needs `fcreferraldate` non-null while DEMAND needs it NULL, so only **pre-referral (D90/D120P)** loans appear |
 | 2 | **Referral** | Completed | Universal | `referral_date` | Case transferred to foreclosure attorney. Non-null `fcreferraldate` is BPS's entry filter and the FCL timeline calculation start point |
 | 3 | **First Legal** | Completed | Universal | `first_legal_date` | First formal legal action: Judicial = complaint filed in court; Non-Judicial = Notice of Default published. Legal clock starts here |
 | 4 | **Service** | Completed | Universal | `service_date` | Legal documents served on borrower and all named defendants. Multi-defendant cases can significantly extend this stage |

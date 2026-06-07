@@ -5,6 +5,15 @@ db_explore2.py
 db_stats_mysql.py
 db_stats_mysql_output.json
 
+# Notebooks contain hardcoded AWS/DB credentials — NEVER commit
+*.ipynb
+.ipynb_checkpoints/
+
+# Stray / unrelated binaries and editor copies
+*.pdf
+*- Copy.*
+* - Copy.*
+
 # Claude local settings
 .claude/
 

@@ -1,13 +1,15 @@
 # 02 — ETL Pipeline Analysis: Data Flow and Table Lineage
 
+> **Naming note (2024-07-05):** the source-table prefix is now `portnewrez*` (formerly `portshellpoint*`, the Shellpoint era); the live `newrez` schema only has `portnewrez*` — authoritative now; rename history in doc 01.
+
 ---
 
 ## Document Information
 
 | Field | Content |
 |-------|---------|
-| **Purpose** | Complete description of the five-layer ETL pipeline for FCL-related data, from raw ingestion through downstream reporting, including key tables per layer, transformation trigger points, and MySQL vs. Redshift layering strategy. |
-| **Problem solved** | The pipeline spans MySQL staging, Redshift analytics, and BPS sync across three platforms — logic is scattered across many config files. This document provides a unified panoramic view. |
+| **Purpose** | Complete description of the five-layer ETL pipeline for FCL-related data, from raw ingestion through downstream reporting, including key tables per layer, transformation trigger points, and the **MySQL + Redshift dual-write strategy** (§7, corrected 2026-06-06 via code+MCP). |
+| **Problem solved** | The pipeline **dual-writes L1–L4 to MySQL and Redshift**, then syncs to BPS (MySQL) — logic is scattered across many config files. This document provides a unified panoramic view. |
 | **Scope** | Layer 0 (raw data) → Layer 4 (BPS sync output); complete lineage of all FCL-related tables |
 | **System** | `PrefectFlow/flow/servicer_data/`, `flow/basic_data/`, `flow/servicer_business/`, `flow/bps/` |
 
@@ -21,6 +23,8 @@
 
 | Date | Author | Version | Changes |
 |------|--------|---------|---------|
+| 2026-06-06 | AI Agent (Claude Opus 4.8) | v4 | **Corrected to MySQL+Redshift dual-write architecture** (the old "one platform per layer" was wrong): §1 diagram + §2/§3/§4/§5 per-layer "storage DB + file:line"; **§7 rewritten as the dual-write evidence table** + §7.1 other corrections (two branches / days360 / fcl_flag not normalized / Carrington whole-column gaps / delinq_clean producing code not in repo); cross-links doc 20 §B.6 / doc 21 | PrefectFlow source + mysql_prod/redshift |
+| 2026-06-05 | AI Agent (Claude Opus 4.8) | v3 | Renamed `portshellpoint*`→`portnewrez*` (DB-verified live newrez tables; renamed 2024-07-05) + naming note (DB-verified; doc 01) |
 | 2026-05-21 | AI Agent (Claude Sonnet 4.6) | v1 | Initial version, code analysis + DB evidence |
 | 2026-05-28 | AI Agent (Claude Sonnet 4.6) | v2 | MCP-verified corrections: (1) Layer 5 platform corrected from Redshift to MySQL (`port` + `bpms_dev` schemas); (2) Added missing `bpms_dev.sync_loan_foreclosure` (primary FCL BPS table); (3) `5-FORECLOSURE` target corrected to `port.basic_data_loan_foreclosure` (MySQL); (4) Added `basic_data_pool_config.py` to Layer 3→4; (5) Added `bpms_dev.biz_data_view_loan_details_foreclosure` |
 
@@ -36,8 +40,8 @@
                   │  Prefect ingestion flows (daily schedule)
                   ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  Layer 1 — Servicer Staging (MySQL)                         │
-│  newrez.portshellpointfc/bk/lm/general                      │
+│  Layer 1 — Servicer Staging (MySQL + Redshift dual-write)   │
+│  newrez.portnewrezfc/bk/lm/general                      │
 │  sls.portfcldaily/portbkdaily/portlmdaily/portassetdaily     │
 │  carrington.portcarrington                                   │
 │  mrc.portmrcforeclosure  |  fci.*  |  selene.*              │
@@ -45,14 +49,14 @@
                   │  portdaily_config.py (UNION ALL + normalize)
                   ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  Layer 2 — Unified Daily Layer (Redshift)                   │
+│  Layer 2 — Unified Daily Layer (Redshift + MySQL dual-write)│
 │  port.portdaily_v2                                          │
 │  port.basic_data_daily_loan_common                          │
 └─────────────────┬────────────────────────────────────────────┘
                   │  daily_data_loan_common_clean_config.py
                   ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  Layer 3 — Clean Daily Layer (Redshift)                     │
+│  Layer 3 — Clean Daily Layer (Redshift + MySQL dual-write)  │
 │  port.basic_data_daily_loan_common_clean                    │
 │  port.port_daily_clean                                      │
 │  port.basic_data_loan_delinq_clean  ← refined delinq table │
@@ -61,7 +65,7 @@
                   │  basic_data_pool_config.py (FCL business tables)
                   ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  Layer 4 — Monthly Business Layer (Redshift)                │
+│  Layer 4 — Monthly Business (monthly dual-write; FCL fam RS→L5)│
 │  port.portmonthbase             ← primary analytical table  │
 │  port.basic_data_loan_foreclosure  ← FCL timeline          │
 │  port.basic_data_loan_foreclosure_hold                      │
@@ -96,17 +100,20 @@
 └──────────────────────────────────────────────────────────────┘
 ```
 
+> ⚠️ **Dual-write correction (2026-06-06, code+MCP-proven)**: the layers above are **NOT "one platform per layer"** — **L1–L4 write to BOTH MySQL and Redshift** (same table names, one copy in each): plain configs→Redshift, `mysql_`-prefixed configs→MySQL, built by their own flows. Only the **L4 FCL business family** (`basic_data_loan_foreclosure`/`fcl_stage_info`/`_hold`/`_loss_mitigation`/`_bankruptcy`) is **Redshift-built only, then synced to MySQL by L5**. Per-layer code evidence in **§7**; storage evidence table also in [doc 20 §B.6](20_end_to_end_walkthrough.md); field-level lineage in [doc 21](21_fcl_field_lineage.md).
+
 ---
 
 ## 2. Layer 0 → Layer 1: Raw Data Ingestion
 
 **Trigger:** Prefect scheduled flow, runs daily  
-**Code:** `flow/basic_data/load_monthly_raw_data.py`, per-servicer ingestion flows  
-**Format:** CSV / TXT / XLSX → MySQL tables (stored by `dataasof` date)
+**Code:** per-servicer ingestion flows `flow/basic_data/load_daily_data_flow/load_daily_<servicer>_flow.py`  
+**Format:** CSV / TXT / XLSX → raw tables (stored by `dataasof` date)  
+**Storage: MySQL + Redshift dual-write** (code-proven) — each servicer has two flows: `update_<svc>_daily_to_mysql(save_to_new=True)`→MySQL and `_to_redshift(save_to_new=False)`→Redshift (`load_daily_shellpoint_flow.py:9-47`); branch at `servicer_task.py:158-163`; writes in `daily_task.py:923-942`(MySQL)/`960-983`(RS). MCP-verified `newrez.portnewrezfc` exists in both.
 
 | Servicer | S3 Path | MySQL Schema | Key FCL Tables |
 |----------|---------|-------------|----------------|
-| Newrez/Shellpoint | `s3://brigaws/shellpoint_new/` | `newrez` | `portshellpointfc`, `portshellpointbk`, `portshellpointlm` |
+| Newrez/Shellpoint | `s3://brigaws/shellpoint_new/` | `newrez` | `portnewrezfc`, `portnewrezbk`, `portnewrezlm` |
 | SLS | `s3://brigaws/sls_new/` | `sls` | `portfcldaily`, `portbkdaily`, `portlmdaily`, `portassetdaily` |
 | Carrington | `s3://brigaws/carrington_new/` | `carrington` | `portcarrington` |
 | MRC | `s3://brigaws/mrc_new/` | `mrc` | `portmrcforeclosure` |
@@ -117,7 +124,8 @@
 
 ## 3. Layer 1 → Layer 2: Unified Daily Layer
 
-**Code:** `flow/servicer_data/sericer_data_config/portdaily_config.py` (60KB)
+**Code:** `flow/servicer_data/sericer_data_config/portdaily_config.py` (60KB)  
+**Storage: Redshift + MySQL dual-write** — plain `daily_data_loan_common_config.py:5,97`→Redshift `port.basic_data_daily_loan_common`; `mysql_daily_data_loan_common_config.py:5,94`→MySQL same table; two flows `gen_daily_data_loan_common_flow.py:17-48(RS)/52-84(MySQL)`.
 
 ### 3.1 `port.portdaily_v2` Generation (SLS/Newrez Switch Handling)
 
@@ -180,9 +188,11 @@ CREATE TABLE port.basic_data_daily_loan_common (
 
 ## 4. Layer 2 → Layer 3: Clean Daily Layer
 
-**Code:** `flow/basic_data/transfer_daily_data_config/daily_data_loan_common_clean_config.py` (72KB)
+**Code:** `flow/basic_data/transfer_daily_data_config/daily_data_loan_common_clean_config.py` (72KB)  
+**Storage: Redshift + MySQL dual-write** — plain config→Redshift `port.basic_data_daily_loan_common_clean`; `mysql_daily_data_loan_common_clean_config.py`→MySQL same name; two flows `gen_daily_data_loan_common_clean_flow.py:78-139(RS)/186-243(MySQL)`.
 
-**Core transformation:** Maps raw `delq_status` to standardized `delinq` codes
+**Core transformation:** Maps raw `delq_status` to standardized `delinq` codes  
+> Verified rule (doc 21 §5.4): one CASE per servicer — `Foreclosure*→FCL` / `REO→REO` / `Payoff*→P`, **everything else bucketed by `days360(nextduedate, fctrdt)`** (<30→C…≥120→D120P). **`FCL` is a legal status, NOT derived from days** (`days360` never outputs `FCL`; it must be explicitly flagged by the servicer). DB-observed `delinq` values: `C/D30/D60/D90/D120P/FCL/REO/P/VASP` (no `REPUR`/standalone `D`).
 
 Key outputs:
 - `port.basic_data_daily_loan_common_clean` — standardized daily full data
@@ -210,6 +220,10 @@ Key outputs:
 - `flow/servicer_business/sericer_business_data_config/gen_portmonth_config.py` (90KB) — `portmonthbase` primary analytical table
 - `flow/servicer_business/sericer_business_data_config/gen_portmonth_config_v4.py` (77KB) — monthly update variant
 - `flow/basic_data/basic_data_config/basic_data_pool_config.py` (2,400+ lines) — **all FCL business tables** (`basic_data_loan_foreclosure`, `basic_data_loan_fcl`, `fcl_stage_info`, and 4 others) plus the `GEN_FCL_STAGE` stage calculation block
+
+**Storage (two cases, code-proven):**
+- **Monthly common / `portmonthbase` = dual-write**: `monthly_data_loan_common_config.py`(RS) + `mysql_monthly_data_loan_common_config.py`(MySQL), flow `gen_monthly_data_loan_common_flow.py:24-30/78-84`; portmonthbase via `gen_portmonth_v4.py:45-46`(RS) + `gen_portmonth_mysql.py:42-43`(MySQL).
+- **FCL business family = built in Redshift only** (`basic_data_pool_config.py`, target `{REDSHIFT_PORT}.`, no `mysql_` pool config); its **MySQL copy is produced by the Layer 5 sync**. MCP-verified `port.basic_data_loan_foreclosure` in both (RS-built / MySQL via L5).
 
 ### 5.1 `port.portmonthbase` Generation
 
@@ -314,15 +328,33 @@ LEFT JOIN port.basic_data_monthly_loan_remit_clean b ON a.fctrdt=b.fctrdt AND a.
 
 ---
 
-## 7. MySQL vs. Redshift Layering
+## 7. MySQL ⇄ Redshift: dual-write architecture (2026-06-06 code+MCP-proven, corrects the old "one platform per layer")
 
-| Layer | Platform | Rationale |
-|-------|----------|-----------|
-| Layer 1 (Staging) | MySQL | High-frequency writes, diverse formats, easy incremental append |
-| Layers 2–4 (Analytics) | Redshift | Large-scale SQL, UNION ALL, window functions — Redshift excels |
-| Layer 5 (BPS Sync) | MySQL (two schemas) | `port` schema receives direct ETL sync targets; `bpms_dev` schema is what the BPS application reads |
+> **Correction**: this section previously stated "Layer 1=MySQL, Layers 2–4=Redshift, Layer 5=MySQL" (one platform per layer). Reading PrefectFlow source + MCP testing confirmed: **L1–L4 dual-write to MySQL + Redshift** (same table names, one copy in each), built by **plain configs→Redshift and `mysql_`-prefixed configs→MySQL** (separate config/flows); only the **L4 FCL business family** is Redshift-built then synced to MySQL by L5.
 
-**Important:** Layer 5 is entirely MySQL. There are no `sync_*` data tables in Redshift. The Redshift `port.sync_to_bps_status` is only a sync execution audit log, not a data table.
+**How to tell the engine**: `config/db_conn.py` — MySQL=`pymysql.connect` (:15-25), Redshift=`redshift_connector.connect` (:26-34); the single entry `execute_sql(sql, DbTypeEnum.{MYSQL|REDSHIFT}.value, db)` picks the DB (`flow/__init__.py:19 REDSHIFT_PORT="port"`).
+
+| Layer | MySQL? | Redshift? | Code evidence (file:line) | MCP check |
+|---|---|---|---|---|
+| **L1 raw land** | ✅ | ✅ | two flows `load_daily_<svc>_flow.py:9-47`; branch `servicer_task.py:158-163`; writes `daily_task.py:923-942`(MySQL)/`960-983`(RS); `MYSQL_DB_MAP servicer_config.py:374-387` | `newrez.portnewrezfc` in both |
+| **L2 unified daily** | ✅ | ✅ | plain→RS `daily_data_loan_common_config.py:5,97`; `mysql_…:5,94`; flow `gen_daily_data_loan_common_flow.py:17-48(RS)/52-84(MySQL)` | `port.basic_data_daily_loan_common` in both |
+| **L3 clean daily** | ✅ | ✅ | `daily_data_loan_common_clean_config.py`(RS)/`mysql_…clean_config.py`(MySQL); flow `gen_daily_data_loan_common_clean_flow.py:78-139/186-243` | `port.basic_data_daily_loan_common_clean` in both |
+| **L4 monthly common / portmonthbase** | ✅ | ✅ | `monthly_data_loan_common_config.py`(RS)/`mysql_monthly_…`(MySQL); `gen_portmonth_v4.py:45-46`(RS)+`gen_portmonth_mysql.py:42-43`(MySQL) | RS has `portmonthbase`; MySQL has `basic_data_monthly_loan_common` |
+| **L4 FCL business family** (foreclosure/stage/hold/lm/bk) | ⛔ (via L5 sync) | ✅ (built) | `basic_data_pool_config.py` (target `{REDSHIFT_PORT}.`, no `mysql_` pool config) | `port.basic_data_loan_foreclosure` in both (MySQL via L5) |
+| **L5 BPS sync** | ✅ (write) | ✅ (read) | reads RS `df_db_util.py:117-137`; writes MySQL `:665-699`/`:702-726`; `sync_asset_management.py` | `bpms.sync_*`, `port.basic_data_loan_foreclosure` (transit) |
+
+**Why dual-write (inferred)**: Redshift runs heavy analytical SQL (UNION ALL, window functions, days360); MySQL serves **low-latency BPS/app reads**. Same table names, one copy in each.
+> Same storage-evidence table in [doc 20 §B.6](20_end_to_end_walkthrough.md); field-level lineage + business rationale in [doc 21](21_fcl_field_lineage.md).
+
+**Layer 5 note (retained)**: `sync_*` data tables exist only in MySQL (prod=`bpms`, dev=`bpms_dev`; plus the `port` transit table). The Redshift `port.sync_to_bps_status` is only a sync execution audit log, not a data table.
+
+### 7.1 Other corrections from today (code + MCP, consistent with doc 20/21)
+
+1. **Two branches**: foreclosure milestones/status take the **FCL business-family branch** (read `portnewrezfc`/`portcarrington` directly → `basic_data_loan_fcl` → `basic_data_loan_foreclosure`/`fcl_stage_info`); `delinq` takes the **delinquency branch** (`portnewrezgeneral.delinquency_status_mba` → `basic_data_daily_loan_common` → `_clean`). They meet at `fcl_stage_info` (`group=delq_status`).
+2. **L2 `fcl_flag` not cross-servicer normalized**: it is **pass-through** in the unified daily table (NULL for Newrez/SLS); the FCL determination actually happens in the **L3 `delinq` CASE**; cross-servicer `activefcflag` unification lives on the FCL business-family branch (`basic_data_pool_config.py`), not the unified daily table.
+3. **`FCL` is a legal status, not derived from days** (`days360` never outputs `FCL`; see §4 note and doc 21 §5.4/§6).
+4. **Carrington whole-column gaps (prod-tested)**: `timeline_first_legal_date`, `timeline_judgement_date`, `summary_judicial_foreclosure` are **all NULL for Carrington** (`portcarrington` has no source columns); cross-servicer differences in doc 21 §6/§7.
+5. **`basic_data_loan_delinq_clean` (with `is_ghost_payoff/ghost_reason/delinq_source`)**: prod-tested the columns exist and hold data, but its **producing code has 0 hits in a full PrefectFlow grep** (likely another repo/manual process) — state this honestly when asked; don't assume (doc 21 §9#7).
 
 ---
 

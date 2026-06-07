@@ -42,7 +42,7 @@
 | 数据库 | MCP server | 主要用途 |
 |--------|------------|----------|
 | MySQL dev | `mysql_bpms_dev` | 验证 BPS 应用层表、Newrez 原始表、MySQL `port`/`bpms_dev` 表结构和样本数据 |
-| Redshift dev | `redshift_dev` | 验证旧系统 ETL 分析层、中间层和 `port.*` 表 |
+| Redshift prod | `redshift_prod` | 验证旧系统 ETL 分析层、中间层和 `port.*` 表（Bridger prod Redshift；曾误名 `redshift_dev`） |
 
 ### 为什么优先 MCP
 

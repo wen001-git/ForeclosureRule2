@@ -129,7 +129,10 @@
   svg.glineage{display:block}
   .gnode{cursor:pointer}
   .gnode:hover rect{stroke:var(--accent)!important}
-  .gdim{opacity:.16}
+  .gdim{opacity:.14;transition:opacity .15s}
+  .gnode.glit rect{filter:drop-shadow(0 0 5px rgba(120,200,255,.6))}
+  .gnode.gfocus rect{stroke:var(--accent)!important}
+  path.glitedge{filter:drop-shadow(0 0 3px rgba(120,200,255,.5))}
   .gelabel{fill:#8b96a5}
   .gcolhead{fill:#8b96a5;font-weight:700}
   .miniln{display:block;margin-bottom:8px}
@@ -181,8 +184,8 @@ const I18N={
  en:{
   sub:"Click any table to see its schema, lineage, verified row counts, and ready-to-run <b>validation SQL</b>. Built for analysts / reconciliation. Source: DB-verified docs 02 / 04 / 13.",
   vPipeline:"🔀 Pipeline (Layer 0→5)", vStatus:"🏷️ Status codes", vBps:"🖥️ BPS UI panels", vFields:"🔎 BPS field lineage", vGraph:"🕸 Lineage graph",
-  gCol0:"Newrez raw (mysql_dev.newrez)", gCol1:"Redshift (redshift_dev.port)", gCol2:"BPS table (bpms_dev)", gCol3:"BPS view (bpms_dev)",
-  gCollapse:"Collapse all", gReset:"Reset focus", gCollapseOne:"click the ▾ header to collapse this table", gHint:"Click a table to expand · click the ▾ group header to collapse it · click a field for details · click an edge for fields",
+  gCol0:"Newrez raw (mysql_dev.newrez)", gCol1:"Redshift (redshift_prod.port)", gCol2:"BPS table (bpms_dev)", gCol3:"BPS view (bpms_dev)",
+  gCollapse:"Collapse all", gReset:"Reset focus", gCollapseOne:"click the ▾ header to collapse this table", gHint:"Click a table to expand · click a field to highlight its full lineage chain (others dim) · ▾ header collapses · click an edge for fields · Reset focus clears the highlight",
   gMini:"Lineage graph", gEdgeFields:"Fields on this edge",
   vPrimer:"📚 Primer", primIntro:"Foreclosure business primer (from doc 17) — for analysts & onboarding. Status codes are clickable → jump to the Status codes tab; the BPS pipeline links to the Stage Tab.",
   pr1:"1 · Why FCL judgment & its two bases", pr2:"2 · days360 buckets & MBA standard", pr3:"3 · Loan lifecycle (state machine)", pr4:"4 · FCL — 6 stages & 5 exits", pr5:"5 · Judicial vs Non-Judicial", pr6:"6 · BPS 7-stage operational pipeline", pr7:"7 · Bankruptcy deep dive",
@@ -234,8 +237,8 @@ const I18N={
  zh:{
   sub:"点击任意表查看其结构、血缘、实测行数，以及可直接运行的<b>验证 SQL</b>。面向分析 / 数据核对。来源：经数据库验证的文档 02 / 04 / 13。",
   vPipeline:"🔀 管道（Layer 0→5）", vStatus:"🏷️ 状态码", vBps:"🖥️ BPS 界面面板", vFields:"🔎 BPS 字段血缘", vGraph:"🕸 血缘图谱",
-  gCol0:"Newrez 原始 (mysql_dev.newrez)", gCol1:"Redshift 中间 (redshift_dev.port)", gCol2:"BPS 表 (bpms_dev)", gCol3:"BPS 视图 (bpms_dev)",
-  gCollapse:"全部折叠", gReset:"重置聚焦", gCollapseOne:"点 ▾ 表头折叠该表", gHint:"点表展开 · 点 ▾ 分组表头折叠该表 · 点字段看详情 · 点边看承载字段",
+  gCol0:"Newrez 原始 (mysql_dev.newrez)", gCol1:"Redshift 中间 (redshift_prod.port)", gCol2:"BPS 表 (bpms_dev)", gCol3:"BPS 视图 (bpms_dev)",
+  gCollapse:"全部折叠", gReset:"重置聚焦", gCollapseOne:"点 ▾ 表头折叠该表", gHint:"点表展开 · 点字段=高亮它的整条数据链（其余变暗）· 点 ▾ 表头折叠 · 点边看承载字段 · 重置聚焦清除高亮",
   gMini:"血缘图", gEdgeFields:"该边承载的字段",
   vPrimer:"📚 业务科普", primIntro:"止赎业务入门（取自 doc 17）——面向分析/新人。状态码可点击 → 跳到 Status codes tab；BPS 管道可联动 Stage Tab。",
   pr1:"1 · 为什么需要 FCL 判断 + 两种依据", pr2:"2 · days360 逾期档位 + MBA 标准", pr3:"3 · 贷款全生命周期状态机", pr4:"4 · FCL 6 阶段 + 5 种出口", pr5:"5 · 司法 vs 非司法止赎", pr6:"6 · BPS 7 运营阶段管道", pr7:"7 · 破产（Bankruptcy）深度解析",
@@ -317,12 +320,12 @@ const PAGEDOC={
     how:{en:"Switch sub-tabs above. Panels overview: click a panel → its source mapping + a jump to the pipeline node. Other sub-tabs: click any field / cell → the drawer shows its annotation, mini-lineage graph and SQL.",
          zh:"用上方子页切换。面板总览：点面板 → 看源表映射并跳转管道节点；其它子页：点任意字段 / 单元格 → 抽屉显示注释、血缘小图与 SQL。"}},
   graph:{
-    desc:{en:"A layered DAG of every field's cross-database lineage: Newrez → Redshift → BPS table → BPS view.",
-          zh:"把全部字段的跨库血缘画成分层 DAG：Newrez → Redshift → BPS 表 → BPS 视图。"},
+    desc:{en:"A layered DAG of every field's cross-database lineage: Newrez → Redshift → BPS table → BPS view. Scope: this graph shows the FCL business-family branch (portnewrezfc/lm/bk → business tables → sync). The separate delinquency branch (delinquency_status_mba → delq_status → delinq via days360) lives in the Pipeline (Layer 0→5) view; the two branches meet at fcl_stage_info.group.",
+          zh:"把全部字段的跨库血缘画成分层 DAG：Newrez → Redshift → BPS 表 → BPS 视图。范围：本图只画 FCL 业务族支线（portnewrezfc/lm/bk → 业务表 → sync）。另一条逾期支线（delinquency_status_mba → delq_status → delinq，经 days360）见 Pipeline (Layer 0→5) 视图；两支在 fcl_stage_info.group 汇合。"},
     who:{en:"Data engineers · architecture / lineage reviewers.",
          zh:"数据工程师 · 架构 / 血缘审阅人员。"},
-    how:{en:"Click a table to expand · click the ▾ header to collapse · click a field for details · click an edge for the fields it carries · toolbar to zoom / reset focus.",
-         zh:"点表展开 · 点 ▾ 表头折叠 · 点字段看详情 · 点边看承载字段 · 工具栏缩放 / 重置聚焦。"}},
+    how:{en:"Click a table to expand · click the ▾ header to collapse · click a field for details · click an edge for the fields it carries · toolbar to zoom / reset focus. (Two branches: FCL business-family here; delinquency branch in the Pipeline view.)",
+         zh:"点表展开 · 点 ▾ 表头折叠 · 点字段看详情 · 点边看承载字段 · 工具栏缩放 / 重置聚焦。（两条支线：FCL 业务族在本图；逾期支线在 Pipeline 视图。）"}},
   primer:{
     desc:{en:"Foreclosure business primer (from doc 17): bases for FCL judgment, days360 buckets, the loan lifecycle state machine, 6 stages & 5 exits, judicial vs non-judicial, and the BPS 7-stage pipeline.",
           zh:"止赎业务入门（取自 doc 17）：FCL 判断依据、days360 逾期档位、贷款生命周期状态机、6 阶段 5 出口、司法 vs 非司法、BPS 7 阶段管道。"},
@@ -397,9 +400,9 @@ const LAYERS=[
     fields:['delinq','fcl_flag','lm_flag','bankruptcy'],code:'daily_data_loan_common_clean_config.py',schema:'port',
     up:['port.basic_data_daily_loan_common'],down:['monthly business tables']},
    {id:'delinqclean',name:'port.basic_data_loan_delinq_clean',plat:'redshift',
-    ds:{en:'Refined delinquency table with ghost-payoff detection and prior-month LAG.',zh:'精细化逾期表，含幽灵还清检测与上月 LAG。'},
+    ds:{en:'Refined delinquency table with ghost-payoff detection and prior-month LAG. ⚠️ OQ#7: producing code is NOT in the PrefectFlow repo (full-repo grep 0 hits, 2026-06-07) — likely maintained by another repo/manual process; do not assume the rule.',zh:'精细化逾期表，含幽灵还清检测与上月 LAG。⚠️ OQ#7：生成代码不在 PrefectFlow 版本库（全仓 grep 0 命中，2026-06-07）——疑由另一 repo/手工流程维护，规则勿臆断。'},
     fields:['delinq','ots_delinq','prevdelinq','ots_prevdelinq','delinq_source','is_ghost_payoff','ghost_reason','paymthist'],
-    code:'daily_data_loan_common_clean_config.py',schema:'port',
+    code:'(未在 PrefectFlow 版本库定位 / not located in PrefectFlow repo — OQ#7)',schema:'port',
     up:['port.basic_data_daily_loan_common'],down:['delinquency rollups / portmonthbase']},
  ]},
  {n:4,title:{en:'Monthly Business Layer',zh:'月度业务层'},sub:{en:'Monthly snapshots + FCL business tables (core)',zh:'月度快照 + FCL 业务表（核心）'},plat:'redshift',nodes:[
@@ -460,7 +463,7 @@ const LAYERS=[
 ];
 
 /* =================== STATUS-CODE DATA (doc 04) =================== */
-/* delinq distribution — re-queried live from port.portmonthbase latest snapshot (MCP redshift_dev) */
+/* delinq distribution — re-queried live from port.portmonthbase latest snapshot (MCP redshift_prod) */
 const DELINQ_DATE='2025-08-01';  // fctrdt of latest snapshot (normalized delinq)
 const DELINQ_TOTAL=2197;         // loans in latest snapshot
 const DOC14_MBA_DATE='2026-06-01';  // doc 14 servicer-source verify (newrez.portnewrezgeneral, dataasof MAX)
@@ -585,8 +588,8 @@ function renderPipeline(){
 function renderStatus(){
   const c=document.getElementById('canvas');
   const distNote=lang==='zh'
-    ? `下列计数 = 标准化 delinq，来自 <code>port.portmonthbase</code>（redshift_dev）最新快照 <b>fctrdt=${DELINQ_DATE}</b>，共 <b>${DELINQ_TOTAL.toLocaleString()}</b> 笔（注：dev 环境此表滞后）。点状态码看 <b>doc 14 验证 SQL</b>——查原始服务商字段 <code>delinquency_status_mba</code>（mysql_dev，更新至 <b>${DOC14_MBA_DATE}</b>）+ 原始 MBA→delinq 映射。`
-    : `Counts = normalized delinq from <code>port.portmonthbase</code> (redshift_dev), latest snapshot <b>fctrdt=${DELINQ_DATE}</b>, <b>${DELINQ_TOTAL.toLocaleString()}</b> loans (note: this table lags in dev). Click a code for the <b>doc 14 verify SQL</b> — on the raw servicer field <code>delinquency_status_mba</code> (mysql_dev, updated to <b>${DOC14_MBA_DATE}</b>) + raw MBA→delinq mapping.`;
+    ? `下列计数 = 标准化 delinq，来自 <code>port.portmonthbase</code>（redshift_prod）最新快照 <b>fctrdt=${DELINQ_DATE}</b>，共 <b>${DELINQ_TOTAL.toLocaleString()}</b> 笔（注：dev 环境此表滞后）。点状态码看 <b>doc 14 验证 SQL</b>——查原始服务商字段 <code>delinquency_status_mba</code>（mysql_dev，更新至 <b>${DOC14_MBA_DATE}</b>）+ 原始 MBA→delinq 映射。`
+    : `Counts = normalized delinq from <code>port.portmonthbase</code> (redshift_prod), latest snapshot <b>fctrdt=${DELINQ_DATE}</b>, <b>${DELINQ_TOTAL.toLocaleString()}</b> loans (note: this table lags in dev). Click a code for the <b>doc 14 verify SQL</b> — on the raw servicer field <code>delinquency_status_mba</code> (mysql_dev, updated to <b>${DOC14_MBA_DATE}</b>) + raw MBA→delinq mapping.`;
   let h=pageHeader('status')+`<div class="secblock"><h2>${t('svDelinq')}</h2><div class="inner"><div class="note" style="margin-bottom:10px">${distNote}</div><div class="codegrid">`;
   DELINQ.forEach(d=>{h+=`<div class="codecard" onclick="selectDelinq('${d.c}')"><div class="c">${d.c}</div><div class="m">${L(d.m)}</div><div class="n">▦ ${d.n}</div></div>`;});
   h+=`</div></div></div>`;
@@ -676,18 +679,18 @@ function selectPrevChar(){
   activeSel={type:'prevchar'};
   const d=document.getElementById('drawer'); d.className='drawer';
   const sql=`-- ${lang==='zh'?'验证 prevdelinqchar 取值/分布（最新快照）':'verify prevdelinqchar values/distribution (latest snapshot)'}\n`
-    +`-- 源表/source: port.basic_data_monthly_loan_clean_data_delinq | 运行/run on: redshift_dev | 数据日期/data date: fctrdt=2026-07-01\n`
+    +`-- 源表/source: port.basic_data_monthly_loan_clean_data_delinq | 运行/run on: redshift_prod | 数据日期/data date: fctrdt=2026-07-01\n`
     +`SELECT prevdelinqchar, prevdelinq, COUNT(*) AS cnt\n`
     +`FROM   port.basic_data_monthly_loan_clean_data_delinq\n`
     +`WHERE  fctrdt = (SELECT MAX(fctrdt) FROM port.basic_data_monthly_loan_clean_data_delinq)\n`
     +`GROUP  BY prevdelinqchar, prevdelinq ORDER BY cnt DESC;`;
   let h=`<div class="d-head"><span class="pill" style="background:var(--accent)">field</span><h2>prevdelinqchar</h2><div class="path">schema: <b>port.basic_data_monthly_loan_clean_data_delinq</b></div></div><div class="d-body">`;
   h+=`<div class="sec"><div class="kv">${t('svCharMeaning')}</div></div>`;
-  h+=`<div class="sec"><h3>${t('svAsOfLabel')}</h3><div class="kv">fctrdt=2026-07-01（redshift_dev）</div></div>`;
+  h+=`<div class="sec"><h3>${t('svAsOfLabel')}</h3><div class="kv">fctrdt=2026-07-01（redshift_prod）</div></div>`;
   h+=`<div class="sec"><div class="note">⚠ ${t('svCharVerifyNote')}</div></div>`;
   h+=`<div class="sec"><h3>${t('svCharSample')}</h3><div class="lin"><code>paymthistfull = RFFFFFFFFFFFF4321CC1C11CCCCCC11CCCCCCCC1C</code><br>${lang==='zh'?'左=最新：R 本月 REO ← 12×F 止赎 ← 4321 逾期升级 ← 早期 C 正常':'left=newest: R now REO ← 12×F foreclosure ← 4321 escalation ← earlier C performing'}</div></div>`;
   const sampleSql=`-- ${lang==='zh'?'取样：还款历史串（最新快照）':'sample payment-history strings (latest snapshot)'}\n`
-    +`-- 源表/source: port.basic_data_monthly_loan_clean_data_delinq | 运行/run on: redshift_dev | 数据日期/data date: fctrdt=2026-07-01\n`
+    +`-- 源表/source: port.basic_data_monthly_loan_clean_data_delinq | 运行/run on: redshift_prod | 数据日期/data date: fctrdt=2026-07-01\n`
     +`SELECT loanid, delinq, prevdelinqchar, paymthistfull\n`
     +`FROM   port.basic_data_monthly_loan_clean_data_delinq\n`
     +`WHERE  fctrdt = (SELECT MAX(fctrdt) FROM port.basic_data_monthly_loan_clean_data_delinq)\n`
@@ -743,7 +746,7 @@ function setView(v){view=v;
   applyStaticLabels();renderView();if(!activeSel)drawerEmpty();}
 
 /* =================== BPS FIELD-LINEAGE (doc 13 + live-schema verified 2026-06-02) =================== */
-const FB='mysql_bpms_dev.bpms_dev.', FR='redshift_dev.port.', FN='mysql_dev.newrez.';
+const FB='mysql_bpms_dev.bpms_dev.', FR='redshift_prod.port.', FN='mysql_dev.newrez.';
 let fieldsScreen='detail';
 const FIELDS={};
 function addF(id,o){FIELDS[id]=o;}
@@ -841,10 +844,10 @@ function bidF(id,col,label,biz,nz,calc,fill,note){
   line.push(nz?{r:'rNz',p:FN+'portnewrezfc.'+nz}:{r:'rDerive',p:'—（BPS 内部工作流 / BPS internal workflow）'});
   addF(id,{label,biz,calc:calc||DIRECT,line,code:null,note:note||null,fill:fill||null,range:null});
 }
-bidF('bid_status','bid_approval_status',{en:'Bid Approval > Approval Status',zh:'Bid Approval > Approval Status 审批状态'},{en:'Approval status of the auction bid (BPS internal workflow, not synced from Newrez).',zh:'竞拍出价的审批状态（BPS 内部流程，不同步自 Newrez）。'},null,{en:'Written by BPS bid-approval workflow',zh:'由 BPS 内部竞拍审批流程写入'});
-bidF('bid_saledate','bid_approval_sale_date',{en:'Bid Approval > Sale Date',zh:'Bid Approval > Sale Date 拍卖日'},{en:'Scheduled auction date for the bid (same source as projected sale).',zh:'竞拍对应的排定拍卖日期（与 projected sale 同源）。'},'fcscheduledsaledate',DIRECT);
-bidF('bid_amount','bid_approval_bid_amount',{en:'Bid Approval > Bid Amount',zh:'Bid Approval > Bid Amount 批准出价'},{en:'BPS-approved auction bid amount.',zh:'BPS 批准的竞拍出价金额。'},'fcapprbidprice',DIRECT,'8.9%');
-bidF('bid_holds','bid_approval_loan_resolution_holods',{en:'Bid Approval > Loan Resolution Holds',zh:'Bid Approval > Loan Resolution Holds 阻碍 Hold'},{en:'List of holds blocking loan resolution (concatenated hold descriptions).',zh:'当前阻碍放款决议的 Hold 原因列表（拼接 hold 描述）。'},'fchold1/2/3description',{en:'Concatenate non-empty hold descriptions, ; separated',zh:'拼接非空 hold 描述，用 ; 分隔'},null,{en:'BPS column name is misspelled "...holods" (kept as-is, real column).',zh:'BPS 真实列名拼写为 "...holods"（holods，按真实列名保留）。'});
+bidF('bid_status','bid_approval_status',{en:'Bid Approval > Approval Status',zh:'Bid Approval > Approval Status 审批状态'},{en:'Approval status of the auction bid. BPS-internal column — the FCL ETL never writes it, so it is empty end-to-end.',zh:'竞拍出价的审批状态。BPS 内部列——FCL ETL 从不写入，全链路为空。'},null,{en:'No upstream — BPS-internal, not written by the FCL ETL',zh:'无上游 — BPS 内部，FCL ETL 不写入'},'0%（prod: 0/6152 RS · 0/89 BPS）',{en:'Column exists in basic_data_loan_foreclosure DDL (basic_data_pool_config.py:193) but is NOT in the INSERT column list — intended to be set by a BPS-side bid-approval workflow. DB-verified 2026-06-07: 0% filled.',zh:'列在 basic_data_loan_foreclosure DDL（basic_data_pool_config.py:193）存在，但不在 INSERT 列清单内——本应由 BPS 侧竞拍审批流程写入。DB 实测 2026-06-07：0% 填充。'});
+bidF('bid_saledate','bid_approval_sale_date',{en:'Bid Approval > Sale Date',zh:'Bid Approval > Sale Date 拍卖日'},{en:'Scheduled auction date for the bid. BPS-internal column — NOT populated by the FCL ETL; empty end-to-end. (Do NOT confuse with timeline_sale_date_projected_date, which IS populated from fcscheduledsaledate.)',zh:'竞拍对应的排定拍卖日期。BPS 内部列——FCL ETL 不填充，全链路为空。（勿与 timeline_sale_date_projected_date 混淆，后者才由 fcscheduledsaledate 填充。）'},null,{en:'No upstream — not in the INSERT list; intended BPS-side',zh:'无上游 — 不在 INSERT 清单内；本应 BPS 侧填'},'0%（prod: 0/6152 RS · 0/89 BPS）',{en:'Earlier doc attributed fcscheduledsaledate — corrected: that source feeds timeline_sale_date_projected_date, NOT this column. DB-verified 2026-06-07.',zh:'此前文档标为 fcscheduledsaledate — 已订正：该来源喂的是 timeline_sale_date_projected_date，不是本列。DB 实测 2026-06-07。'});
+bidF('bid_amount','bid_approval_bid_amount',{en:'Bid Approval > Bid Amount',zh:'Bid Approval > Bid Amount 批准出价'},{en:'Auction bid amount. The ONLY bid_approval_* column the FCL ETL populates — set to fcbidamount (same value as summary_foreclosure_bid_amount).',zh:'竞拍出价金额。bid_approval_* 中唯一被 FCL ETL 填充的列——取 fcbidamount（与 summary_foreclosure_bid_amount 同值）。'},'fcbidamount',DIRECT,'0.3%（prod: 16/6152 RS · 16/89 BPS）',{en:'Source is fcbidamount, NOT fcapprbidprice (basic_data_pool_config.py:272). DB-verified 2026-06-07.',zh:'来源是 fcbidamount，非 fcapprbidprice（basic_data_pool_config.py:272）。DB 实测 2026-06-07。'});
+bidF('bid_holds','bid_approval_loan_resolution_holods',{en:'Bid Approval > Loan Resolution Holds',zh:'Bid Approval > Loan Resolution Holds 阻碍 Hold'},{en:'Holds blocking loan resolution. BPS-internal column (real name misspelled "...holods") — NOT populated by the FCL ETL; empty end-to-end. Hold details live in the separate sync_loan_foreclosure_hold long table.',zh:'阻碍放款决议的 Hold。BPS 内部列（真实列名拼写为 "...holods"）——FCL ETL 不填充，全链路为空。Hold 明细在独立的 sync_loan_foreclosure_hold 长表。'},null,{en:'No upstream — not in the INSERT list; 0% in prod',zh:'无上游 — 不在 INSERT 清单内；prod 0%'},'0%（prod: 0/6152 RS · 0/89 BPS）',{en:'Earlier doc attributed concatenated fchold descriptions — corrected: that data is in sync_loan_foreclosure_hold, not this column. DB-verified 2026-06-07.',zh:'此前文档标为拼接 fchold 描述 — 已订正：该数据在 sync_loan_foreclosure_hold，不在本列。DB 实测 2026-06-07。'});
 
 /* ---- Variance panel (doc 13 §3.5) — bankruptcy / hold flags ---- */
 function varF(id,col,label,biz,nzTbl,nzCols,calc,note){
@@ -932,7 +935,7 @@ const STAGES=[
  {k:'service',nm:'Service',dl:'Service Date',nz:'servicecompletedate',isTo:false,dn:null},
  {k:'first_legal',nm:'First Legal',dl:'First Legal Date',nz:'firstlegaldate',isTo:false,dn:null},
  {k:'referral',nm:'Referral',dl:'Referral Date',nz:'fcreferraldate',isTo:false,dn:null},
- {k:'demand',nm:'NOI/Demand Letter',dl:'Send Date',nz:'demandsentdate',isTo:false,dn:{en:'demandsentdate → demand_start_date. Since ingestion requires fcreferraldate, this group is normally 0.',zh:'demandsentdate → demand_start_date。入库要求 fcreferraldate 非空，故该分组通常为 0。'}},
+ {k:'demand',nm:'NOI/Demand Letter',dl:'Send Date',nz:'demandsentdate',isTo:false,dn:{en:'demandsentdate → demand_start_date. Since ingestion requires fcreferraldate (and DEMAND requires it NULL), this group is normally 0 — only pre-referral D90/D120P loans appear; noi_start_date is always NULL. Judicial states call it NOI/NOD, Non-Judicial states Demand Letter (same field).',zh:'demandsentdate → demand_start_date。入库要求 fcreferraldate 非空（而 DEMAND 判定要求其为空），故该分组通常为 0——仅 pre-referral D90/D120P 贷款出现；noi_start_date 恒空。司法州称 NOI/NOD、非司法州称 Demand Letter（同一字段）。'}},
 ];
 function daysColOf(s){return s.isTo?(s.k==='sale'?'to_sale_days':'to_judgement_days'):s.k+'_stage_days';}
 function daysLabelOf(s){return s.isTo?(s.k==='sale'?'Days to Sale':'Days to Judgement'):'Days in Stage';}
@@ -1012,6 +1015,27 @@ setSpec('lm_final',null,{en:'Enum: Referral to FC / Request Incomplete / Approve
 setSpec('bk_status',null,{en:'Decode: 1→Active · 2→Discharged · 3→Dismissed · 4→Closed · 5→ReliefGranted',zh:'解码：1→Active · 2→Discharged · 3→Dismissed · 4→Closed · 5→ReliefGranted'});
 setSpec('bk_legal',null,{en:'Enum (portnewrezgeneral.legalstatus text): FCBU / BK7 / BK11 / BK13 / BK7DCH / REO ...',zh:'枚举（portnewrezgeneral.legalstatus 文本）：FCBU / BK7 / BK11 / BK13 / BK7DCH / REO 等'});
 setSpec('bk_chapter',null,{en:'Values: 7 / 11 / 13',zh:'取值：7 / 11 / 13'});
+
+/* ---- doc 21 §1.2 per-servicer fill rates (prod 2026-06-07, sync_loan_foreclosure) ---- */
+function setFill2(id,nz,carr){ if(FIELDS[id]) FIELDS[id].fill2={nz,carr}; }
+setFill2('mile_reffc_date','100%','100%');
+setFill2('mile_firstlegal_date','57.6%','0%（无 first_legal 源 / no source）');
+setFill2('mile_judg_date','11.9%','0%（无 judgement 源 / no source）');
+setFill2('sum_status','100%','83%');
+setFill2('sum_judicialflag','100%','0%（Carrington 无 judicial 字段 / no judicial field）');
+
+/* ---- doc 20 §A.6 / doc 21 §0.4 business rationale (why modeled this way) ---- */
+function setWhy(id,why){ if(FIELDS[id]) FIELDS[id].why=why; }
+setWhy('hold_desc',{zh:'止赎启动后常被反复暂停（破产自动中止令、在谈减损、法院延期、HUD/COVID、军人保护SCRA），每次暂停是独立事实须各记一条 → 一笔贷款多条 Hold（doc17 §4.2/4.3）。',en:'A foreclosure is repeatedly paused after launch (BK automatic stay, active loss-mit, court delay, HUD/COVID, SCRA); each pause is a distinct fact recorded as its own row → many Holds per loan (doc17 §4.2/4.3).'});
+setWhy('sum_status',{zh:'退出原因分别编码（Reinstated / Loss Mitigation / Paid in Full / Process Complete / DIL / REO / 3rd-Party），因每种退出的损失与后续流程不同（复权=零损失、短售=豁免差额、REO=需持有运营、DIL=免拍卖交房）（doc17 §5.3）。',en:'Exit reasons are coded separately (Reinstated / Loss Mitigation / Paid in Full / Process Complete / DIL / REO / 3rd-Party) because each exit has different loss & downstream handling (reinstate=zero loss, short sale=deficiency waived, REO=hold/operate, DIL=deed taken without auction) (doc17 §5.3).'});
+setWhy('sum_judicialflag',{zh:'按州区分司法/非司法：时长差≈6 倍（司法 12 月–3 年 vs 非司法 2–6 月）、赎回期不同；存量/Loss Severity/合规超期必须按州分析（doc17 §4.5）。',en:'Judicial vs non-judicial differs by state: ~6× duration gap (judicial 12mo–3yr vs non-judicial 2–6mo) and different redemption periods; inventory / loss severity / compliance aging must be analyzed by state (doc17 §4.5).'});
+setWhy('sum_days',{zh:'FCL 是法律程序状态，与"欠多久"正交：D120P 可不进 FCL（在谈 Mod）、D60 可已是 FCL；days360 天数计算永远不会产生 FCL，FCL 只能来自 servicer 显式标志（doc17 §2）。',en:'FCL is a legal-process state, orthogonal to "how delinquent": a D120P loan may not be in FCL (in modification) and a D60 loan may already be; the days360 computation never yields FCL — FCL comes only from an explicit servicer flag (doc17 §2).'});
+setWhy('lm_deal',{zh:'监管(CFPB 12 CFR 1024.41)要求止赎前先评估救济；方案会升级/切换(Eval→Mod→Short Sale/DIL)、反复补件重申，每一轮都是独立 cycle → 一笔贷款多轮 LM（doc18 §5）。',en:'Regulation (CFPB 12 CFR 1024.41) requires evaluating loss-mit before foreclosure; programs escalate/switch (Eval→Mod→Short Sale/DIL) and re-apply, each round a distinct cycle → many LM cycles per loan (doc18 §5).'});
+setWhy('bk_status',{zh:'破产自动中止令(11 USC §362)强制暂停一切催收含止赎 → 止赎进 Hold；债权人 MFR(解除中止动议)获批后恢复；借款人可被驳回后再次申请 → 一笔多次 BK（doc17 §5.4）。',en:'The BK automatic stay (11 USC §362) forces a halt to all collection incl. foreclosure → FCL goes on Hold; the creditor’s MFR (motion for relief), once granted, resumes it; a borrower may re-file after dismissal → multiple BKs per loan (doc17 §5.4).'});
+['sale','judgement','publication','service','first_legal','referral','demand'].forEach(k=>{
+  setWhy('stg_'+k+'_inlm',{zh:'合规时钟(FNMA/FHLMC 超期处罚)只追究贷款方可控的拖延；借款人在谈减损期间止赎法律上没在推进，故从阶段耗时中扣除 → in_lm_days（doc10）。',en:'Compliance clocks (FNMA/FHLMC aging penalties) only count lender-controllable delay; while the borrower is in loss-mit the foreclosure is legally not progressing, so it is deducted from stage time → in_lm_days (doc10).'});
+  setWhy('stg_'+k+'_onhold',{zh:'同理，被 Hold 暂停的天数属非可控时间，从阶段耗时中扣除 → on_hold_days，得到"可操作时长"用于 KPI/合规超期（doc10）。',en:'Likewise, days under a Hold are non-controllable time and are deducted from stage time → on_hold_days, giving the "actionable" duration used for KPI / compliance aging (doc10).'});
+});
 
 /* =================== FIELD-VIEW RENDER =================== */
 function fcell(id,text,extra){const on=activeSel&&activeSel.type==='field'&&activeSel.id===id?' on':'';return `<span class="fcell${on}"${extra||''} onclick="selectField('${id}')">${text}</span>`;}
@@ -1242,8 +1266,10 @@ function selectField(id){
   h+=`<div class="sec"><h3>${t('fBiz')}</h3><div class="kv">${L(f.biz)}</div></div>`;
   if(f.calc) h+=`<div class="sec"><h3>${t('fCalc')}</h3><div class="lin"><code>${esc(L(f.calc))}</code></div></div>`;
   h+=`<div class="sec"><h3>${t('fLineage')}</h3>`;
+  h+=`<div class="kv" style="color:var(--muted);font-size:11px;margin-bottom:6px">${L({zh:'数据生产方向：从上到下 = 源 → BPS（上＝最初来源，下＝最终进入 BPS）',en:'Production direction: top → bottom = source → BPS (top = original source, bottom = final in BPS)'})}</div>`;
   h+=miniLineageSVG(f);
-  f.line.forEach(hp=>{
+  // list hops top→bottom in production order (source first, BPS last) — matches the SVG above
+  [...f.line].reverse().forEach(hp=>{
     const copyable=hp.p&&hp.p.indexOf('—')!==0;
     h+=`<div class="linehop"><span class="lkrole">${t(hp.r)}</span><span class="lkpath">${esc(hp.p)}</span>`+(copyable?`<button class="copy2" onclick="copyText(this,'${hp.p}')">copy</button>`:'')+`</div>`;
   });
@@ -1253,9 +1279,13 @@ function selectField(id){
   if(f.sql) h+=`<div class="sec"><h3>${t('fSql')}</h3><div class="sqlwrap"><button class="copy" onclick="copySql(this)">${t('copy')}</button><pre>${esc(f.sql)}</pre></div></div>`;
   const d14=doc14FieldSQL(f);
   if(d14) h+=`<div class="sec"><h3>${t('fDoc14Sql')}</h3><div class="sqlwrap"><button class="copy" onclick="copySql(this)">${t('copy')}</button><pre>${esc(d14)}</pre></div></div>`;
-  if(f.fill) h+=`<div class="sec"><h3>${t('fFill')}</h3><div class="kv" style="color:var(--accent2)">${f.fill}</div></div>`;
+  if(f.fill||f.fill2){ h+=`<div class="sec"><h3>${t('fFill')}</h3>`;
+    if(f.fill) h+=`<div class="kv" style="color:var(--accent2)">${f.fill}</div>`;
+    if(f.fill2) h+=`<div class="kv" style="color:var(--muted);font-size:11px;margin-top:3px">${L({zh:'跨 servicer（prod 2026-06-07）',en:'cross-servicer (prod 2026-06-07)'})}: Newrez ${f.fill2.nz} · Carrington ${f.fill2.carr}</div>`;
+    h+=`</div>`; }
   if(f.code) h+=`<div class="sec"><h3>${t('fCode')}</h3><div class="lin"><code>${esc(f.code)}</code></div></div>`;
   if(f.note) h+=`<div class="sec"><div class="note">⚠ ${L(f.note)}</div></div>`;
+  if(f.why) h+=`<div class="sec"><h3>${L({zh:'📌 为什么这样建模',en:'📌 Why modeled this way'})}</h3><div class="kv">${L(f.why)}</div></div>`;
   h+=`</div>`; d.innerHTML=h; d.scrollTop=0;
 }
 function copyText(btn,txt){navigator.clipboard.writeText(txt).then(()=>{const o=btn.textContent;btn.textContent='✓';setTimeout(()=>btn.textContent=o,1000);});}
@@ -1264,6 +1294,8 @@ function copyText(btn,txt){navigator.clipboard.writeText(txt).then(()=>{const o=
 let graphExpanded=new Set(), graphFocus=null, graphZoom=1;
 const NODE_DB_COLOR={newrez:'#f29d50',port:'#9d7bff',bpms:'#ff7b9c',view:'#e0a3c0',cfg:'#6e7681'};
 const EDGE_COLOR={copy:'#6e7681',decode:'#7ee787',coalesce:'#4da3ff',track:'#f29d50',computed:'#9d7bff',config:'#ff7b9c',map:'#8b96a5'};
+const ORIGIN_IDS=new Set(['__CFG__','__DERIVE__','__NOSRC__']);  // synthetic origin nodes (no raw upstream)
+const ORIGIN_TIP={__CFG__:'config / ETL constant (no servicer source)',__DERIVE__:'ETL-computed / BPS-internal (no servicer source)',__NOSRC__:'no servicer source (servicer does not provide this field)'};
 function _ghop(p){ if(!p||p.indexOf('—')===0) return null; const a=p.split('.'); if(a.length<4) return null; return {db:a[0],schema:a[1],table:a[2],col:a.slice(3).join('.'),tbl:a[0]+'.'+a[1]+'.'+a[2],path:p}; }
 function _gtier(h){ if(h.schema==='newrez') return 0; if(h.schema==='port') return 1; if(/biz_data_view/.test(h.table)) return 3; return 2; }
 function _gkey(h){ if(h.schema==='newrez') return 'newrez'; if(h.schema==='port') return 'port'; if(/biz_data_view/.test(h.table)) return 'view'; return 'bpms'; }
@@ -1289,8 +1321,20 @@ function buildGraph(expanded){
     const seq=hops.map(h=>{ const tbl=h.tbl;
       if(expanded.has(tbl)){ add({id:tbl,label:h.table,db:_gkey(h),tier:_gtier(h),kind:'thead',table:tbl,group:tbl}); add({id:h.path,label:h.col,db:_gkey(h),tier:_gtier(h),kind:'field',table:tbl,group:tbl}); return h.path; }
       add({id:tbl,label:h.table,db:_gkey(h),tier:_gtier(h),kind:'table',table:tbl,group:tbl}); return tbl; });
-    const hasUp=hops.some(h=>_gtier(h)<2), cfg=(f.line||[]).some(h=>h.r==='rCfg'||h.r==='rDerive');
-    if(!hasUp&&cfg&&seq.length){ add({id:'__CFG__',label:'config / ETL',db:'cfg',tier:0,kind:'table',table:'__CFG__',group:'__CFG__'}); seq.unshift('__CFG__'); }
+    // Every field must show an ORIGIN. A real upstream is a tier-0 (Newrez/raw) hop; if a field
+    // has none, its left-most hop is a '—' placeholder describing where it actually comes from
+    // (config constant / ETL-or-BPS-internal / no servicer source). Inject a categorized origin
+    // node so the chain never appears to start mid-pipeline (e.g. bid_approval_status).
+    const hasRaw=hops.some(h=>_gtier(h)===0);
+    if(!hasRaw&&seq.length){
+      const ph=(f.line||[]).find(h=>h.p&&h.p.indexOf('—')===0);
+      let oid='__DERIVE__',olab='ETL / derived';
+      if(ph&&ph.r==='rCfg'){ oid='__CFG__'; olab='config / ETL const'; }
+      else if(ph&&ph.r==='rNz'){ oid='__NOSRC__'; olab='no servicer source'; }
+      else if(ph&&ph.r==='rDerive'){ oid='__DERIVE__'; olab='ETL / BPS-internal'; }
+      add({id:oid,label:olab,db:'cfg',tier:0,kind:'table',table:oid,group:oid});
+      seq.unshift(oid);
+    }
     const cat=edgeCat(f.calc);
     for(let i=0;i<seq.length-1;i++){ const from=seq[i],to=seq[i+1]; if(from===to) continue;
       const c=(i+1===seq.length-1)?cat:'copy', ek=from+'>>'+to;
@@ -1318,14 +1362,28 @@ function renderGraph(){
     maxBottom=Math.max(maxBottom,y);
   });
   const W=LEFT+4*COL, H=maxBottom+24;
-  let lit=null;
-  if(graphFocus){ lit=new Set([graphFocus]); const adj={}; g.edges.forEach(e=>{ (adj[e.from]=adj[e.from]||[]).push(e.to); (adj[e.to]=adj[e.to]||[]).push(e.from); }); const st=[graphFocus]; while(st.length){ const c=st.pop(); (adj[c]||[]).forEach(x=>{ if(!lit.has(x)){lit.add(x);st.push(x);} }); } }
+  // Highlight the FULL lineage chain(s) of the clicked node, by FIELD membership (not raw
+  // graph connectivity) — so it stays tight to the field's own chain and never balloons
+  // through a collapsed-table hub. lit = every node on any edge carrying a field that passes
+  // through the focused node. litEdges = those edges (drawn bright). Fallback to connected
+  // component for an isolated node (no edges).
+  let lit=null, litEdges=null;
+  if(graphFocus){
+    const fset=new Set();
+    g.edges.forEach(e=>{ if(e.from===graphFocus||e.to===graphFocus) e.fields.forEach(f=>fset.add(f)); });
+    if(fset.size){
+      lit=new Set([graphFocus]); litEdges=new Set();
+      g.edges.forEach(e=>{ if(e.fields.some(f=>fset.has(f))){ lit.add(e.from); lit.add(e.to); litEdges.add(e.from+'>>'+e.to); } });
+    } else {
+      lit=new Set([graphFocus]); const adj={}; g.edges.forEach(e=>{ (adj[e.from]=adj[e.from]||[]).push(e.to); (adj[e.to]=adj[e.to]||[]).push(e.from); }); const st=[graphFocus]; while(st.length){ const c=st.pop(); (adj[c]||[]).forEach(x=>{ if(!lit.has(x)){lit.add(x);st.push(x);} }); }
+    }
+  }
   let cardSvg=cards.map(c=>`<rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="10" fill="${c.col}" fill-opacity="0.06" stroke="${c.col}" stroke-opacity="0.4" stroke-width="1"></rect>`).join('');
   let ed='',lb='';
   g.edges.forEach(e=>{ const a=pos[e.from],b=pos[e.to]; if(!a||!b) return;
     const x1=a.x+(a.w||NW),y1=a.y+NH/2,x2=b.x,y2=b.y+NH/2,mx=(x1+x2)/2;
-    const on=lit&&lit.has(e.from)&&lit.has(e.to), dim=graphFocus&&!on?' class="gdim"':'';
-    ed+=`<path d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" fill="none" stroke="${EDGE_COLOR[e.cat]||'#3a4654'}" stroke-width="${on?2.6:1.4}"${dim} style="cursor:pointer" onclick="graphEdgeClick('${e.from}','${e.to}')"></path>`;
+    const on=litEdges?litEdges.has(e.from+'>>'+e.to):(lit&&lit.has(e.from)&&lit.has(e.to)), dim=graphFocus&&!on?' class="gdim"':'';
+    ed+=`<path d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" fill="none" stroke="${EDGE_COLOR[e.cat]||'#3a4654'}" stroke-width="${on?3:1.4}"${on?' class="glitedge"':''}${dim} style="cursor:pointer" onclick="graphEdgeClick('${e.from}','${e.to}')"></path>`;
     lb+=`<text x="${mx}" y="${(y1+y2)/2-3}" text-anchor="middle" class="gelabel" font-size="10"${dim} style="pointer-events:none">${e.cat}</text>`;
   });
   let nd='';
@@ -1336,10 +1394,14 @@ function renderGraph(){
         +`<text x="${p.x+10}" y="${p.y+NH/2+4}" fill="#d7dde5" font-size="11" font-weight="bold">▾ ${esc(lab)} (${cnt})</text>`
         +`<text x="${p.x+w-7}" y="${p.y+NH/2+3}" text-anchor="end" fill="#8b96a5" font-size="8.5">✕ collapse</text></g>`;
       return; }
-    const dim=graphFocus&&lit&&!lit.has(n.id)?' gdim':'';
-    const mark=(n.kind==='table'&&n.id!=='__CFG__')?'▸ ':''; const lab=n.label.length>27?n.label.slice(0,25)+'…':n.label;
-    nd+=`<g class="gnode${dim}" onclick="graphNodeClick('${n.id}','${n.kind}')"><title>${esc(n.table==='__CFG__'?'config / ETL derived':n.table+(n.kind==='field'?'.'+n.label:''))}</title>`
-      +`<rect x="${p.x}" y="${p.y}" width="${w}" height="${NH}" rx="7" fill="#161b22" stroke="${col}" stroke-width="${n.kind==='field'?1.2:1.8}"></rect>`
+    const isLit=graphFocus&&lit&&lit.has(n.id), isFocus=n.id===graphFocus;
+    const dim=graphFocus&&!isLit?' gdim':'';
+    const cls=isFocus?' glit gfocus':(isLit?' glit':'');
+    const sw=isFocus?3.4:(isLit?2.6:(n.kind==='field'?1.2:1.8));
+    const fill=isLit?'#1d2533':'#161b22';
+    const mark=(n.kind==='table'&&!ORIGIN_IDS.has(n.id))?'▸ ':''; const lab=n.label.length>27?n.label.slice(0,25)+'…':n.label;
+    nd+=`<g class="gnode${cls}${dim}" onclick="graphNodeClick('${n.id}','${n.kind}')"><title>${esc(ORIGIN_IDS.has(n.id)?ORIGIN_TIP[n.id]:n.table+(n.kind==='field'?'.'+n.label:''))}</title>`
+      +`<rect x="${p.x}" y="${p.y}" width="${w}" height="${NH}" rx="7" fill="${fill}" stroke="${col}" stroke-width="${sw}"></rect>`
       +`<circle cx="${p.x+12}" cy="${p.y+NH/2}" r="4" fill="${col}"></circle>`
       +`<text x="${p.x+22}" y="${p.y+NH/2+4}" fill="#d7dde5" font-size="${n.kind==='field'?10:11}">${mark}${esc(lab)}</text></g>`;
   });
@@ -1353,7 +1415,7 @@ function renderGraph(){
 }
 function graphNodeClick(id,kind){
   if(kind==='thead'){ graphExpanded.delete(id); renderGraph(); return; }
-  if(kind==='table'){ if(id==='__CFG__') return; if(graphExpanded.has(id)) graphExpanded.delete(id); else graphExpanded.add(id); renderGraph(); }
+  if(kind==='table'){ if(ORIGIN_IDS.has(id)){ graphFocus=id; renderGraph(); return; } if(graphExpanded.has(id)) graphExpanded.delete(id); else graphExpanded.add(id); renderGraph(); }
   else { graphFocus=id; const fid=fieldOfPath(id); renderGraph(); if(fid) selectField(fid); }
 }
 function graphEdgeClick(from,to){
@@ -1537,7 +1599,8 @@ function renderPrimer(){
   // 6
   h+=`<div class="secblock"><h2>${t('pr6')}</h2><div class="inner">`
    +bpsPipelineFlowSVG()
-   +`<div style="margin-top:8px">`+tbl(['#','BPS 阶段','口径','适用','核心字段'],[['1','<b>NOI / Demand Letter</b>','已完成','通用','<code>demand_date / noi_date</code>'],['2','<b>Referral</b>','已完成','通用','<code>referral_date</code>（入库条件+起点）'],['3','<b>First Legal</b>','已完成','通用','<code>first_legal_date</code>'],['4','<b>Service</b>','已完成','通用','<code>service_date</code>'],['5','<b>Publication</b>','已完成','Non-Judicial 为主','<code>publication_date</code>（Judicial 通常 0）'],['6','<b>Upcoming Judgement</b>','待发生','Judicial','<code>judgement_date / to_judgement_days</code>'],['7','<b>Upcoming FC Sales</b>','待发生','通用','<code>sale_date / to_sale_days</code>']])+`</div>`
+   +`<div style="margin-top:8px">`+tbl(['#','BPS 阶段','口径','适用','核心字段'],[['1','<b>NOI / Demand Letter</b>','已完成','通用','<code>demand_start_date</code>（源 demandsentdate；noi_start_date 恒空）'],['2','<b>Referral</b>','已完成','通用','<code>referral_date</code>（入库条件+起点）'],['3','<b>First Legal</b>','已完成','通用','<code>first_legal_date</code>'],['4','<b>Service</b>','已完成','通用','<code>service_date</code>'],['5','<b>Publication</b>','已完成','Non-Judicial 为主','<code>publication_date</code>（Judicial 通常 0）'],['6','<b>Upcoming Judgement</b>','待发生','Judicial','<code>judgement_date / to_judgement_days</code>'],['7','<b>Upcoming FC Sales</b>','待发生','通用','<code>sale_date / to_sale_days</code>']])+`</div>`
+   +`<div class="note" style="margin-top:10px">📌 <b>① NOI vs Demand Letter</b>（同一前置催告 <code>demandsentdate</code>，~30 天补救期，FCL 启动<b>前</b>）：<b>司法州</b>(NY/NJ/FL) = <b>NOI</b>(Notice of Intent) / <b>NOD</b>(Notice of Default)；<b>非司法州</b>(CA/TX) = <b>Demand Letter</b>。⚠️ 该阶段(DEMAND)在 agg-summary 阶段表 <code>sync_fcl_stage_info</code> 中<b>通常为 0</b>——入库需 <code>fcreferraldate</code> 非空、DEMAND 判定需其为空，故仅 pre-referral(D90/D120P) 贷款出现；<code>noi_start_date</code> 恒空。</div>`
    +`<div class="note" style="margin-top:10px"><b>为何 6/7 用「Upcoming」前缀</b>：已有明确排期日期，且 <code>to_judgement_days</code>/<code>to_sale_days</code> 是倒计时字段（未来日−今日），证明事件尚未发生；事件完成后贷款即退出 FCL（→ P/REO），无需"已完成"监控组。</div>`
    +`<button class="jump" style="margin-top:10px" onclick="gotoStageTab()">${t('prToStage')}</button></div></div>`;
   // 7

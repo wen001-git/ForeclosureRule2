@@ -1,0 +1,569 @@
+[
+  {
+    "row": 8,
+    "field": "lm_type",
+    "table_key": "lm",
+    "table": "bpms.sync_loan_foreclosure_loss_mitigation",
+    "col": "deal",
+    "qtype": "dist",
+    "sql": "SELECT '2026-06-01' AS data_date, `deal` AS val, COUNT(*) AS cnt\nFROM   bpms.sync_loan_foreclosure_loss_mitigation\nGROUP  BY `deal` ORDER BY cnt DESC;"
+  },
+  {
+    "row": 9,
+    "field": "lm_start_date",
+    "table_key": "lm",
+    "table": "bpms.sync_loan_foreclosure_loss_mitigation",
+    "col": "cycle_opened_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`cycle_opened_date`) AS non_null,\n       MIN(`cycle_opened_date`) AS min_dt, MAX(`cycle_opened_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure_loss_mitigation;"
+  },
+  {
+    "row": 10,
+    "field": "lm_end_date",
+    "table_key": "lm",
+    "table": "bpms.sync_loan_foreclosure_loss_mitigation",
+    "col": "cycle_closed_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`cycle_closed_date`) AS non_null,\n       MIN(`cycle_closed_date`) AS min_dt, MAX(`cycle_closed_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure_loss_mitigation;"
+  },
+  {
+    "row": 12,
+    "field": "hold_reason",
+    "table_key": "hold",
+    "table": "bpms.sync_loan_foreclosure_hold",
+    "col": "description",
+    "qtype": "dist",
+    "sql": "SELECT '2026-06-01' AS data_date, `description` AS val, COUNT(*) AS cnt\nFROM   bpms.sync_loan_foreclosure_hold\nGROUP  BY `description` ORDER BY cnt DESC;"
+  },
+  {
+    "row": 16,
+    "field": "loan_id",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "loanid",
+    "qtype": "idtext",
+    "sql": "SELECT '2026-06-01' AS data_date, `loanid`\nFROM   bpms.sync_loan_foreclosure\nWHERE  `loanid` IS NOT NULL AND `loanid` != ''\nLIMIT  5;"
+  },
+  {
+    "row": 17,
+    "field": "servicer_loan_id",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "summary_servicer_number",
+    "qtype": "idtext",
+    "sql": "SELECT '2026-06-01' AS data_date, `summary_servicer_number`\nFROM   bpms.sync_loan_foreclosure\nWHERE  `summary_servicer_number` IS NOT NULL AND `summary_servicer_number` != ''\nLIMIT  5;"
+  },
+  {
+    "row": 19,
+    "field": "state",
+    "table_key": "stage",
+    "table": "bpms.sync_fcl_stage_info",
+    "col": "state",
+    "qtype": "dist",
+    "sql": "SELECT '2026-06-01' AS data_date, `state` AS val, COUNT(*) AS cnt\nFROM   bpms.sync_fcl_stage_info\nGROUP  BY `state` ORDER BY cnt DESC;"
+  },
+  {
+    "row": 20,
+    "field": "judicial_flag",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "summary_judicial_foreclosure",
+    "qtype": "binary",
+    "sql": "SELECT '2026-06-01' AS data_date, `summary_judicial_foreclosure` AS val, COUNT(*) AS cnt\nFROM   bpms.sync_loan_foreclosure\nGROUP  BY `summary_judicial_foreclosure` ORDER BY cnt DESC;"
+  },
+  {
+    "row": 21,
+    "field": "active_fcl_flag",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "summary_completed_foreclosure",
+    "qtype": "binary",
+    "sql": "SELECT '2026-06-01' AS data_date, `summary_completed_foreclosure` AS val, COUNT(*) AS cnt\nFROM   bpms.sync_loan_foreclosure\nGROUP  BY `summary_completed_foreclosure` ORDER BY cnt DESC;"
+  },
+  {
+    "row": 22,
+    "field": "fcl_referral_date",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "timeline_referred_to_foreclosure_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`timeline_referred_to_foreclosure_date`) AS non_null,\n       MIN(`timeline_referred_to_foreclosure_date`) AS min_dt, MAX(`timeline_referred_to_foreclosure_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure;"
+  },
+  {
+    "row": 24,
+    "field": "fcl_stage",
+    "table_key": "stage",
+    "table": "bpms.sync_fcl_stage_info",
+    "col": "stage",
+    "qtype": "dist",
+    "sql": "SELECT '2026-06-01' AS data_date, `stage` AS val, COUNT(*) AS cnt\nFROM   bpms.sync_fcl_stage_info\nGROUP  BY `stage` ORDER BY cnt DESC;"
+  },
+  {
+    "row": 25,
+    "field": "current_milestone",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "summary_current_step",
+    "qtype": "dist",
+    "sql": "SELECT '2026-06-01' AS data_date, `summary_current_step` AS val, COUNT(*) AS cnt\nFROM   bpms.sync_loan_foreclosure\nGROUP  BY `summary_current_step` ORDER BY cnt DESC;"
+  },
+  {
+    "row": 26,
+    "field": "last_completed_step",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "summary_last_step_completed",
+    "qtype": "dist",
+    "sql": "SELECT '2026-06-01' AS data_date, `summary_last_step_completed` AS val, COUNT(*) AS cnt\nFROM   bpms.sync_loan_foreclosure\nGROUP  BY `summary_last_step_completed` ORDER BY cnt DESC;"
+  },
+  {
+    "row": 27,
+    "field": "last_completed_step_date",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "summary_last_step_completed_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`summary_last_step_completed_date`) AS non_null,\n       MIN(`summary_last_step_completed_date`) AS min_dt, MAX(`summary_last_step_completed_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure;"
+  },
+  {
+    "row": 30,
+    "field": "attorney_firm",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "summary_foreclosure_attorney",
+    "qtype": "dist",
+    "sql": "SELECT '2026-06-01' AS data_date, `summary_foreclosure_attorney` AS val, COUNT(*) AS cnt\nFROM   bpms.sync_loan_foreclosure\nGROUP  BY `summary_foreclosure_attorney` ORDER BY cnt DESC;"
+  },
+  {
+    "row": 31,
+    "field": "contested_flag",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "summary_contested_litigation",
+    "qtype": "binary",
+    "sql": "SELECT '2026-06-01' AS data_date, `summary_contested_litigation` AS val, COUNT(*) AS cnt\nFROM   bpms.sync_loan_foreclosure\nGROUP  BY `summary_contested_litigation` ORDER BY cnt DESC;"
+  },
+  {
+    "row": 32,
+    "field": "servicer_days_in_fcl",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "summary_sms_days_in_fcl",
+    "qtype": "numeric",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`summary_sms_days_in_fcl`) AS non_null,\n       MIN(`summary_sms_days_in_fcl`) AS min_v, MAX(`summary_sms_days_in_fcl`) AS max_v, ROUND(AVG(`summary_sms_days_in_fcl`),2) AS avg_v\nFROM   bpms.sync_loan_foreclosure;"
+  },
+  {
+    "row": 33,
+    "field": "days_in_fcl",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "summary_days_in_fcl",
+    "qtype": "numeric",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`summary_days_in_fcl`) AS non_null,\n       MIN(`summary_days_in_fcl`) AS min_v, MAX(`summary_days_in_fcl`) AS max_v, ROUND(AVG(`summary_days_in_fcl`),2) AS avg_v\nFROM   bpms.sync_loan_foreclosure;"
+  },
+  {
+    "row": 35,
+    "field": "noi_date",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "timeline_notice_of_intent_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`timeline_notice_of_intent_date`) AS non_null,\n       MIN(`timeline_notice_of_intent_date`) AS min_dt, MAX(`timeline_notice_of_intent_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure;"
+  },
+  {
+    "row": 36,
+    "field": "demand_sent_date",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "timeline_notice_of_intent_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`timeline_notice_of_intent_date`) AS non_null,\n       MIN(`timeline_notice_of_intent_date`) AS min_dt, MAX(`timeline_notice_of_intent_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure;"
+  },
+  {
+    "row": 37,
+    "field": "demand_expiration_date",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "timeline_notice_of_intent_end_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`timeline_notice_of_intent_end_date`) AS non_null,\n       MIN(`timeline_notice_of_intent_end_date`) AS min_dt, MAX(`timeline_notice_of_intent_end_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure;"
+  },
+  {
+    "row": 38,
+    "field": "fcl_setup_date",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "timeline_approved_for_referral_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`timeline_approved_for_referral_date`) AS non_null,\n       MIN(`timeline_approved_for_referral_date`) AS min_dt, MAX(`timeline_approved_for_referral_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure;"
+  },
+  {
+    "row": 39,
+    "field": "first_legal_date",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "timeline_first_legal_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`timeline_first_legal_date`) AS non_null,\n       MIN(`timeline_first_legal_date`) AS min_dt, MAX(`timeline_first_legal_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure;"
+  },
+  {
+    "row": 40,
+    "field": "service_complete_date",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "timeline_service_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`timeline_service_date`) AS non_null,\n       MIN(`timeline_service_date`) AS min_dt, MAX(`timeline_service_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure;"
+  },
+  {
+    "row": 41,
+    "field": "publication_date",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "timeline_publication_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`timeline_publication_date`) AS non_null,\n       MIN(`timeline_publication_date`) AS min_dt, MAX(`timeline_publication_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure;"
+  },
+  {
+    "row": 42,
+    "field": "title_received_date",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "timeline_title_report_received_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`timeline_title_report_received_date`) AS non_null,\n       MIN(`timeline_title_report_received_date`) AS min_dt, MAX(`timeline_title_report_received_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure;"
+  },
+  {
+    "row": 43,
+    "field": "title_clear_date",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "timeline_preliminary_title_cleared_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`timeline_preliminary_title_cleared_date`) AS non_null,\n       MIN(`timeline_preliminary_title_cleared_date`) AS min_dt, MAX(`timeline_preliminary_title_cleared_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure;"
+  },
+  {
+    "row": 44,
+    "field": "judgement_hearing_scheduled",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "timeline_judgement_hearing_set_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`timeline_judgement_hearing_set_date`) AS non_null,\n       MIN(`timeline_judgement_hearing_set_date`) AS min_dt, MAX(`timeline_judgement_hearing_set_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure;"
+  },
+  {
+    "row": 46,
+    "field": "scheduled_sale_date",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "timeline_sale_date_set_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`timeline_sale_date_set_date`) AS non_null,\n       MIN(`timeline_sale_date_set_date`) AS min_dt, MAX(`timeline_sale_date_set_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure;"
+  },
+  {
+    "row": 47,
+    "field": "sale_held_date",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "timeline_sale_date_held_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`timeline_sale_date_held_date`) AS non_null,\n       MIN(`timeline_sale_date_held_date`) AS min_dt, MAX(`timeline_sale_date_held_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure;"
+  },
+  {
+    "row": 48,
+    "field": "deed_recorded_date",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "timeline_foreclosure_completed_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`timeline_foreclosure_completed_date`) AS non_null,\n       MIN(`timeline_foreclosure_completed_date`) AS min_dt, MAX(`timeline_foreclosure_completed_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure;"
+  },
+  {
+    "row": 49,
+    "field": "fcl_removal_date",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "timeline_foreclosure_completed_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`timeline_foreclosure_completed_date`) AS non_null,\n       MIN(`timeline_foreclosure_completed_date`) AS min_dt, MAX(`timeline_foreclosure_completed_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure;"
+  },
+  {
+    "row": 50,
+    "field": "third_party_proceeds_date",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "timeline_third_party_proceeds_received_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`timeline_third_party_proceeds_received_date`) AS non_null,\n       MIN(`timeline_third_party_proceeds_received_date`) AS min_dt, MAX(`timeline_third_party_proceeds_received_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure;"
+  },
+  {
+    "row": 52,
+    "field": "hold_1_description",
+    "table_key": "hold",
+    "table": "bpms.sync_loan_foreclosure_hold",
+    "col": "description",
+    "qtype": "dist",
+    "sql": "SELECT '2026-06-01' AS data_date, `description` AS val, COUNT(*) AS cnt\nFROM   bpms.sync_loan_foreclosure_hold\nGROUP  BY `description` ORDER BY cnt DESC;"
+  },
+  {
+    "row": 53,
+    "field": "hold_1_start_date",
+    "table_key": "hold",
+    "table": "bpms.sync_loan_foreclosure_hold",
+    "col": "description_start_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`description_start_date`) AS non_null,\n       MIN(`description_start_date`) AS min_dt, MAX(`description_start_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure_hold;"
+  },
+  {
+    "row": 54,
+    "field": "hold_1_end_date",
+    "table_key": "hold",
+    "table": "bpms.sync_loan_foreclosure_hold",
+    "col": "description_end_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`description_end_date`) AS non_null,\n       MIN(`description_end_date`) AS min_dt, MAX(`description_end_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure_hold;"
+  },
+  {
+    "row": 56,
+    "field": "hold_2_description",
+    "table_key": "hold",
+    "table": "bpms.sync_loan_foreclosure_hold",
+    "col": "description",
+    "qtype": "dist",
+    "sql": "SELECT '2026-06-01' AS data_date, `description` AS val, COUNT(*) AS cnt\nFROM   bpms.sync_loan_foreclosure_hold\nGROUP  BY `description` ORDER BY cnt DESC;"
+  },
+  {
+    "row": 57,
+    "field": "hold_2_start_date",
+    "table_key": "hold",
+    "table": "bpms.sync_loan_foreclosure_hold",
+    "col": "description_start_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`description_start_date`) AS non_null,\n       MIN(`description_start_date`) AS min_dt, MAX(`description_start_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure_hold;"
+  },
+  {
+    "row": 58,
+    "field": "hold_2_end_date",
+    "table_key": "hold",
+    "table": "bpms.sync_loan_foreclosure_hold",
+    "col": "description_end_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`description_end_date`) AS non_null,\n       MIN(`description_end_date`) AS min_dt, MAX(`description_end_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure_hold;"
+  },
+  {
+    "row": 60,
+    "field": "hold_3_description",
+    "table_key": "hold",
+    "table": "bpms.sync_loan_foreclosure_hold",
+    "col": "description",
+    "qtype": "dist",
+    "sql": "SELECT '2026-06-01' AS data_date, `description` AS val, COUNT(*) AS cnt\nFROM   bpms.sync_loan_foreclosure_hold\nGROUP  BY `description` ORDER BY cnt DESC;"
+  },
+  {
+    "row": 61,
+    "field": "hold_3_start_date",
+    "table_key": "hold",
+    "table": "bpms.sync_loan_foreclosure_hold",
+    "col": "description_start_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`description_start_date`) AS non_null,\n       MIN(`description_start_date`) AS min_dt, MAX(`description_start_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure_hold;"
+  },
+  {
+    "row": 62,
+    "field": "hold_3_end_date",
+    "table_key": "hold",
+    "table": "bpms.sync_loan_foreclosure_hold",
+    "col": "description_end_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`description_end_date`) AS non_null,\n       MIN(`description_end_date`) AS min_dt, MAX(`description_end_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure_hold;"
+  },
+  {
+    "row": 68,
+    "field": "bid_amount",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "summary_foreclosure_bid_amount",
+    "qtype": "numeric",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`summary_foreclosure_bid_amount`) AS non_null,\n       MIN(`summary_foreclosure_bid_amount`) AS min_v, MAX(`summary_foreclosure_bid_amount`) AS max_v, ROUND(AVG(`summary_foreclosure_bid_amount`),2) AS avg_v\nFROM   bpms.sync_loan_foreclosure;"
+  },
+  {
+    "row": 69,
+    "field": "approved_bid_price",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "bid_approval_bid_amount",
+    "qtype": "numeric",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`bid_approval_bid_amount`) AS non_null,\n       MIN(`bid_approval_bid_amount`) AS min_v, MAX(`bid_approval_bid_amount`) AS max_v, ROUND(AVG(`bid_approval_bid_amount`),2) AS avg_v\nFROM   bpms.sync_loan_foreclosure;"
+  },
+  {
+    "row": 70,
+    "field": "sale_amount",
+    "table_key": "main",
+    "table": "bpms.sync_loan_foreclosure",
+    "col": "summary_foreclosure_sale_amount",
+    "qtype": "numeric",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`summary_foreclosure_sale_amount`) AS non_null,\n       MIN(`summary_foreclosure_sale_amount`) AS min_v, MAX(`summary_foreclosure_sale_amount`) AS max_v, ROUND(AVG(`summary_foreclosure_sale_amount`),2) AS avg_v\nFROM   bpms.sync_loan_foreclosure;"
+  },
+  {
+    "row": 82,
+    "field": "lm_deal",
+    "table_key": "lm",
+    "table": "bpms.sync_loan_foreclosure_loss_mitigation",
+    "col": "deal",
+    "qtype": "dist",
+    "sql": "SELECT '2026-06-01' AS data_date, `deal` AS val, COUNT(*) AS cnt\nFROM   bpms.sync_loan_foreclosure_loss_mitigation\nGROUP  BY `deal` ORDER BY cnt DESC;"
+  },
+  {
+    "row": 83,
+    "field": "lm_program",
+    "table_key": "lm",
+    "table": "bpms.sync_loan_foreclosure_loss_mitigation",
+    "col": "program",
+    "qtype": "dist",
+    "sql": "SELECT '2026-06-01' AS data_date, `program` AS val, COUNT(*) AS cnt\nFROM   bpms.sync_loan_foreclosure_loss_mitigation\nGROUP  BY `program` ORDER BY cnt DESC;"
+  },
+  {
+    "row": 84,
+    "field": "lm_status",
+    "table_key": "lm",
+    "table": "bpms.sync_loan_foreclosure_loss_mitigation",
+    "col": "lmc_status",
+    "qtype": "dist",
+    "sql": "SELECT '2026-06-01' AS data_date, `lmc_status` AS val, COUNT(*) AS cnt\nFROM   bpms.sync_loan_foreclosure_loss_mitigation\nGROUP  BY `lmc_status` ORDER BY cnt DESC;"
+  },
+  {
+    "row": 85,
+    "field": "lm_cycle_open_date",
+    "table_key": "lm",
+    "table": "bpms.sync_loan_foreclosure_loss_mitigation",
+    "col": "cycle_opened_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`cycle_opened_date`) AS non_null,\n       MIN(`cycle_opened_date`) AS min_dt, MAX(`cycle_opened_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure_loss_mitigation;"
+  },
+  {
+    "row": 86,
+    "field": "lm_cycle_close_date",
+    "table_key": "lm",
+    "table": "bpms.sync_loan_foreclosure_loss_mitigation",
+    "col": "cycle_closed_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`cycle_closed_date`) AS non_null,\n       MIN(`cycle_closed_date`) AS min_dt, MAX(`cycle_closed_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure_loss_mitigation;"
+  },
+  {
+    "row": 87,
+    "field": "lm_final_disposition",
+    "table_key": "lm",
+    "table": "bpms.sync_loan_foreclosure_loss_mitigation",
+    "col": "final_disposition",
+    "qtype": "dist",
+    "sql": "SELECT '2026-06-01' AS data_date, `final_disposition` AS val, COUNT(*) AS cnt\nFROM   bpms.sync_loan_foreclosure_loss_mitigation\nGROUP  BY `final_disposition` ORDER BY cnt DESC;"
+  },
+  {
+    "row": 88,
+    "field": "lm_denial_reason",
+    "table_key": "lm",
+    "table": "bpms.sync_loan_foreclosure_loss_mitigation",
+    "col": "denialreason",
+    "qtype": "dist",
+    "sql": "SELECT '2026-06-01' AS data_date, `denialreason` AS val, COUNT(*) AS cnt\nFROM   bpms.sync_loan_foreclosure_loss_mitigation\nGROUP  BY `denialreason` ORDER BY cnt DESC;"
+  },
+  {
+    "row": 89,
+    "field": "borrower_intentions",
+    "table_key": "lm",
+    "table": "bpms.sync_loan_foreclosure_loss_mitigation",
+    "col": "borrower_intentions",
+    "qtype": "dist",
+    "sql": "SELECT '2026-06-01' AS data_date, `borrower_intentions` AS val, COUNT(*) AS cnt\nFROM   bpms.sync_loan_foreclosure_loss_mitigation\nGROUP  BY `borrower_intentions` ORDER BY cnt DESC;"
+  },
+  {
+    "row": 90,
+    "field": "imminent_default",
+    "table_key": "lm",
+    "table": "bpms.sync_loan_foreclosure_loss_mitigation",
+    "col": "imminent_default",
+    "qtype": "dist",
+    "sql": "SELECT '2026-06-01' AS data_date, `imminent_default` AS val, COUNT(*) AS cnt\nFROM   bpms.sync_loan_foreclosure_loss_mitigation\nGROUP  BY `imminent_default` ORDER BY cnt DESC;"
+  },
+  {
+    "row": 91,
+    "field": "single_point_of_contact",
+    "table_key": "lm",
+    "table": "bpms.sync_loan_foreclosure_loss_mitigation",
+    "col": "single_point_of_contact",
+    "qtype": "dist",
+    "sql": "SELECT '2026-06-01' AS data_date, `single_point_of_contact` AS val, COUNT(*) AS cnt\nFROM   bpms.sync_loan_foreclosure_loss_mitigation\nGROUP  BY `single_point_of_contact` ORDER BY cnt DESC;"
+  },
+  {
+    "row": 94,
+    "field": "bk_status",
+    "table_key": "bk",
+    "table": "bpms.sync_loan_foreclosure_bankruptcy",
+    "col": "bankruptcy_status",
+    "qtype": "dist",
+    "sql": "SELECT '2026-06-01' AS data_date, `bankruptcy_status` AS val, COUNT(*) AS cnt\nFROM   bpms.sync_loan_foreclosure_bankruptcy\nGROUP  BY `bankruptcy_status` ORDER BY cnt DESC;"
+  },
+  {
+    "row": 95,
+    "field": "bk_legal_status",
+    "table_key": "bk",
+    "table": "bpms.sync_loan_foreclosure_bankruptcy",
+    "col": "legal_status",
+    "qtype": "dist",
+    "sql": "SELECT '2026-06-01' AS data_date, `legal_status` AS val, COUNT(*) AS cnt\nFROM   bpms.sync_loan_foreclosure_bankruptcy\nGROUP  BY `legal_status` ORDER BY cnt DESC;"
+  },
+  {
+    "row": 96,
+    "field": "bk_status_date",
+    "table_key": "bk",
+    "table": "bpms.sync_loan_foreclosure_bankruptcy",
+    "col": "status_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`status_date`) AS non_null,\n       MIN(`status_date`) AS min_dt, MAX(`status_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure_bankruptcy;"
+  },
+  {
+    "row": 97,
+    "field": "bk_chapter",
+    "table_key": "bk",
+    "table": "bpms.sync_loan_foreclosure_bankruptcy",
+    "col": "chapter",
+    "qtype": "dist",
+    "sql": "SELECT '2026-06-01' AS data_date, `chapter` AS val, COUNT(*) AS cnt\nFROM   bpms.sync_loan_foreclosure_bankruptcy\nGROUP  BY `chapter` ORDER BY cnt DESC;"
+  },
+  {
+    "row": 98,
+    "field": "bk_filed_date",
+    "table_key": "bk",
+    "table": "bpms.sync_loan_foreclosure_bankruptcy",
+    "col": "status_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`status_date`) AS non_null,\n       MIN(`status_date`) AS min_dt, MAX(`status_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure_bankruptcy;"
+  },
+  {
+    "row": 100,
+    "field": "mfr_filed_date",
+    "table_key": "bk",
+    "table": "bpms.sync_loan_foreclosure_bankruptcy",
+    "col": "mfr_filed_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`mfr_filed_date`) AS non_null,\n       MIN(`mfr_filed_date`) AS min_dt, MAX(`mfr_filed_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure_bankruptcy;"
+  },
+  {
+    "row": 102,
+    "field": "proof_of_claim_date",
+    "table_key": "bk",
+    "table": "bpms.sync_loan_foreclosure_bankruptcy",
+    "col": "proof_of_claim_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`proof_of_claim_date`) AS non_null,\n       MIN(`proof_of_claim_date`) AS min_dt, MAX(`proof_of_claim_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure_bankruptcy;"
+  },
+  {
+    "row": 103,
+    "field": "post_petition_due_date",
+    "table_key": "bk",
+    "table": "bpms.sync_loan_foreclosure_bankruptcy",
+    "col": "post_petition_due_date",
+    "qtype": "date",
+    "sql": "SELECT '2026-06-01' AS data_date, COUNT(*) AS total, COUNT(`post_petition_due_date`) AS non_null,\n       MIN(`post_petition_due_date`) AS min_dt, MAX(`post_petition_due_date`) AS max_dt\nFROM   bpms.sync_loan_foreclosure_bankruptcy;"
+  }
+]

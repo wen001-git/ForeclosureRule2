@@ -1,5 +1,7 @@
 # 05 — 贷款属性 ↔ FCL 状态映射关系
 
+> **命名说明（2024-07-05）：** 本文源表前缀现为 `portnewrez*`（此前为 `portshellpoint*`，Shellpoint 时期）；DB 实测 `newrez` schema 仅 `portnewrez*`，现役以此为准，改名史详见 doc 01。
+
 ---
 
 ## 文档信息
@@ -19,6 +21,7 @@
 
 | 日期 | 作者 | 版本 | 变更内容 |
 |------|------|------|---------|
+| 2026-06-05 | AI Agent (Claude Opus 4.8) | v2 | 表名改正 `portshellpoint*`→`portnewrez*`（DB 实测 newrez 现役表，2024-07-05 改名）+ 加命名说明（DB 实测；doc 01） |
 | 2026-05-21 | AI Agent (Claude Sonnet 4.6) | v1 | 初始版本，代码逆向 + DB 实证 |
 
 ---
@@ -74,17 +77,17 @@
 | 字段 | 来源服务商 | 源表 | 目标表 | 用途 |
 |------|----------|------|-------|------|
 | `activefcflag` / `fcl_active_flag` / `fc_flag` | Newrez/SLS/MRC | 服务商 MySQL | `port.basic_data_loan_foreclosure` | 活跃止赎标志 |
-| `fcstage` / `fcl_current_status_desc` | Newrez/SLS | `portshellpointfc`/`portfcldaily` | `port.basic_data_loan_fcl`, `port.fcl_stage_info` | 当前止赎阶段 |
-| `fcsetupdate` | Newrez | `portshellpointfc` | `port.basic_data_loan_fcl` | 止赎启动日期 |
+| `fcstage` / `fcl_current_status_desc` | Newrez/SLS | `portnewrezfc`/`portfcldaily` | `port.basic_data_loan_fcl`, `port.fcl_stage_info` | 当前止赎阶段 |
+| `fcsetupdate` | Newrez | `portnewrezfc` | `port.basic_data_loan_fcl` | 止赎启动日期 |
 | `fcreferraldate` / `fcl_referred_to_attorney_date` | Newrez/SLS | 服务商 FC 表 | `port.fcl_stage_info.referral_start_date` | 律师转介日期 |
 | `firstlegaldate` / `fcl_first_legal_action_date` | Newrez/SLS | 服务商 FC 表 | `port.fcl_stage_info.legal_start_date` | 首次法律行动日期 |
 | `servicecompletedate` / `fcl_service_complete_date` | Newrez/SLS | 服务商 FC 表 | `port.fcl_stage_info.service_start_date` | 文书送达完成日期 |
 | `fcjudgmenthearingscheduled` / `fcl_judgement_entered_date` | Newrez/SLS | 服务商 FC 表 | `port.fcl_stage_info.judgement_start_date` | 判决日期 |
 | `fcscheduledsaledate` / `fcl_sale_scheduled_date` | Newrez/SLS | 服务商 FC 表 | `port.fcl_stage_info.sale_start_date` | 计划拍卖日期 |
 | `fcsalehelddate` / `fcl_sale_held_date` | Newrez/SLS | 服务商 FC 表 | `port.basic_data_loan_fcl` | 实际拍卖日期 |
-| `fcresults` | Newrez | `portshellpointfc` | `port.basic_data_loan_fcl` | 止赎结果描述 |
-| `fcremovaldesc` / `fcremovaldate` | Newrez | `portshellpointfc` | `port.basic_data_loan_fcl` | 撤销原因及日期 |
-| `judicial` | Newrez | `portshellpointfc` | `port.basic_data_loan_fcl` | 是否司法止赎 |
+| `fcresults` | Newrez | `portnewrezfc` | `port.basic_data_loan_fcl` | 止赎结果描述 |
+| `fcremovaldesc` / `fcremovaldate` | Newrez | `portnewrezfc` | `port.basic_data_loan_fcl` | 撤销原因及日期 |
+| `judicial` | Newrez | `portnewrezfc` | `port.basic_data_loan_fcl` | 是否司法止赎 |
 | `daysinfc` / `fcl_days` | Newrez/SLS | 服务商 FC 表 | `port.basic_data_loan_foreclosure` | 在止赎中的天数 |
 | `fcbidamount` / `fcsaleamount` | Newrez/SLS | 服务商 FC 表 | `port.basic_data_loan_fcl` | 出价/成交金额 |
 
@@ -92,7 +95,7 @@
 
 | 字段 | 来源 | 目标表 | 用途 |
 |------|------|-------|------|
-| `fchold1description` / `fchold2description` / ... | Newrez `portshellpointfc` | `port.basic_data_loan_foreclosure_hold`, `port.basic_data_loan_fcl` | 止赎暂停原因（最多4个） |
+| `fchold1description` / `fchold2description` / ... | Newrez `portnewrezfc` | `port.basic_data_loan_foreclosure_hold`, `port.basic_data_loan_fcl` | 止赎暂停原因（最多4个） |
 | `fchold1startdate` / `fchold1enddate` | Newrez | 同上 | 暂停起止日期 |
 | `fchold1projectedenddate` | Newrez | 同上 | 预计结束日期 |
 | `fchold1comment` | Newrez | 同上 | 暂停说明备注 |
@@ -104,11 +107,11 @@
 | 字段 | 来源服务商 | 源表 | 目标表 | 用途 |
 |------|----------|------|-------|------|
 | `activebkflag` / `bk_active_flag` | Newrez/SLS | BK 表 | `port.basic_data_loan_foreclosure_bankruptcy` | 活跃破产标志 |
-| `bkstatus` | Newrez | `portshellpointbk` | 同上 | 破产状态码 |
+| `bkstatus` | Newrez | `portnewrezbk` | 同上 | 破产状态码 |
 | `bkchapter` / `bk_chapter_code` | Newrez/SLS | BK 表 | 同上 | 破产章节（7/11/13） |
 | `bkfileddate` / `bk_filed_date` | Newrez/SLS | BK 表 | 同上 | 破产申请日期 |
-| `mfrfileddate` / `mfrhearingdate` | Newrez | `portshellpointbk` | 同上 | MFR（解除自动冻结令）日期 |
-| `bkcasenumber` | Newrez | `portshellpointbk` | 同上 | 破产案件编号 |
+| `mfrfileddate` / `mfrhearingdate` | Newrez | `portnewrezbk` | 同上 | MFR（解除自动冻结令）日期 |
+| `bkcasenumber` | Newrez | `portnewrezbk` | 同上 | 破产案件编号 |
 
 `bankruptcy` 辅助标志（Y/N）的生成：
 - Newrez: `delinquency_status_mba LIKE '%Bankruptcy%'` → `'Y'`
@@ -118,9 +121,9 @@
 
 | 字段 | 来源服务商 | 源表 | 目标表 | 用途 |
 |------|----------|------|-------|------|
-| `activelmflag` | Newrez | `portshellpointlm` | `port.basic_data_loan_foreclosure_loss_mitigation` | 活跃 LM 标志 |
-| `lmstatus` | Newrez | `portshellpointlm` | 同上 | LM 状态码 |
-| `lmdeal` / `lmprogram` | Newrez | `portshellpointlm` | 同上 | LM 方案类型 |
+| `activelmflag` | Newrez | `portnewrezlm` | `port.basic_data_loan_foreclosure_loss_mitigation` | 活跃 LM 标志 |
+| `lmstatus` | Newrez | `portnewrezlm` | 同上 | LM 状态码 |
+| `lmdeal` / `lmprogram` | Newrez | `portnewrezlm` | 同上 | LM 方案类型 |
 | `loss_mit_evaluation_status` | SLS | `portlmdaily` | 同上 | SLS LM 评估状态 |
 | `loss_mit_workout_type_code_desc` | SLS | `portlmdaily` | 同上 | SLS 方案类型描述 |
 | `lm_flag` | Carrington | `portcarrington` | 同上 | Carrington LM 标志（`'Active'`=Y） |

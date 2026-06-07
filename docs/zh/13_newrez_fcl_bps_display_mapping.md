@@ -18,6 +18,7 @@
 
 | 日期 | 作者 | 版本 | 变更 | 关联 |
 |------|------|------|------|------|
+| 2026-06-04 | AI Agent（Claude Opus 4.8） | v36 | **Section 8 新增 Q13/Q14（doc 19 实测验证发现）**：Q13 `summary_current_step` 文档规则 `COALESCE(currentmilestone, fcstage)` vs 实测 BPS=`fcstage`（currentmilestone 非空仍未用，4/4 命中贷款）——可能规则顺序写反 或 覆盖式快照载入时点差，**待 ETL 代码（basic_data_pool_config.py，本仓库外）核实**（与 Q4 结论冲突，已在 Q4+§3.7 加冲突指针）；Q14 BPS 主表 8 字段**未填充**（源有值/BPS 空：timeline_notice_of_intent(_end)/approved_for_referral/referred_to_attorney/foreclosure_completed、summary_servicer_number/completed_foreclosure/foreclosure_attorney；同源 summary_firm 却有值=部分填充）。同步 doc 16 ① FCL Summary 注 + doc 19 主表标注 | doc 19 实测 2026-06-04 · doc 16 · doc 14 v34 |
 | 2026-06-04 | AI Agent（Claude Opus 4.8） | v35 | **改正 §3.7 `summary_foreclosure_status` 映射规则**（代码+DB 核实）：原作 `activefcflag=1 → 取 fcstage；=0 → fcresults 或 fcremovaldesc` 系**错误**。真实逻辑（basic_data_pool_config.py:273 GEN_FCL_DETAIL）：`activefcflag=1` → 固定文本 `'Active Foreclosure'`；`activefcflag=0` 且 `fcremovaldesc` 非空 → `'Closed Foreclosure:'+fcremovaldesc`；否则 NULL。`fcstage` 实际填 `summary_current_step`、`fcresults` 不参与。同步：业务含义、§3 头注、附录 A/A.B 两处来源注（标注 dev 陈旧样本）、Type/Current Step/Completed Foreclosure 箭头简写写全为「如果…则…」。DB 实测 Active 43/Closed 50/NULL 1 全符合；另 4 行陈旧脏数据已注明。同步 doc 16/14 | 代码 basic_data_pool_config.py:273 · doc 14 v33 · doc 16 v3 |
 | 2026-06-03 | AI Agent（Claude Opus 4.8） | v34 | §3.7 脚注补 `summary_sms_days_in_fcl` vs `summary_days_in_fcl` 起算基准（代码+DB 核实）：days←`fcreferraldate`(datediff+1, :1628)=投资人全程；sms←Newrez 原生 `smsdaysinfc`(svc_days_infc, :280/:1545)实测自 `fcsetupdate`=servicer/SMS 口径 → sms≤days（91 笔仅 2 笔不等）；BPS 两者 +DATEDIFF 实时修正(:597-598)。同步 doc 14 v31 | 代码 basic_data_pool_config.py · doc 14 v31 |
 | 2026-06-03 | AI Agent（Claude Opus 4.8） | v33 | §5 数值解码补充机制溯源（代码+DB 验证）：lmdeal/lmprogram/lmstatus/lmdecision/borrowerintention/denialreason 解码源 = **Redshift 字典表 `newrez.portnewrezdatadic`**（dev MySQL 无），解码 JOIN 在 `basic_data_pool_config.py:835-840`（BK 在 :367），非硬编码；LMDeal 字典 13 码、实测 8 码；并说明跨表 join 偶见 lmdeal=1→Evaluation 系快照时点伪差 | basic_data_pool_config.py:835-840；Redshift portnewrezdatadic；doc 数据字典 |
@@ -495,14 +496,15 @@ biz_data_view_loan_details_foreclosure（104列 VIEW）
 
 > **BPS 数据库路径**：以下字段均位于 `bpms_dev.sync_loan_foreclosure`，完整路径为 `bpms_dev.sync_loan_foreclosure.{BPS展示字段}`  
 > **Newrez 来源表**：以下"Newrez 字段"列的字段均来自 `newrez.portnewrezfc`（已省略前缀）  
-> **验证 SQL**：`fcbidamount`/`fcapprbidprice` 的活跃 FCL 填充率来自 附录 B — SQL-1；样本贷款字段值可通过 SQL-4 查询
+> **验证 SQL**：`fcbidamount` 的活跃 FCL 填充率来自 附录 B — SQL-1；样本贷款字段值可通过 SQL-4 查询
+> ⚠️ **注意**：Newrez 原始字段 `fcapprbidprice`（批准出价）虽然存在，但**未映射到任何 Bid Approval 展示列**——本面板唯一被填充的 `bid_approval_bid_amount` 取的是 `fcbidamount`（见下表订正）。
 
 | BPS 界面标签 | 业务含义 | BPS 展示字段 | Newrez 字段 | Newrez字段 → BPS展示字段 |
 |---|---|---|---|---|
-| Bid Approval > Approval Status | 竞拍出价的审批状态（BPS 内部流程字段，不同步自 Newrez） | `bid_approval_status` | *(BPS 内部工作流)* | **非 Newrez 来源**；由 BPS 内部竞拍审批流程写入 |
-| Bid Approval > Sale Date | 竞拍对应的排定拍卖日期（与 `timeline_sale_date_projected_date` 同源） | `bid_approval_sale_date` | `fcscheduledsaledate` | 直接取值 |
-| Bid Approval > Bid Amount | BPS 批准的竞拍出价金额（活跃 FCL 填充率 8.9%） | `bid_approval_bid_amount` | `fcapprbidprice` | 直接取值 |
-| Bid Approval > Loan Resolution Holds | 当前阻碍放款决议的 Hold 原因列表（字段名有拼写错误 "holods"，为原始字段名）⚠️ | `bid_approval_loan_resolution_holods` | `fchold1description`, `fchold2description`, `fchold3description` | 拼接所有非空 hold 描述，用 `;` 分隔 |
+| Bid Approval > Approval Status | 竞拍出价的审批状态（BPS 内部列，FCL ETL 不写入） | `bid_approval_status` | *(无上游)* | **无 Newrez 来源**；列在 `basic_data_loan_foreclosure` DDL 存在（`basic_data_pool_config.py:193`）但**不在 INSERT 列清单内**，本应由 BPS 侧竞拍审批流程写入。**DB 实测 2026-06-07：0% 填充**（0/6152 RS · 0/89 BPS） |
+| Bid Approval > Sale Date | 竞拍对应的排定拍卖日期 | `bid_approval_sale_date` | *(无上游)* | ⚠️ **订正**：此前标 `fcscheduledsaledate` 有误——该来源喂的是 `timeline_sale_date_projected_date`，**不是本列**。本列不在 INSERT 列清单内，**DB 实测 0% 填充**（0/6152 · 0/89） |
+| Bid Approval > Bid Amount | 竞拍出价金额（bid_approval_* 中唯一被 ETL 填充的列） | `bid_approval_bid_amount` | `fcbidamount` | ⚠️ **订正**：来源是 `fcbidamount`（`basic_data_pool_config.py:272`），**非 `fcapprbidprice`**；与 `summary_foreclosure_bid_amount` 同值。DB 实测填充 16 行（16/6152 · 16/89） |
+| Bid Approval > Loan Resolution Holds | 阻碍放款决议的 Hold（字段名有拼写错误 "holods"，为原始列名）⚠️ | `bid_approval_loan_resolution_holods` | *(无上游)* | ⚠️ **订正**：此前标拼接 `fchold*description` 有误——Hold 明细在独立长表 `sync_loan_foreclosure_hold`，本列不在 INSERT 列清单内，**DB 实测 0% 填充**（0/6152 · 0/89） |
 
 ---
 
@@ -526,12 +528,12 @@ biz_data_view_loan_details_foreclosure（104列 VIEW）
 | Summary > Type | 止赎类型文本（将布尔值 judicial 转换为可读文本） | `summary_type` | `judicial` | 如果 `judicial=1`，则 `summary_type` = `'Judicial'`；如果 `judicial=0`，则 = `'Non Judicial'`；如果 `judicial` 为 `NULL`/空，则 = `NULL` |
 | Summary > SMS Days in FCL | Servicer（Newrez/SMS=Shellpoint）口径的 FCL 在途天数（自 servicer **建案日 fcsetupdate** 起算；消除数据截止日延迟） | `summary_sms_days_in_fcl` | `smsdaysinfc`(svc_days_infc), `dataasof` | **实时重算**：`smsdaysinfc + DATEDIFF(当天纽约时间, dataasof)`；基准=fcsetupdate，≤ Days in FCL（详见下方脚注） |
 | Summary > Days in FCL | 投资者/全程口径的 FCL 在途天数（自**转介日 fcreferraldate** 起算；消除数据截止日延迟） | `summary_days_in_fcl` | `daysinfc`, `dataasof` | **实时重算**：`daysinfc + DATEDIFF(当天纽约时间, dataasof)`；基准=fcreferraldate，≥ SMS Days in FCL |
-| Summary > Current Step | FCL 当前进行步骤（BPS 里程碑标签优先，其次为 Newrez 阶段描述） | `summary_current_step` | `currentmilestone` / `fcstage` | 如果 `currentmilestone` 非空，则 `summary_current_step` = `currentmilestone`；否则 = `fcstage`（此处即 Newrez 阶段文本的去处） |
+| Summary > Current Step | FCL 当前进行步骤（BPS 里程碑标签优先，其次为 Newrez 阶段描述） | `summary_current_step` | `currentmilestone` / `fcstage` | 如果 `currentmilestone` 非空，则 `summary_current_step` = `currentmilestone`；否则 = `fcstage`（此处即 Newrez 阶段文本的去处）。⚠️ **doc 19 实测（2026-06-04）：BPS 实际取 `fcstage`，currentmilestone 非空仍未用——规则取值顺序待 ETL 代码核实，见 §8 Q13** |
 | Summary > Last Step Completed | 最近已完成的 FCL 处理步骤文本描述（填充率 99.5%） | `summary_last_step_completed` | `lastfcstepcompleted` | 直接取值 |
 | Summary > Last Step Completed Date | 最近已完成步骤的完成日期（填充率 99.5%） | `summary_last_step_completed_date` | `lastfcstepcompleteddate` | 直接取值 |
 | Summary > Servicer Number | Newrez/Shellpoint 内部贷款编号（与投资者 loanid 区分；填充率 100%） | `summary_servicer_number` | `shellpointloanid` | 直接取值 |
 | Summary > Completed Foreclosure | 标记 FCL 是否不再活跃（布尔值；⚠️ 字段名为 "Completed" 但实为"不再活跃"标志） | `summary_completed_foreclosure` | `activefcflag` | 如果 `activefcflag=0`，则 `summary_completed_foreclosure` = 1；如果 `activefcflag=1`，则 = 0（即对 `activefcflag` 取反）。⚠️ activefcflag=0 = **当前不处于活跃止赎**（实测含 Reinstated 26 / Loss Mitigation 16 / Paid in Full 11 / 真正完成 REO \| 3rd \| DiL 10），**并非都已完成** |
-| Summary > Servicer FC Bid Amount | Servicer 口径的 FCL 竞拍出价（与 Bid Approval 面板的 `fcapprbidprice` 字段区分） | `summary_srv_fc_bid_amount` | `fcbidamount` | 同 `summary_foreclosure_bid_amount`（Servicer 视角，与 BPS 批准出价 `fcapprbidprice` 区分） |
+| Summary > Servicer FC Bid Amount | Servicer 口径的 FCL 竞拍出价 | `summary_srv_fc_bid_amount` | `fcbidamount` | 同 `summary_foreclosure_bid_amount`（均取 `fcbidamount`）。注：Newrez 原始字段 `fcapprbidprice`（批准出价）存在，但**未映射到任何展示列** |
 | Summary > Judicial Foreclosure | 是否司法止赎（原始布尔值；`Type` 字段是其可读文本版本） | `summary_judicial_foreclosure` | `judicial` | 直接取值 |
 | Summary > Foreclosure Attorney | 负责止赎程序的律师事务所全称（`Firm` 字段同源） | `summary_foreclosure_attorney` | `fcfirm` | 直接取值 |
 
@@ -1003,7 +1005,7 @@ Time Line Tab 以**每行一笔贷款**的方式，横向展示各 FCL 里程碑
 | Q1 | `timeline_publication_date` — Newrez `portnewrezfc` 中无对应字段 | `timeline_publication_date`, `actual_publication_days` | BPS 中该字段通常为空；相关 actual/var 也为空 |
 | Q2 | `fcsetupdate` 与 `fcreferraldate` 通常为同一天，导致 `actual_approved_for_referral_days` 和 `actual_referred_to_attorney_days` 几乎总为 0 | `actual_approved_for_referral_days`, `actual_referred_to_attorney_days` | 正常现象（Newrez 在同一时间完成批准和转介） |
 | Q3 | `activefcflag` 历史上曾出现 NULL 值（已于 doc 08 记录为 P0 问题） | `summary_completed_foreclosure` | 需 NULL SAFE 处理：`activefcflag IS NULL` 视为进行中 |
-| Q4 | `currentmilestone` 与 `fcstage` 含义不同：`fcstage` 是 Newrez 内部当前工作步骤，`currentmilestone` 是 BPS 里程碑标签（有时提前设置） | `summary_current_step` | 当两者不一致时，`summary_current_step` 以 `currentmilestone` 为准，可能产生混淆 |
+| Q4 | `currentmilestone` 与 `fcstage` 含义不同：`fcstage` 是 Newrez 内部当前工作步骤，`currentmilestone` 是 BPS 里程碑标签（有时提前设置） | `summary_current_step` | 当两者不一致时，`summary_current_step` 以 `currentmilestone` 为准，可能产生混淆。⚠️ **doc 19 实测（2026-06-04）与此结论冲突——BPS 实际取 `fcstage`，待 ETL 代码核实，见 Q13** |
 | Q5 | `demandsentdate` 填充率 85.9%，约 14.1% 的活跃 FCL 贷款无 NOI 记录 | `timeline_notice_of_intent_date`, `actual_notice_of_intent_days` | 无 NOI 数据的贷款仍可进入 FCL（以 `fcreferraldate` 为过滤字段） |
 | Q6 | LM 面板中 `imminent_default` 和 `single_point_of_contact` 字段对 Newrez 贷款均为 NULL | LM Cycle 面板对应两列 | Newrez 不提供这两个字段；BPS 中始终为空 |
 | Q7 | BK 面板的 `bankruptcy_status`、`legal_status` 是否为解码文本 | Bankruptcy 面板 Status/Legal Status 列 | ✅ **已解决（2026-06-02 DB 实测）**：`bankruptcy_status` = ETL 将 `bkstatus`(int 1~5) 解码为文本（1→Active \| 2→Discharged \| 3→Dismissed \| 4→Closed \| 5→ReliefGranted）；`legal_status` 直接取自 `newrez.portnewrezgeneral.legalstatus`（文本 FCBU/BK13/BK7…），非 `bkstage` 解码。均为文本，非数字码 |
@@ -1012,6 +1014,8 @@ Time Line Tab 以**每行一笔贷款**的方式，横向展示各 FCL 里程碑
 | Q10 | **【已更正】** `sync_fcl_stage_info.judgement_start_date` 映射的是 `fcjudgmenthearingscheduled`（听证会排期日），**不是** `fcjudgmententered`（法院录入日）——两者含义不同、测量不同时间点：`fcjudgmenthearingscheduled`（2026-01-18）= 止赎相关听证会的排定日（未来计划事件）；`fcjudgmententered`（2026-01-07）= 法院正式录入判决的日期（已发生的法律事实）。ETL 代码确认：`fc.fcjudgment_hearing_scheduled AS timeline_judgement_date`。 | Time Line Tab「Judgement Date 6」列；`sync_fcl_stage_info.judgement_start_date`；`sync_loan_foreclosure.timeline_judgement_date` | 两字段度量不同时间点，差值不代表延迟。使用判决相关日期时需明确区分：`fcjudgmenthearingscheduled`（BPS Stage/Timeline来源） vs `fcjudgmententered`（法院录入日，用于阶段天数计算） ⚠️ |
 | Q11 | Time Line Tab「NOI Date 1」列（`noi_start_date`）对 Newrez 贷款**恒为 NULL**；Newrez 的 `demandsentdate` 实际存入 `demand_start_date`（24/26 有值），但该字段不映射到 Time Line Tab 的 NOI Date 列 | Time Line Tab「NOI Date 1」列；`sync_fcl_stage_info.noi_start_date` | `noi_start_date` 对 Newrez 恒空。需要 Demand Letter 日期时应查 `demand_start_date`（Stage Tab 天数计算来源），不能依赖 Time Line Tab 的 NOI Date 列 ⚠️ |
 | Q12 | `port.basic_data_loan_fcl.fcjudgment_end_date`（对应 Newrez `fcjudgmententered` / Capecodfive `foreclosure_judgement_date`）存储在 Redshift ETL 中间表，但**未被任何下游 ETL 查询引用**，不流入任何 BPS MySQL 字段。`bpms_dev.sync_loan_foreclosure.actual_judgement_hearing_set_days`（判决阶段历时天数）的 ETL 来源此前不明，推测在 BPS 应用层计算 | `timeline_judgement_date`（已连接 `fcjudgment_hearing_scheduled`，正常）；`actual_judgement_hearing_set_days`（见当前状态）；所有 `var_*/target_*` 判决天数字段 | **✅ 已解决（doc 14 SQL-C3 MCP 视图定义验证，2026-05-29）**：`actual_judgement_hearing_set_days` 由 BPS 视图 `biz_data_view_loan_details_foreclosure` 实时计算：`TO_DAYS(timeline_judgement_hearing_set_date) - TO_DAYS(nextduedate)`（判决听证排定日 − 贷款下次还款到期日），不存储于基表 `sync_loan_foreclosure`，与 Redshift `fcjudgment_end_date` 无关。所有 `actual_*` 字段均采用同一视图层公式。`fcjudgment_end_date` 仍为 ETL 预留字段（Newrez 目前不填充），详见 doc 12 Section 15 |
+| Q13 | **【实测存疑·待核实】** `summary_current_step` 文档规则为 `COALESCE(currentmilestone, fcstage)`（currentmilestone 优先，见 Q4），但 **doc 19 实测（2026-06-04，5 笔样本中 4 笔命中 FCL 表）BPS 实际值 = `fcstage`**，而源 `currentmilestone` 非空——例：`7727000088` 源 `currentmilestone='Sold'`，BPS `summary_current_step='Post Sale Review (SCRA and PACER Check)'`（= `fcstage`）；`7727000672` 源 `'Closed'` vs BPS `'Pre-Sale Review 1…'`。两种可能：① 文档取值顺序写反、BPS 实际用 `fcstage`；② BPS 为**覆盖式刷新**，载入时点 `currentmilestone` 尚空（快照时点差）。**ETL 源 `basic_data_pool_config.py` 不在本仓库，结论待核实**（与 Q4 冲突，以 ETL 代码核实为准） | `summary_current_step`；并修正/确认 Q4 | ⚠️ **待 ETL 代码核实**；证据见 doc 19 主表「取数公式」列标红格 + doc 16 ① FCL Summary 注 |
+| Q14 | **【实测·现象已确认】** BPS 主表 `sync_loan_foreclosure` 多个字段**未填充**（Newrez 源有值、BPS 列却为空），doc 19 实测（2026-06-04）4 笔命中贷款均空：`timeline_notice_of_intent_date` / `timeline_notice_of_intent_end_date` / `timeline_approved_for_referral_date` / `timeline_referred_to_attorney_date` / `timeline_foreclosure_completed_date` / `summary_servicer_number` / `summary_completed_foreclosure` / `summary_foreclosure_attorney`。与 prod col-S 实测一致（这些列大量为空/全空）。⚠️ 注：**同源**字段 `summary_firm`（=`fcfirm`）、`timeline_referred_to_foreclosure_date`（=`fcreferraldate`）**却有值** → 属 BPS-ETL **部分填充**（非 Newrez 源缺失，非 Q1/Q8 那种源不提供） | 上列 8 个 BPS 字段 | 现象已确认；**为何漏填**待 ETL 代码核实。`summary_completed_foreclosure` 全 NULL 另见 Section 3.7 / doc 14 v34；证据见 doc 19 主表 + doc 16 注 |
 
 ### Q3 技术详解：`activefcflag` NULL-safe 处理
 

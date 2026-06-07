@@ -26,6 +26,8 @@
 | # | File | Core Content | Use Case |
 |---|------|-------------|----------|
 | 00 | `00_index.md` | This index | Navigation |
+| **20** | **`20_end_to_end_walkthrough.md`** | **🌟 [Recommended first read] End-to-end walkthrough + narration**: connects the foreclosure data journey across all five layers (source Servicer files → BPS), and explains **from a business angle WHY the data is processed this way** (§A.6, e.g. why one FCL has many Holds); two layers (business-view panorama + narration + Q&A / per-layer deep-dive walkthrough + code-location map + sample-loan walk) | Walking colleagues through the whole pipeline + business rationale; fast big-picture orientation; entry point to all other docs |
+| **21** | **`21_fcl_field_lineage.md`** | **🔬 Core field-level lineage**: ~30 core FCL fields traced field-by-field from Servicer raw column → intermediate tables → transform rules → BPS column; every rule read from PrefectFlow source (with file:line), every `table.column` MCP-verified against the live DB; includes master lineage table + per-field business meaning + **data grain/one-to-many (e.g. one loan → many Hold/LM/BK rows)** + business rationale (§0.4) + ERD (§0.5) + 6 field-group cards (each with "📖 Business meaning") + known traps + self-verify templates | Field-by-field walkthrough/reconciliation (pipeline rules + business meaning); field-mapping baseline for onboarding a new Servicer |
 | 01 | `01_source_data.md` | Raw servicer table schemas, FCL-relevant field inventory | Data lineage, field definition lookup |
 | 02 | `02_etl_pipeline.md` | Full ETL pipeline: 5-layer data flow, table lineage, Redshift vs MySQL split | Pipeline understanding, debugging, rewrite planning |
 | 03 | `03_fcl_status_logic.md` | Complete foreclosure status generation logic (SQL/Python/mapping tables/override rules) | Status calculation, rewrite reference |
@@ -45,6 +47,8 @@
 ## Recommended Reading Order
 
 ```
+Big picture (recommended):       20 → 02 → 17/18
+Field-level lineage walkthrough: 21 → 13 → 19 (field-by-field + transform rules + reconciliation)
 First-time system orientation:  00 → 02 → 03 → 04
 Data lineage analysis:          01 → 07 → 02 → 05
 System rewrite preparation:     03 → 07 → 05 → 06 → 02 → 09
