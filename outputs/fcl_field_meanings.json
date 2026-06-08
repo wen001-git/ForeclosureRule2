@@ -1,0 +1,4656 @@
+{
+ "portnewrezfc": {
+  "schema_table": "newrez.portnewrezfc",
+  "fields": {
+   "id": {
+    "m": "MySQL 自增主键",
+    "src": "dict_exact"
+   },
+   "loanid": {
+    "m": "Bridger/投资人贷款 ID",
+    "src": "dict_exact"
+   },
+   "dataasof": {
+    "m": "数据快照日期",
+    "src": "dict_exact"
+   },
+   "shellpointloanid": {
+    "m": "Newrez/Shellpoint 服务商贷款号",
+    "src": "dict_exact"
+   },
+   "fcsetupdate": {
+    "m": "FCL 立案/设置日期",
+    "src": "dict_exact"
+   },
+   "fcreferraldate": {
+    "m": "FCL Referral / 转交律师日期",
+    "src": "dict_exact"
+   },
+   "smsdaysinfc": {
+    "m": "Servicer/SMS 口径 FCL 已历天数",
+    "src": "dict_exact"
+   },
+   "daysinfc": {
+    "m": "Newrez 自报 FCL 已历天数",
+    "src": "dict_exact"
+   },
+   "demandsentdate": {
+    "m": "Demand / NOI 发出日",
+    "src": "dict_exact"
+   },
+   "demandexpirationdate": {
+    "m": "Demand / NOI 到期日",
+    "src": "dict_exact"
+   },
+   "fcstage": {
+    "m": "当前 FCL 阶段描述",
+    "src": "dict_exact"
+   },
+   "lastfcstepcompleted": {
+    "m": "最近完成的 FCL 步骤",
+    "src": "dict_exact"
+   },
+   "lastfcstepcompleteddate": {
+    "m": "最近完成步骤日期",
+    "src": "dict_exact"
+   },
+   "fchold1description": {
+    "m": "Hold 1 原因描述",
+    "src": "dict_exact"
+   },
+   "fchold1startdate": {
+    "m": "Hold 1 开始日期",
+    "src": "dict_exact"
+   },
+   "fchold1enddate": {
+    "m": "Hold 1 结束日期",
+    "src": "dict_exact"
+   },
+   "fchold2description": {
+    "m": "Hold 2 原因描述",
+    "src": "dict_exact"
+   },
+   "fchold2startdate": {
+    "m": "Hold 2 开始日期",
+    "src": "dict_exact"
+   },
+   "fchold2enddate": {
+    "m": "Hold 2 结束日期",
+    "src": "dict_exact"
+   },
+   "fcjudgmenthearingscheduled": {
+    "m": "判决听证会/出售确认听证会的**排定日期**（未来计划事件；每次改期后此值更新为最新排期日）",
+    "src": "dict_exact"
+   },
+   "fcjudgmententered": {
+    "m": "法院**正式录入**判决的日期（已完成的法律事实；与 `fcjudgmenthearingscheduled` 含义不同：前者是排定日/计划事件，后者是录入日/已发生事实）",
+    "src": "dict_exact"
+   },
+   "fcscheduledsaledate": {
+    "m": "计划拍卖日期",
+    "src": "dict_exact"
+   },
+   "fcsalehelddate": {
+    "m": "实际拍卖日期",
+    "src": "dict_exact"
+   },
+   "fcsaleamount": {
+    "m": "实际拍卖成交金额",
+    "src": "dict_exact"
+   },
+   "fcresults": {
+    "m": "FCL 结果",
+    "src": "dict_exact"
+   },
+   "firstlegaldate": {
+    "m": "First Legal 日期",
+    "src": "dict_exact"
+   },
+   "servicecompletedate": {
+    "m": "Service complete 日期",
+    "src": "dict_exact"
+   },
+   "titleordereddate": {
+    "m": "Title report ordered 日期",
+    "src": "dict_exact"
+   },
+   "titlecleardate": {
+    "m": "Title clear 日期",
+    "src": "dict_exact"
+   },
+   "titlereceiveddate": {
+    "m": "Title report received 日期",
+    "src": "dict_exact"
+   },
+   "fcremovaldesc": {
+    "m": "FCL 移除/关闭原因描述",
+    "src": "dict_exact"
+   },
+   "fcremovaldate": {
+    "m": "FCL 移除/关闭日期",
+    "src": "dict_exact"
+   },
+   "fccontestedflag": {
+    "m": "是否 contested litigation",
+    "src": "dict_exact"
+   },
+   "judicial": {
+    "m": "是否 Judicial Foreclosure",
+    "src": "dict_exact"
+   },
+   "fcfirm": {
+    "m": "FCL 律师事务所",
+    "src": "dict_exact"
+   },
+   "jr_sr_lien_flag": {
+    "m": "Junior/Senior lien 标志",
+    "src": "dict_exact"
+   },
+   "fcbidamount": {
+    "m": "FCL bid amount",
+    "src": "dict_exact"
+   },
+   "activefcflag": {
+    "m": "FCL 活跃标志",
+    "src": "dict_exact"
+   },
+   "fchold1projectedenddate": {
+    "m": "Hold 1 预计结束日期",
+    "src": "dict_exact"
+   },
+   "fchold1comment": {
+    "m": "Hold 1 备注",
+    "src": "dict_exact"
+   },
+   "fchold2projectedenddate": {
+    "m": "Hold 2 预计结束日期",
+    "src": "dict_exact"
+   },
+   "fchold2comment": {
+    "m": "Hold 2 备注",
+    "src": "dict_exact"
+   },
+   "holdmodified": {
+    "m": "Hold 1 修改日期",
+    "src": "dict_exact"
+   },
+   "holdmodified2": {
+    "m": "Hold 2 修改日期",
+    "src": "dict_exact"
+   },
+   "create_time": {
+    "m": "记录创建时间",
+    "src": "dict_exact"
+   },
+   "update_time": {
+    "m": "记录更新时间",
+    "src": "dict_exact"
+   },
+   "dtdeedrecorded": {
+    "m": "Deed recorded 日期",
+    "src": "dict_exact"
+   },
+   "fcapprbidprice": {
+    "m": "批准 bid price",
+    "src": "dict_exact"
+   },
+   "fcl3rdpartyproceedsreceiveddate": {
+    "m": "第三方购买款到账日期",
+    "src": "dict_exact"
+   },
+   "investorloanid": {
+    "m": "投资人贷款号",
+    "src": "dict_exact"
+   },
+   "fchold3description": {
+    "m": "Hold 3 原因描述",
+    "src": "dict_exact"
+   },
+   "fchold3startdate": {
+    "m": "Hold 3 开始日期",
+    "src": "dict_exact"
+   },
+   "fchold3enddate": {
+    "m": "Hold 3 结束日期",
+    "src": "dict_exact"
+   },
+   "fchold3projectedenddate": {
+    "m": "Hold 3 预计结束日期",
+    "src": "dict_exact"
+   },
+   "fchold3comment": {
+    "m": "Hold 3 备注",
+    "src": "dict_exact"
+   },
+   "holdmodified3": {
+    "m": "Hold 3 修改日期",
+    "src": "dict_exact"
+   },
+   "activejnrlienfcflag": {
+    "m": "活跃 junior lien FCL 标志",
+    "src": "dict_exact"
+   },
+   "currentmilestone": {
+    "m": "当前 FCL milestone",
+    "src": "dict_exact"
+   },
+   "srlienmonitorflag": {
+    "m": "Senior lien monitoring 标志",
+    "src": "dict_exact"
+   },
+   "srliensalescheduleddate": {
+    "m": "Senior lien sale scheduled date",
+    "src": "dict_exact"
+   },
+   "srliensalehelddate": {
+    "m": "Senior lien sale held date",
+    "src": "dict_exact"
+   },
+   "srliensaleresult": {
+    "m": "Senior lien sale result",
+    "src": "dict_exact"
+   },
+   "srliensaledate": {
+    "m": "Senior lien sale date",
+    "src": "dict_exact"
+   }
+  }
+ },
+ "portnewrezbk": {
+  "schema_table": "newrez.portnewrezbk",
+  "fields": {
+   "id": {
+    "m": "MySQL 自增主键",
+    "src": "dict_exact"
+   },
+   "loanid": {
+    "m": "Bridger/投资人贷款 ID",
+    "src": "dict_exact"
+   },
+   "dataasof": {
+    "m": "数据快照日期",
+    "src": "dict_exact"
+   },
+   "shellpointloanid": {
+    "m": "Newrez/Shellpoint 服务商贷款号",
+    "src": "dict_exact"
+   },
+   "bkfileddate": {
+    "m": "破产申请日",
+    "src": "dict_exact"
+   },
+   "bkstatus": {
+    "m": "破产状态编码（Newrez 内部数值码）",
+    "src": "dict_exact"
+   },
+   "bkremovalcode": {
+    "m": "破产终止原因编码（1=Dismissed/2=Discharged 等）",
+    "src": "dict_exact"
+   },
+   "bkremovaldate": {
+    "m": "破产程序终止日",
+    "src": "dict_exact"
+   },
+   "bkchapter": {
+    "m": "破产章节（7=清算/11=重组/13=个人还款）",
+    "src": "dict_exact"
+   },
+   "bkcasenumber": {
+    "m": "破产案件编号",
+    "src": "dict_exact"
+   },
+   "bkpostpetitionduedate": {
+    "m": "破产申请后贷款应付日",
+    "src": "dict_exact"
+   },
+   "prepetitionduedate": {
+    "m": "破产申请前贷款应付日",
+    "src": "dict_exact"
+   },
+   "pocfileddate": {
+    "m": "债权申报（POC）提交日",
+    "src": "dict_exact"
+   },
+   "dischargeddate": {
+    "m": "债务免责（Discharge）日",
+    "src": "dict_exact"
+   },
+   "dismisseddate": {
+    "m": "破产驳回（Dismiss）日",
+    "src": "dict_exact"
+   },
+   "mfrfileddate": {
+    "m": "解除自动中止动议（MFR）提交日",
+    "src": "dict_exact"
+   },
+   "mfrhearingdate": {
+    "m": "MFR 听证日",
+    "src": "dict_exact"
+   },
+   "mfrgranteddate": {
+    "m": "MFR 批准日（批准后可推进 FCL）",
+    "src": "dict_exact"
+   },
+   "trusteeassetflag": {
+    "m": "受托人资产标志（1=有可分配资产）",
+    "src": "dict_exact"
+   },
+   "trusteeassetdate": {
+    "m": "受托人资产认定日",
+    "src": "dict_exact"
+   },
+   "planconfirmationdate": {
+    "m": "还款计划确认日（Ch13 Plan Confirmed）",
+    "src": "dict_exact"
+   },
+   "bkstage": {
+    "m": "破产阶段编码（Newrez 内部数值码）",
+    "src": "dict_exact"
+   },
+   "bkfirm": {
+    "m": "破产律师事务所名称",
+    "src": "dict_exact"
+   },
+   "reaffirmationdate": {
+    "m": "重申债务确认（Reaffirmation）日",
+    "src": "dict_exact"
+   },
+   "trusteeabandonmentdate": {
+    "m": "受托人放弃资产日",
+    "src": "dict_exact"
+   },
+   "pocreferreddate": {
+    "m": "POC 转介日",
+    "src": "dict_exact"
+   },
+   "pocbardate": {
+    "m": "POC 申报截止日（Bar Date）",
+    "src": "dict_exact"
+   },
+   "mfrreferred": {
+    "m": "MFR 转介日",
+    "src": "dict_exact"
+   },
+   "mfrhearingresults": {
+    "m": "MFR 听证结果编码",
+    "src": "dict_exact"
+   },
+   "cramdowndatereferred": {
+    "m": "Cramdown 转介日",
+    "src": "dict_exact"
+   },
+   "cramdownobjectionfileddate": {
+    "m": "Cramdown 异议提交日",
+    "src": "dict_exact"
+   },
+   "cramdownresultdate": {
+    "m": "Cramdown 结果日",
+    "src": "dict_exact"
+   },
+   "cramdownhearingresults": {
+    "m": "Cramdown 听证结果编码",
+    "src": "dict_exact"
+   },
+   "adversarialactionfileddate": {
+    "m": "对抗性诉讼（Adversary）提交日",
+    "src": "dict_exact"
+   },
+   "adversarialhearingdate": {
+    "m": "对抗性诉讼听证日",
+    "src": "dict_exact"
+   },
+   "adversarialresultdate": {
+    "m": "对抗性诉讼结果日",
+    "src": "dict_exact"
+   },
+   "adversarialresults": {
+    "m": "对抗性诉讼结果编码",
+    "src": "dict_exact"
+   },
+   "cramdownflag": {
+    "m": "Cramdown 标志（1=存在 cramdown）",
+    "src": "dict_exact"
+   },
+   "bankruptcypaymenttype": {
+    "m": "破产还款类型编码",
+    "src": "dict_exact"
+   },
+   "debtorintention": {
+    "m": "债务人意向编码（保留/放弃房产）",
+    "src": "dict_exact"
+   },
+   "jointfilerflag": {
+    "m": "是否共同申请人（1=joint）",
+    "src": "dict_exact"
+   },
+   "activebkflag": {
+    "m": "是否在破产保护中（1=是/0=否）",
+    "src": "dict_exact"
+   },
+   "apocfileddate": {
+    "m": "修订债权申报（APOC）提交日",
+    "src": "dict_exact"
+   },
+   "apocreferraldate": {
+    "m": "APOC 转介日",
+    "src": "dict_exact"
+   },
+   "reasonforapoc": {
+    "m": "APOC 原因（文本）",
+    "src": "dict_exact"
+   },
+   "attorney": {
+    "m": "受理律师/律所名称",
+    "src": "dict_exact"
+   },
+   "create_time": {
+    "m": "记录创建时间",
+    "src": "dict_exact"
+   },
+   "update_time": {
+    "m": "记录更新时间",
+    "src": "dict_exact"
+   },
+   "bkrepayplanpaymentcount": {
+    "m": "破产还款计划期数",
+    "src": "dict_exact"
+   },
+   "bksourceoffundscode": {
+    "m": "资金来源编码",
+    "src": "dict_exact"
+   },
+   "bkpoccourtreceiveddate": {
+    "m": "POC 法院收到日",
+    "src": "dict_exact"
+   },
+   "bkrcurrentstatusdate": {
+    "m": "当前破产状态生效日期",
+    "src": "dict_exact"
+   },
+   "bkborrowerintent": {
+    "m": "借款人破产意向编码",
+    "src": "dict_exact"
+   },
+   "bkpostpetitionpaymentcurrent": {
+    "m": "破产后应付款当前额",
+    "src": "dict_exact"
+   },
+   "bkcramdownpercent": {
+    "m": "Cramdown 比例（本金削减%）",
+    "src": "dict_exact"
+   },
+   "bkpostsuspensebalance": {
+    "m": "破产后暂记款（suspense）余额",
+    "src": "dict_exact"
+   },
+   "bkpresuspensebalance": {
+    "m": "破产前暂记款余额",
+    "src": "dict_exact"
+   },
+   "investorloanid": {
+    "m": "投资人贷款号",
+    "src": "dict_exact"
+   },
+   "bkfilingstate": {
+    "m": "破产申请州",
+    "src": "dict_exact"
+   },
+   "bkfilingregion": {
+    "m": "破产申请法院辖区（含 Division）",
+    "src": "dict_exact"
+   }
+  }
+ },
+ "portnewrezlm": {
+  "schema_table": "newrez.portnewrezlm",
+  "fields": {
+   "id": {
+    "m": "MySQL 自增主键",
+    "src": "dict_exact"
+   },
+   "loanid": {
+    "m": "Bridger/投资人贷款 ID",
+    "src": "dict_exact"
+   },
+   "dataasof": {
+    "m": "数据快照日期",
+    "src": "dict_exact"
+   },
+   "shellpointloanid": {
+    "m": "Newrez/Shellpoint 服务商贷款号",
+    "src": "dict_exact"
+   },
+   "hardshiptype": {
+    "m": "Hardship 类型编码",
+    "src": "dict_exact"
+   },
+   "borrowerintention": {
+    "m": "Borrower intention 编码",
+    "src": "dict_exact"
+   },
+   "lmdeal": {
+    "m": "LM Deal 大类编码",
+    "src": "dict_exact"
+   },
+   "dealstartdate": {
+    "m": "本轮 LM cycle 打开日期",
+    "src": "dict_exact"
+   },
+   "daysindeal": {
+    "m": "本轮 Deal 已持续天数",
+    "src": "dict_exact"
+   },
+   "lmstatus": {
+    "m": "LM 当前状态编码",
+    "src": "dict_exact"
+   },
+   "statusstartdate": {
+    "m": "当前 LM status 开始日期",
+    "src": "dict_exact"
+   },
+   "daysinstatus": {
+    "m": "当前 LM status 已持续天数",
+    "src": "dict_exact"
+   },
+   "lmprogram": {
+    "m": "LM Program 编码",
+    "src": "dict_exact"
+   },
+   "lmdecision": {
+    "m": "LM 最终决策编码",
+    "src": "dict_exact"
+   },
+   "lmremovaldate": {
+    "m": "LM cycle 关闭/移除日期",
+    "src": "dict_exact"
+   },
+   "denialreason": {
+    "m": "LM 拒绝原因编码",
+    "src": "dict_exact"
+   },
+   "forbearanceagreementdate": {
+    "m": "Forbearance 协议日期",
+    "src": "dict_exact"
+   },
+   "forbearancedatecompleted": {
+    "m": "Forbearance 完成日期",
+    "src": "dict_exact"
+   },
+   "forbearancebeginningduedate": {
+    "m": "Forbearance 起始 due date",
+    "src": "dict_exact"
+   },
+   "forbearanceendingduedate": {
+    "m": "Forbearance 结束 due date",
+    "src": "dict_exact"
+   },
+   "forbearancenumberofmonths": {
+    "m": "Forbearance 月数",
+    "src": "dict_exact"
+   },
+   "forbearancestatus": {
+    "m": "Forbearance 状态编码",
+    "src": "dict_exact"
+   },
+   "forbearancetype": {
+    "m": "Forbearance 类型编码",
+    "src": "dict_exact"
+   },
+   "trialagreementdate": {
+    "m": "Trial Period 协议日期",
+    "src": "dict_exact"
+   },
+   "trialdatecompleted": {
+    "m": "Trial Period 完成日期",
+    "src": "dict_exact"
+   },
+   "trialbeginningduedate": {
+    "m": "Trial 起始 due date",
+    "src": "dict_exact"
+   },
+   "trialendingduedate": {
+    "m": "Trial 结束 due date",
+    "src": "dict_exact"
+   },
+   "trialnumberofmonths": {
+    "m": "Trial 期数 / 月数",
+    "src": "dict_exact"
+   },
+   "trialstatus": {
+    "m": "Trial 状态编码",
+    "src": "dict_exact"
+   },
+   "repaymentagreementdate": {
+    "m": "Repayment Plan 协议日期",
+    "src": "dict_exact"
+   },
+   "repaymentstartdate": {
+    "m": "Repayment Plan 开始日期",
+    "src": "dict_exact"
+   },
+   "repaymentenddate": {
+    "m": "Repayment Plan 结束日期",
+    "src": "dict_exact"
+   },
+   "repaymenttype": {
+    "m": "Repayment 类型编码",
+    "src": "dict_exact"
+   },
+   "repaymentstatus": {
+    "m": "Repayment 状态编码",
+    "src": "dict_exact"
+   },
+   "repaymentplandownpmt": {
+    "m": "Repayment Plan down payment 金额",
+    "src": "dict_exact"
+   },
+   "repaymentplandownpmtdate": {
+    "m": "Repayment Plan down payment 日期",
+    "src": "dict_exact"
+   },
+   "pradate1": {
+    "m": "PRA 日期 1",
+    "src": "dict_exact"
+   },
+   "praamount1": {
+    "m": "PRA 金额 1",
+    "src": "dict_exact"
+   },
+   "pradate2": {
+    "m": "PRA 日期 2",
+    "src": "dict_exact"
+   },
+   "praamount2": {
+    "m": "PRA 金额 2",
+    "src": "dict_exact"
+   },
+   "pradate3": {
+    "m": "PRA 日期 3",
+    "src": "dict_exact"
+   },
+   "praamount3": {
+    "m": "PRA 金额 3",
+    "src": "dict_exact"
+   },
+   "activelmflag": {
+    "m": "LM 活跃标志",
+    "src": "dict_exact"
+   },
+   "create_time": {
+    "m": "记录创建时间",
+    "src": "dict_exact"
+   },
+   "update_time": {
+    "m": "记录更新时间",
+    "src": "dict_exact"
+   },
+   "lossmitmodtermsmodifiedtermextensionmonths": {
+    "m": "Loss Mitigation modification term extension months",
+    "src": "dict_exact"
+   },
+   "deferment_flag": {
+    "m": "Deferment 标志",
+    "src": "dict_exact"
+   },
+   "deferment_amount": {
+    "m": "Deferment 金额",
+    "src": "dict_exact"
+   },
+   "number_pi_payments_deferred": {
+    "m": "递延的 PI payment 数量",
+    "src": "dict_exact"
+   },
+   "shortsalenetproceedsamount": {
+    "m": "Short Sale net proceeds 金额",
+    "src": "dict_exact"
+   },
+   "shortsalecontractofferamount": {
+    "m": "Short Sale contract offer 金额",
+    "src": "dict_exact"
+   },
+   "appealperiodexpirationdate": {
+    "m": "Appeal period expiration date",
+    "src": "dict_exact"
+   },
+   "lossmitmodpreviouslydeferredcapitalizedamount": {
+    "m": "贷款修改中以前递延并资本化的金额",
+    "src": "dict_exact"
+   },
+   "deferment_date": {
+    "m": "Deferment 日期",
+    "src": "dict_exact"
+   },
+   "denialletterdate": {
+    "m": "Denial letter 日期",
+    "src": "dict_exact"
+   },
+   "investorloanid": {
+    "m": "投资人贷款号",
+    "src": "dict_exact"
+   }
+  }
+ },
+ "portnewrezgeneral": {
+  "schema_table": "newrez.portnewrezgeneral",
+  "fields": {
+   "id": {
+    "m": "主键，自增 ID",
+    "src": "dict_reuse"
+   },
+   "loanid": {
+    "m": "投资人贷款ID（跨 Servicer 的统一标识）",
+    "src": "dict_reuse"
+   },
+   "dataasof": {
+    "m": "数据快照日期",
+    "src": "dict_reuse"
+   },
+   "shellpointloanid": {
+    "m": "Newrez/Shellpoint 服务商贷款号",
+    "src": "dict_reuse"
+   },
+   "investorid": {
+    "m": "投资人/资方编码（如 BI2726）",
+    "src": "authored"
+   },
+   "investorloanid": {
+    "m": "投资人贷款号",
+    "src": "dict_reuse"
+   },
+   "priorservicerloannumber": {
+    "m": "前服务商贷款号",
+    "src": "authored"
+   },
+   "boarddate": {
+    "m": "贷款上线(boarding)到本服务商之日",
+    "src": "authored"
+   },
+   "acquisitiondate": {
+    "m": "资产收购日",
+    "src": "authored"
+   },
+   "acquisitionbalance": {
+    "m": "收购时本金余额",
+    "src": "authored"
+   },
+   "mbadelinquency": {
+    "m": "MBA 逾期分类编码",
+    "src": "authored"
+   },
+   "delinqstatatboarding": {
+    "m": "上线时逾期状态码",
+    "src": "authored"
+   },
+   "lienposition": {
+    "m": "留置权顺位（1=第一顺位）",
+    "src": "authored"
+   },
+   "loantype": {
+    "m": "贷款类型编码",
+    "src": "authored"
+   },
+   "loanpurpose": {
+    "m": "贷款用途编码（购房/再融资等）",
+    "src": "authored"
+   },
+   "documentationtype": {
+    "m": "文档类型编码",
+    "src": "authored"
+   },
+   "dateinactive": {
+    "m": "贷款转为非活跃之日",
+    "src": "authored"
+   },
+   "currentinterestrate": {
+    "m": "当前利率",
+    "src": "authored"
+   },
+   "originalterm": {
+    "m": "原始期限（月）",
+    "src": "authored"
+   },
+   "originalnotedate": {
+    "m": "原始借据(Note)日期",
+    "src": "authored"
+   },
+   "originalmaturitydate": {
+    "m": "原始到期日",
+    "src": "authored"
+   },
+   "originalamt": {
+    "m": "原始贷款金额",
+    "src": "authored"
+   },
+   "currentmaturitydate": {
+    "m": "当前到期日",
+    "src": "authored"
+   },
+   "amortizationterm": {
+    "m": "摊还期限（月）",
+    "src": "authored"
+   },
+   "remainingterm": {
+    "m": "剩余期限（月）",
+    "src": "authored"
+   },
+   "otherliens": {
+    "m": "其他留置权",
+    "src": "authored"
+   },
+   "otherliensbalance": {
+    "m": "其他留置权余额",
+    "src": "authored"
+   },
+   "legalstatus": {
+    "m": "法律状态（如 REO/FCBU/BK13）",
+    "src": "authored"
+   },
+   "warningstatus": {
+    "m": "预警状态标记",
+    "src": "authored"
+   },
+   "isattorneyrepresented": {
+    "m": "借款人是否有律师代理（0/1）",
+    "src": "authored"
+   },
+   "issoldiersandsailors": {
+    "m": "是否适用《军人民事救济法》(SCRA)（0/1）",
+    "src": "authored"
+   },
+   "isloanlitigated": {
+    "m": "贷款是否处于诉讼中（0/1）",
+    "src": "authored"
+   },
+   "isescrowed": {
+    "m": "是否设有托管账户(escrow)（0/1）",
+    "src": "authored"
+   },
+   "femaarea": {
+    "m": "是否处于 FEMA 灾区（0/1）",
+    "src": "authored"
+   },
+   "femaaffect": {
+    "m": "是否受 FEMA 灾害影响（0/1）",
+    "src": "authored"
+   },
+   "balloonflag": {
+    "m": "是否气球贷（到期一次性还本）（0/1）",
+    "src": "authored"
+   },
+   "balloondate": {
+    "m": "气球贷到期日",
+    "src": "authored"
+   },
+   "prepaymentpenaltyflag": {
+    "m": "是否有提前还款罚金（0/1）",
+    "src": "authored"
+   },
+   "prepaymentpenaltyterm": {
+    "m": "提前还款罚金期限",
+    "src": "authored"
+   },
+   "prepaymentpenaltyfee": {
+    "m": "提前还款罚金金额",
+    "src": "authored"
+   },
+   "chargeoff": {
+    "m": "是否核销（0/1）",
+    "src": "authored"
+   },
+   "chargeoffdate": {
+    "m": "核销日期",
+    "src": "authored"
+   },
+   "chargeoffamount": {
+    "m": "核销金额",
+    "src": "authored"
+   },
+   "payoffrequested": {
+    "m": "是否已申请结清报价（0/1）",
+    "src": "authored"
+   },
+   "payoffrequestdate": {
+    "m": "结清报价申请日",
+    "src": "authored"
+   },
+   "mersid": {
+    "m": "MERS 登记号",
+    "src": "authored"
+   },
+   "servicefeepercent": {
+    "m": "服务费率（%）",
+    "src": "authored"
+   },
+   "servicefeedollars": {
+    "m": "服务费金额",
+    "src": "authored"
+   },
+   "interestmethod": {
+    "m": "计息方式编码",
+    "src": "authored"
+   },
+   "negamflag": {
+    "m": "是否负摊还(negative amortization)（0/1）",
+    "src": "authored"
+   },
+   "borrowerdeceasedflag": {
+    "m": "借款人是否已故（0/1）",
+    "src": "authored"
+   },
+   "coborrowerdeceasedflag": {
+    "m": "共同借款人是否已故（0/1）",
+    "src": "authored"
+   },
+   "priorservicer": {
+    "m": "前服务商名称",
+    "src": "authored"
+   },
+   "foreignnationalflag": {
+    "m": "借款人是否外国国籍（0/1）",
+    "src": "authored"
+   },
+   "min_status": {
+    "m": "MERS MIN 状态",
+    "src": "authored"
+   },
+   "origorgid": {
+    "m": "发起机构编码",
+    "src": "authored"
+   },
+   "origorgname": {
+    "m": "发起机构名称",
+    "src": "authored"
+   },
+   "servicerorgid": {
+    "m": "服务机构编码",
+    "src": "authored"
+   },
+   "subservorgid": {
+    "m": "次级服务机构编码",
+    "src": "authored"
+   },
+   "ppc1_id": {
+    "m": "PPC1 编码（内部）",
+    "src": "authored"
+   },
+   "investorname": {
+    "m": "投资人名称",
+    "src": "authored"
+   },
+   "min_number": {
+    "m": "MERS MIN 号",
+    "src": "authored"
+   },
+   "registerstatus": {
+    "m": "MERS 登记状态",
+    "src": "authored"
+   },
+   "deactreason": {
+    "m": "停用/退出原因（如 FC-BK）",
+    "src": "authored"
+   },
+   "securitization": {
+    "m": "证券化标记",
+    "src": "authored"
+   },
+   "poolnumber": {
+    "m": "资产池编号",
+    "src": "authored"
+   },
+   "investororgid": {
+    "m": "投资人机构编码",
+    "src": "authored"
+   },
+   "is_hpml": {
+    "m": "是否高价房贷(HPML)（0/1）",
+    "src": "authored"
+   },
+   "investmentproperty": {
+    "m": "是否投资性房产（0/1）",
+    "src": "authored"
+   },
+   "hasadditionalcollateral": {
+    "m": "是否有额外抵押物（0/1）",
+    "src": "authored"
+   },
+   "creditorname": {
+    "m": "债权人名称",
+    "src": "authored"
+   },
+   "vestingname": {
+    "m": "产权登记名义人",
+    "src": "authored"
+   },
+   "memberid": {
+    "m": "成员编码",
+    "src": "authored"
+   },
+   "welcomeletter": {
+    "m": "欢迎信发送日",
+    "src": "authored"
+   },
+   "tilanotice": {
+    "m": "TILA 告知发送日",
+    "src": "authored"
+   },
+   "debenturerate": {
+    "m": "债券利率（FHA 理赔用）",
+    "src": "authored"
+   },
+   "reasonfordefault": {
+    "m": "借款人违约原因描述",
+    "src": "dict_reuse"
+   },
+   "custodianname": {
+    "m": "文件保管机构名称",
+    "src": "authored"
+   },
+   "custodiancollateralid": {
+    "m": "保管机构抵押物编码",
+    "src": "authored"
+   },
+   "delinquency_status_mba": {
+    "m": "MBA 逾期状态文案（如 REO/120-149 DPD）",
+    "src": "authored"
+   },
+   "create_time": {
+    "m": "记录创建时间",
+    "src": "dict_reuse"
+   },
+   "update_time": {
+    "m": "最后更新时间",
+    "src": "dict_reuse"
+   },
+   "eoy_1099c_cancelled_date_reported": {
+    "m": "年末 1099-C 债务免除报告日",
+    "src": "authored"
+   },
+   "loanscraflag": {
+    "m": "SCRA 标记",
+    "src": "authored"
+   },
+   "srlienstatuscode": {
+    "m": "优先留置权状态码",
+    "src": "authored"
+   },
+   "srlienname": {
+    "m": "优先留置权人名称",
+    "src": "authored"
+   },
+   "srlienduedate": {
+    "m": "优先留置权到期日",
+    "src": "authored"
+   },
+   "srlienstatusdesc": {
+    "m": "优先留置权状态描述",
+    "src": "authored"
+   },
+   "prepaypenaltyenddate": {
+    "m": "提前还款罚金截止日",
+    "src": "authored"
+   },
+   "loanscrapaymenteffectivedate": {
+    "m": "SCRA 还款生效日",
+    "src": "authored"
+   },
+   "cdfi": {
+    "m": "是否 CDFI 相关（0/1）",
+    "src": "authored"
+   },
+   "investorchargeoff": {
+    "m": "投资人核销标记（0/1）",
+    "src": "authored"
+   },
+   "eoy_1099c_flag": {
+    "m": "年末 1099-C 标记",
+    "src": "authored"
+   },
+   "disasterdesignationdate": {
+    "m": "灾害认定日",
+    "src": "authored"
+   },
+   "inauctionflag": {
+    "m": "是否在拍卖中（0/1）",
+    "src": "authored"
+   },
+   "fhavapmicasenumber": {
+    "m": "FHA/VA/PMI 案件号",
+    "src": "authored"
+   },
+   "loanscraenddate": {
+    "m": "SCRA 结束日",
+    "src": "authored"
+   },
+   "borrowerprimarymilitarystatuscode": {
+    "m": "借款人主军籍状态码",
+    "src": "authored"
+   },
+   "borrowerprimarymilitarystatuscodedesc": {
+    "m": "借款人主军籍状态描述",
+    "src": "authored"
+   },
+   "dscr": {
+    "m": "债务偿还覆盖率（商业贷款）",
+    "src": "dict_reuse"
+   },
+   "loanscrastartdate": {
+    "m": "SCRA 起始日",
+    "src": "authored"
+   },
+   "disastername": {
+    "m": "灾害名称",
+    "src": "authored"
+   },
+   "bridgeloan": {
+    "m": "是否过桥贷款（0/1）",
+    "src": "authored"
+   },
+   "secondhome": {
+    "m": "是否第二套住房（0/1）",
+    "src": "authored"
+   },
+   "priorservicername": {
+    "m": "前服务商名称",
+    "src": "authored"
+   },
+   "disasterimpactcreateddate": {
+    "m": "灾害影响记录创建日",
+    "src": "authored"
+   },
+   "investorchargeoffdate": {
+    "m": "投资人核销日",
+    "src": "authored"
+   },
+   "disasterdeclarationnumber": {
+    "m": "灾害声明编号",
+    "src": "authored"
+   },
+   "lienseniorbalanceprincipalcurrent": {
+    "m": "优先留置权当前本金余额",
+    "src": "authored"
+   },
+   "loanscrainterestrate": {
+    "m": "SCRA 利率",
+    "src": "authored"
+   },
+   "loanscrapipayment": {
+    "m": "SCRA 本息月供",
+    "src": "authored"
+   },
+   "eoy_1099c_cancelled_amount_reported": {
+    "m": "年末 1099-C 免除金额",
+    "src": "authored"
+   },
+   "otsdelinquency": {
+    "m": "OTS 逾期分类文案",
+    "src": "authored"
+   },
+   "leadbilldays": {
+    "m": "账单提前天数",
+    "src": "authored"
+   },
+   "guarantyfeepercent": {
+    "m": "担保费率（%）",
+    "src": "authored"
+   },
+   "acquiredduedate": {
+    "m": "收购时的应还到期日",
+    "src": "authored"
+   },
+   "interestpaidthroughdate": {
+    "m": "利息已付至日期",
+    "src": "authored"
+   },
+   "srstatus": {
+    "m": "优先留置权状态",
+    "src": "authored"
+   },
+   "enoteflag": {
+    "m": "是否电子借据(eNote)（0/1）",
+    "src": "authored"
+   },
+   "billingstatementdate": {
+    "m": "账单日",
+    "src": "authored"
+   },
+   "vrmflag": {
+    "m": "是否可调利率(VRM)（0/1）",
+    "src": "authored"
+   },
+   "pendinginvestoridtransfer": {
+    "m": "待转投资人编码",
+    "src": "authored"
+   },
+   "newinvestorid": {
+    "m": "新投资人编码",
+    "src": "authored"
+   },
+   "amltype": {
+    "m": "AML 类型",
+    "src": "authored"
+   },
+   "successorservicer": {
+    "m": "后继服务商",
+    "src": "authored"
+   }
+  }
+ },
+ "portnewrezprop": {
+  "schema_table": "newrez.portnewrezprop",
+  "fields": {
+   "id": {
+    "m": "主键，自增 ID",
+    "src": "dict_reuse"
+   },
+   "loanid": {
+    "m": "投资人贷款ID（跨 Servicer 的统一标识）",
+    "src": "dict_reuse"
+   },
+   "dataasof": {
+    "m": "数据快照日期",
+    "src": "dict_reuse"
+   },
+   "shellpointloanid": {
+    "m": "Newrez/Shellpoint 服务商贷款号",
+    "src": "dict_reuse"
+   },
+   "propertyaddressline1": {
+    "m": "房产地址行1",
+    "src": "authored"
+   },
+   "propertyaddressline2": {
+    "m": "房产地址行2",
+    "src": "authored"
+   },
+   "propertycity": {
+    "m": "房产城市",
+    "src": "authored"
+   },
+   "propertystate": {
+    "m": "房产所在州（决定司法/非司法法拍路径）",
+    "src": "authored"
+   },
+   "propertyzip": {
+    "m": "房产邮编",
+    "src": "authored"
+   },
+   "propertycounty": {
+    "m": "房产所在县",
+    "src": "authored"
+   },
+   "propertytype": {
+    "m": "房产类型",
+    "src": "authored"
+   },
+   "currentoccupancy": {
+    "m": "当前占用状态",
+    "src": "authored"
+   },
+   "currentoccupancydate": {
+    "m": "当前占用状态日期",
+    "src": "authored"
+   },
+   "mostrecentvalue": {
+    "m": "最新估值",
+    "src": "authored"
+   },
+   "mostrecentvaluedate": {
+    "m": "最新估值日期",
+    "src": "authored"
+   },
+   "valuationmethod": {
+    "m": "估值方法",
+    "src": "authored"
+   },
+   "bpoprovider": {
+    "m": "BPO 估值提供方",
+    "src": "authored"
+   },
+   "originalpropertyvalue": {
+    "m": "原始房产价值",
+    "src": "authored"
+   },
+   "originalpropertyvaluedate": {
+    "m": "原始估值日期",
+    "src": "authored"
+   },
+   "vacancyflag": {
+    "m": "是否空置（0/1）",
+    "src": "authored"
+   },
+   "originalltv": {
+    "m": "原始贷款价值比(LTV)",
+    "src": "authored"
+   },
+   "currentltv": {
+    "m": "当前 LTV",
+    "src": "authored"
+   },
+   "numberofunits": {
+    "m": "单元数",
+    "src": "authored"
+   },
+   "mostrecentbpovalue": {
+    "m": "最新 BPO 估值",
+    "src": "authored"
+   },
+   "mostrecentbpovaluedate": {
+    "m": "最新 BPO 估值日期",
+    "src": "authored"
+   },
+   "taxservice": {
+    "m": "税务服务机构",
+    "src": "authored"
+   },
+   "datesenttotaxoutsource": {
+    "m": "税务外包发送日",
+    "src": "authored"
+   },
+   "create_time": {
+    "m": "记录创建时间",
+    "src": "dict_reuse"
+   },
+   "update_time": {
+    "m": "最后更新时间",
+    "src": "dict_reuse"
+   },
+   "originaloccupancy": {
+    "m": "原始占用状态",
+    "src": "authored"
+   },
+   "investorloanid": {
+    "m": "投资人贷款号",
+    "src": "dict_reuse"
+   },
+   "countycode": {
+    "m": "县编码",
+    "src": "authored"
+   }
+  }
+ },
+ "basic_data_loan_fcl": {
+  "schema_table": "port.basic_data_loan_fcl",
+  "fields": {
+   "dataasof": {
+    "m": "数据快照日期",
+    "src": "dict_exact"
+   },
+   "loanid": {
+    "m": "Bridger贷款ID",
+    "src": "dict_exact"
+   },
+   "servicer": {
+    "m": "服务商名称（固定字符串）",
+    "src": "dict_exact"
+   },
+   "svc_loanid": {
+    "m": "Servicer 自有贷款号",
+    "src": "dict_exact"
+   },
+   "activefcflag": {
+    "m": "FCL 激活标志（1=激活，NULL=未激活）",
+    "src": "dict_exact"
+   },
+   "titleordereddate": {
+    "m": "产权调查委托日期（拍卖前对房产产权进行调查）",
+    "src": "dict_exact"
+   },
+   "titlereceiveddate": {
+    "m": "产权报告收到日期",
+    "src": "dict_exact"
+   },
+   "titlecleardate": {
+    "m": "产权清理完成日期（产权无争议后可推进拍卖）",
+    "src": "dict_exact"
+   },
+   "noi_date": {
+    "m": "意向通知日（Notice of Intent，正式告知借款人即将进入止赎流程）",
+    "src": "dict_exact"
+   },
+   "fcsetupdate": {
+    "m": "FCL 立案/受理日期",
+    "src": "dict_exact"
+   },
+   "referral_start_date": {
+    "m": "FCL 转交律师日期（止赎时间线正式起点）",
+    "src": "dict_exact"
+   },
+   "svc_days_infc": {
+    "m": "Servicer 自报的 FCL 持续天数",
+    "src": "dict_exact"
+   },
+   "daysinfc": {
+    "m": "系统计算的 FCL 持续天数",
+    "src": "dict_exact"
+   },
+   "demandsentdate": {
+    "m": "催款函（Demand Letter）发出日期",
+    "src": "dict_exact"
+   },
+   "demandexpirationdate": {
+    "m": "催款函到期日期（到期仍未还款则推进止赎）",
+    "src": "dict_exact"
+   },
+   "legal_start_date": {
+    "m": "初次法律行动日期（First Legal Action，司法止赎中为法院立案日）",
+    "src": "dict_exact"
+   },
+   "service_start_date": {
+    "m": "法律文件送达完成日期（借款人被正式告知诉状）",
+    "src": "dict_exact"
+   },
+   "fcjudgment_hearing_scheduled": {
+    "m": "判决听证会计划日期",
+    "src": "dict_exact"
+   },
+   "fcjudgment_end_date": {
+    "m": "判决完成日期（法院裁定止赎）",
+    "src": "dict_exact"
+   },
+   "fcscheduled_sale_date": {
+    "m": "计划拍卖日期（Auction/Sale Date）",
+    "src": "dict_exact"
+   },
+   "fcsale_held_date": {
+    "m": "实际拍卖执行日期",
+    "src": "dict_exact"
+   },
+   "fcbidamount": {
+    "m": "止赎拍卖出价/底价金额",
+    "src": "dict_exact"
+   },
+   "fcapprbidprice": {
+    "m": "批准的竞价价格",
+    "src": "dict_exact"
+   },
+   "fcsaleamount": {
+    "m": "实际拍卖成交金额",
+    "src": "dict_exact"
+   },
+   "fcl3rdpartyproceedsreceiveddate": {
+    "m": "第三方购买收益到账日期",
+    "src": "dict_exact"
+   },
+   "fcresults": {
+    "m": "FCL 结案原因描述",
+    "src": "dict_exact"
+   },
+   "fcstage": {
+    "m": "FCL 当前阶段描述",
+    "src": "dict_exact"
+   },
+   "lastfcstepcompleted": {
+    "m": "最近完成的 FCL 阶段名称（文字描述）",
+    "src": "dict_exact"
+   },
+   "lastfcstepcompleteddate": {
+    "m": "最近完成阶段的日期",
+    "src": "dict_exact"
+   },
+   "fcremovaldesc": {
+    "m": "退出 FCL 流程的文字说明",
+    "src": "dict_exact"
+   },
+   "fcremovaldate": {
+    "m": "退出 FCL 流程的日期",
+    "src": "dict_exact"
+   },
+   "judicial": {
+    "m": "是否为司法止赎（需法院程序）",
+    "src": "dict_exact"
+   },
+   "fcfirm": {
+    "m": "承办律师事务所名称",
+    "src": "dict_exact"
+   },
+   "fccontestedflag": {
+    "m": "是否有借款人争议诉讼标志",
+    "src": "dict_exact"
+   },
+   "jr_sr_lien_flag": {
+    "m": "初级/高级留置权标志",
+    "src": "dict_exact"
+   },
+   "dtdeedrecorded": {
+    "m": "产权契约（Deed）登记日期（REO转移后在政府登记）",
+    "src": "dict_exact"
+   },
+   "activejnrlienfcflag": {
+    "m": "活跃次级留置权 FCL 标志",
+    "src": "dict_exact"
+   },
+   "fchold1description": {
+    "m": "Hold #1 类型名称（止赎暂停的具体原因）",
+    "src": "dict_exact"
+   },
+   "fchold1startdate": {
+    "m": "Hold #1 开始日期",
+    "src": "dict_exact"
+   },
+   "fchold1enddate": {
+    "m": "Hold #1 结束日期（NULL = Hold仍活跃）",
+    "src": "dict_exact"
+   },
+   "fchold1projectedenddate": {
+    "m": "Hold #1 预计结束日期",
+    "src": "dict_exact"
+   },
+   "fchold1comment": {
+    "m": "Hold #1 备注说明（自由文本）",
+    "src": "dict_exact"
+   },
+   "holdmodified": {
+    "m": "Hold #1 记录最后修改日期",
+    "src": "dict_exact"
+   },
+   "fchold2description": {
+    "m": "Hold #2 类型名称",
+    "src": "dict_exact"
+   },
+   "fchold2startdate": {
+    "m": "Hold #2 开始日期",
+    "src": "dict_exact"
+   },
+   "fchold2enddate": {
+    "m": "Hold #2 结束日期",
+    "src": "dict_exact"
+   },
+   "fchold2projectedenddate": {
+    "m": "Hold #2 预计结束日期",
+    "src": "dict_exact"
+   },
+   "fchold2comment": {
+    "m": "Hold #2 备注",
+    "src": "dict_exact"
+   },
+   "holdmodified2": {
+    "m": "Hold #2 记录最后修改日期",
+    "src": "dict_exact"
+   },
+   "fchold3description": {
+    "m": "Hold #3 类型名称",
+    "src": "dict_exact"
+   },
+   "fchold3startdate": {
+    "m": "Hold #3 开始日期",
+    "src": "dict_exact"
+   },
+   "fchold3enddate": {
+    "m": "Hold #3 结束日期",
+    "src": "dict_exact"
+   },
+   "fchold3projectedenddate": {
+    "m": "Hold #3 预计结束日期",
+    "src": "dict_exact"
+   },
+   "fchold3comment": {
+    "m": "Hold #3 备注",
+    "src": "dict_exact"
+   },
+   "holdmodified3": {
+    "m": "Hold #3 记录最后修改日期",
+    "src": "dict_exact"
+   },
+   "fchold4description": {
+    "m": "Hold #4 类型名称",
+    "src": "dict_exact"
+   },
+   "fchold4startdate": {
+    "m": "Hold #4 开始日期",
+    "src": "dict_exact"
+   },
+   "fchold4enddate": {
+    "m": "Hold #4 结束日期",
+    "src": "dict_exact"
+   },
+   "fchold4projectedenddate": {
+    "m": "Hold #4 预计结束日期",
+    "src": "dict_exact"
+   },
+   "fchold4comment": {
+    "m": "Hold #4 备注",
+    "src": "dict_exact"
+   },
+   "holdmodified4": {
+    "m": "Hold #4 记录最后修改日期",
+    "src": "dict_exact"
+   }
+  }
+ },
+ "basic_data_loan_foreclosure": {
+  "schema_table": "port.basic_data_loan_foreclosure",
+  "fields": {
+   "dataasof": {
+    "m": "数据快照日期",
+    "src": "dict_exact"
+   },
+   "loanid": {
+    "m": "Bridger 贷款 ID",
+    "src": "dict_exact"
+   },
+   "svcloanid": {
+    "m": "Servicer 自有贷款号",
+    "src": "dict_exact"
+   },
+   "servicer": {
+    "m": "服务商名称",
+    "src": "dict_exact"
+   },
+   "timeline_notice_of_intent_date": {
+    "m": "意向通知日",
+    "src": "dict_exact"
+   },
+   "timeline_notice_of_intent_end_date": {
+    "m": "意向通知截止日",
+    "src": "dict_exact"
+   },
+   "timeline_approved_for_referral_date": {
+    "m": "批准转交日",
+    "src": "dict_exact"
+   },
+   "timeline_referred_to_attorney_date": {
+    "m": "转交律师日",
+    "src": "dict_exact"
+   },
+   "timeline_referred_to_foreclosure_date": {
+    "m": "FCL 转交日（Referral 起点）",
+    "src": "dict_exact"
+   },
+   "timeline_title_report_received_date": {
+    "m": "产权报告收到日",
+    "src": "dict_exact"
+   },
+   "timeline_preliminary_title_cleared_date": {
+    "m": "初步产权清理完成日",
+    "src": "dict_exact"
+   },
+   "timeline_first_legal_date": {
+    "m": "初次法律行动日",
+    "src": "dict_exact"
+   },
+   "timeline_service_date": {
+    "m": "法律文件送达完成日",
+    "src": "dict_exact"
+   },
+   "timeline_publication_date": {
+    "m": "止赎公告发布日",
+    "src": "dict_exact"
+   },
+   "timeline_judgement_hearing_set_date": {
+    "m": "判决听证会设定日",
+    "src": "dict_exact"
+   },
+   "timeline_judgement_date": {
+    "m": "判决日期",
+    "src": "dict_exact"
+   },
+   "timeline_sale_date_projected_date": {
+    "m": "预计拍卖日",
+    "src": "dict_exact"
+   },
+   "timeline_sale_date_set_date": {
+    "m": "拍卖日设定日（首次出现日期）",
+    "src": "dict_exact"
+   },
+   "timeline_final_title_cleared_date": {
+    "m": "最终产权清理完成日",
+    "src": "dict_exact"
+   },
+   "timeline_sale_date_held_date": {
+    "m": "实际拍卖完成日",
+    "src": "dict_exact"
+   },
+   "timeline_foreclosure_completed_date": {
+    "m": "止赎完成日",
+    "src": "dict_exact"
+   },
+   "timeline_third_party_sold_date_date": {
+    "m": "第三方购买完成日",
+    "src": "dict_exact"
+   },
+   "timeline_third_party_proceeds_received_date": {
+    "m": "第三方收益到账日",
+    "src": "dict_exact"
+   },
+   "target_notice_of_intent_days": {
+    "m": "意向通知完成目标天数",
+    "src": "dict_exact"
+   },
+   "target_notice_of_intent_expired_days": {
+    "m": "意向通知有效期目标天数",
+    "src": "dict_exact"
+   },
+   "target_approved_for_referral_days": {
+    "m": "批准转交目标天数",
+    "src": "dict_exact"
+   },
+   "target_referred_to_attorney_days": {
+    "m": "转交律师目标天数",
+    "src": "dict_exact"
+   },
+   "target_referred_to_foreclosure_days": {
+    "m": "转交止赎目标天数",
+    "src": "dict_exact"
+   },
+   "target_title_report_received_days": {
+    "m": "产权报告收到目标天数",
+    "src": "dict_exact"
+   },
+   "target_preliminary_title_cleared_days": {
+    "m": "初步产权清理目标天数",
+    "src": "dict_exact"
+   },
+   "target_first_legal_days": {
+    "m": "初次法律行动目标天数（通常为 FNMA 合规基准）",
+    "src": "dict_exact"
+   },
+   "target_service_days": {
+    "m": "送达完成目标天数",
+    "src": "dict_exact"
+   },
+   "target_publication_days": {
+    "m": "公告发布目标天数",
+    "src": "dict_exact"
+   },
+   "target_judgement_hearing_set_days": {
+    "m": "判决听证会设定目标天数",
+    "src": "dict_exact"
+   },
+   "target_judgement_days": {
+    "m": "判决发布目标天数",
+    "src": "dict_exact"
+   },
+   "target_sale_date_set_days": {
+    "m": "拍卖日设定目标天数",
+    "src": "dict_exact"
+   },
+   "target_final_title_cleared_days": {
+    "m": "最终产权清理目标天数",
+    "src": "dict_exact"
+   },
+   "target_sale_date_held_days": {
+    "m": "实际拍卖目标天数",
+    "src": "dict_exact"
+   },
+   "variance_active_bankruptcy": {
+    "m": "当前是否有活跃破产（1=是，0=否）",
+    "src": "dict_exact"
+   },
+   "variance_completed_bankruptcy": {
+    "m": "是否有已完成破产记录（1=是，0=否）",
+    "src": "dict_exact"
+   },
+   "variance_estimated_hold_days": {
+    "m": "预计剩余 Hold 天数",
+    "src": "dict_exact"
+   },
+   "variance_bankruptcies": {
+    "m": "历史破产申请总次数",
+    "src": "dict_exact"
+   },
+   "bid_approval_status": {
+    "m": "竞价审批状态",
+    "src": "dict_exact"
+   },
+   "bid_approval_sale_date": {
+    "m": "竞价对应的拍卖日期",
+    "src": "dict_exact"
+   },
+   "bid_approval_bid_amount": {
+    "m": "竞价金额",
+    "src": "dict_exact"
+   },
+   "bid_approval_loan_resolution_holods": {
+    "m": "贷款处置 Hold 说明（长文本；注意字段名 'holods' 疑为拼写错误，应为 'holds'）",
+    "src": "dict_exact"
+   },
+   "summary_servicer_number": {
+    "m": "服务商编号标识",
+    "src": "dict_exact"
+   },
+   "summary_foreclosure_status": {
+    "m": "FCL 状态文字描述（BPS 主要消费字段）",
+    "src": "dict_exact"
+   },
+   "summary_completed_foreclosure": {
+    "m": "是否完成止赎标志",
+    "src": "dict_exact"
+   },
+   "summary_foreclosure_bid_amount": {
+    "m": "止赎竞价金额",
+    "src": "dict_exact"
+   },
+   "summary_srv_fc_bid_amount": {
+    "m": "Servicer 自报竞价金额（与上字段同源）",
+    "src": "dict_exact"
+   },
+   "summary_foreclosure_sale_amount": {
+    "m": "实际拍卖成交金额",
+    "src": "dict_exact"
+   },
+   "summary_judicial_foreclosure": {
+    "m": "是否司法止赎（0=非司法，1=司法，NULL=未知）",
+    "src": "dict_exact"
+   },
+   "summary_foreclosure_attorney": {
+    "m": "止赎律师姓名",
+    "src": "dict_exact"
+   },
+   "summary_contested_litigation": {
+    "m": "是否有借款人争议诉讼（0=无，1=有）",
+    "src": "dict_exact"
+   },
+   "summary_firm": {
+    "m": "承办律师事务所名称",
+    "src": "dict_exact"
+   },
+   "summary_type": {
+    "m": "司法/非司法止赎类型文字",
+    "src": "dict_exact"
+   },
+   "summary_sms_days_in_fcl": {
+    "m": "Servicer 自报 FCL 持续天数",
+    "src": "dict_exact"
+   },
+   "summary_days_in_fcl": {
+    "m": "系统计算 FCL 持续天数",
+    "src": "dict_exact"
+   },
+   "summary_current_step": {
+    "m": "当前 FCL 阶段",
+    "src": "dict_exact"
+   },
+   "summary_last_step_completed": {
+    "m": "最近完成的 FCL 阶段名称",
+    "src": "dict_exact"
+   },
+   "summary_last_step_completed_date": {
+    "m": "最近完成阶段的日期",
+    "src": "dict_exact"
+   }
+  }
+ },
+ "basic_data_fcl_related": {
+  "schema_table": "port.basic_data_fcl_related",
+  "fields": {
+   "dataasof": {
+    "m": "数据快照日期",
+    "src": "dict_reuse"
+   },
+   "loanid": {
+    "m": "投资人贷款ID（跨 Servicer 的统一标识）",
+    "src": "dict_reuse"
+   },
+   "servicer": {
+    "m": "当前服务商名称（hardcoded）",
+    "src": "dict_reuse"
+   },
+   "delq_status": {
+    "m": "Servicer 原始逾期状态描述（未标准化）",
+    "src": "dict_reuse"
+   },
+   "isloanlitigated": {
+    "m": "贷款是否处于诉讼中（0/1）",
+    "src": "authored"
+   },
+   "deactreason": {
+    "m": "停用/退出原因（如 FC-BK）",
+    "src": "authored"
+   },
+   "reasonfordefault": {
+    "m": "借款人违约原因描述",
+    "src": "dict_reuse"
+   },
+   "inauctionflag": {
+    "m": "是否在拍卖中（0/1）",
+    "src": "authored"
+   },
+   "liquidationdate": {
+    "m": "清算/处置日",
+    "src": "authored"
+   },
+   "liquidationtype": {
+    "m": "清算/处置类型",
+    "src": "authored"
+   },
+   "liquidationproceeds": {
+    "m": "清算/处置回收款",
+    "src": "authored"
+   },
+   "pmt": {
+    "m": "月供",
+    "src": "authored"
+   },
+   "bk_flag": {
+    "m": "是否破产标记（0/1）",
+    "src": "authored"
+   },
+   "propertystate": {
+    "m": "房产所在州（决定司法/非司法法拍路径）",
+    "src": "authored"
+   }
+  }
+ },
+ "rs_fcl_stage_info": {
+  "schema_table": "port.fcl_stage_info",
+  "fields": {
+   "fctrdt": {
+    "m": "数据快照日（每贷款每天一行）",
+    "src": "dict_exact"
+   },
+   "loanid": {
+    "m": "系统贷款 ID",
+    "src": "dict_exact"
+   },
+   "group": {
+    "m": "派生分类（FCL/REO/D120P/D90）",
+    "src": "dict_exact"
+   },
+   "servicer": {
+    "m": "Servicer 名称",
+    "src": "dict_exact"
+   },
+   "state": {
+    "m": "物业所在州",
+    "src": "dict_exact"
+   },
+   "judicial": {
+    "m": "是否司法州（Y/N）",
+    "src": "dict_exact"
+   },
+   "demand_start_date": {
+    "m": "NOI/Demand Letter 阶段 · 阶段开始日",
+    "src": "dict_exact"
+   },
+   "demand_end_date": {
+    "m": "NOI/Demand Letter 阶段 · 阶段结束日",
+    "src": "dict_exact"
+   },
+   "demand_stage_days": {
+    "m": "NOI/Demand Letter 阶段 · 在该阶段已历天数",
+    "src": "dict_exact"
+   },
+   "demand_in_lm_days": {
+    "m": "NOI/Demand Letter 阶段 · 该阶段内处于 LM 的天数",
+    "src": "dict_exact"
+   },
+   "demand_on_hold_days": {
+    "m": "NOI/Demand Letter 阶段 · 该阶段内处于 Hold 的天数",
+    "src": "dict_exact"
+   },
+   "noi_start_date": {
+    "m": "NOI(Approved for Referral) 阶段 · 阶段开始日",
+    "src": "dict_exact"
+   },
+   "noi_end_date": {
+    "m": "NOI(Approved for Referral) 阶段 · 阶段结束日",
+    "src": "dict_exact"
+   },
+   "noi_stage_days": {
+    "m": "NOI(Approved for Referral) 阶段 · 在该阶段已历天数",
+    "src": "dict_exact"
+   },
+   "noi_in_lm_days": {
+    "m": "NOI(Approved for Referral) 阶段 · 该阶段内处于 LM 的天数",
+    "src": "dict_exact"
+   },
+   "noi_on_hold_days": {
+    "m": "NOI(Approved for Referral) 阶段 · 该阶段内处于 Hold 的天数",
+    "src": "dict_exact"
+   },
+   "referral_start_date": {
+    "m": "Referral 阶段 · 阶段开始日",
+    "src": "dict_exact"
+   },
+   "referral_end_date": {
+    "m": "Referral 阶段 · 阶段结束日",
+    "src": "dict_exact"
+   },
+   "referral_stage_days": {
+    "m": "Referral 阶段 · 在该阶段已历天数",
+    "src": "dict_exact"
+   },
+   "referral_in_lm_days": {
+    "m": "Referral 阶段 · 该阶段内处于 LM 的天数",
+    "src": "dict_exact"
+   },
+   "referral_on_hold_days": {
+    "m": "Referral 阶段 · 该阶段内处于 Hold 的天数",
+    "src": "dict_exact"
+   },
+   "first_legal_start_date": {
+    "m": "First Legal 阶段 · 阶段开始日",
+    "src": "dict_exact"
+   },
+   "first_legal_end_date": {
+    "m": "First Legal 阶段 · 阶段结束日",
+    "src": "dict_exact"
+   },
+   "first_legal_stage_days": {
+    "m": "First Legal 阶段 · 在该阶段已历天数",
+    "src": "dict_exact"
+   },
+   "first_legal_in_lm_days": {
+    "m": "First Legal 阶段 · 该阶段内处于 LM 的天数",
+    "src": "dict_exact"
+   },
+   "first_legal_on_hold_days": {
+    "m": "First Legal 阶段 · 该阶段内处于 Hold 的天数",
+    "src": "dict_exact"
+   },
+   "first_legal_date_history": {
+    "m": "首次法律行动日变更历史",
+    "src": "dict_exact"
+   },
+   "service_start_date": {
+    "m": "Service 阶段 · 阶段开始日",
+    "src": "dict_exact"
+   },
+   "service_end_date": {
+    "m": "Service 阶段 · 阶段结束日",
+    "src": "dict_exact"
+   },
+   "service_stage_days": {
+    "m": "Service 阶段 · 在该阶段已历天数",
+    "src": "dict_exact"
+   },
+   "service_in_lm_days": {
+    "m": "Service 阶段 · 该阶段内处于 LM 的天数",
+    "src": "dict_exact"
+   },
+   "service_on_hold_days": {
+    "m": "Service 阶段 · 该阶段内处于 Hold 的天数",
+    "src": "dict_exact"
+   },
+   "publication_start_date": {
+    "m": "Publication 阶段 · 阶段开始日",
+    "src": "dict_exact"
+   },
+   "publication_end_date": {
+    "m": "Publication 阶段 · 阶段结束日",
+    "src": "dict_exact"
+   },
+   "publication_stage_days": {
+    "m": "Publication 阶段 · 在该阶段已历天数",
+    "src": "dict_exact"
+   },
+   "publication_in_lm_days": {
+    "m": "Publication 阶段 · 该阶段内处于 LM 的天数",
+    "src": "dict_exact"
+   },
+   "publication_on_hold_days": {
+    "m": "Publication 阶段 · 该阶段内处于 Hold 的天数",
+    "src": "dict_exact"
+   },
+   "judgement_start_date": {
+    "m": "Upcoming Judgement 阶段 · 阶段开始日",
+    "src": "dict_exact"
+   },
+   "judgement_end_date": {
+    "m": "Upcoming Judgement 阶段 · 阶段结束日",
+    "src": "dict_exact"
+   },
+   "to_judgement_days": {
+    "m": "距判决日剩余天数",
+    "src": "dict_exact"
+   },
+   "judgement_in_lm_days": {
+    "m": "Upcoming Judgement 阶段 · 该阶段内处于 LM 的天数",
+    "src": "dict_exact"
+   },
+   "judgement_on_hold_days": {
+    "m": "Upcoming Judgement 阶段 · 该阶段内处于 Hold 的天数",
+    "src": "dict_exact"
+   },
+   "sale_start_date": {
+    "m": "Upcoming FC Sales 阶段 · 阶段开始日",
+    "src": "dict_exact"
+   },
+   "sale_end_date": {
+    "m": "Upcoming FC Sales 阶段 · 阶段结束日",
+    "src": "dict_exact"
+   },
+   "to_sale_days": {
+    "m": "距拍卖日剩余天数",
+    "src": "dict_exact"
+   },
+   "sale_in_lm_days": {
+    "m": "Upcoming FC Sales 阶段 · 该阶段内处于 LM 的天数",
+    "src": "dict_exact"
+   },
+   "sale_on_hold_days": {
+    "m": "Upcoming FC Sales 阶段 · 该阶段内处于 Hold 的天数",
+    "src": "dict_exact"
+   },
+   "stage": {
+    "m": "当前 FCL 阶段代码（全大写）",
+    "src": "dict_exact"
+   }
+  }
+ },
+ "portfunding": {
+  "schema_table": "port.portfunding",
+  "fields": {
+   "fundingid": {
+    "m": "Funding 编号（资金来源标识）",
+    "src": "dict_reuse"
+   },
+   "dealid": {
+    "m": "Deal 编号（投资交易标识）",
+    "src": "dict_reuse"
+   },
+   "cutoffdate": {
+    "m": "融资池切分日",
+    "src": "authored"
+   },
+   "settledate": {
+    "m": "交割日",
+    "src": "authored"
+   },
+   "wal": {
+    "m": "加权平均存续期(WAL)",
+    "src": "authored"
+   },
+   "hurdlespread": {
+    "m": "门槛利差",
+    "src": "authored"
+   },
+   "hurdleyield": {
+    "m": "门槛收益率",
+    "src": "authored"
+   },
+   "loanid": {
+    "m": "投资人贷款ID（跨 Servicer 的统一标识）",
+    "src": "dict_reuse"
+   },
+   "sellerloanid": {
+    "m": "卖方贷款号",
+    "src": "authored"
+   },
+   "interestbearingupb": {
+    "m": "计息未偿本金(UPB)",
+    "src": "authored"
+   },
+   "deferredprin": {
+    "m": "递延本金余额",
+    "src": "dict_reuse"
+   },
+   "deferredint": {
+    "m": "递延利息余额",
+    "src": "dict_reuse"
+   },
+   "netpurchasepriceinterestbearingupb": {
+    "m": "计息 UPB 净购买价",
+    "src": "authored"
+   },
+   "netpurchasepricedeferredprin": {
+    "m": "递延本金净购买价",
+    "src": "authored"
+   },
+   "netpurchasepricedeferredint": {
+    "m": "递延利息净购买价",
+    "src": "authored"
+   },
+   "interestbearingupbmv": {
+    "m": "计息 UPB 市值",
+    "src": "authored"
+   },
+   "deferredprinbought": {
+    "m": "买入递延本金",
+    "src": "authored"
+   },
+   "deferredintbought": {
+    "m": "买入递延利息",
+    "src": "authored"
+   },
+   "sellercredit": {
+    "m": "卖方让利",
+    "src": "authored"
+   },
+   "netmvtoseller": {
+    "m": "给卖方的净市值",
+    "src": "authored"
+   },
+   "netpurchaseprice": {
+    "m": "净购买价",
+    "src": "authored"
+   },
+   "intrate": {
+    "m": "当前利率",
+    "src": "dict_reuse"
+   },
+   "lastpaydt": {
+    "m": "最近还款日",
+    "src": "authored"
+   },
+   "nextduedate": {
+    "m": "下一个应还款日，即借款人下一笔到期付款的日期",
+    "src": "dict_reuse"
+   },
+   "escrowadvancebought": {
+    "m": "买入托管垫款",
+    "src": "authored"
+   },
+   "corporateadvancerecoverablebought": {
+    "m": "买入可回收公司垫款",
+    "src": "authored"
+   },
+   "thirdpartyadvancebought": {
+    "m": "买入第三方垫款",
+    "src": "authored"
+   },
+   "daysaccrued": {
+    "m": "计息天数",
+    "src": "authored"
+   },
+   "interestaccrued": {
+    "m": "应计利息",
+    "src": "authored"
+   },
+   "totadv": {
+    "m": "垫款合计",
+    "src": "authored"
+   },
+   "duetoseller": {
+    "m": "应付卖方金额",
+    "src": "authored"
+   },
+   "brokerfeepct": {
+    "m": "经纪费率(%)",
+    "src": "authored"
+   },
+   "brokerfee": {
+    "m": "经纪费",
+    "src": "authored"
+   },
+   "ddcost": {
+    "m": "尽调成本",
+    "src": "authored"
+   },
+   "sourcingfeefactor": {
+    "m": "寻源费系数",
+    "src": "authored"
+   },
+   "sourcingfeepct": {
+    "m": "寻源费率(%)",
+    "src": "authored"
+   },
+   "sourcingfee": {
+    "m": "寻源费",
+    "src": "authored"
+   },
+   "totaldiscount": {
+    "m": "折让合计",
+    "src": "authored"
+   },
+   "discountpct": {
+    "m": "折让率(%)",
+    "src": "authored"
+   },
+   "managementfeefactor": {
+    "m": "管理费系数",
+    "src": "authored"
+   },
+   "managementfeepct": {
+    "m": "管理费率(%)",
+    "src": "authored"
+   },
+   "managementfee": {
+    "m": "管理费",
+    "src": "authored"
+   },
+   "escrowadvance": {
+    "m": "托管垫款",
+    "src": "authored"
+   },
+   "corporateadvancerecoverable": {
+    "m": "可回收公司垫款",
+    "src": "authored"
+   },
+   "thirdpartyadvance": {
+    "m": "第三方垫款",
+    "src": "authored"
+   },
+   "nonrecoverableadvance": {
+    "m": "不可回收垫款",
+    "src": "authored"
+   },
+   "purchase_net_price": {
+    "m": "购买净价",
+    "src": "authored"
+   },
+   "internal_net_price": {
+    "m": "内部净价",
+    "src": "authored"
+   },
+   "gross_irr": {
+    "m": "毛内部收益率(IRR)",
+    "src": "authored"
+   },
+   "actddcost": {
+    "m": "实际尽调成本",
+    "src": "authored"
+   },
+   "trust": {
+    "m": "信托/资产池",
+    "src": "authored"
+   },
+   "semiannual": {
+    "m": "是否半年付息",
+    "src": "authored"
+   },
+   "servicing_retained": {
+    "m": "是否保留服务权",
+    "src": "authored"
+   },
+   "net_mv_to_seller_internal": {
+    "m": "给卖方净市值(内部)",
+    "src": "authored"
+   },
+   "sourcingfee_internal": {
+    "m": "寻源费(内部)",
+    "src": "authored"
+   },
+   "managementfee_internal": {
+    "m": "管理费(内部)",
+    "src": "authored"
+   },
+   "pool": {
+    "m": "资产池",
+    "src": "authored"
+   }
+  }
+ },
+ "basic_data_loan_foreclosure_hold": {
+  "schema_table": "port.basic_data_loan_foreclosure_hold",
+  "fields": {
+   "dataasof": {
+    "m": "数据快照日期",
+    "src": "dict_reuse"
+   },
+   "servicer": {
+    "m": "当前服务商名称（hardcoded）",
+    "src": "dict_reuse"
+   },
+   "loanid": {
+    "m": "系统贷款 ID",
+    "src": "dict_exact"
+   },
+   "svcloanid": {
+    "m": "Servicer 内部贷款号",
+    "src": "dict_exact"
+   },
+   "fctrdt": {
+    "m": "数据来源批次日期",
+    "src": "dict_exact"
+   },
+   "description1": {
+    "m": "Hold 槽1 原因描述",
+    "src": "authored"
+   },
+   "description1_start_date": {
+    "m": "Hold 槽1 开始日",
+    "src": "authored"
+   },
+   "description1_end_date": {
+    "m": "Hold 槽1 结束日",
+    "src": "authored"
+   },
+   "description2": {
+    "m": "Hold 槽2 原因描述",
+    "src": "authored"
+   },
+   "description2_start_date": {
+    "m": "Hold 槽2 开始日",
+    "src": "authored"
+   },
+   "description2_end_date": {
+    "m": "Hold 槽2 结束日",
+    "src": "authored"
+   },
+   "description3": {
+    "m": "Hold 槽3 原因描述",
+    "src": "authored"
+   },
+   "description3_start_date": {
+    "m": "Hold 槽3 开始日",
+    "src": "authored"
+   },
+   "description3_end_date": {
+    "m": "Hold 槽3 结束日",
+    "src": "authored"
+   },
+   "description4": {
+    "m": "Hold 槽4 原因描述",
+    "src": "authored"
+   },
+   "description4_start_date": {
+    "m": "Hold 槽4 开始日",
+    "src": "authored"
+   },
+   "description4_end_date": {
+    "m": "Hold 槽4 结束日",
+    "src": "authored"
+   }
+  }
+ },
+ "basic_data_loan_foreclosure_loss_mitigation": {
+  "schema_table": "port.basic_data_loan_foreclosure_loss_mitigation",
+  "fields": {
+   "dataasof": {
+    "m": "数据快照日期",
+    "src": "dict_reuse"
+   },
+   "servicer": {
+    "m": "当前服务商名称（hardcoded）",
+    "src": "dict_reuse"
+   },
+   "loanid": {
+    "m": "系统贷款 ID",
+    "src": "dict_exact"
+   },
+   "svcloanid": {
+    "m": "Servicer 内部贷款号",
+    "src": "dict_exact"
+   },
+   "fctrdt": {
+    "m": "数据来源批次日期",
+    "src": "dict_exact"
+   },
+   "deal": {
+    "m": "LM 大类（解码文本）",
+    "src": "dict_exact"
+   },
+   "program": {
+    "m": "LM 具体方案（解码文本）",
+    "src": "dict_exact"
+   },
+   "lmc_status": {
+    "m": "LM 当前状态（解码文本）",
+    "src": "dict_exact"
+   },
+   "cycle_opened_date": {
+    "m": "LM 周期开始日",
+    "src": "dict_exact"
+   },
+   "cycle_closed_date": {
+    "m": "LM 周期结束日（NULL=进行中）",
+    "src": "dict_exact"
+   },
+   "final_disposition": {
+    "m": "最终处置结论（解码文本）",
+    "src": "dict_exact"
+   },
+   "improgram": {
+    "m": "LM 项目(program)编码——经 portnewrezdatadic 解码为项目名称（疑似 lmprogram）",
+    "src": "authored"
+   },
+   "denialreason": {
+    "m": "拒绝原因（解码文本，无则空串）",
+    "src": "dict_exact"
+   },
+   "borrower_intentions": {
+    "m": "借款人意向（解码文本）",
+    "src": "dict_exact"
+   },
+   "imminent_default": {
+    "m": "即将违约标识（CFPB Reg X）",
+    "src": "dict_exact"
+   },
+   "single_point_of_contact": {
+    "m": "专属联系人（CFPB 12 CFR 1024.40）",
+    "src": "dict_exact"
+   }
+  }
+ },
+ "basic_data_loan_foreclosure_bankruptcy": {
+  "schema_table": "port.basic_data_loan_foreclosure_bankruptcy",
+  "fields": {
+   "dataasof": {
+    "m": "数据快照日期",
+    "src": "dict_reuse"
+   },
+   "servicer": {
+    "m": "当前服务商名称（hardcoded）",
+    "src": "dict_reuse"
+   },
+   "loanid": {
+    "m": "系统贷款 ID",
+    "src": "dict_exact"
+   },
+   "svcloanid": {
+    "m": "Servicer 内部贷款号",
+    "src": "dict_exact"
+   },
+   "fctrdt": {
+    "m": "数据来源批次日期",
+    "src": "dict_exact"
+   },
+   "bankruptcy_status": {
+    "m": "破产状态（解码文本）",
+    "src": "dict_exact"
+   },
+   "legal_status": {
+    "m": "法律程序状态",
+    "src": "dict_exact"
+   },
+   "status_date": {
+    "m": "破产申请日（作状态日期用）",
+    "src": "dict_exact"
+   },
+   "chapter": {
+    "m": "破产章节（7/11/13）",
+    "src": "dict_exact"
+   },
+   "lien_status": {
+    "m": "留置权状态",
+    "src": "dict_exact"
+   },
+   "mfr_status": {
+    "m": "MFR 状态",
+    "src": "dict_exact"
+   },
+   "mfr_filed_date": {
+    "m": "MFR 提交日",
+    "src": "dict_exact"
+   },
+   "claim_status": {
+    "m": "债权状态",
+    "src": "dict_exact"
+   },
+   "proof_of_claim_date": {
+    "m": "债权申报（POC）日",
+    "src": "dict_exact"
+   },
+   "post_petition_due_date": {
+    "m": "破产申请后应付日",
+    "src": "dict_exact"
+   }
+  }
+ },
+ "temp_basic_data_fcl": {
+  "schema_table": "tempfc.temp_basic_data_fcl",
+  "fields": {
+   "dataasof": {
+    "m": "数据快照日期",
+    "src": "dict_reuse"
+   },
+   "loanid": {
+    "m": "投资人贷款ID（跨 Servicer 的统一标识）",
+    "src": "dict_reuse"
+   },
+   "servicer": {
+    "m": "当前服务商名称（hardcoded）",
+    "src": "dict_reuse"
+   },
+   "svc_loanid": {
+    "m": "Servicer 自有贷款号",
+    "src": "dict_reuse"
+   },
+   "activefcflag": {
+    "m": "法拍激活标志（整数）",
+    "src": "dict_reuse"
+   },
+   "titleordereddate": {
+    "m": "产权报告委托日期",
+    "src": "dict_reuse"
+   },
+   "titlereceiveddate": {
+    "m": "产权报告收到日期",
+    "src": "dict_reuse"
+   },
+   "titlecleardate": {
+    "m": "产权清晰确认日期",
+    "src": "dict_reuse"
+   },
+   "noi_date": {
+    "m": "意向通知日（Notice of Intent，正式告知借款人即将进入止赎流程）",
+    "src": "dict_reuse"
+   },
+   "fcsetupdate": {
+    "m": "法拍案件建立日期",
+    "src": "dict_reuse"
+   },
+   "referral_start_date": {
+    "m": "FCL 转交律师日期（止赎时间线正式起点）",
+    "src": "dict_reuse"
+   },
+   "svc_days_infc": {
+    "m": "Servicer 自报的 FCL 持续天数",
+    "src": "dict_reuse"
+   },
+   "daysinfc": {
+    "m": "法拍已历天数（另一口径）",
+    "src": "dict_reuse"
+   },
+   "demandsentdate": {
+    "m": "催款函（Demand Letter）发出日期",
+    "src": "dict_reuse"
+   },
+   "demandexpirationdate": {
+    "m": "催款函到期日期（到期仍未还款则推进止赎）",
+    "src": "dict_reuse"
+   },
+   "legal_start_date": {
+    "m": "初次法律行动日期（First Legal Action，司法止赎中为法院立案日）",
+    "src": "dict_reuse"
+   },
+   "service_start_date": {
+    "m": "法律文件送达完成日期（借款人被正式告知诉状）",
+    "src": "dict_reuse"
+   },
+   "fcjudgment_hearing_scheduled": {
+    "m": "判决听证会计划日期",
+    "src": "dict_reuse"
+   },
+   "fcjudgment_end_date": {
+    "m": "判决完成日期（法院裁定止赎）",
+    "src": "dict_reuse"
+   },
+   "fcscheduled_sale_date": {
+    "m": "计划拍卖日期（Auction/Sale Date）",
+    "src": "dict_reuse"
+   },
+   "fcsale_held_date": {
+    "m": "实际拍卖执行日期",
+    "src": "dict_reuse"
+   },
+   "fcbidamount": {
+    "m": "投资人出价",
+    "src": "dict_reuse"
+   },
+   "fcapprbidprice": {
+    "m": "批准的竞价价格",
+    "src": "dict_reuse"
+   },
+   "fcsaleamount": {
+    "m": "拍卖成交价",
+    "src": "dict_reuse"
+   },
+   "fcl3rdpartyproceedsreceiveddate": {
+    "m": "第三方购买收益到账日期",
+    "src": "dict_reuse"
+   },
+   "fcresults": {
+    "m": "法拍结果描述",
+    "src": "dict_reuse"
+   },
+   "fcstage": {
+    "m": "法拍当前阶段描述",
+    "src": "dict_reuse"
+   },
+   "lastfcstepcompleted": {
+    "m": "最后完成的法拍步骤",
+    "src": "dict_reuse"
+   },
+   "lastfcstepcompleteddate": {
+    "m": "最后完成步骤的日期",
+    "src": "dict_reuse"
+   },
+   "fcremovaldesc": {
+    "m": "退出 FCL 流程的文字说明",
+    "src": "dict_reuse"
+   },
+   "fcremovaldate": {
+    "m": "退出 FCL 流程的日期",
+    "src": "dict_reuse"
+   },
+   "judicial": {
+    "m": "是否为 Judicial 州（法拍需法院程序）",
+    "src": "dict_reuse"
+   },
+   "fcfirm": {
+    "m": "承办律师事务所名称",
+    "src": "dict_reuse"
+   },
+   "fccontestedflag": {
+    "m": "是否有争议的法拍（借款人提出法律挑战）",
+    "src": "dict_reuse"
+   },
+   "jr_sr_lien_flag": {
+    "m": "初级/高级留置权标志",
+    "src": "dict_reuse"
+   },
+   "dtdeedrecorded": {
+    "m": "产权契约（Deed）登记日期（REO转移后在政府登记）",
+    "src": "dict_reuse"
+   },
+   "activejnrlienfcflag": {
+    "m": "活跃次级留置权 FCL 标志",
+    "src": "dict_reuse"
+   }
+  }
+ },
+ "basic_data_daily_loan_common": {
+  "schema_table": "port.basic_data_daily_loan_common",
+  "fields": {
+   "asofdate": {
+    "m": "数据观察日期（Servicer 上报数据的截止日）",
+    "src": "dict_exact"
+   },
+   "loanid": {
+    "m": "投资人贷款ID（跨 Servicer 的统一标识）",
+    "src": "dict_exact"
+   },
+   "svcloanid": {
+    "m": "Servicer 内部贷款号",
+    "src": "dict_exact"
+   },
+   "servicer": {
+    "m": "当前服务商名称（hardcoded）",
+    "src": "dict_exact"
+   },
+   "nextduedate": {
+    "m": "下一个应还款日，即借款人下一笔到期付款的日期",
+    "src": "dict_exact"
+   },
+   "principalbalance": {
+    "m": "当前未偿还本金余额 (UPB)",
+    "src": "dict_exact"
+   },
+   "deferredprincipalbalance": {
+    "m": "递延本金余额（通常来自 COVID 修改）",
+    "src": "dict_exact"
+   },
+   "deferredinterestbalance": {
+    "m": "递延利息余额",
+    "src": "authored"
+   },
+   "schedule_pandi_daily": {
+    "m": "计划本息(日表)",
+    "src": "authored"
+   },
+   "principalpaidmtd": {
+    "m": "本月已付本金",
+    "src": "authored"
+   },
+   "interestpaidmtd": {
+    "m": "本月已付利息",
+    "src": "authored"
+   },
+   "interest_rate": {
+    "m": "利率",
+    "src": "authored"
+   },
+   "bal_prin_original": {
+    "m": "原始本金余额",
+    "src": "authored"
+   },
+   "delq_status": {
+    "m": "Servicer 原始逾期状态描述（未标准化）",
+    "src": "dict_exact"
+   },
+   "originalterm": {
+    "m": "原始期限（月）",
+    "src": "authored"
+   },
+   "escrowbalance": {
+    "m": "托管账户余额",
+    "src": "authored"
+   },
+   "escrow_advance_balance": {
+    "m": "托管垫款余额",
+    "src": "authored"
+   },
+   "reccorpadvance": {
+    "m": "可回收公司垫款",
+    "src": "authored"
+   },
+   "nonrecovadvance": {
+    "m": "不可回收垫款",
+    "src": "authored"
+   },
+   "agency": {
+    "m": "贷款担保机构类型",
+    "src": "dict_reuse"
+   },
+   "purpose": {
+    "m": "贷款用途",
+    "src": "dict_reuse"
+   },
+   "proptype": {
+    "m": "房产类型",
+    "src": "dict_reuse"
+   },
+   "occupancy": {
+    "m": "入住状态",
+    "src": "dict_reuse"
+   },
+   "doctype": {
+    "m": "贷款文件类型",
+    "src": "dict_reuse"
+   },
+   "zipcode": {
+    "m": "邮政编码",
+    "src": "dict_reuse"
+   },
+   "propaddress": {
+    "m": "房产地址",
+    "src": "dict_reuse"
+   },
+   "city": {
+    "m": "城市",
+    "src": "dict_reuse"
+   },
+   "state": {
+    "m": "州代码",
+    "src": "dict_reuse"
+   },
+   "modi": {
+    "m": "是否有贷款修改 Y/N",
+    "src": "dict_exact"
+   },
+   "moditype": {
+    "m": "贷款修改类型",
+    "src": "dict_exact"
+   },
+   "modidate": {
+    "m": "贷款修改生效日",
+    "src": "dict_exact"
+   },
+   "origdate": {
+    "m": "贷款起始日（签约日）",
+    "src": "dict_reuse"
+   },
+   "origmaturitydate": {
+    "m": "原始到期日",
+    "src": "dict_reuse"
+   },
+   "maturitydate_": {
+    "m": "到期日",
+    "src": "authored"
+   },
+   "svcremterm": {
+    "m": "Servicer报告的剩余期限（月数）",
+    "src": "dict_reuse"
+   },
+   "firstpaymentdate": {
+    "m": "首次还款日",
+    "src": "authored"
+   },
+   "paymthist": {
+    "m": "还款历史串",
+    "src": "authored"
+   },
+   "origrate_daily": {
+    "m": "原始利率(日表)",
+    "src": "authored"
+   },
+   "fico": {
+    "m": "原始信用评分",
+    "src": "dict_reuse"
+   },
+   "currfico": {
+    "m": "当前信用评分",
+    "src": "dict_reuse"
+   },
+   "oltv": {
+    "m": "原始LTV（贷款价值比）",
+    "src": "dict_reuse"
+   },
+   "origbpo": {
+    "m": "原始经纪人价值评估",
+    "src": "dict_reuse"
+   },
+   "origbpodate": {
+    "m": "原始BPO评估日期",
+    "src": "dict_reuse"
+   },
+   "bpo": {
+    "m": "最新BPO（经纪人房产估值）",
+    "src": "dict_reuse"
+   },
+   "bpodate": {
+    "m": "最新BPO评估日期",
+    "src": "dict_reuse"
+   },
+   "amorttype": {
+    "m": "摊还类型（固定/浮动/IO）",
+    "src": "dict_reuse"
+   },
+   "amortizeterm": {
+    "m": "当前摊还期（月数）",
+    "src": "dict_reuse"
+   },
+   "forbearance": {
+    "m": "Forbearance（宽限期）状态",
+    "src": "dict_exact"
+   },
+   "lien": {
+    "m": "留置权顺位",
+    "src": "dict_reuse"
+   },
+   "balloon": {
+    "m": "是否气球贷款（Y/N）",
+    "src": "dict_reuse"
+   },
+   "pmiflag": {
+    "m": "是否有私人抵押保险（Y/N）",
+    "src": "dict_reuse"
+   },
+   "mitype": {
+    "m": "抵押保险(MI)类型",
+    "src": "authored"
+   },
+   "pmilevel": {
+    "m": "PMI保费率",
+    "src": "dict_reuse"
+   },
+   "indextype": {
+    "m": "利率指数类型（ARM）",
+    "src": "dict_reuse"
+   },
+   "margin": {
+    "m": "浮动利率基差（ARM贷款）",
+    "src": "dict_reuse"
+   },
+   "liferatefloor": {
+    "m": "利率下限",
+    "src": "dict_reuse"
+   },
+   "liferatecap": {
+    "m": "利率上限",
+    "src": "dict_reuse"
+   },
+   "lifechgfloor": {
+    "m": "利率变动下限",
+    "src": "dict_reuse"
+   },
+   "lifechgcap": {
+    "m": "利率变动上限",
+    "src": "dict_reuse"
+   },
+   "firstcap": {
+    "m": "首次调整上限",
+    "src": "dict_reuse"
+   },
+   "periodiccap": {
+    "m": "周期调整上限",
+    "src": "dict_reuse"
+   },
+   "monthtofirstreset": {
+    "m": "距首次重置月数",
+    "src": "dict_reuse"
+   },
+   "firstresetdate": {
+    "m": "首次重置日期",
+    "src": "dict_reuse"
+   },
+   "prepaypenalty": {
+    "m": "是否有提前还款罚金（Y/N）",
+    "src": "dict_reuse"
+   },
+   "prepaypenaltyterm": {
+    "m": "提前还款罚金期（月数）",
+    "src": "dict_reuse"
+   },
+   "io": {
+    "m": "是否为只付利息贷款（Y/N）",
+    "src": "dict_reuse"
+   },
+   "iomonth": {
+    "m": "IO期剩余月数",
+    "src": "dict_reuse"
+   },
+   "tiamount": {
+    "m": "税险(T&I)金额",
+    "src": "authored"
+   },
+   "piti": {
+    "m": "月度PITI（含本息税险保险）",
+    "src": "dict_reuse"
+   },
+   "fcl_flag": {
+    "m": "Foreclosure 激活标志（各 Servicer 含义不一致）",
+    "src": "dict_exact"
+   },
+   "lm_flag": {
+    "m": "Loss Mitigation 激活标志",
+    "src": "dict_exact"
+   },
+   "lastcontactdate": {
+    "m": "服务商最后一次成功联系借款人的日期",
+    "src": "dict_exact"
+   },
+   "reasonfordefault": {
+    "m": "借款人违约原因描述",
+    "src": "dict_exact"
+   },
+   "pmicanceldt": {
+    "m": "PMI取消日期",
+    "src": "dict_reuse"
+   },
+   "pmicancel": {
+    "m": "PMI是否已取消（Y/N）",
+    "src": "dict_reuse"
+   },
+   "pmiexpirationdt": {
+    "m": "PMI到期日期",
+    "src": "dict_reuse"
+   },
+   "balloondate": {
+    "m": "气球贷到期日",
+    "src": "authored"
+   },
+   "balloonterm": {
+    "m": "气球贷款期限（月）",
+    "src": "dict_reuse"
+   }
+  }
+ },
+ "basic_data_daily_loan_common_clean": {
+  "schema_table": "port.basic_data_daily_loan_common_clean",
+  "fields": {
+   "fctrdt": {
+    "m": "Factor Date，月度报告日期（每月1日，代表上月末数据）",
+    "src": "dict_exact"
+   },
+   "dealid": {
+    "m": "Deal 编号（投资交易标识）",
+    "src": "dict_exact"
+   },
+   "fundingid": {
+    "m": "Funding 编号（资金来源标识）",
+    "src": "dict_exact"
+   },
+   "loanid": {
+    "m": "投资人贷款ID",
+    "src": "dict_exact"
+   },
+   "svcloanid": {
+    "m": "Servicer 内部贷款号",
+    "src": "dict_reuse"
+   },
+   "servicer": {
+    "m": "服务商名称",
+    "src": "dict_exact"
+   },
+   "agency": {
+    "m": "贷款担保机构类型",
+    "src": "dict_reuse"
+   },
+   "channel": {
+    "m": "贷款发放渠道",
+    "src": "dict_reuse"
+   },
+   "purpose": {
+    "m": "贷款用途",
+    "src": "dict_reuse"
+   },
+   "proptype": {
+    "m": "房产类型",
+    "src": "dict_reuse"
+   },
+   "occupancy": {
+    "m": "入住状态",
+    "src": "dict_reuse"
+   },
+   "doctype": {
+    "m": "贷款文件类型",
+    "src": "dict_reuse"
+   },
+   "zipcode": {
+    "m": "邮政编码",
+    "src": "dict_reuse"
+   },
+   "propaddress": {
+    "m": "房产地址",
+    "src": "dict_reuse"
+   },
+   "city": {
+    "m": "城市",
+    "src": "dict_reuse"
+   },
+   "state": {
+    "m": "州代码",
+    "src": "dict_reuse"
+   },
+   "msa": {
+    "m": "都市统计区代码",
+    "src": "dict_reuse"
+   },
+   "nextduedate": {
+    "m": "下一应还款日",
+    "src": "dict_exact"
+   },
+   "svcdelinq": {
+    "m": "Servicer 原始逾期状态码（未标准化）",
+    "src": "dict_exact"
+   },
+   "delinq": {
+    "m": "**标准化逾期状态码（全系统核心字段）**",
+    "src": "dict_exact"
+   },
+   "ots_delinq": {
+    "m": "OTS 逾期分类（清洗后）",
+    "src": "authored"
+   },
+   "monthindelinq": {
+    "m": "逾期月数（整数）",
+    "src": "dict_exact"
+   },
+   "bankruptcy": {
+    "m": "破产标志 Y/N",
+    "src": "dict_exact"
+   },
+   "modi": {
+    "m": "是否有贷款修改",
+    "src": "dict_exact"
+   },
+   "moditype": {
+    "m": "贷款修改类型",
+    "src": "dict_reuse"
+   },
+   "modidate": {
+    "m": "贷款修改生效日",
+    "src": "dict_reuse"
+   },
+   "origdate": {
+    "m": "贷款起始日（签约日）",
+    "src": "dict_reuse"
+   },
+   "origmaturitydate": {
+    "m": "原始到期日",
+    "src": "dict_reuse"
+   },
+   "maturitydate": {
+    "m": "当前到期日（改期后可能调整）",
+    "src": "dict_reuse"
+   },
+   "origterm": {
+    "m": "贷款原始期限（月数）",
+    "src": "dict_reuse"
+   },
+   "svcremterm": {
+    "m": "Servicer报告的剩余期限（月数）",
+    "src": "dict_reuse"
+   },
+   "remterm": {
+    "m": "系统计算剩余期限（月数）",
+    "src": "dict_reuse"
+   },
+   "loanage": {
+    "m": "贷款已存续月数",
+    "src": "dict_exact"
+   },
+   "firstpaymtdt": {
+    "m": "首次还款日",
+    "src": "dict_reuse"
+   },
+   "svcpaymthist": {
+    "m": "Servicer提供的还款历史字符串",
+    "src": "dict_reuse"
+   },
+   "origrate": {
+    "m": "原始利率",
+    "src": "dict_reuse"
+   },
+   "intrate": {
+    "m": "当前利率",
+    "src": "dict_reuse"
+   },
+   "fico": {
+    "m": "原始信用评分",
+    "src": "dict_reuse"
+   },
+   "currfico": {
+    "m": "当前信用评分",
+    "src": "dict_reuse"
+   },
+   "oltv": {
+    "m": "原始LTV（贷款价值比）",
+    "src": "dict_reuse"
+   },
+   "combltv": {
+    "m": "综合LTV（含次级留置权）",
+    "src": "dict_reuse"
+   },
+   "dti": {
+    "m": "债务收入比",
+    "src": "dict_reuse"
+   },
+   "origbpo": {
+    "m": "原始经纪人价值评估",
+    "src": "dict_reuse"
+   },
+   "origbpodate": {
+    "m": "原始BPO评估日期",
+    "src": "dict_reuse"
+   },
+   "bpo": {
+    "m": "最新BPO（经纪人房产估值）",
+    "src": "dict_reuse"
+   },
+   "bpodate": {
+    "m": "最新BPO评估日期",
+    "src": "dict_reuse"
+   },
+   "salesprice": {
+    "m": "原始购买价格",
+    "src": "dict_reuse"
+   },
+   "amorttype": {
+    "m": "摊还类型（固定/浮动/IO）",
+    "src": "dict_reuse"
+   },
+   "origamortizeterm": {
+    "m": "原始摊还期（月数）",
+    "src": "dict_reuse"
+   },
+   "amortizeterm": {
+    "m": "当前摊还期（月数）",
+    "src": "dict_reuse"
+   },
+   "forbearance": {
+    "m": "Forbearance 状态",
+    "src": "dict_exact"
+   },
+   "lien": {
+    "m": "留置权顺位",
+    "src": "dict_reuse"
+   },
+   "dpa": {
+    "m": "首付援助（Down Payment Assistance）",
+    "src": "dict_reuse"
+   },
+   "fthb": {
+    "m": "首次购房者（First-Time Home Buyer）",
+    "src": "dict_reuse"
+   },
+   "balloon": {
+    "m": "是否气球贷款（Y/N）",
+    "src": "dict_reuse"
+   },
+   "balloonterm": {
+    "m": "气球贷款期限（月）",
+    "src": "dict_reuse"
+   },
+   "buydown": {
+    "m": "利率买入点（Y/N）",
+    "src": "dict_reuse"
+   },
+   "pmiflag": {
+    "m": "是否有私人抵押保险（Y/N）",
+    "src": "dict_reuse"
+   },
+   "pmitype": {
+    "m": "PMI类型",
+    "src": "dict_reuse"
+   },
+   "pmilevel": {
+    "m": "PMI保费率",
+    "src": "dict_reuse"
+   },
+   "pmileveladj": {
+    "m": "调整后PMI保费率",
+    "src": "dict_reuse"
+   },
+   "pmicancel": {
+    "m": "PMI是否已取消（Y/N）",
+    "src": "dict_reuse"
+   },
+   "pmicanceldt": {
+    "m": "PMI取消日期",
+    "src": "dict_reuse"
+   },
+   "pmiexpirationdt": {
+    "m": "PMI到期日期",
+    "src": "dict_reuse"
+   },
+   "pminotes": {
+    "m": "PMI备注",
+    "src": "dict_reuse"
+   },
+   "partialclaim": {
+    "m": "部分求偿金额（HUD部分偿还）",
+    "src": "dict_reuse"
+   },
+   "moreunits": {
+    "m": "房产单元数（多单元住宅）",
+    "src": "dict_reuse"
+   },
+   "indextype": {
+    "m": "利率指数类型（ARM）",
+    "src": "dict_reuse"
+   },
+   "margin": {
+    "m": "浮动利率基差（ARM贷款）",
+    "src": "dict_reuse"
+   },
+   "liferatefloor": {
+    "m": "利率下限",
+    "src": "dict_reuse"
+   },
+   "liferatecap": {
+    "m": "利率上限",
+    "src": "dict_reuse"
+   },
+   "lifechgfloor": {
+    "m": "利率变动下限",
+    "src": "dict_reuse"
+   },
+   "lifechgcap": {
+    "m": "利率变动上限",
+    "src": "dict_reuse"
+   },
+   "firstcap": {
+    "m": "首次调整上限",
+    "src": "dict_reuse"
+   },
+   "periodiccap": {
+    "m": "周期调整上限",
+    "src": "dict_reuse"
+   },
+   "monthtofirstreset": {
+    "m": "距首次重置月数",
+    "src": "dict_reuse"
+   },
+   "firstresetdate": {
+    "m": "首次重置日期",
+    "src": "dict_reuse"
+   },
+   "resetfreq": {
+    "m": "重置频率（月）",
+    "src": "dict_reuse"
+   },
+   "piw": {
+    "m": "免罚款窗口期（Y/N）",
+    "src": "dict_reuse"
+   },
+   "prepaypenalty": {
+    "m": "是否有提前还款罚金（Y/N）",
+    "src": "dict_reuse"
+   },
+   "prepaypenaltyterm": {
+    "m": "提前还款罚金期（月数）",
+    "src": "dict_reuse"
+   },
+   "prepaypenaltytype": {
+    "m": "提前还款罚金类型",
+    "src": "dict_reuse"
+   },
+   "io": {
+    "m": "是否为只付利息贷款（Y/N）",
+    "src": "dict_reuse"
+   },
+   "iomonth": {
+    "m": "IO期剩余月数",
+    "src": "dict_reuse"
+   },
+   "dscr": {
+    "m": "债务偿还覆盖率（商业贷款）",
+    "src": "dict_reuse"
+   },
+   "origbal": {
+    "m": "原始贷款金额",
+    "src": "dict_exact"
+   },
+   "prevbal": {
+    "m": "上期期末余额",
+    "src": "dict_reuse"
+   },
+   "balance": {
+    "m": "当前未偿还本金余额",
+    "src": "dict_exact"
+   },
+   "deferredprin": {
+    "m": "递延本金余额",
+    "src": "dict_exact"
+   },
+   "deferredint": {
+    "m": "递延利息余额",
+    "src": "dict_exact"
+   },
+   "pandi": {
+    "m": "月度本利合计（P&I，Scheduled Principal and Interest）",
+    "src": "dict_exact"
+   },
+   "tandi": {
+    "m": "月度本息税险应还（T&I，含税险）",
+    "src": "dict_reuse"
+   },
+   "piti": {
+    "m": "月度PITI（含本息税险保险）",
+    "src": "dict_reuse"
+   },
+   "escrowbal": {
+    "m": "托管账户余额",
+    "src": "dict_reuse"
+   },
+   "escrowadv": {
+    "m": "累计托管垫付金额",
+    "src": "dict_reuse"
+   },
+   "corpadvrec": {
+    "m": "可回收公司垫付款（Recoverable Corporate Advance）",
+    "src": "dict_exact"
+   },
+   "corpadvnonrec": {
+    "m": "不可追偿企业垫付",
+    "src": "dict_reuse"
+   },
+   "corpadvtotal": {
+    "m": "企业垫付合计",
+    "src": "dict_reuse"
+   },
+   "invbal": {
+    "m": "投资人账面余额（actual）",
+    "src": "dict_reuse"
+   },
+   "invbalsched": {
+    "m": "投资人应还账面余额（scheduled）",
+    "src": "dict_reuse"
+   },
+   "lm_flag": {
+    "m": "Loss Mitigation 激活标志 Y/N",
+    "src": "dict_exact"
+   },
+   "lastcontactdate": {
+    "m": "最后联系日期",
+    "src": "dict_exact"
+   },
+   "reasonfordefault": {
+    "m": "违约原因",
+    "src": "dict_exact"
+   }
+  }
+ },
+ "sync_loan_foreclosure": {
+  "schema_table": "bpms.sync_loan_foreclosure",
+  "fields": {
+   "id": {
+    "m": "主键，自增 ID",
+    "src": "dict_exact"
+   },
+   "bid_id": {
+    "m": "Bid/资产业务编号（非自增，文本代码）",
+    "src": "dict_exact"
+   },
+   "funding_id": {
+    "m": "Fund / Funding 编号",
+    "src": "dict_exact"
+   },
+   "loanid": {
+    "m": "系统贷款 ID（跨 Servicer 统一标识）",
+    "src": "dict_exact"
+   },
+   "svcloanid": {
+    "m": "Servicer 内部贷款号",
+    "src": "dict_exact"
+   },
+   "servicer": {
+    "m": "Servicer 名称",
+    "src": "dict_exact"
+   },
+   "timeline_notice_of_intent_date": {
+    "m": "NOI / Demand 信函发出日",
+    "src": "dict_exact"
+   },
+   "timeline_notice_of_intent_end_date": {
+    "m": "NOI 到期日（通常发出+30天）",
+    "src": "dict_exact"
+   },
+   "timeline_approved_for_referral_date": {
+    "m": "批准转案/开案日（BPS 建档日）",
+    "src": "dict_exact"
+   },
+   "timeline_referred_to_attorney_date": {
+    "m": "转介律师日",
+    "src": "dict_exact"
+   },
+   "timeline_referred_to_foreclosure_date": {
+    "m": "正式转 FCL 日期",
+    "src": "dict_exact"
+   },
+   "timeline_title_report_received_date": {
+    "m": "产权报告收到日",
+    "src": "dict_exact"
+   },
+   "timeline_preliminary_title_cleared_date": {
+    "m": "初步产权清查日",
+    "src": "dict_exact"
+   },
+   "timeline_first_legal_date": {
+    "m": "第一次法律行动日（Filing）",
+    "src": "dict_exact"
+   },
+   "timeline_service_date": {
+    "m": "法律文书送达完成日",
+    "src": "dict_exact"
+   },
+   "timeline_publication_date": {
+    "m": "拍卖公告发布日",
+    "src": "dict_exact"
+   },
+   "timeline_judgement_hearing_set_date": {
+    "m": "当前听证日首次出现日（ETL 追踪）",
+    "src": "dict_exact"
+   },
+   "timeline_judgement_date": {
+    "m": "当前排定的判决听证会日期",
+    "src": "dict_exact"
+   },
+   "timeline_sale_date_projected_date": {
+    "m": "最新预计/排定拍卖日",
+    "src": "dict_exact"
+   },
+   "timeline_sale_date_set_date": {
+    "m": "当前拍卖日首次出现日（ETL 追踪）",
+    "src": "dict_exact"
+   },
+   "timeline_final_title_cleared_date": {
+    "m": "最终产权清查日",
+    "src": "dict_exact"
+   },
+   "timeline_sale_date_held_date": {
+    "m": "实际拍卖举行日",
+    "src": "dict_exact"
+   },
+   "timeline_foreclosure_completed_date": {
+    "m": "FCL 流程完结日",
+    "src": "dict_exact"
+   },
+   "timeline_third_party_sold_date_date": {
+    "m": "第三方买家成交日",
+    "src": "dict_exact"
+   },
+   "timeline_third_party_proceeds_received_date": {
+    "m": "第三方拍卖款到账日",
+    "src": "dict_exact"
+   },
+   "target_notice_of_intent_days": {
+    "m": "NOI 阶段目标天数",
+    "src": "dict_exact"
+   },
+   "target_notice_of_intent_expired_days": {
+    "m": "NOI 到期等待目标天数",
+    "src": "dict_exact"
+   },
+   "target_approved_for_referral_days": {
+    "m": "批准转案目标天数",
+    "src": "dict_exact"
+   },
+   "target_referred_to_attorney_days": {
+    "m": "转案至律师接案目标天数",
+    "src": "dict_exact"
+   },
+   "target_referred_to_foreclosure_days": {
+    "m": "转案至正式启动FCL目标天数",
+    "src": "dict_exact"
+   },
+   "target_title_report_received_days": {
+    "m": "产权报告到位目标天数",
+    "src": "dict_exact"
+   },
+   "target_preliminary_title_cleared_days": {
+    "m": "初步产权确认目标天数",
+    "src": "dict_exact"
+   },
+   "target_first_legal_days": {
+    "m": "第一次法律行动目标天数",
+    "src": "dict_exact"
+   },
+   "target_service_days": {
+    "m": "送达完成目标天数",
+    "src": "dict_exact"
+   },
+   "target_publication_days": {
+    "m": "公告发布目标天数",
+    "src": "dict_exact"
+   },
+   "target_judgement_hearing_set_days": {
+    "m": "Judgment Hearing 安排目标天数",
+    "src": "dict_exact"
+   },
+   "target_judgement_days": {
+    "m": "Judgment 完成目标天数",
+    "src": "dict_exact"
+   },
+   "target_sale_date_set_days": {
+    "m": "拍卖日期确定目标天数",
+    "src": "dict_exact"
+   },
+   "target_final_title_cleared_days": {
+    "m": "最终产权确认目标天数",
+    "src": "dict_exact"
+   },
+   "target_sale_date_held_days": {
+    "m": "拍卖完成目标天数",
+    "src": "dict_exact"
+   },
+   "variance_active_bankruptcy": {
+    "m": "当前是否处于活跃破产保护（1/0）",
+    "src": "dict_exact"
+   },
+   "variance_completed_bankruptcy": {
+    "m": "历史上是否曾完结破产（1/0）",
+    "src": "dict_exact"
+   },
+   "variance_estimated_hold_days": {
+    "m": "预计 Hold 调整天数合计",
+    "src": "dict_exact"
+   },
+   "variance_bankruptcies": {
+    "m": "该贷款历史 BK 申请总次数",
+    "src": "dict_exact"
+   },
+   "bid_approval_status": {
+    "m": "竞拍审批状态",
+    "src": "dict_exact"
+   },
+   "bid_approval_sale_date": {
+    "m": "竞拍关联的拍卖日期",
+    "src": "dict_exact"
+   },
+   "bid_approval_bid_amount": {
+    "m": "竞拍出价金额",
+    "src": "dict_exact"
+   },
+   "bid_approval_loan_resolution_holods": {
+    "m": "**贷款处置 Hold 原因**",
+    "src": "dict_exact"
+   },
+   "summary_servicer_number": {
+    "m": "Servicer 内部编号",
+    "src": "dict_exact"
+   },
+   "summary_foreclosure_status": {
+    "m": "**FCL 当前状态**（Servicer 状态描述）",
+    "src": "dict_exact"
+   },
+   "summary_completed_foreclosure": {
+    "m": "FCL 是否已完结",
+    "src": "dict_exact"
+   },
+   "summary_foreclosure_bid_amount": {
+    "m": "FCL 出价金额（投资人口径）",
+    "src": "dict_exact"
+   },
+   "summary_srv_fc_bid_amount": {
+    "m": "Servicer 上报的 FCL 出价金额",
+    "src": "dict_exact"
+   },
+   "summary_foreclosure_sale_amount": {
+    "m": "实际拍卖成交金额",
+    "src": "dict_exact"
+   },
+   "summary_judicial_foreclosure": {
+    "m": "是否司法 FCL（1=司法）",
+    "src": "dict_exact"
+   },
+   "summary_foreclosure_attorney": {
+    "m": "FCL 律师名称",
+    "src": "dict_exact"
+   },
+   "summary_contested_litigation": {
+    "m": "是否有争议诉讼（1=有）",
+    "src": "dict_exact"
+   },
+   "summary_firm": {
+    "m": "律师事务所名称",
+    "src": "dict_exact"
+   },
+   "summary_type": {
+    "m": "FCL 类型文本（与 judicial 配合）",
+    "src": "dict_exact"
+   },
+   "summary_sms_days_in_fcl": {
+    "m": "SMS系统统计的 FCL 历时天数（Servicer口径）",
+    "src": "dict_exact"
+   },
+   "summary_days_in_fcl": {
+    "m": "投资人口径 FCL 历时天数",
+    "src": "dict_exact"
+   },
+   "summary_current_step": {
+    "m": "当前 FCL 步骤",
+    "src": "dict_exact"
+   },
+   "summary_last_step_completed": {
+    "m": "最近完成的 FCL 步骤",
+    "src": "dict_exact"
+   },
+   "summary_last_step_completed_date": {
+    "m": "最近完成步骤的日期",
+    "src": "dict_exact"
+   },
+   "create_user": {
+    "m": "记录创建用户",
+    "src": "dict_exact"
+   },
+   "create_dept": {
+    "m": "记录创建部门",
+    "src": "dict_exact"
+   },
+   "create_time": {
+    "m": "记录创建时间",
+    "src": "dict_exact"
+   },
+   "update_user": {
+    "m": "最后更新用户",
+    "src": "dict_exact"
+   },
+   "update_time": {
+    "m": "最后更新时间",
+    "src": "dict_exact"
+   },
+   "status": {
+    "m": "记录状态（0=正常）",
+    "src": "dict_exact"
+   },
+   "is_deleted": {
+    "m": "是否软删除（0=未删）",
+    "src": "dict_exact"
+   },
+   "tenant_id": {
+    "m": "租户 ID（多租户架构）",
+    "src": "dict_exact"
+   }
+  }
+ },
+ "sync_fcl_stage_info": {
+  "schema_table": "bpms.sync_fcl_stage_info",
+  "fields": {
+   "id": {
+    "m": "自增主键",
+    "src": "dict_exact"
+   },
+   "stage": {
+    "m": "当前 FCL 阶段代码（全大写）",
+    "src": "dict_exact"
+   },
+   "fctrdt": {
+    "m": "数据快照日（每贷款每天一行）",
+    "src": "dict_exact"
+   },
+   "loanid": {
+    "m": "系统贷款 ID",
+    "src": "dict_exact"
+   },
+   "group": {
+    "m": "派生分类（FCL/REO/D120P/D90）",
+    "src": "dict_exact"
+   },
+   "servicer": {
+    "m": "Servicer 名称",
+    "src": "dict_exact"
+   },
+   "state": {
+    "m": "物业所在州",
+    "src": "dict_exact"
+   },
+   "judicial": {
+    "m": "是否司法州（Y/N）",
+    "src": "dict_exact"
+   },
+   "demand_start_date": {
+    "m": "NOI/Demand Letter 阶段 · 阶段开始日",
+    "src": "dict_exact"
+   },
+   "demand_end_date": {
+    "m": "NOI/Demand Letter 阶段 · 阶段结束日",
+    "src": "dict_exact"
+   },
+   "demand_stage_days": {
+    "m": "NOI/Demand Letter 阶段 · 在该阶段已历天数",
+    "src": "dict_exact"
+   },
+   "demand_in_lm_days": {
+    "m": "NOI/Demand Letter 阶段 · 该阶段内处于 LM 的天数",
+    "src": "dict_exact"
+   },
+   "demand_on_hold_days": {
+    "m": "NOI/Demand Letter 阶段 · 该阶段内处于 Hold 的天数",
+    "src": "dict_exact"
+   },
+   "noi_start_date": {
+    "m": "NOI(Approved for Referral) 阶段 · 阶段开始日",
+    "src": "dict_exact"
+   },
+   "noi_end_date": {
+    "m": "NOI(Approved for Referral) 阶段 · 阶段结束日",
+    "src": "dict_exact"
+   },
+   "noi_stage_days": {
+    "m": "NOI(Approved for Referral) 阶段 · 在该阶段已历天数",
+    "src": "dict_exact"
+   },
+   "noi_in_lm_days": {
+    "m": "NOI(Approved for Referral) 阶段 · 该阶段内处于 LM 的天数",
+    "src": "dict_exact"
+   },
+   "noi_on_hold_days": {
+    "m": "NOI(Approved for Referral) 阶段 · 该阶段内处于 Hold 的天数",
+    "src": "dict_exact"
+   },
+   "referral_start_date": {
+    "m": "Referral 阶段 · 阶段开始日",
+    "src": "dict_exact"
+   },
+   "referral_end_date": {
+    "m": "Referral 阶段 · 阶段结束日",
+    "src": "dict_exact"
+   },
+   "referral_stage_days": {
+    "m": "Referral 阶段 · 在该阶段已历天数",
+    "src": "dict_exact"
+   },
+   "referral_in_lm_days": {
+    "m": "Referral 阶段 · 该阶段内处于 LM 的天数",
+    "src": "dict_exact"
+   },
+   "referral_on_hold_days": {
+    "m": "Referral 阶段 · 该阶段内处于 Hold 的天数",
+    "src": "dict_exact"
+   },
+   "first_legal_start_date": {
+    "m": "First Legal 阶段 · 阶段开始日",
+    "src": "dict_exact"
+   },
+   "first_legal_end_date": {
+    "m": "First Legal 阶段 · 阶段结束日",
+    "src": "dict_exact"
+   },
+   "first_legal_stage_days": {
+    "m": "First Legal 阶段 · 在该阶段已历天数",
+    "src": "dict_exact"
+   },
+   "first_legal_in_lm_days": {
+    "m": "First Legal 阶段 · 该阶段内处于 LM 的天数",
+    "src": "dict_exact"
+   },
+   "first_legal_on_hold_days": {
+    "m": "First Legal 阶段 · 该阶段内处于 Hold 的天数",
+    "src": "dict_exact"
+   },
+   "first_legal_date_history": {
+    "m": "首次法律行动日变更历史",
+    "src": "dict_exact"
+   },
+   "service_start_date": {
+    "m": "Service 阶段 · 阶段开始日",
+    "src": "dict_exact"
+   },
+   "service_end_date": {
+    "m": "Service 阶段 · 阶段结束日",
+    "src": "dict_exact"
+   },
+   "service_stage_days": {
+    "m": "Service 阶段 · 在该阶段已历天数",
+    "src": "dict_exact"
+   },
+   "service_in_lm_days": {
+    "m": "Service 阶段 · 该阶段内处于 LM 的天数",
+    "src": "dict_exact"
+   },
+   "service_on_hold_days": {
+    "m": "Service 阶段 · 该阶段内处于 Hold 的天数",
+    "src": "dict_exact"
+   },
+   "publication_start_date": {
+    "m": "Publication 阶段 · 阶段开始日",
+    "src": "dict_exact"
+   },
+   "publication_end_date": {
+    "m": "Publication 阶段 · 阶段结束日",
+    "src": "dict_exact"
+   },
+   "publication_stage_days": {
+    "m": "Publication 阶段 · 在该阶段已历天数",
+    "src": "dict_exact"
+   },
+   "publication_in_lm_days": {
+    "m": "Publication 阶段 · 该阶段内处于 LM 的天数",
+    "src": "dict_exact"
+   },
+   "publication_on_hold_days": {
+    "m": "Publication 阶段 · 该阶段内处于 Hold 的天数",
+    "src": "dict_exact"
+   },
+   "judgement_start_date": {
+    "m": "Upcoming Judgement 阶段 · 阶段开始日",
+    "src": "dict_exact"
+   },
+   "judgement_end_date": {
+    "m": "Upcoming Judgement 阶段 · 阶段结束日",
+    "src": "dict_exact"
+   },
+   "to_judgement_days": {
+    "m": "距判决日剩余天数",
+    "src": "dict_exact"
+   },
+   "judgement_in_lm_days": {
+    "m": "Upcoming Judgement 阶段 · 该阶段内处于 LM 的天数",
+    "src": "dict_exact"
+   },
+   "judgement_on_hold_days": {
+    "m": "Upcoming Judgement 阶段 · 该阶段内处于 Hold 的天数",
+    "src": "dict_exact"
+   },
+   "sale_start_date": {
+    "m": "Upcoming FC Sales 阶段 · 阶段开始日",
+    "src": "dict_exact"
+   },
+   "sale_end_date": {
+    "m": "Upcoming FC Sales 阶段 · 阶段结束日",
+    "src": "dict_exact"
+   },
+   "to_sale_days": {
+    "m": "距拍卖日剩余天数",
+    "src": "dict_exact"
+   },
+   "sale_in_lm_days": {
+    "m": "Upcoming FC Sales 阶段 · 该阶段内处于 LM 的天数",
+    "src": "dict_exact"
+   },
+   "sale_on_hold_days": {
+    "m": "Upcoming FC Sales 阶段 · 该阶段内处于 Hold 的天数",
+    "src": "dict_exact"
+   },
+   "create_time": {
+    "m": "记录创建时间",
+    "src": "dict_exact"
+   },
+   "update_time": {
+    "m": "记录更新时间",
+    "src": "dict_exact"
+   },
+   "create_user": {
+    "m": "记录创建用户",
+    "src": "dict_exact"
+   },
+   "create_dept": {
+    "m": "记录创建部门",
+    "src": "dict_exact"
+   },
+   "update_user": {
+    "m": "最后更新用户",
+    "src": "dict_exact"
+   },
+   "status": {
+    "m": "记录状态（0=正常）",
+    "src": "dict_exact"
+   },
+   "is_deleted": {
+    "m": "是否软删除（0=未删）",
+    "src": "dict_exact"
+   },
+   "tenant_id": {
+    "m": "租户 ID",
+    "src": "dict_exact"
+   }
+  }
+ },
+ "biz_data_view_loan_details_foreclosure": {
+  "schema_table": "bpms.biz_data_view_loan_details_foreclosure",
+  "fields": {
+   "id": {
+    "m": "FCL 记录 ID（来自 loan_fcl）",
+    "src": "dict_exact"
+   },
+   "loanid": {
+    "m": "系统贷款 ID",
+    "src": "dict_exact"
+   },
+   "svcloanid": {
+    "m": "Servicer 内部贷款号",
+    "src": "dict_exact"
+   },
+   "fctrdt": {
+    "m": "数据快照日（月度）",
+    "src": "dict_exact"
+   },
+   "nextduedate": {
+    "m": "下次应还款日（DPD/历时计算锚点）",
+    "src": "dict_exact"
+   },
+   "timeline_notice_of_intent_date": {
+    "m": "FCL 里程碑日期（同表17 `timeline_notice_of_intent_date`）",
+    "src": "dict_exact"
+   },
+   "timeline_notice_of_intent_end_date": {
+    "m": "FCL 里程碑日期（同表17 `timeline_notice_of_intent_end_date`）",
+    "src": "dict_exact"
+   },
+   "timeline_approved_for_referral_date": {
+    "m": "FCL 里程碑日期（同表17 `timeline_approved_for_referral_date`）",
+    "src": "dict_exact"
+   },
+   "timeline_referred_to_attorney_date": {
+    "m": "FCL 里程碑日期（同表17 `timeline_referred_to_attorney_date`）",
+    "src": "dict_exact"
+   },
+   "timeline_referred_to_foreclosure_date": {
+    "m": "FCL 里程碑日期（同表17 `timeline_referred_to_foreclosure_date`）",
+    "src": "dict_exact"
+   },
+   "timeline_title_report_received_date": {
+    "m": "FCL 里程碑日期（同表17 `timeline_title_report_received_date`）",
+    "src": "dict_exact"
+   },
+   "timeline_preliminary_title_cleared_date": {
+    "m": "FCL 里程碑日期（同表17 `timeline_preliminary_title_cleared_date`）",
+    "src": "dict_exact"
+   },
+   "timeline_first_legal_date": {
+    "m": "FCL 里程碑日期（同表17 `timeline_first_legal_date`）",
+    "src": "dict_exact"
+   },
+   "timeline_service_date": {
+    "m": "FCL 里程碑日期（同表17 `timeline_service_date`）",
+    "src": "dict_exact"
+   },
+   "timeline_publication_date": {
+    "m": "FCL 里程碑日期（同表17 `timeline_publication_date`）",
+    "src": "dict_exact"
+   },
+   "timeline_judgement_hearing_set_date": {
+    "m": "FCL 里程碑日期（同表17 `timeline_judgement_hearing_set_date`）",
+    "src": "dict_exact"
+   },
+   "timeline_judgement_date": {
+    "m": "FCL 里程碑日期（同表17 `timeline_judgement_date`）",
+    "src": "dict_exact"
+   },
+   "timeline_sale_date_projected_date": {
+    "m": "FCL 里程碑日期（同表17 `timeline_sale_date_projected_date`）",
+    "src": "dict_exact"
+   },
+   "timeline_sale_date_set_date": {
+    "m": "FCL 里程碑日期（同表17 `timeline_sale_date_set_date`）",
+    "src": "dict_exact"
+   },
+   "timeline_final_title_cleared_date": {
+    "m": "FCL 里程碑日期（同表17 `timeline_final_title_cleared_date`）",
+    "src": "dict_exact"
+   },
+   "timeline_sale_date_held_date": {
+    "m": "FCL 里程碑日期（同表17 `timeline_sale_date_held_date`）",
+    "src": "dict_exact"
+   },
+   "timeline_foreclosure_completed_date": {
+    "m": "FCL 里程碑日期（同表17 `timeline_foreclosure_completed_date`）",
+    "src": "dict_exact"
+   },
+   "timeline_third_party_sold_date_date": {
+    "m": "FCL 里程碑日期（同表17 `timeline_third_party_sold_date_date`）",
+    "src": "dict_exact"
+   },
+   "timeline_third_party_proceeds_received_date": {
+    "m": "FCL 里程碑日期（同表17 `timeline_third_party_proceeds_received_date`）",
+    "src": "dict_exact"
+   },
+   "target_notice_of_intent_days": {
+    "m": "SLA 目标天数（同表17 `target_notice_of_intent_days`）",
+    "src": "dict_exact"
+   },
+   "target_notice_of_intent_expired_days": {
+    "m": "SLA 目标天数（同表17 `target_notice_of_intent_expired_days`）",
+    "src": "dict_exact"
+   },
+   "target_approved_for_referral_days": {
+    "m": "SLA 目标天数（同表17 `target_approved_for_referral_days`）",
+    "src": "dict_exact"
+   },
+   "target_referred_to_attorney_days": {
+    "m": "SLA 目标天数（同表17 `target_referred_to_attorney_days`）",
+    "src": "dict_exact"
+   },
+   "target_referred_to_foreclosure_days": {
+    "m": "SLA 目标天数（同表17 `target_referred_to_foreclosure_days`）",
+    "src": "dict_exact"
+   },
+   "target_title_report_received_days": {
+    "m": "SLA 目标天数（同表17 `target_title_report_received_days`）",
+    "src": "dict_exact"
+   },
+   "target_preliminary_title_cleared_days": {
+    "m": "SLA 目标天数（同表17 `target_preliminary_title_cleared_days`）",
+    "src": "dict_exact"
+   },
+   "target_first_legal_days": {
+    "m": "SLA 目标天数（同表17 `target_first_legal_days`）",
+    "src": "dict_exact"
+   },
+   "target_service_days": {
+    "m": "SLA 目标天数（同表17 `target_service_days`）",
+    "src": "dict_exact"
+   },
+   "target_publication_days": {
+    "m": "SLA 目标天数（同表17 `target_publication_days`）",
+    "src": "dict_exact"
+   },
+   "target_judgement_hearing_set_days": {
+    "m": "SLA 目标天数（同表17 `target_judgement_hearing_set_days`）",
+    "src": "dict_exact"
+   },
+   "target_judgement_days": {
+    "m": "SLA 目标天数（同表17 `target_judgement_days`）",
+    "src": "dict_exact"
+   },
+   "target_sale_date_set_days": {
+    "m": "SLA 目标天数（同表17 `target_sale_date_set_days`）",
+    "src": "dict_exact"
+   },
+   "target_final_title_cleared_days": {
+    "m": "SLA 目标天数（同表17 `target_final_title_cleared_days`）",
+    "src": "dict_exact"
+   },
+   "target_sale_date_held_days": {
+    "m": "SLA 目标天数（同表17 `target_sale_date_held_days`）",
+    "src": "dict_exact"
+   },
+   "actual_notice_of_intent_days": {
+    "m": "实际历时天数（notice_of_intent）",
+    "src": "dict_exact"
+   },
+   "actual_notice_of_intent_expire_days": {
+    "m": "实际历时天数（notice_of_intent_expire）",
+    "src": "dict_exact"
+   },
+   "actual_approved_for_referral_days": {
+    "m": "实际历时天数（approved_for_referral）",
+    "src": "dict_exact"
+   },
+   "actual_referred_to_attorney_days": {
+    "m": "实际历时天数（referred_to_attorney）",
+    "src": "dict_exact"
+   },
+   "actual_referred_to_foreclosure_days": {
+    "m": "实际历时天数（referred_to_foreclosure）",
+    "src": "dict_exact"
+   },
+   "actual_title_report_received_days": {
+    "m": "实际历时天数（title_report_received）",
+    "src": "dict_exact"
+   },
+   "actual_preliminary_title_cleared_days": {
+    "m": "实际历时天数（preliminary_title_cleared）",
+    "src": "dict_exact"
+   },
+   "actual_first_legal_days": {
+    "m": "实际历时天数（first_legal）",
+    "src": "dict_exact"
+   },
+   "actual_service_days": {
+    "m": "实际历时天数（service）",
+    "src": "dict_exact"
+   },
+   "actual_publication_days": {
+    "m": "实际历时天数（publication）",
+    "src": "dict_exact"
+   },
+   "actual_judgement_hearing_set_days": {
+    "m": "实际历时天数（judgement_hearing_set）",
+    "src": "dict_exact"
+   },
+   "actual_judgement_days": {
+    "m": "实际历时天数（judgement）",
+    "src": "dict_exact"
+   },
+   "actual_sale_date_set_days": {
+    "m": "实际历时天数（sale_date_set）",
+    "src": "dict_exact"
+   },
+   "actual_final_title_cleared_days": {
+    "m": "实际历时天数（final_title_cleared）",
+    "src": "dict_exact"
+   },
+   "actual_sale_date_held_days": {
+    "m": "实际历时天数（sale_date_held）",
+    "src": "dict_exact"
+   },
+   "variance_active_bankruptcy": {
+    "m": "同表17 `variance_active_bankruptcy",
+    "src": "dict_exact"
+   },
+   "variance_completed_bankruptcy": {
+    "m": "同表17 `variance_completed_bankruptcy",
+    "src": "dict_exact"
+   },
+   "variance_estimated_hold_days": {
+    "m": "同表17 `variance_estimated_hold_days",
+    "src": "dict_exact"
+   },
+   "variance_bankruptcies": {
+    "m": "同表17 `variance_bankruptcies",
+    "src": "dict_exact"
+   },
+   "bid_approval_status": {
+    "m": "同表17 `bid_approval_status",
+    "src": "dict_exact"
+   },
+   "bid_approval_sale_date": {
+    "m": "同表17 `bid_approval_sale_date",
+    "src": "dict_exact"
+   },
+   "bid_approval_bid_amount": {
+    "m": "同表17 `bid_approval_bid_amount",
+    "src": "dict_exact"
+   },
+   "bid_approval_loan_resolution_holods": {
+    "m": "同表17 `bid_approval_loan_resolution_holods",
+    "src": "dict_exact"
+   },
+   "summary_servicer_number": {
+    "m": "同表17 `summary_servicer_number",
+    "src": "dict_exact"
+   },
+   "summary_foreclosure_status": {
+    "m": "同表17 `summary_foreclosure_status",
+    "src": "dict_exact"
+   },
+   "summary_completed_foreclosure": {
+    "m": "同表17 `summary_completed_foreclosure",
+    "src": "dict_exact"
+   },
+   "summary_foreclosure_bid_amount": {
+    "m": "同表17 `summary_foreclosure_bid_amount",
+    "src": "dict_exact"
+   },
+   "summary_srv_fc_bid_amount": {
+    "m": "同表17 `summary_srv_fc_bid_amount",
+    "src": "dict_exact"
+   },
+   "summary_foreclosure_sale_amount": {
+    "m": "同表17 `summary_foreclosure_sale_amount",
+    "src": "dict_exact"
+   },
+   "summary_judicial_foreclosure": {
+    "m": "同表17 `summary_judicial_foreclosure",
+    "src": "dict_exact"
+   },
+   "summary_foreclosure_attorney": {
+    "m": "同表17 `summary_foreclosure_attorney",
+    "src": "dict_exact"
+   },
+   "summary_contested_litigation": {
+    "m": "同表17 `summary_contested_litigation",
+    "src": "dict_exact"
+   },
+   "summary_firm": {
+    "m": "同表17 `summary_firm",
+    "src": "dict_exact"
+   },
+   "summary_type": {
+    "m": "同表17 `summary_type",
+    "src": "dict_exact"
+   },
+   "summary_sms_days_in_fcl": {
+    "m": "同表17 `summary_sms_days_in_fcl",
+    "src": "dict_exact"
+   },
+   "summary_days_in_fcl": {
+    "m": "同表17 `summary_days_in_fcl",
+    "src": "dict_exact"
+   },
+   "summary_current_step": {
+    "m": "同表17 `summary_current_step",
+    "src": "dict_exact"
+   },
+   "summary_last_step_completed": {
+    "m": "同表17 `summary_last_step_completed",
+    "src": "dict_exact"
+   },
+   "summary_last_step_completed_date": {
+    "m": "同表17 `summary_last_step_completed_date",
+    "src": "dict_exact"
+   },
+   "create_user": {
+    "m": "管理字段（同表17 `create_user`）",
+    "src": "dict_exact"
+   },
+   "create_dept": {
+    "m": "管理字段（同表17 `create_dept`）",
+    "src": "dict_exact"
+   },
+   "create_time": {
+    "m": "管理字段（同表17 `create_time`）",
+    "src": "dict_exact"
+   },
+   "update_user": {
+    "m": "管理字段（同表17 `update_user`）",
+    "src": "dict_exact"
+   },
+   "update_time": {
+    "m": "管理字段（同表17 `update_time`）",
+    "src": "dict_exact"
+   },
+   "status": {
+    "m": "管理字段（同表17 `status`）",
+    "src": "dict_exact"
+   },
+   "is_deleted": {
+    "m": "是否软删除",
+    "src": "dict_exact"
+   },
+   "tenant_id": {
+    "m": "管理字段（同表17 `tenant_id`）",
+    "src": "dict_exact"
+   },
+   "var_notice_of_intent_days": {
+    "m": "SLA 偏差天数（notice_of_intent；正=超期）",
+    "src": "dict_exact"
+   },
+   "var_notice_of_intent_expire_days": {
+    "m": "SLA 偏差天数（notice_of_intent_expire；正=超期）",
+    "src": "dict_exact"
+   },
+   "var_approved_for_referral_days": {
+    "m": "SLA 偏差天数（approved_for_referral；正=超期）",
+    "src": "dict_exact"
+   },
+   "var_referred_to_attorney_days": {
+    "m": "SLA 偏差天数（referred_to_attorney；正=超期）",
+    "src": "dict_exact"
+   },
+   "var_referred_to_foreclosure_days": {
+    "m": "SLA 偏差天数（referred_to_foreclosure；正=超期）",
+    "src": "dict_exact"
+   },
+   "var_title_report_received_days": {
+    "m": "SLA 偏差天数（title_report_received；正=超期）",
+    "src": "dict_exact"
+   },
+   "var_preliminary_title_cleared_days": {
+    "m": "SLA 偏差天数（preliminary_title_cleared；正=超期）",
+    "src": "dict_exact"
+   },
+   "var_first_legal_days": {
+    "m": "SLA 偏差天数（first_legal；正=超期）",
+    "src": "dict_exact"
+   },
+   "var_service_days": {
+    "m": "SLA 偏差天数（service；正=超期）",
+    "src": "dict_exact"
+   },
+   "var_publication_days": {
+    "m": "SLA 偏差天数（publication；正=超期）",
+    "src": "dict_exact"
+   },
+   "var_judgement_hearing_set_days": {
+    "m": "SLA 偏差天数（judgement_hearing_set；正=超期）",
+    "src": "dict_exact"
+   },
+   "var_judgement_days": {
+    "m": "SLA 偏差天数（judgement；正=超期）",
+    "src": "dict_exact"
+   },
+   "var_sale_date_set_days": {
+    "m": "SLA 偏差天数（sale_date_set；正=超期）",
+    "src": "dict_exact"
+   },
+   "var_final_title_cleared_days": {
+    "m": "SLA 偏差天数（final_title_cleared；正=超期）",
+    "src": "dict_exact"
+   },
+   "var_sale_date_held_days": {
+    "m": "SLA 偏差天数（sale_date_held；正=超期）",
+    "src": "dict_exact"
+   },
+   "var_total": {
+    "m": "总偏差合计",
+    "src": "dict_exact"
+   },
+   "target_total": {
+    "m": "目标天数合计",
+    "src": "dict_exact"
+   },
+   "actual_total": {
+    "m": "实际历时合计",
+    "src": "dict_exact"
+   }
+  }
+ },
+ "sync_loan_foreclosure_hold": {
+  "schema_table": "bpms.sync_loan_foreclosure_hold",
+  "fields": {
+   "id": {
+    "m": "自增主键",
+    "src": "dict_exact"
+   },
+   "loanid": {
+    "m": "系统贷款 ID",
+    "src": "dict_exact"
+   },
+   "svcloanid": {
+    "m": "Servicer 内部贷款号",
+    "src": "dict_exact"
+   },
+   "fctrdt": {
+    "m": "数据来源批次日期",
+    "src": "dict_exact"
+   },
+   "description": {
+    "m": "Hold 原因描述（文本）",
+    "src": "dict_exact"
+   },
+   "description_start_date": {
+    "m": "Hold 开始日",
+    "src": "dict_exact"
+   },
+   "description_end_date": {
+    "m": "Hold 结束日（NULL=仍持续）",
+    "src": "dict_exact"
+   },
+   "create_user": {
+    "m": "记录创建用户",
+    "src": "dict_exact"
+   },
+   "create_dept": {
+    "m": "记录创建部门",
+    "src": "dict_exact"
+   },
+   "create_time": {
+    "m": "记录创建时间",
+    "src": "dict_exact"
+   },
+   "update_user": {
+    "m": "最后更新用户",
+    "src": "dict_exact"
+   },
+   "update_time": {
+    "m": "最后更新时间",
+    "src": "dict_exact"
+   },
+   "status": {
+    "m": "记录状态（0=正常）",
+    "src": "dict_exact"
+   },
+   "is_deleted": {
+    "m": "是否软删除（0=未删）",
+    "src": "dict_exact"
+   },
+   "tenant_id": {
+    "m": "租户 ID",
+    "src": "dict_exact"
+   }
+  }
+ },
+ "sync_loan_foreclosure_loss_mitigation": {
+  "schema_table": "bpms.sync_loan_foreclosure_loss_mitigation",
+  "fields": {
+   "id": {
+    "m": "自增主键",
+    "src": "dict_exact"
+   },
+   "loanid": {
+    "m": "系统贷款 ID",
+    "src": "dict_exact"
+   },
+   "svcloanid": {
+    "m": "Servicer 内部贷款号",
+    "src": "dict_exact"
+   },
+   "fctrdt": {
+    "m": "数据来源批次日期",
+    "src": "dict_exact"
+   },
+   "deal": {
+    "m": "LM 大类（解码文本）",
+    "src": "dict_exact"
+   },
+   "program": {
+    "m": "LM 具体方案（解码文本）",
+    "src": "dict_exact"
+   },
+   "lmc_status": {
+    "m": "LM 当前状态（解码文本）",
+    "src": "dict_exact"
+   },
+   "cycle_opened_date": {
+    "m": "LM 周期开始日",
+    "src": "dict_exact"
+   },
+   "cycle_closed_date": {
+    "m": "LM 周期结束日（NULL=进行中）",
+    "src": "dict_exact"
+   },
+   "final_disposition": {
+    "m": "最终处置结论（解码文本）",
+    "src": "dict_exact"
+   },
+   "denialreason": {
+    "m": "拒绝原因（解码文本，无则空串）",
+    "src": "dict_exact"
+   },
+   "borrower_intentions": {
+    "m": "借款人意向（解码文本）",
+    "src": "dict_exact"
+   },
+   "imminent_default": {
+    "m": "即将违约标识（CFPB Reg X）",
+    "src": "dict_exact"
+   },
+   "single_point_of_contact": {
+    "m": "专属联系人（CFPB 12 CFR 1024.40）",
+    "src": "dict_exact"
+   },
+   "create_user": {
+    "m": "记录创建用户",
+    "src": "dict_exact"
+   },
+   "create_dept": {
+    "m": "记录创建部门",
+    "src": "dict_exact"
+   },
+   "create_time": {
+    "m": "记录创建时间",
+    "src": "dict_exact"
+   },
+   "update_user": {
+    "m": "最后更新用户",
+    "src": "dict_exact"
+   },
+   "update_time": {
+    "m": "最后更新时间",
+    "src": "dict_exact"
+   },
+   "status": {
+    "m": "记录状态（0=正常）",
+    "src": "dict_exact"
+   },
+   "is_deleted": {
+    "m": "是否软删除（0=未删）",
+    "src": "dict_exact"
+   },
+   "tenant_id": {
+    "m": "租户 ID",
+    "src": "dict_exact"
+   }
+  }
+ },
+ "sync_loan_foreclosure_bankruptcy": {
+  "schema_table": "bpms.sync_loan_foreclosure_bankruptcy",
+  "fields": {
+   "id": {
+    "m": "自增主键",
+    "src": "dict_exact"
+   },
+   "loanid": {
+    "m": "系统贷款 ID",
+    "src": "dict_exact"
+   },
+   "svcloanid": {
+    "m": "Servicer 内部贷款号",
+    "src": "dict_exact"
+   },
+   "fctrdt": {
+    "m": "数据来源批次日期",
+    "src": "dict_exact"
+   },
+   "bankruptcy_status": {
+    "m": "破产状态（解码文本）",
+    "src": "dict_exact"
+   },
+   "legal_status": {
+    "m": "法律程序状态",
+    "src": "dict_exact"
+   },
+   "status_date": {
+    "m": "破产申请日（作状态日期用）",
+    "src": "dict_exact"
+   },
+   "chapter": {
+    "m": "破产章节（7/11/13）",
+    "src": "dict_exact"
+   },
+   "lien_status": {
+    "m": "留置权状态",
+    "src": "dict_exact"
+   },
+   "mfr_status": {
+    "m": "MFR 状态",
+    "src": "dict_exact"
+   },
+   "mfr_filed_date": {
+    "m": "MFR 提交日",
+    "src": "dict_exact"
+   },
+   "claim_status": {
+    "m": "债权状态",
+    "src": "dict_exact"
+   },
+   "proof_of_claim_date": {
+    "m": "债权申报（POC）日",
+    "src": "dict_exact"
+   },
+   "post_petition_due_date": {
+    "m": "破产申请后应付日",
+    "src": "dict_exact"
+   },
+   "create_user": {
+    "m": "记录创建用户",
+    "src": "dict_exact"
+   },
+   "create_dept": {
+    "m": "记录创建部门",
+    "src": "dict_exact"
+   },
+   "create_time": {
+    "m": "记录创建时间",
+    "src": "dict_exact"
+   },
+   "update_user": {
+    "m": "最后更新用户",
+    "src": "dict_exact"
+   },
+   "update_time": {
+    "m": "最后更新时间",
+    "src": "dict_exact"
+   },
+   "status": {
+    "m": "记录状态（0=正常）",
+    "src": "dict_exact"
+   },
+   "is_deleted": {
+    "m": "是否软删除（0=未删）",
+    "src": "dict_exact"
+   },
+   "tenant_id": {
+    "m": "租户 ID",
+    "src": "dict_exact"
+   }
+  }
+ }
+}

@@ -30,6 +30,7 @@
 | 2026-05-25 | AI Agent (Claude Sonnet 4.6) | v1.5 | New section 1.2: basic_data_loan_fcl vs basic_data_loan_foreclosure upstream/downstream relationship, 61/62-column field group breakdown, INSERT-populated vs NULL field analysis, 3-servicer coverage note (source-code + Redshift verified) | — |
 | 2026-05-26 | AI Agent (Claude Sonnet 4.6) | v2 | New section 2.4.6: BPS FCL Operational Stage Pipeline (Mermaid flowchart, 7-stage table, "Upcoming" naming rationale, design rationale analysis, comparison with theoretical model) | — |
 | 2026-06-05 | AI Agent (Claude Opus 4.8) | v2.1 | §2.4.6 ① NOI/Demand Letter node: flowchart now distinguishes NOI vs Demand Letter (Judicial=NOI/NOD, Non-Judicial=Demand Letter, same field demandsentdate, ~30-day cure, pre-FCL, per doc 10 glossary); Key Fields demand_date/noi_date → demand_start_date (noi_start_date always NULL); added the data caveat (this DEMAND stage is normally 0 in agg-summary — ingestion needs fcreferraldate non-null, DEMAND needs it NULL, only pre-referral D90/D120P). Synced to doc 17 §4.6 / fcl_pipeline.html | doc 10 · doc 17 · fcl_pipeline.html |
+| 2026-06-08 | AI Agent (Claude Opus 4.8) | v2.2 | Corrected §2.4 state machine: removed the wrong `BK →(debt discharged)→ P` edge (Ch.7 discharge only releases personal liability; the mortgage lien survives, the loan is NOT paid off); removed "discharge" from the P node label; §2.4.3 `BK → P` row rewritten as "no direct P" — consistent with §2.5 Ch.7 lien note and doc 17/14/fcl_pipeline.html | doc 17 · doc 14 · fcl_pipeline.html |
 
 ---
 
@@ -528,7 +529,7 @@ flowchart TD
 
     LM["LM — Loss Mitigation\nLoan modification / forbearance"]
     BK["BK — Bankruptcy Protection\nChapter 7 / Chapter 13"]
-    P(["P — Loan Terminated\nPayoff / auction sale / short sale / discharge"])
+    P(["P — Loan Terminated\nPayoff / auction sale / short sale"])
 
     START --> C
     C -->|"Miss 1 payment"| D30
@@ -552,7 +553,6 @@ flowchart TD
     D30 & D60 & D90 & D120P & FCL -->|"Bankruptcy filed"| BK
     BK -->|"BK dismissed / discharged\nFCL resumes"| FCL
     BK -->|"Ch.13 plan completed"| C
-    BK -->|"Debt discharged"| P
 
     style C fill:#87CEEB,stroke:#4682B4
     style D30 fill:#FFE4B5,stroke:#DAA520
@@ -606,7 +606,7 @@ flowchart TD
 | Dx / FCL → BK | Borrower files for bankruptcy protection | Any time |
 | BK → FCL | Bankruptcy dismissed or discharged; FCL resumes | After BK closes |
 | BK → C | Ch.13 repayment plan successfully completed | 3–5 years |
-| BK → P | Ch.7 debt discharge, or loan paid off under Ch.13 | — |
+| BK → (no direct P) | **Ch.7 discharge only releases the borrower's personal liability; the mortgage lien survives → the loan is NOT paid off**; foreclosure typically resumes (→ FCL → sale, see the Ch.7 lien note below). Ch.13 completion → C (reinstated to current), not P | — |
 
 #### 2.4.4 FCL Internal Sub-Stages
 

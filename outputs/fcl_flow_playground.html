@@ -1,0 +1,256 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FCL 数据流动 Playground</title>
+<style>
+  :root{--bg:#0d1117;--panel:#161b22;--border:#2b3440;--txt:#d7dde5;--muted:#8b96a5;--accent:#4da3ff;--accent2:#7ee787;
+        --raw:#6e7681;--mysql:#f29d50;--redshift:#9d7bff;--dual:#4db6a0;--bps:#ff7b9c;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:"Segoe UI","微软雅黑",system-ui,sans-serif}
+  header{padding:14px 20px;border-bottom:1px solid var(--border);background:#0b0e12}
+  h1{margin:0;font-size:17px} .sub{color:var(--muted);font-size:12px;margin-top:4px}
+  .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 20px;border-bottom:1px solid var(--border);background:var(--panel)}
+  .modes{display:flex;gap:6px}
+  .mode{cursor:pointer;padding:6px 12px;border:1px solid var(--border);border-radius:8px;background:#1c2230;color:var(--txt);font-size:13px}
+  .mode.on{border-color:var(--accent);background:#23324a;font-weight:700}
+  .mode small{display:block;color:var(--muted);font-weight:400;font-size:10.5px}
+  .ctl{display:flex;gap:6px;align-items:center;margin-left:auto}
+  button.b{cursor:pointer;background:#1c2230;color:var(--txt);border:1px solid var(--border);border-radius:7px;padding:6px 10px;font-size:14px}
+  button.b:hover{border-color:var(--accent)}
+  input[type=range]{width:120px}
+  .lang{cursor:pointer;padding:4px 9px;border:1px solid var(--border);border-radius:6px;background:#1c2230;color:var(--muted);font-size:12px}
+  .lang.on{color:#fff;border-color:var(--accent);background:#23324a}
+  .stagebar{padding:8px 20px;color:var(--muted);font-size:12px;border-bottom:1px solid var(--border)}
+  #wrap{padding:14px 20px 40px}
+  .cap{margin:0 20px 12px;padding:11px 14px;background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;min-height:54px}
+  .cap .step{color:var(--accent);font-weight:700;font-size:12px}
+  .cap .txt{margin-top:4px;font-size:14px;line-height:1.5}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;padding:6px 20px;color:var(--muted);font-size:11.5px}
+  .legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+  svg{display:block;background:#0b0e12;border:1px solid var(--border);border-radius:10px}
+  .box rect{transition:opacity .25s,stroke-width .2s}
+  .dim{opacity:.22}
+  .tip{font-size:11px;color:var(--muted);padding:4px 20px 14px}
+  .rec{color:var(--accent2)}
+</style></head>
+<body>
+<header>
+  <h1>🌊 FCL 数据流动 Playground <span style="font-size:12px;color:var(--muted)">(沙盒：体验后选一种集成进 fcl_pipeline.html)</span></h1>
+  <div class="sub" id="sub">数据流动顺序：L0 来源文件 → L1 落库 → L2 统一日表 → L3 清洗 → L4 月度业务 → L5 同步 → BPS。四种可视化方案，切换体验。</div>
+</header>
+<div class="bar">
+  <div class="modes" id="modes"></div>
+  <div class="ctl">
+    <span class="lang on" id="lang-zh" onclick="setLang('zh')">中文</span>
+    <span class="lang" id="lang-en" onclick="setLang('en')">EN</span>
+    <button class="b" id="prev" title="上一步">◀</button>
+    <button class="b" id="play" title="播放/暂停">▶</button>
+    <button class="b" id="next" title="下一步">▶|</button>
+    <button class="b" id="reset" title="重置">⟲</button>
+    <span style="font-size:11px;color:var(--muted)">速度</span><input type="range" id="speed" min="400" max="2600" value="1400" step="200">
+  </div>
+</div>
+<div class="cap"><div class="step" id="capstep"></div><div class="txt" id="captxt"></div></div>
+<div class="legend">
+  <span><i style="background:var(--raw)"></i>Files</span>
+  <span><i style="background:var(--dual)"></i>MySQL+Redshift 双写</span>
+  <span><i style="background:var(--redshift)"></i>Redshift 建</span>
+  <span><i style="background:var(--bps)"></i>BPS (MySQL)</span>
+  <span class="rec" id="modedesc"></span>
+</div>
+<div id="wrap"><svg id="svg" width="1420" height="380"></svg></div>
+<div class="tip" id="tip"></div>
+
+<script>
+/* ============ flow model (derived from fcl_pipeline.html LAYERS + doc 02/20/21) ============ */
+const PCOL={Files:'var(--raw)',Dual:'var(--dual)',RS:'var(--redshift)',BPS:'var(--bps)'};
+const STAGES=[
+ {k:'L0',plat:'Files',vol:8,
+  t:{zh:'L0 来源文件',en:'L0 Source files'},
+  tables:['Servicer 文件 (S3)'],
+  loan:{zh:'文件中的一行',en:'a row in the file'},
+  nar:{zh:'各 Servicer（Newrez/SLS/Carrington/MRC/FCI/Selene）每天把贷款最新状态打包成文件投递到 S3（CSV/TXT/XLSX）。',
+       en:'Each servicer drops daily loan-state files (CSV/TXT/XLSX) to S3.'}},
+ {k:'L1',plat:'Dual',vol:8,
+  t:{zh:'L1 落库 · 双写',en:'L1 Staging · dual-write'},
+  tables:['newrez.portnewrezfc / bk / lm / general','carrington.portcarrington · sls/mrc/…'],
+  loan:{zh:'fcreferraldate = 2025-05-23',en:'fcreferraldate = 2025-05-23'},
+  nar:{zh:'原始文件按 servicer 落库；同名表 MySQL+Redshift 双写，按 dataasof 存每日快照（plain 配置→Redshift、mysql_→MySQL）。',
+       en:'Raw files landed per servicer; same-named tables dual-written to MySQL+Redshift, daily snapshots by dataasof.'}},
+ {k:'L2',plat:'Dual',vol:7,
+  t:{zh:'L2 统一日表 · 双写',en:'L2 Unified daily · dual-write'},
+  tables:['port.basic_data_daily_loan_common'],
+  loan:{zh:"delq_status = 'Foreclosure'",en:"delq_status = 'Foreclosure'"},
+  nar:{zh:'把 6 家 servicer UNION 成一套统一口径；fcl_flag / lm_flag 按家映射。仍是 Redshift+MySQL 双写。',
+       en:'All 6 servicers UNIONed into one schema; fcl_flag/lm_flag mapped per servicer. Still Redshift+MySQL dual-write.'}},
+ {k:'L3',plat:'Dual',vol:6,
+  t:{zh:'L3 清洗日表 · 双写',en:'L3 Clean daily · dual-write'},
+  tables:['…_common_clean (delinq)','basic_data_loan_delinq_clean'],
+  loan:{zh:'delinq = FCL',en:'delinq = FCL'},
+  nar:{zh:'逾期支线：delq_status 经 days360 标准化为 delinq 码（C/D30/D60/D90/D120P/FCL/REO/P）。FCL 只来自 servicer 明确标志，不由天数推导。',
+       en:'Delinquency branch: delq_status → delinq codes (C/D30/…/FCL/REO/P) via days360. FCL comes only from an explicit servicer flag.'}},
+ {k:'L4',plat:'RS',vol:5,
+  t:{zh:'L4 月度业务层 ⭐',en:'L4 Monthly business ⭐'},
+  tables:['portmonthbase (双写)','basic_data_loan_fcl → foreclosure / fcl_stage_info','…_hold / _loss_mitigation / _bankruptcy (FCL 族, RS 建)'],
+  loan:{zh:'referral_start=2025-05-22 · 6 阶段算出',en:'referral_start=2025-05-22 · 6 stages computed'},
+  nar:{zh:'核心计算：FCL 业务族扇出——时间线 / 6 阶段 / Hold / LM / BK。FCL 族仅 Redshift 构建，MySQL 副本由 L5 同步产生。两条支线在 fcl_stage_info.group 汇合。',
+       en:'Core compute: FCL family fan-out — timeline / 6 stages / Hold / LM / BK. FCL family is Redshift-built; MySQL copy is produced by L5. Two branches meet at fcl_stage_info.group.'}},
+ {k:'L5',plat:'RS',vol:2,
+  t:{zh:'L5 同步进 BPS',en:'L5 Sync to BPS'},
+  tables:['bpms.sync_loan_foreclosure (+stage/hold/lm/bk)','port.basic_data_loan_foreclosure (MySQL 中转)'],
+  loan:{zh:"summary_foreclosure_status = 'Closed Foreclosure:Process Complete'",en:"summary_foreclosure_status = 'Closed Foreclosure:Process Complete'"},
+  nar:{zh:'每日约 4:35 ET：把 Redshift 结果同步进 MySQL（覆盖刷新）。FCL 族的 MySQL 副本就在这一步产生（故 mysql 也能查到 port.basic_data_loan_foreclosure）。',
+       en:'~4:35 ET daily: sync Redshift results into MySQL (overwrite). The FCL-family MySQL copy is produced here.'}},
+ {k:'BPS',plat:'BPS',vol:2,
+  t:{zh:'BPS 系统',en:'BPS app'},
+  tables:['Foreclosure 5 面板 / 视图'],
+  loan:{zh:'界面显示：已完结止赎（司法州 FL）',en:'UI shows: Closed foreclosure (judicial, FL)'},
+  nar:{zh:'业务与管理层在 BPS 止赎模块看到 5 个面板（时间线 / Hold / LM / 破产 / 阶段汇总）。这是数据流的终点。',
+       en:'Business sees the 5 BPS Foreclosure panels (timeline / Hold / LM / BK / stage summary). End of the flow.'}},
+];
+const MODES=[
+ {k:'A',t:{zh:'A 分步播放 ⭐',en:'A Step player ⭐'},d:{zh:'推荐：逐层点亮 + 旁白，最清楚"顺序+每步干啥"',en:'Recommended: step through layers with narration'}},
+ {k:'B',t:{zh:'B 流动粒子',en:'B Particles'},d:{zh:'小圆点持续从 L0 流向 BPS，感受"在流动"',en:'Dots flow L0→BPS continuously'}},
+ {k:'C',t:{zh:'C 体量流向',en:'C Volume (Sankey)'},d:{zh:'边粗细≈数据体量，看哪步被过滤收窄',en:'Edge width ≈ volume; see where it narrows'}},
+ {k:'D',t:{zh:'D 单贷款追踪',en:'D Sample-loan'},d:{zh:'一笔贷款 7727000088 沿管道走，看值如何变',en:'Watch loan 7727000088 flow & transform'}},
+];
+
+/* ============ state ============ */
+let lang='zh', mode='A', step=0, playing=false, timer=null, raf=null;
+const svg=document.getElementById('svg');
+const NS='http://www.w3.org/2000/svg';
+const BOX_W=158, BOX_H=104, GAP=42, X0=18, Y=128;
+const x=i=>X0+i*(BOX_W+GAP), cy=Y+BOX_H/2;
+const L=o=>o?(o[lang]||o.en):'';
+function el(tag,attrs,txt){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(txt!=null)e.textContent=txt;return e;}
+
+/* ============ render ============ */
+function clearSvg(){while(svg.firstChild)svg.removeChild(svg.firstChild);}
+function edgePath(i){const x1=x(i)+BOX_W,x2=x(i+1),mx=(x1+x2)/2;return `M${x1},${cy} C${mx},${cy} ${mx},${cy} ${x2},${cy}`;}
+function colorOf(plat){return PCOL[plat]||'#888';}
+
+function render(){
+  clearSvg();
+  const W=x(STAGES.length-1)+BOX_W+18; svg.setAttribute('width',W);
+  // arrowhead marker
+  const defs=el('defs');defs.innerHTML=`<marker id="ah" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#5b6b7d"></path></marker>`;svg.appendChild(defs);
+  // edges
+  for(let i=0;i<STAGES.length-1;i++){
+    let w=2;
+    if(mode==='C') w=Math.max(2,STAGES[i+1].vol*2.2);          // sankey: width by downstream volume
+    const lit = (mode==='A'||mode==='D') ? (i+1===step) : false; // active edge into current step
+    const p=el('path',{d:edgePath(i),fill:'none',stroke:lit?'var(--accent)':'#3a4654','stroke-width':lit?4:w,'marker-end':'url(#ah)','data-edge':i});
+    if(lit)p.setAttribute('filter','drop-shadow(0 0 4px rgba(120,200,255,.6))');
+    svg.appendChild(p);
+  }
+  // boxes
+  STAGES.forEach((s,i)=>{
+    const g=el('g',{class:'box','data-i':i});
+    const active=(mode==='A'||mode==='D')&&i===step;
+    const dim=(mode==='A'||mode==='D')&&step>0&&i>step;
+    const col=colorOf(s.plat);
+    const rect=el('rect',{x:x(i),y:Y,width:BOX_W,height:BOX_H,rx:10,fill:active?'#1d2533':'#12161d',stroke:col,'stroke-width':active?3:1.6});
+    if(dim)rect.setAttribute('class','dim');
+    if(active)rect.setAttribute('filter','drop-shadow(0 0 7px rgba(120,200,255,.5))');
+    g.appendChild(rect);
+    g.appendChild(el('circle',{cx:x(i)+14,cy:Y+16,r:5,fill:col}));
+    g.appendChild(el('text',{x:x(i)+26,y:Y+20,fill:'#fff','font-size':12,'font-weight':'bold'},s.k));
+    g.appendChild(el('text',{x:x(i)+26,y:Y+20,fill:col,'font-size':9,'text-anchor':'start','dy':12},({Files:'Files',Dual:'双写',RS:'Redshift 建',BPS:'BPS'})[s.plat]));
+    // title (wrapped to 2 lines)
+    const title=L(s.t);
+    g.appendChild(el('text',{x:x(i)+10,y:Y+48,fill:'#cfe3ff','font-size':11.5,'font-weight':'bold'},title.length>13?title.slice(0,13):title));
+    if(title.length>13)g.appendChild(el('text',{x:x(i)+10,y:Y+62,fill:'#cfe3ff','font-size':11.5,'font-weight':'bold'},title.slice(13,26)));
+    // a couple of table hints
+    s.tables.slice(0,2).forEach((tb,r)=>{
+      const t=tb.length>22?tb.slice(0,21)+'…':tb;
+      g.appendChild(el('text',{x:x(i)+10,y:Y+80+r*13,fill:'#8b96a5','font-size':8.7,'font-family':'Consolas,monospace'},t));
+    });
+    svg.appendChild(g);
+  });
+  // mode-specific overlays
+  if(mode==='B') startParticles(); else stopParticles();
+  if(mode==='D') drawToken();
+  if(mode==='C') drawVolLabels();
+  updateCaption();
+  document.getElementById('modedesc').textContent='👉 '+L(MODES.find(m=>m.k===mode).d);
+}
+
+/* ---- B: particles ---- */
+let particles=[];
+function startParticles(){
+  stopParticles();
+  particles=[];
+  for(let i=0;i<STAGES.length-1;i++){ for(let p=0;p<3;p++){ const c=el('circle',{r:4,fill:'var(--accent2)',opacity:.9}); svg.appendChild(c); particles.push({c,i,phase:p/3}); } }
+  const dur=2200;
+  function tick(ts){
+    particles.forEach(pt=>{
+      const prog=((ts/dur)+pt.phase)%1;
+      const x1=x(pt.i)+BOX_W,x2=x(pt.i+1);
+      pt.c.setAttribute('cx',x1+(x2-x1)*prog); pt.c.setAttribute('cy',cy);
+      pt.c.setAttribute('opacity', (prog<0.1||prog>0.9)?0.2:0.9);
+    });
+    raf=requestAnimationFrame(tick);
+  }
+  raf=requestAnimationFrame(tick);
+}
+function stopParticles(){ if(raf){cancelAnimationFrame(raf);raf=null;} }
+
+/* ---- C: volume labels ---- */
+function drawVolLabels(){
+  const counts=['全组合 ~60万/日','UNION 后','清洗后','L4 foreclosure 6,152(RS)','→ MySQL 83 / BPS 90'];
+  for(let i=1;i<STAGES.length-1&&i<=5;i++){
+    const xm=(x(i-1)+BOX_W+x(i))/2;
+    svg.appendChild(el('text',{x:xm,y:cy-12,fill:'#7ee787','font-size':9,'text-anchor':'middle'},counts[i-1]||''));
+  }
+}
+
+/* ---- D: token ---- */
+function drawToken(){
+  const s=STAGES[step];
+  const tx=x(step)+BOX_W/2;
+  const g=el('g',{});
+  g.appendChild(el('rect',{x:tx-78,y:Y-46,width:156,height:34,rx:8,fill:'#23324a',stroke:'var(--accent)','stroke-width':1.5}));
+  g.appendChild(el('text',{x:tx,y:Y-30,fill:'#fff','font-size':9,'text-anchor':'middle','font-weight':'bold'},'📦 loan 7727000088'));
+  const v=L(s.loan), vt=v.length>30?v.slice(0,29)+'…':v;
+  g.appendChild(el('text',{x:tx,y:Y-18,fill:'#7ee787','font-size':8.5,'text-anchor':'middle','font-family':'Consolas,monospace'},vt));
+  g.appendChild(el('path',{d:`M${tx},${Y-12} L${tx-5},${Y-4} L${tx+5},${Y-4} Z`,fill:'var(--accent)'}));
+  svg.appendChild(g);
+}
+
+/* ---- caption ---- */
+function updateCaption(){
+  const s=STAGES[step];
+  document.getElementById('capstep').textContent =
+    (mode==='B'?(lang==='zh'?'连续流动模式':'Continuous flow'):
+     mode==='C'?(lang==='zh'?'体量流向模式':'Volume mode'):
+     (lang==='zh'?`第 ${step+1} / ${STAGES.length} 步 · ${s.k} ${L(s.t)}`:`Step ${step+1} / ${STAGES.length} · ${s.k} ${L(s.t)}`));
+  document.getElementById('captxt').innerHTML =
+    (mode==='C'? (lang==='zh'?'边的粗细≈数据体量。注意 L4→L5：FCL 时间线表从 Redshift 的 6,152 行，经 L5 同步（过滤 referral 非空等）落到 MySQL 仅 83 行——这就是"在哪一步被收窄"。上游 L1–L3 是全组合量级。':'Edge width ≈ volume. Note L4→L5: the FCL timeline narrows from 6,152 rows (Redshift) to 83 rows (MySQL) after the L5 sync filter.')
+     : mode==='D'? (L(s.nar)+`<br><span style="color:var(--accent2)">📦 这笔贷款此刻：</span> <code>${L(s.loan)}</code>`)
+     : L(s.nar));
+}
+
+/* ---- controls ---- */
+function gotoStep(n){ step=Math.max(0,Math.min(STAGES.length-1,n)); render(); }
+function play(){ if(mode==='B'||mode==='C')return; playing=true; document.getElementById('play').textContent='⏸';
+  clearInterval(timer); timer=setInterval(()=>{ if(step>=STAGES.length-1){ pause(); return; } gotoStep(step+1); }, +document.getElementById('speed').value); }
+function pause(){ playing=false; document.getElementById('play').textContent='▶'; clearInterval(timer); }
+function togglePlay(){ playing?pause():(step>=STAGES.length-1?(gotoStep(0),play()):play()); }
+function setMode(m){ mode=m; pause(); if(m==='B'||m==='C')step=0; document.querySelectorAll('.mode').forEach(b=>b.classList.toggle('on',b.dataset.k===m)); render();
+  document.getElementById('play').disabled=(m==='B'||m==='C'); }
+function setLang(l){ lang=l; document.getElementById('lang-zh').classList.toggle('on',l==='zh'); document.getElementById('lang-en').classList.toggle('on',l==='en'); buildModes(); render(); }
+
+function buildModes(){
+  const c=document.getElementById('modes'); c.innerHTML='';
+  MODES.forEach(m=>{ const d=document.createElement('div'); d.className='mode'+(m.k===mode?' on':''); d.dataset.k=m.k;
+    d.innerHTML=`${L(m.t)}<small>${L(m.d)}</small>`; d.onclick=()=>setMode(m.k); c.appendChild(d); });
+}
+document.getElementById('prev').onclick=()=>{pause();gotoStep(step-1);};
+document.getElementById('next').onclick=()=>{pause();gotoStep(step+1);};
+document.getElementById('play').onclick=togglePlay;
+document.getElementById('reset').onclick=()=>{pause();gotoStep(0);};
+document.getElementById('speed').oninput=()=>{if(playing){pause();play();}};
+document.getElementById('tip').textContent='提示：A 分步播放最适合理解"流动顺序"；B 看连续流动；C 看体量收窄；D 跟一笔贷款走。体验后告诉我保留哪种，我把它做成主 HTML 的「数据流动」Tab。';
+
+buildModes(); render();
+</script>
+</body></html>

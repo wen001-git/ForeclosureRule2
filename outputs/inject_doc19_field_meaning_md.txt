@@ -1,0 +1,92 @@
+# -*- coding: utf-8 -*-
+# Idempotent injection of per-field 业务含义 into docs/zh/19_fcl_sample_loan_raw_dump.md.
+#   - transposed tables (| 字段 | loan… |) : insert 业务含义 as 2nd column
+#   - flat tables (Hold/LM/BK, fields-as-columns) : insert a 字段说明 legend block above the grid
+#   - datadic ㉔ sub-tables (| 编码 | 解码… |) : add 业务含义 3rd column
+# Re-runnable: refreshes in place (no duplicate columns / legend blocks).
+# Run: python - < outputs/inject_doc19_field_meaning_md.txt
+import json, re
+
+MD = 'docs/zh/19_fcl_sample_loan_raw_dump.md'
+FM = json.load(open('outputs/fcl_field_meanings.json', encoding='utf-8'))
+DM = json.load(open('outputs/fcl_datadic_meanings.json', encoding='utf-8'))
+DATA = json.load(open('outputs/fcl_sample_raw_dump_data.json', encoding='utf-8'))['tables']
+
+kind_by = {f"{v['schema']}.{v['table']}": v['kind'] for v in DATA.values()}
+byst = {t['schema_table']: {f.lower(): d['m'] for f, d in t['fields'].items()} for t in FM.values()}
+
+def esc(s): return (s or '').replace('|', r'\|').replace('\n', '<br>')
+def cells(line): return [c.strip() for c in re.split(r'(?<!\\)\|', line.strip())][1:-1]
+def mkrow(cs): return '| ' + ' | '.join(cs) + ' |'
+def mksep(n): return '|' + '---|' * n
+
+txt = open(MD, encoding='utf-8').read()
+# strip any prior legend blocks for clean re-run
+txt = re.sub(r'<!-- FIELDLEGEND:[^>]+ START -->.*?<!-- FIELDLEGEND:[^>]+ END -->\n*', '', txt, flags=re.S)
+lines = txt.split('\n')
+
+out = []
+cur_st = None; cur_kind = None; in_datadic = False; ddf = None; in_fence = False
+hdr = re.compile(r'^##\s+\S+\s+([a-z_]+\.[a-z0-9_]+)')
+def is_sep(s): return s.lstrip().startswith('|') and set(s.strip()) <= set('|-: ') and '-' in s
+n_trans = n_flat = n_dd = 0
+i = 0
+while i < len(lines):
+    ln = lines[i]
+    if ln.lstrip().startswith('```'):
+        in_fence = not in_fence; out.append(ln); i += 1; continue
+    if not in_fence:
+        m = hdr.match(ln)
+        if m:
+            cur_st = m.group(1); cur_kind = kind_by.get(cur_st)
+            in_datadic = cur_st.endswith('portnewrezdatadic'); ddf = None
+            out.append(ln); i += 1; continue
+        if in_datadic:
+            dm = re.match(r'^###\s+(\w+)\s*←', ln)
+            if dm: ddf = dm.group(1)
+        # table start?
+        if ln.startswith('|') and i + 1 < len(lines) and is_sep(lines[i+1]):
+            header = cells(ln)
+            rows = []
+            j = i + 2
+            while j < len(lines) and lines[j].lstrip().startswith('|'):
+                rows.append(lines[j]); j += 1
+            first = header[0] if header else ''
+            # Case A: transposed data table
+            if first == '字段' and cur_st in byst and cur_kind != 'flat':
+                already = len(header) >= 2 and header[1] == '业务含义'
+                tail = header[2:] if already else header[1:]
+                out.append(mkrow(['字段', '业务含义'] + tail))
+                out.append(mksep(2 + len(tail)))
+                lk = byst[cur_st]
+                for r in rows:
+                    rc = cells(r)
+                    fld = rc[0].strip().lower()
+                    dtail = rc[2:] if already else rc[1:]
+                    out.append(mkrow([rc[0], esc(lk.get(fld, ''))] + dtail))
+                n_trans += 1; i = j; continue
+            # Case B: datadic decode sub-table
+            if first == '编码' and ddf and ddf in DM:
+                out.append(mkrow(['编码', '解码（description）', '业务含义']))
+                out.append(mksep(3))
+                lk = DM[ddf]
+                for r in rows:
+                    rc = cells(r)
+                    code = rc[0].strip()
+                    out.append(mkrow([rc[0], rc[1] if len(rc) > 1 else '', esc(lk.get(code, ''))]))
+                n_dd += 1; i = j; continue
+            # Case C: flat table -> legend block before the grid
+            if cur_kind == 'flat' and cur_st in byst:
+                lk = byst[cur_st]
+                leg = [f'<!-- FIELDLEGEND:{cur_st} START -->', '**字段说明**', '',
+                       mkrow(['字段', '业务含义']), mksep(2)]
+                for col in header:
+                    leg.append(mkrow([col, esc(lk.get(col.lower(), ''))]))
+                leg += [f'<!-- FIELDLEGEND:{cur_st} END -->', '']
+                out.extend(leg)
+                out.append(ln); out.append(lines[i+1]); out.extend(rows)
+                n_flat += 1; i = j; continue
+    out.append(ln); i += 1
+
+open(MD, 'w', encoding='utf-8').write('\n'.join(out))
+print(f'md injected: transposed={n_trans}  flat_legend={n_flat}  datadic_subtables={n_dd}')

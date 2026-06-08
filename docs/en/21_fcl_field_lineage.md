@@ -24,6 +24,8 @@
 | 2026-06-06 | AI Agent (Claude Opus 4.8) | v5 | Added §0.4 "why the data is modeled/processed this way (business rationale)" (10 rows, same as doc 20 §A.6); ERD renumbered to §0.5; audience wording neutralized | doc 17/18/10 · doc 20 |
 | 2026-06-06 | AI Agent (Claude Opus 4.8) | v6 | **Carrington deep-dive + DB test (synced from zh)**: added §1.2 fill-rate/DB-verification matrix (prod) · §6 Carrington line (milestones/status/days/Hold/BK rules + line refs + prod test) · §7 cross-servicer comparison (FCL detection / milestone source / delinq·bankruptcy CASE) · §8 one field's full SQL path (Newrez+Carrington); old §6/§7 renumbered to §9/§10; §9 #7 updated (`basic_data_loan_delinq_clean` producing code not in repo, grep-proven) + Carrington traps; all `table.column` information_schema-verified, Carrington sample `7727000858` L1→L4→L5 verified | mysql_prod / redshift_prod; PrefectFlow source |
 | 2026-06-06 | AI Agent (Claude Opus 4.8) | v7 | §0.2 added "Storage DB: MySQL+Redshift dual-write" note (L1–L4 mostly dual-write, FCL family Redshift-built + L5 sync); code-evidence table in doc 20 §B.6 | PrefectFlow source · doc 20 |
+| 2026-06-08 | AI Agent (Claude Opus 4.8) | v8 | Added a "Terminology" note under the §0.3 N:N table defining **FCL stage** (6 main stages + 8 buckets + 15 sub-stages) and **FCL episode** (one foreclosure experience, keyed `(loanid,deal_start)`, N:N rationale with BK) at point of use; §3 note on NOI/PUBLICATION buckets; matching glossary entries added to doc 10 | doc 10 · doc 13 · doc 17/18 |
+| 2026-06-08 | AI Agent (Claude Opus 4.8) | v9 | §0.1 note: `basic_data_monthly_loan_clean_data_delinq` is on the portmonth/delinquency line, **not on either FCL branch**; FCL's `group/delq_status` is built by `basic_data_fcl_related` directly from raw servicer tables (`basic_data_pool_config.py`/`flow/bps/` have 0 refs, verified) | PrefectFlow source-verified · doc 02 |
 
 **Dependencies:** [doc 20](20_end_to_end_walkthrough.md) (5-layer overview) · [doc 13](13_newrez_fcl_bps_display_mapping.md) (BPS UI mapping) · [doc 12](12_sync_asset_management.md) (sync code) · [doc 19](19_fcl_sample_loan_raw_dump.md) (sample dump).
 
@@ -82,6 +84,8 @@ flowchart TD
 
 > ⚠️ So **foreclosure milestone/status fields take the FCL business-family branch — read directly from `portnewrezfc`, NOT through `basic_data_daily_loan_common`**. doc 20's L2/L3 mostly describe the delinquency branch.
 
+> ⚠️ **Easily-confused table name**: `port.basic_data_monthly_loan_clean_data_delinq` is **NOT on either FCL branch above** — it belongs to the **monthly portfolio / delinquency (portmonth) line**: `…clean_data_base → …clean_data_delinq → basic_data_monthly_loan_clean_data → portmonth → bpms.sync_portmonth` (feeds the BPS "Delinquency" view and the `prevdelinqchar` decoding). The FCL tables' `group/delq_status` is computed by `basic_data_fcl_related` **directly from the raw servicer tables** (`CREATE_FCL_RELATE_ATTR`, `basic_data_pool_config.py:1695-1771`) and reads **no** monthly-clean table — verified: `basic_data_pool_config.py` and `flow/bps/` have **0 references** to `…monthly_loan_clean_data*`.
+
 ### 0.2 Intermediate-table inventory (DB-verified)
 
 | Intermediate table | Layer | Role |
@@ -129,6 +133,10 @@ flowchart TD
 > ⚠️ **N:N caveat**: `{stage}_in_lm_days/_on_hold_days` **only count "open" (not-yet-ended) LM/Hold** (`cycle_closed_date is null` / `hold_end_dt is null`), so a **cured** loan shows all NULLs there (e.g. `7727000088`), but **the relationship is still N:N** — stage days are **apportioned/deducted by overlapping intervals**, not a simple subtraction.
 >
 > **Confirmed NOT many-to-many / no fan-out** (to avoid confusion): loan ↔ `portfunding` is verified **1:1** (≤1 row per loan), so the BPS extract join does not multiply a loan into multiple rows; the main timeline `bpms.sync_loan_foreclosure` and the stage current-snapshot are both **one row per loan** (verified, no duplicate loanids).
+
+> **Terminology (the two terms in the table above):**
+> - **FCL stage** = a legal milestone one foreclosure case advances through. Standard **6 stages**: `DEMAND` → `REFERRAL`(to attorney) → `FIRST_LEGAL` → `SERVICE` → `JUDGEMENT`(court ruling) → `SALE`(auction) (see §3). The physical `fcl_stage_info` table also carries `NOI` and `PUBLICATION` buckets (usually NULL for Newrez), 8 in total; the BPS target/actual view splits these into 15 sub-stages (doc 13).
+> - **FCL episode** = one continuous foreclosure experience for a loan: from entering foreclosure to exiting it (cured/paid, or auction→REO). After a cure a loan can **re-enter** = a **new episode** (keyed `(loanid, deal_start)`; typically `loan : episode = 1:1`, at most one active at a time). The BK row uses **episode** rather than **stage** because a bankruptcy stay freezes the **whole foreclosure** (across all stages, not one stage), and a loan can file BK **multiple times**.
 
 ### 0.4 Why the data is modeled/processed this way (business rationale)
 
@@ -493,6 +501,7 @@ datediff(day, in_lm_start_dt, in_lm_end_dt) + 1 AS in_lm_days   -- only cycle_cl
 
 ### 📖 Business meaning
 - **The 6 stages** = the standard progression of one foreclosure: `DEMAND` → `REFERRAL`(to attorney) → `FIRST_LEGAL` → `SERVICE` → `JUDGEMENT`(court ruling) → `SALE`. The stage table **places each loan at its current stage** and computes time per stage — used to track progress, spot abnormal stalls, and monitor compliance aging.
+  > Note: the physical `fcl_stage_info` table also has `NOI` (between Demand↔Referral) and `PUBLICATION` (between Service↔Judgement) buckets (with `*_start_date/_end_date/_stage_days` columns), usually NULL for Newrez — so only the 6 main stages are listed here; "listing 6" does not mean the table has only 6. The BPS target/actual view splits stages into 15 sub-stages (doc 13).
 - **Why deduct `in_lm_days`/`on_hold_days`**: time spent in loss-mitigation talks or under a Hold shouldn't count as attorney/process inaction. Removing this **non-actionable time** yields the true **actionable duration**, making KPIs and compliance-aging fair and accurate.
 - **`to_judgement_days/to_sale_days`** are **forward-looking** (days until the next milestone), not elapsed.
 

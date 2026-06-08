@@ -24,6 +24,9 @@
 | 2026-06-06 | AI Agent (Claude Opus 4.8) | v5 | 新增 §0.4「数据为什么这样建模/处理（业务理由）」（10 条，与 doc 20 §A.6 同源）；ERD 顺延 §0.5；读者措辞中性化 | doc 17/18/10 · doc 20 |
 | 2026-06-06 | AI Agent (Claude Opus 4.8) | v6 | **双家做深 + DB 实测**：新增 §1.2 填充率/DB验证矩阵（prod 实测）· §6 Carrington 专线（里程碑/状态/天数/Hold/BK 各跳规则+行号+实测）· §7 跨 Servicer 对比（FCL 识别 / 里程碑来源 / delinq·bankruptcy CASE）· §8 一个字段的完整 SQL 路径（Newrez+Carrington 可对账）；原 §6/§7 顺延为 §9/§10；§9 填回 OQ#7（`basic_data_loan_delinq_clean` 生成代码**不在 PrefectFlow 版本库**，grep 实证）+ Carrington 特有坑；全部 `表.列` 经 information_schema 全量核验、Carrington 样本 `7727000858` L1→L4→L5 实测贯通 | mysql_prod / redshift_prod 实测；PrefectFlow 源码 |
 | 2026-06-06 | AI Agent (Claude Opus 4.8) | v7 | §0.2 补「落库 DB：MySQL+Redshift 双写」说明（L1–L4 多数双写、FCL 业务族 Redshift 建+L5 同步）；代码证据表见 doc 20 §B.6 | PrefectFlow 源码 · doc 20 |
+| 2026-06-08 | AI Agent (Claude Opus 4.8) | v8 | 用词正式化：§7 引导句改为「本节三张表回答的问题：…」式表述、§6 引导句去除口语化措辞，统一为正式、目的导向的语言 | — |
+| 2026-06-08 | AI Agent (Claude Opus 4.8) | v9 | 在 §0.3 N:N 表下新增「术语」说明，于使用处定义 **FCL 阶段**（6 主阶段+8 桶+15 子阶段）与 **FCL episode**（一段止赎、`(loanid,deal_start)` 键、与 BK 的 N:N 理由）；§3 补 NOI/PUBLICATION 两桶说明；术语条目同步入 doc 10 | doc 10 · doc 13 · doc 17/18 |
+| 2026-06-08 | AI Agent (Claude Opus 4.8) | v10 | §0.1 加注：`basic_data_monthly_loan_clean_data_delinq` 属 portmonth/逾期线、**不在任一 FCL 支线**；FCL 的 `group/delq_status` 由 `basic_data_fcl_related` 直接取原始 servicer 表（`basic_data_pool_config.py`/`flow/bps/` 0 引用，实测） | PrefectFlow 源码实测 · doc 02 |
 
 **依赖：** [doc 20](20_end_to_end_walkthrough.md)（五层总览）· [doc 13](13_newrez_fcl_bps_display_mapping.md)（BPS 界面映射）· [doc 12](12_sync_asset_management.md)（同步代码）· [doc 19](19_fcl_sample_loan_raw_dump.md)（样本 dump）。
 
@@ -82,6 +85,8 @@ flowchart TD
 
 > ⚠️ 所以**止赎里程碑/状态字段走 FCL 业务族支线，直接从 `portnewrezfc` 取，不经 `basic_data_daily_loan_common`**。doc 20 的 L2/L3 主要描述逾期支线。
 
+> ⚠️ **易混表名澄清**：`port.basic_data_monthly_loan_clean_data_delinq` **不属于以上任一 FCL 支线**，而是**月度组合/逾期分析线（portmonth）**上的表：`…clean_data_base → …clean_data_delinq → basic_data_monthly_loan_clean_data → portmonth → bpms.sync_portmonth`（喂 BPS「Delinquency」视图、`prevdelinqchar` 字符解码）。FCL 表的 `group/delq_status` 由 `basic_data_fcl_related` **直接取原始 servicer 表**算得（`CREATE_FCL_RELATE_ATTR`，`basic_data_pool_config.py:1695-1771`），**不读**任何月度 clean 表——实测 `basic_data_pool_config.py` 与 `flow/bps/` 对 `…monthly_loan_clean_data*` 均 **0 引用**。
+
 ### 0.2 中间表清单（DB 实测存在）
 
 | 中间表 | 层 | 角色 |
@@ -129,6 +134,10 @@ flowchart TD
 > ⚠️ **N:N 口径**：`{stage}_in_lm_days/_on_hold_days` **只统计"开放(未结束)"的 LM/Hold**（`cycle_closed_date is null` / `hold_end_dt is null`），所以**已结清**贷款这些列会全 NULL（如 `7727000088`），但**关系本身仍是 N:N**——阶段天数是按重叠区间**分摊扣减**，不是简单相减。
 >
 > **确认"不是多对多 / 不放大"**（防误解）：loan ↔ `portfunding` 实测 **1:1**（每 loan ≤1 行），故 BPS 取数 join 不会把一笔贷款放大成多行；主时间线 `bpms.sync_loan_foreclosure` 与阶段表当前快照均 **1 行/贷款**（实测无重复 loanid）。
+
+> **术语（上表两词的含义）：**
+> - **FCL 阶段（FCL stage）**＝一次止赎案推进所经过的法律里程碑。标准 **6 阶段**：`DEMAND`(催告) → `REFERRAL`(移交律师) → `FIRST_LEGAL`(首次法律行动) → `SERVICE`(文书送达) → `JUDGEMENT`(法院判决) → `SALE`(拍卖)（详见 §3）。物理阶段表 `fcl_stage_info` 另含 `NOI`、`PUBLICATION` 两个桶（对 Newrez 通常为空），故共 8 桶；BPS target/actual 视图再细分为 15 子阶段（doc 13）。
+> - **FCL episode（一段止赎 / 一次止赎经历）**＝一笔贷款"一次完整的止赎经历"：从进入止赎到退出（被复权/减损治愈/还清，或走到拍卖→REO 完结）。被治愈后可**再次进入**止赎，即一个**新的 episode**（用 `(loanid, deal_start)` 区分；典型 `loan : episode = 1:1`，同一时点至多一段活跃止赎）。BK 行用 **episode** 而非 **阶段**，因为破产**自动中止**冻结的是**整段止赎**（跨所有阶段，不属某一个阶段），且一笔贷款可**多次**申请 BK，故关系定在 episode 层级。
 
 ### 0.4 数据为什么这样建模/处理（业务理由）
 
@@ -493,6 +502,7 @@ datediff(day, in_lm_start_dt, in_lm_end_dt) + 1 AS in_lm_days   -- 仅 cycle_clo
 
 ### 📖 业务含义
 - **6 阶段** = 一次止赎的标准推进顺序：`DEMAND`(催告) → `REFERRAL`(移交律师) → `FIRST_LEGAL`(首次法律行动) → `SERVICE`(文书送达) → `JUDGEMENT`(法院判决) → `SALE`(拍卖)。阶段表把每笔贷款**定位到当前阶段**并算各阶段耗时，业务用来盯进度、识别异常滞留、做合规超期监控。
+  > 注：物理阶段表 `fcl_stage_info` 实际还有 `NOI`（Demand↔Referral 之间）与 `PUBLICATION`（Service↔Judgement 之间）两个桶（含 `*_start_date/_end_date/_stage_days` 等列），对 Newrez 通常为空，故此处只列 6 个主阶段——"列 6 个"不代表表里只有 6 个。BPS 合规 target/actual 视图再细分为 15 子阶段（doc 13）。
 - **为什么要扣 `in_lm_days`/`on_hold_days`**：止赎期间若在谈减损或被 Hold，时间不该算作"律所/流程不作为"。扣除这些**非可控时间**后得到的才是**可操作时长**，KPI 与合规超期判断才公平准确。
 - **`to_judgement_days/to_sale_days`** 是**前瞻**（距下个里程碑还有几天），非已耗时。
 
@@ -578,7 +588,7 @@ case when delq_status='Full Payoff' then 'P'
 
 ## 6 · Carrington 专线（里程碑/状态/天数/Hold/BK 各跳规则）
 
-> 前面 §1–§5 以 **Newrez** 为主线（最大 servicer）。**Carrington 走同一套业务族支线，但原始字段名与处理规则不同**——这是被逐字段追问时最容易被问倒的地方。本节与 §2/§4/§5 对称，给 Carrington 的每跳规则 + 代码位置 + prod 实测。
+> 前面 §1–§5 以 **Newrez** 为主线（最大 servicer）。**Carrington 走同一套业务族支线，但原始字段名与处理规则不同**——这是跨 Servicer 逐字段核对时最易混淆、最需要精确对照的地方。本节与 §2/§4/§5 对称，给 Carrington 的每跳规则 + 代码位置 + prod 实测。
 >
 > **两跳同 Newrez**：① `carrington.portcarrington`（按 `snap_shot_date` 快照）→ `basic_data_loan_fcl`（Carrington UNION 块，`basic_data_pool_config.py` ~L1574–1614，**这里把 Carrington 列改名/派生成统一列**）；② `basic_data_loan_fcl` → `basic_data_loan_foreclosure` 走**同一个** `GEN_FCL_DETAIL`（与 Newrez 共用，故下游 timeline_/summary_ 列名一致）。
 
@@ -638,7 +648,7 @@ case when c.delq_status='Foreclosure' OR c.fcl_flag='Active' then 'FCL'   -- 多
 
 ## 7 · 跨 Servicer 对比（FCL 识别 / 里程碑来源 / delinq·bankruptcy）
 
-> 老板若问"**别家这个字段怎么来的**"，查这三张表即可。Newrez/Carrington 已 prod 实测；SLS/Selene/Cape Cod Five 规则来自源码（`portdaily_config.py`/`daily_data_loan_common_config.py`/`daily_data_loan_common_clean_config.py`/`basic_data_pool_config.py`）；MRC/FCI 在所读代码里**FCL 业务族支线薄/未实现**，仅在逾期支线出现。
+> **本节三张表回答的问题：「某一 Servicer 的某个字段从何而来、经过哪些跳转」**——查这三张表即可。Newrez/Carrington 已 prod 实测；SLS/Selene/Cape Cod Five 规则来自源码（`portdaily_config.py`/`daily_data_loan_common_config.py`/`daily_data_loan_common_clean_config.py`/`basic_data_pool_config.py`）；MRC/FCI 在所读代码里**FCL 业务族支线薄/未实现**，仅在逾期支线出现。
 
 ### 7.1 FCL 识别方式各家对比（靠什么判定"进入止赎"）
 

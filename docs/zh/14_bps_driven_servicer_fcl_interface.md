@@ -45,6 +45,7 @@
 | 2026-06-04 | AI Agent (Claude Opus 4.8) | v38 | **BPS验证SQL 的 SELECT 增加数据日期列**——首列 `'2026-06-01' AS data_date`，读者运行查询即可从结果看到数据日（与表头「数据日 2026-06-01」一致）。⚠️ 实测发现 BPS 同步表是**覆盖式刷新**（`fctrdt`=最近 ETL 刷新日，2026-06-01 历史状态已被 06-02 刷新覆盖、不可复现；569 行中 198 行 fctrdt=2026-06-02），故**不按 fctrdt 过滤**（过滤会得错误子集 141≠207），用字面量基准日 + 全表（≈col S 实测口径）。`add_field_spec_bps_verify_sql.py` build_sql 改；col S 不变（已带日期标注）。另把 `sync_fieldspec_en_cards.py` 改为**可重跑**（已卡片化时从卡片解析英文散文 + Excel 刷新数据），并据此刷新 en 各卡片的 BPS Verify SQL 块 | prod 只读实测 2026-06-04 |
 | 2026-06-03 | AI Agent (Claude Opus 4.8) | v32 | 标准接口字段 `sms_days_in_fcl` → **`servicer_days_in_fcl`**（去除单一 servicer 品牌名 SMS=Shellpoint；标准接口应 servicer-中性，与 `days_in_fcl` 配对、与 ETL 别名 svc_days_infc 一致）。保留 Newrez 列 `smsdaysinfc`/BPS 列 `summary_sms_days_in_fcl`/UI "SMS Days" 不变。改 Excel col C+业务含义+col13注释→sync zh 卡片；en 横表、doc 13 §3.7 脚注、3 生成脚本 key 同步 | DB/代码核实 · doc 13 v34 |
 | 2026-06-03 | AI Agent (Claude Opus 4.8) | v31 | 明确 `sms_days_in_fcl` vs `days_in_fcl` 业务含义（代码+DB 核实）：days_in_fcl=投资人/全程，按 `fcreferraldate` 起算（ETL datediff+1）；sms_days_in_fcl=Newrez 原生 `smsdaysinfc`(svc_days_infc，servicer/SMS=Shellpoint 口径)，实测自 `fcsetupdate` 起算 → `sms ≤ days`；BPS 两者均 +DATEDIFF 实时修正。Excel+zh 卡片同步；doc 13 §3.7 同步 | 代码 basic_data_pool_config.py:280/1545/1628 · doc 13 v34 |
+| 2026-06-08 | AI Agent (Claude Opus 4.8) | v39 | 更正附录 D 状态机：删除错误的 `BK →（债务清偿）→ P` 边（Ch.7 discharge 仅免除个人债务、抵押权 Lien 存续，贷款并未结清）；P 节点标签去「债务清偿」；BK→FCL 边补「/Ch.7 清偿」；D.3 表 `BK→P` 行改为「无 P 直达」澄清——与 doc 7/17/fcl_pipeline.html 同步 | doc 7 · doc 17 · fcl_pipeline.html |
 | 2026-06-03 | AI Agent (Claude Opus 4.8) | v30 | `lm_status` 标准接口取值范围列全**实测 22 个** lmc_status（一值一行；原为「等20+种」省略），末注字典完整域约 150 码（完整 code→text 见数据字典/Redshift portnewrezdatadic）；状态流转图见 doc 18 §4.5 | DB 实测 · doc 18 v3 |
 | 2026-06-03 | AI Agent (Claude Opus 4.8) | v29 | `reo_acquisition_date` 验证SQL 头注略扩：解释 `dtdeedrecorded`=止赎契据登记日（产权过户/止赎完成点，约在 fcsalehelddate 后 2-3 周，多数→REO，近似 REO 取得日）；查询/结果不变。Excel + zh 卡片同步；术语收录 doc 10 分类C（v4） | doc 10 v4 |
 | 2026-06-03 | AI Agent (Claude Opus 4.8) | v28 | `lm_type` 验证SQL/验证结果补充：原仅验 Newrez 源 `lmdeal` 码分布，改为**跨表 join**（Newrez `lmdeal` × BPS `deal`，同 lm_deal），同时验证源表与 BPS 表；结果显示 lmdeal→deal 解码映射（实测 8 deal）。生成器 add_field_spec_verify_sql.py 同步把 lm_type 归为 lm_code 类型 | DB 实测（跨库 JOIN） |
@@ -4277,7 +4278,7 @@ flowchart TD
 
     LM["LM — 损失缓解\n还款修改 / 宽限协议"]
     BK["BK — 破产保护\nChapter 7 / Chapter 13"]
-    P(["P — 贷款终止\n还清 / 拍卖售出 / 短售 / 债务清偿"])
+    P(["P — 贷款终止\n还清 / 拍卖售出 / 短售"])
 
     START --> C
     C -->|"错过 1 期"| D30
@@ -4299,9 +4300,8 @@ flowchart TD
 
     C & D30 & D60 & D90 & D120P -->|"全额还清"| P
     D30 & D60 & D90 & D120P & FCL -->|"申请破产"| BK
-    BK -->|"BK 撤销/解除\nFCL 恢复"| FCL
+    BK -->|"BK 撤销/解除 / Ch.7 清偿\nFCL 恢复"| FCL
     BK -->|"Ch.13 还款完成"| C
-    BK -->|"债务清偿"| P
 
     style C fill:#87CEEB,stroke:#4682B4
     style D30 fill:#FFE4B5,stroke:#DAA520
@@ -4355,7 +4355,7 @@ flowchart TD
 | Dx / FCL → BK | 借款人申请破产保护 | 随时 |
 | BK → FCL | 破产撤销 / 解除，止赎程序恢复 | BK 结案后 |
 | BK → C | Ch.13 还款计划顺利完成 | 3–5 年后 |
-| BK → P | Ch.7 债务清偿，或 Ch.13 完成后清偿 | — |
+| BK →（无 P 直达） | **Ch.7 discharge 仅免除借款人个人债务责任，抵押权（Mortgage Lien）存续 → 贷款并未结清**，止赎通常恢复（→ FCL → 拍卖）；Ch.13 计划完成则计为 → C（重新计为正常），并非 P | — |
 
 ### D.4 FCL 内部子阶段
 

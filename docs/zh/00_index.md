@@ -18,6 +18,7 @@
 | 日期 | 作者 | 版本 | 变更内容 |
 |------|------|------|---------|
 | 2026-05-21 | AI Agent (Claude Sonnet 4.6) | v1 | 初始版本，完整逆向工程分析 |
+| 2026-06-08 | AI Agent (Claude Opus 4.8) | v2 | 用词正式化：doc 99 用例的汇报对象表述统一为「向管理层 / Reviewer 汇报」 |
 
 ---
 
@@ -46,8 +47,9 @@
 | 16 | `16_bps_panel_quickref.md` | **BPS Foreclosure 面板速查**：6 个面板（Foreclosure Summary / Timeline / Hold / LM / BK / 聚合概览）的 UI 截图 + 紧凑字段映射表（UI 标签 → Newrez 源字段 → Mapping Rule）+ 快速排查路径；doc 13 的速查入口 | BPS 界面数据排查；新成员快速上手；运营/数据联调时对照 BPS 截图定位源字段 |
 | 17 | `17_foreclosure_business_primer.md` | **美国贷款 Foreclosure 业务入门**：从 doc 7 第 2 章独立提取的分享版，介绍 FCL 判断依据、常见字段、贷款生命周期、FCL 内部阶段、司法/非司法差异、Foreclosure 与 Bankruptcy 关系 | 给业务/运营/新同事分享；无需阅读完整 ETL 血缘即可理解 Foreclosure 基础概念 |
 | 18 | `18_loss_mitigation_business_primer.md` | **Loss Mitigation（LM）业务入门与方案说明**：解释 LM 的业务含义、六类常见方案、BPS/Newrez Deal/Program/Status/Final Disposition 字段，以及 LM 与 FCL 的关系 | 快速理解 LM 各方案；BPS LM Cycle 面板排查；向 Servicer 讨论 LM 字段前置学习 |
+| **22** | **`22_bps_fcl_timeline_sourcing.md`** | **BPS agg-summary 止赎页取数规则**：`/#/portfolio/agg-summary` 的 **Time Line** 与 **Stage** tab（及 Overview）均取自 `bpms.sync_fcl_stage_info`（← `port.fcl_stage_info`，`GEN_FCL_STAGE`）；含 UI 列 ⇄ 表列完整映射、三视图关系、「当前态 vs 历史态」解答（表保留 `fctrdt` 多快照，页面取 `MAX(fctrdt)`）、代表性 SQL、样本走查(7727000088 实测吻合) | 回答「Time Line 页取自哪张表/SQL 怎么写」；BPS 聚合页排查；理解为何一笔贷款=一行日期列 |
 | 98 | `98_database_verification_strategy.md` | **数据库验证与 MCP 使用规范**：规定后续研究默认用 MCP 只读验证 MySQL/Redshift，记录查询目的、SQL、快照日期、结果摘要，并保护连接信息 | 字段映射查库验证；逐 Servicer 文档 SQL 附录；Reviewer 复现 |
-| 99 | `99_servicer_fcl_gap_summary_and_action_plan.md` | **Servicer FCL 缺口汇总与行动计划**：汇总 doc 14 审核结论、后续逐 Servicer 文档顺序、行动项分类、验收标准 | 项目管理；Reviewer/Boss 汇报；后续工作路线图 |
+| 99 | `99_servicer_fcl_gap_summary_and_action_plan.md` | **Servicer FCL 缺口汇总与行动计划**：汇总 doc 14 审核结论、后续逐 Servicer 文档顺序、行动项分类、验收标准 | 项目管理；向管理层 / Reviewer 汇报；后续工作路线图 |
 | 模板 | `_servicer_fcl_gap_analysis_template.md` | 单个 Servicer FCL 缺口分析模板：固定文档头、血缘链条、doc 14 字段对照、缺口分级、证据与 Open Questions 结构 | 生成 Carrington/SLS/Selene/MRC/Arvest/CapeCodFive/FCI 等后续文档 |
 
 ---

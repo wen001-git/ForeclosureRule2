@@ -849,6 +849,7 @@ function selectPrevChar(){
     +`GROUP  BY prevdelinqchar, prevdelinq ORDER BY cnt DESC;`;
   let h=`<div class="d-head"><span class="pill" style="background:var(--accent)">field</span><h2>prevdelinqchar</h2><div class="path">schema: <b>port.basic_data_monthly_loan_clean_data_delinq</b></div></div><div class="d-body">`;
   h+=`<div class="sec"><div class="kv">${t('svCharMeaning')}</div></div>`;
+  h+=`<div class="sec"><div class="note">${lang==='zh'?'ℹ 该表属<b>月度组合/逾期支线（portmonth）</b>：…_delinq → basic_data_monthly_loan_clean_data → portmonth → bpms.sync_portmonth（喂 BPS「Delinquency」视图），<b>不在 FCL / sync_loan_foreclosure 表管道上</b>；FCL 表自有 delq_status（basic_data_fcl_related，直接取原始 servicer 表）。':'ℹ This table is on the <b>monthly portfolio / delinquency branch (portmonth)</b>: …_delinq → basic_data_monthly_loan_clean_data → portmonth → bpms.sync_portmonth (feeds the BPS \"Delinquency\" view); it is <b>NOT on the FCL / sync_loan_foreclosure pipeline</b>. The FCL tables compute their own delq_status (basic_data_fcl_related, read directly from raw servicer tables).'}</div></div>`;
   h+=`<div class="sec"><h3>${t('svAsOfLabel')}</h3><div class="kv">fctrdt=2026-07-01（redshift_prod）</div></div>`;
   h+=`<div class="sec"><div class="note">⚠ ${t('svCharVerifyNote')}</div></div>`;
   h+=`<div class="sec"><h3>${t('svCharSample')}</h3><div class="lin"><code>paymthistfull = RFFFFFFFFFFFF4321CC1C11CCCCCC11CCCCCCCC1C</code><br>${lang==='zh'?'左=最新：R 本月 REO ← 12×F 止赎 ← 4321 逾期升级 ← 早期 C 正常':'left=newest: R now REO ← 12×F foreclosure ← 4321 escalation ← earlier C performing'}</div></div>`;
@@ -1698,7 +1699,7 @@ function lifecycleFlowSVG(){
     {from:'FCL',to:'HOLD',label:L({en:'Hold on/off',zh:'Hold 触发/解除'}),dir:'bi'},
     {from:'FCL',to:'REO',label:L({en:'no auction bid',zh:'拍卖流标'})},{from:'REO',to:'P',label:L({en:'property sold',zh:'房产出售'})},{from:'FCL',to:'P',label:L({en:'3rd Party / short sale / redeem',zh:'3rd Party/短售/赎回'})},
     {from:'D90',to:'LM',label:L({en:'apply mod / forbearance',zh:'申请修改/宽限'})},{from:'LM',to:'C',label:L({en:'mod success',zh:'方案成功'})},
-    {from:'D120P',to:'BK',label:L({en:'file BK',zh:'申请破产'})},{from:'BK',to:'FCL',label:L({en:'BK lifted → resume',zh:'BK解除→恢复'})},{from:'BK',to:'C',label:L({en:'Ch.13 done',zh:'Ch.13完成'})},{from:'BK',to:'P',label:L({en:'debt discharged',zh:'债务清偿'})},
+    {from:'D120P',to:'BK',label:L({en:'file BK',zh:'申请破产'})},{from:'BK',to:'FCL',label:L({en:'BK lifted/discharged → resume',zh:'BK解除/清偿→恢复'})},{from:'BK',to:'C',label:L({en:'Ch.13 done',zh:'Ch.13完成'})},
   ]});
 }
 function bpsPipelineFlowSVG(){
@@ -1741,7 +1742,8 @@ function lifecycleSection(){
      ['<code>FCL → C</code>',L({en:'Pre-sale payoff / redemption (rare)',zh:'拍卖前还清赎回（Redemption，极少）'})],
      ['<code>Dx/FCL → BK</code>',L({en:'Borrower files bankruptcy',zh:'借款人申请破产'})],
      ['<code>BK → FCL</code>',L({en:'BK dismissed/lifted; FCL resumes',zh:'破产撤销/解除，止赎恢复'})],
-     ['<code>BK → C</code>',L({en:'Ch.13 plan completed',zh:'Ch.13 还款计划完成'})]
+     ['<code>BK → C</code>',L({en:'Ch.13 plan completed',zh:'Ch.13 还款计划完成'})],
+     ['<code>BK → P? (no)</code>',L({en:'Ch.7 discharge removes the borrower\'s personal liability ONLY; the mortgage lien survives → the loan is NOT paid off. There is no direct BK→P; foreclosure typically resumes (→ FCL → sale), see §7.',zh:'Ch.7 discharge 仅免除借款人个人债务责任；抵押权（Mortgage Lien）存续 → 贷款并未结清。故无 BK→P 直达；止赎通常恢复（→ FCL → 拍卖），见 §7。'})]
    ]);
 }
 function renderPrimer(){

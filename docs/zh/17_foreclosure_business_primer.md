@@ -20,6 +20,7 @@
 |------|------|------|---------|---------|
 | 2026-05-29 | AI Agent (Codex) | v1 | 从 doc 7 第 2 章提取 Foreclosure 业务入门内容，补充标准文档头，形成独立分享版 | doc 7 |
 | 2026-06-05 | AI Agent (Claude Opus 4.8) | v2 | §4.6 ① NOI/Demand Letter 节点：流程图区分 NOI vs Demand Letter（司法州=NOI/NOD，非司法州=Demand Letter，同字段 demandsentdate，~30天催告，FCL 启动前，按 doc 10 术语表）；核心字段 demand_date/noi_date → demand_start_date（noi_start_date 恒空）；补准确口径（该阶段在 agg-summary 通常为 0——仅 pre-referral D90/D120P）。与 doc 7 §2.4.6 / fcl_pipeline.html 同步 | doc 10 · doc 7 · fcl_pipeline.html |
+| 2026-06-08 | AI Agent (Claude Opus 4.8) | v3 | 更正状态机 §4：删除错误的 `BK →（债务清偿）→ P` 边（Ch.7 discharge 仅免除个人债务、抵押权 Lien 存续，贷款并未结清）；P 节点标签去「债务清偿」；BK→FCL 边补「/Ch.7 清偿」；§4.3 表 `BK→P` 行改为「无 P 直达」澄清——与本文 Ch.7 Lien 说明、doc 7/14/fcl_pipeline.html 一致 | doc 7 · doc 14 · fcl_pipeline.html |
 
 ## 依赖文档
 
@@ -149,7 +150,7 @@ flowchart TD
 
     LM["LM — 损失缓解\n还款修改 / 宽限协议"]
     BK["BK — 破产保护\nChapter 7 / Chapter 13"]
-    P(["P — 贷款终止\n还清 / 拍卖售出 / 短售 / 债务清偿"])
+    P(["P — 贷款终止\n还清 / 拍卖售出 / 短售"])
 
     START --> C
     C -->|"错过 1 期"| D30
@@ -171,9 +172,8 @@ flowchart TD
 
     C & D30 & D60 & D90 & D120P -->|"全额还清"| P
     D30 & D60 & D90 & D120P & FCL -->|"申请破产"| BK
-    BK -->|"BK 撤销/解除\nFCL 恢复"| FCL
+    BK -->|"BK 撤销/解除 / Ch.7 清偿\nFCL 恢复"| FCL
     BK -->|"Ch.13 还款完成"| C
-    BK -->|"债务清偿"| P
 
     style C fill:#87CEEB,stroke:#4682B4
     style D30 fill:#FFE4B5,stroke:#DAA520
@@ -227,7 +227,7 @@ flowchart TD
 | Dx / FCL → BK | 借款人申请破产保护 | 随时 |
 | BK → FCL | 破产撤销 / 解除，止赎程序恢复 | BK 结案后 |
 | BK → C | Ch.13 还款计划顺利完成 | 3–5 年后 |
-| BK → P | Ch.7 债务清偿，或 Ch.13 完成后清偿 | — |
+| BK →（无 P 直达） | **Ch.7 discharge 仅免除借款人个人债务责任，抵押权（Mortgage Lien）存续 → 贷款并未结清**，止赎通常恢复（→ FCL → 拍卖，见下文 Ch.7 Lien 说明）；Ch.13 计划完成则计为 → C（重新计为正常），并非 P | — |
 
 #### 4.4 FCL 内部子阶段
 

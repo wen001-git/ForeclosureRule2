@@ -1,5 +1,31 @@
 # Prompt & Decision Log — ForeclosureRule2
 
+## [2026-06-08 UTC] 把 3 个状态图方案都画出来供对比选择（保留原线性图）
+> 你建议的3个方案，都画给我看看，然后再决定选取什么方案，你原来画的状态图挺好理解的，我不想删除，除非你画的新图更好
+
+## [2026-06-08 08:02 UTC] doc 19 md/excel：每表加「字段业务含义」列 + datadic 解码加业务含义
+> doc 19 md / excle , 给表中每个字段右边增加一列，描述字段名称/字段的业务含义.
+> 并给 newrez.portnewrezdatadic — FCL 解码字典 的编码的解码加上 解码的业务含义.
+
+### Decision: doc 19 字段业务含义来源与注入机制 [2026-06-08]
+- **Context**: doc 19 两载体(MD+xlsx)需为每表每字段加「业务含义」列 + datadic 解码加业务含义；原生成器(build_fcl_sample_raw_dump_md/xlsx.py)已从工作区删除(仅剩 .pyc)；端点安全禁运行用户目录 .py。
+- **Options considered**: A 现写含义并硬编码进脚本; B 复用既有权威源 `docs/foreclosure_data_dictionary.md`(已有「字段业务含义」列, 表01–26)解析为 JSON 真源 + 幂等 stdin 脚本就地注入两载体; C 恢复旧生成器重建。
+- **Choice**: B。
+- **Reason**: 复用 DB 实测过的数据字典避免凭空造义(符合 Schema-Verify/复用规则)；单一 JSON 真源保 MD⇄Excel 一致；脚本经 `python - < .txt` 绕过 .py 限制且幂等可重跑；转置表内联「业务含义」列、平铺表(Hold/LM/BK)加「字段说明」legend 块、datadic 解码加第 3 列「业务含义」并同步数据字典表26；不碰人工列、DB 全程只读。
+> 在 fcl_pipeline.html 的贷款状态图中，BK -> P 画得不太对了，BK 状态 经过 Debt Discharged 后不一定是 P (Debt Discharge只能说明 Borrower 的个人债务责任被法院免除，并不说明 Mortgage Lien（抵押权）消失)，对吗？ what's your recommendation?
+
+## [2026-06-08 UTC] 核查 port.basic_data_monthly_loan_clean_data_delinq 是否在 servicer→BPS FCL 管道中
+> port.basic_data_monthly_loan_clean_data_delinq 这个表处在 servicer原始数据到 BPS系统的forclosure相关表的的pipline中吗？
+
+## [2026-06-08 UTC] 解释并定义 doc 21 的「FCL 阶段」与「FCL episode」
+> doc 21, FCL阶段是什么意思？请列出FCL阶段包含哪些阶段。FCL episode是什么意思？
+
+## [2026-06-08 UTC] 用词正式化：全库去除「老板/Boss」等口语化字眼
+> doc 21 ,所有文档，请不要用 老板，boss 等字眼，用词需要正式一些，请检查所有的md  excel  html的中英文文档，
+
+## [2026-06-07 14:05 UTC] 研究本项目
+> pls research this project
+
 ## [2026-06-07 UTC] 研究本项目，准备继续推进
 > pls reserch this project, I want to proceed this project
 
@@ -48,10 +74,10 @@
 > 把 A.6 业务理由表也加到 doc 21 紧挨 §0.3；文档目的和目标读者 改得含蓄一些，这个文档要是给CTO看到了，就不好了。// 追加：CTO也去除，改成 给同事讲解
 > 决定：doc 21（zh+en）新增 §0.4「业务理由」（=doc20 §A.6，10 条），ERD 顺延 §0.5；全库（doc 20/21/00_index, zh+en）去除一切「CTO/老板/龟毛/管得细/问得细/给老板看/避免被问倒」画像，统一改为中性「同事/数据团队/技术读者」；doc20 升 v3、doc21 升 v5。grep 全库 CTO/老板=0。
 
-## [2026-06-06 UTC] 新增 doc 20：FCL 数据流总览+讲解稿（给老板讲 servicer文件→BPS 全流程）
+## [2026-06-06 UTC] 新增 doc 20：FCL 数据流总览+讲解稿（向团队讲解 servicer 文件→BPS 全流程）
 > 我老板要求我查看代码，了解整个foreclosure 的数据流 pipeline,产出文档，能跟他讲解出整个数据流从来源servicer数据文件到最终输出到BPS系统的整个数据的生产过程，我会一些基础的python编码，不过你可以把我当作只会一点，我熟悉中国的银行存贷款数据，但这是我公司的业务是美国的贷款，我公司是Asset management公司，我应该如何执行？我该产出什么？你能帮我做什么？
-> 决定（AskUserQuestion）：交付形式=「数据流总览+讲解稿」Markdown；深度=一份文档两个层次（给老板 5 分钟版 + 自己深入版）。产出 docs/zh|en/20_end_to_end_walkthrough.md + 更新 00_index。
-> 追加需求（老板问得细）：要逐字段、含中间表/转换规则；代码在 PrefectFlow、数据走 MCP 实测。决定（AskUserQuestion）：核心 FCL 字段全链路 + 新建 doc 21 字段血缘专文（zh+en）。
+> 决定（AskUserQuestion）：交付形式=「数据流总览+讲解稿」Markdown；深度=一份文档两个层次（面向管理层的 5 分钟版 + 自己深入版）。产出 docs/zh|en/20_end_to_end_walkthrough.md + 更新 00_index。
+> 追加需求（需求逐字段细化）：要逐字段、含中间表/转换规则；代码在 PrefectFlow、数据走 MCP 实测。决定（AskUserQuestion）：核心 FCL 字段全链路 + 新建 doc 21 字段血缘专文（zh+en）。
 
 ### Milestones [2026-06-06]
 - doc 20（zh+en）数据流总览+讲解稿完成；MCP 验证发现并修正 2 处错误列名（sync_loan_foreclosure 无 fcreferraldate/summary_current_step/fctrdt → 改 timeline_referred_to_foreclosure_date / summary_foreclosure_status）。
@@ -63,13 +89,13 @@
 > 他想把每个字段的pipeline规则写出来，还要在业务角度的解释，比如一个foreclosure有多条Hold记录
 > 决定：doc 21（zh+en）增 §0.3 业务粒度/一对多（loan:FCL=1:1；FCL:Hold/LM/BK=1:N）+ 每组「业务含义」；业务口径对齐 doc 17/18/10。MCP 实测：loan 7727000088 = Hold×9 + LM×9；loan 7727000010 = BK×2（证 1:N）。
 
-## [2026-06-06 UTC] doc 20 修正读者=技术型CTO + 新增 A.6「数据为什么这样处理（业务理由）」
+## [2026-06-06 UTC] doc 20 修正读者=技术读者 + 新增 A.6「数据为什么这样处理（业务理由）」
 > doc 20 文档目的写错了…我的上司不是外行，他是CTO，不过他比较龟毛，管得很细，问得很细，他要我从业务角度解释为什么数据要这样处理，比如…一个foreclosure有多条hold记录，doc 17/doc 18都说了这些知识…
-> 决定：深研 doc 17/18/10 提炼业务理由；doc 20（zh+en）改文档目的/读者=技术型 CTO、Part A 重定基调、新增 §A.6 业务理由表（10 条，多 Hold 打头）、rev v3；00_index 描述同步。
+> 决定：深研 doc 17/18/10 提炼业务理由；doc 20（zh+en）改文档目的/读者=技术读者、Part A 重定基调、新增 §A.6 业务理由表（10 条，多 Hold 打头）、rev v3；00_index 描述同步。
 
-## [2026-06-06 UTC] doc 20 Part A：不要讲中国银行（CTO 不懂中国银行，概念桥仅供我自己理解）
+## [2026-06-06 UTC] doc 20 Part A：不要讲中国银行（讲解对象不熟悉中国银行业务，概念桥仅供个人理解）
 > Part A（给老板）…do not need to talk about China Bank to this CTO , he does not know China bank business, just I know China bank business
-> 决定：doc 20（zh+en）Part A 口播脚本去除中国银行类比；概念桥改标注「仅供你自己理解，对老板讲解时跳过」。
+> 决定：doc 20（zh+en）Part A 口播脚本去除中国银行类比；概念桥改标注「仅供你自己理解，正式讲解时跳过」。
 
 ## [2026-06-05 08:20 UTC] 说明检测 SQL 如何缩小 dataasof 范围（窗口函数邻居陷阱）
 > 你给的这个全量扫描的 sql，如何缩小范围啊？如何改 dataasof？
@@ -2063,9 +2089,9 @@
 > 我会一些基础的python编码，不过你可以把我当作只会一点，我熟悉中国的银行存贷款数据，
 > 但这是我公司的业务是美国的贷款，我公司是Asset management公司，
 > 我应该如何执行？我该产出什么？我要看代码的话，如何看代码，从哪个代码看起，请给我步骤
-## [2026-06-06 09:52 UTC] 老板要求补充 foreclosure 中间表规则
+## [2026-06-06 09:52 UTC] 管理层要求补充 foreclosure 中间表规则
 > 目前foreclosure doc文件夹的文件都是我产出的，老板不满意，估计他也没有仔细看，我跟他说我 已经完成了 从 servicer原始数据到BPS最终输出数据的规则映射，他说他还需要中间表的规则，要我把中间表的规则写出来，我跟他说没必要，因为 我已经把所有规则都写出来了，他够变态吧？
-## [2026-06-06 10:05 UTC] 老板要求字段级 pipeline 规则和业务解释
+## [2026-06-06 10:05 UTC] 管理层要求字段级 pipeline 规则和业务解释
 > 他想把每个字段的pipeline规则写出来，还要在业务角度的解释，比如一个foreclosure有多条Hold记录
 
 ## [2026-06-06 00:00 UTC] 如何执行"读代码理解 foreclosure 数据流并产出讲解文档"任务的指导
@@ -2080,7 +2106,7 @@
 ## Decisions
 
 ### Decision: doc 21 字段级血缘"双家做深 + DB 实测 + Excel 矩阵" [2026-06-07]
-- **Context**: 老板问得细，需要扛住逐字段追问的端到端血缘（含中间表/转换规则/各 servicer 差异）。
+- **Context**: 需求要求逐字段追溯，需覆盖逐字段、端到端的血缘（含中间表/转换规则/各 servicer 差异）。
 - **Options considered**: A. 全部 6 家 servicer 做深；B. Newrez+Carrington 两家做深、其余对比表；C. 仅 Newrez 加多家对比表。
 - **Choice**: B（Newrez+Carrington 双家做深 + 跨 servicer 对比表）；验证用 prod 每条链路 DB 实测 + 关键字段填充率；交付 doc 21 升级(zh/en) + 可复现 Excel 矩阵。
 - **Reason**: Carrington 是除 Newrez 外唯一进入完整 FCL 业务族支线的 servicer；两家覆盖即可回答绝大多数追问，其余家代码薄，做对比表性价比最高。
@@ -2139,3 +2165,42 @@
   - B 补充：renderPipeline 顶部加样本贷款 7727000088 三层证据链 note（doc20 §B.5）；L5 层/审计节点加"每日约 4:35 ET 调度（不在版本库）+ sync_to_bps_status 审计"；L3/L4 标注逾期支线 vs FCL 业务族（doc21 §0.1）；各层 sub 补 doc/验证库指针（doc20 §B.3）。
   - C doc13 核对：bk_statusdt 来源 bkrcurrentstatusdate→bkfileddate（doc13 v30/doc21 §5.2），其 worked-example 由"stale"订正为"match"。
 - preview 实测：L1-L3 dual、portmonthbase dual、bdlf redshift、图例含 dual、样本链/4:35/bkfileddate 均在；renderPipeline/renderGraph 无抛错，既有交互不受影响。
+
+### Milestone: 集成「🌊 数据流动」Tab 进 fcl_pipeline.html [2026-06-07]
+- 按推荐执行：把流动可视化做成主 HTML 新 Tab（与 管道/血缘图谱/状态码/科普 并列），默认 A 分步播放。
+- 四模式：A 分步播放器（逐层点亮 L0→BPS+旁白，▶/◀/▶|/⟲/调速）、B 流动粒子、C 体量流向(边宽≈行数,L4→L5 6152→83 收窄)、D 单贷款追踪(7727000088 沿管道值变化)。旁白取自 doc 02/20/21。
+- 接线：vFlow 中英、v-flow tab、view 数组、renderView 分派、setView 切走停动画、PAGEDOC.flow、CSS(.fbtn/#flowmodes/.flowdim) + 新模块 FLOW_STAGES/FLOW_MODES/renderFlow/flowDraw/particles/token/controls。
+- preview 实测：tab 存在、4 模式皆可、A 7框+高亮边+字幕、B 18粒子、C 边宽变化、D 令牌；切 pipeline/graph/fields 无回归，errors=[]。
+- 沙盒 outputs/fcl_flow_playground.html 保留（可删）。
+
+### Milestone: 全库用词正式化（去除「老板/Boss」等口语化字眼）[2026-06-08]
+- 全库扫描（md/html `老板|Boss|CTO|龟毛|变态|被问倒|别家|领导` + openpyxl 扫 `docs/**/*.xlsx`）：Excel/HTML 零命中；en 文档已正式（无 boss，用中性「when asked」）；en doc 99 不存在。实际范围=zh 文档 4 处。
+- 改动：① `docs/zh/21_fcl_field_lineage.md` §7 引导句「老板若问…」→「本节三张表回答的问题：『某一 Servicer 的某字段从何而来、经哪些跳转』」、§6「最易被问倒」→「最易混淆、最需精确对照」（升 v8）；② `docs/zh/99_…md` 目标读者「Boss/Reviewer」→「管理层 / Reviewer」（升 v2）；③ `docs/zh/00_index.md` doc 99 用例「Reviewer/Boss 汇报」→「向管理层 / Reviewer 汇报」（升 v2）。三处补修订行。
+- prompt.md：按用户要求把我自己写的标题/决策/小结里的「老板/CTO」改为「管理层/团队/技术读者」（共 10 处）；保留用户逐字 prompt 原话与「描述删除该词」的元引用不动。
+- 验证：`grep 老板|Boss` over docs/**/*.{md,html} = 0；Excel/HTML = 0；prompt.md 残留均为逐字 prompt 或元引用。DB 未涉及。
+
+### Milestone: 更正状态图 BK→P（Ch.7 discharge ≠ 还清/Lien 存续）[2026-06-08]
+- 用户指出：状态图 `BK →(债务清偿)→ P` 不准——Ch.7 discharge 仅免除借款人个人债务责任，抵押权 Mortgage Lien 不消失，贷款并未结清。结论：用户正确，且该边与各文件自身的 Ch.7 Lien 说明 + 关键转换图例（从未列 BK→P）矛盾。
+- 采纳方案 1（删边 + 加澄清）。同一错误存在于 4 处状态图，全部修正：
+  - `outputs/fcl_pipeline.html`：删 `{from:'BK',to:'P',label:'债务清偿'}`；BK→FCL 标签改「BK解除/清偿→恢复」；Key transitions 增「BK → P?(no)」澄清行。embedded JS 重测 ok=1/err=0。
+  - doc 17 zh（v3）、doc 7 zh（v2.2）、doc 7 en（v2.2）、doc 14 zh 附录 D（v39）：删 mermaid `BK -->|债务清偿| P`；P 节点标签去「债务清偿/discharge」；BK→FCL 边补「/Ch.7 清偿」；关键转换表 `BK→P` 行改为「无 P 直达」澄清（Ch.13 完成→C 非 P）。
+- 核对范围（用户要求 doc 17/7/HTML）：doc 06 状态机把 BK 建为 ForeclosureActive 内并发子态 FCL_BK，无 BK→P 错误，无需改；en doc 14 无此图。
+- 残留：`outputs/fcl_pipeline - Copy.html`（备份副本）仍有旧边——属备份，未改（如需可一并清理）。prompt.md 的「债务清偿」为逐字 prompt，保留。
+- 无 DB 写。
+
+### Milestone: 核查并落档 basic_data_monthly_loan_clean_data_delinq 归属 [2026-06-08]
+- 问题：该表是否在 servicer→BPS 的 FCL 表管道上。
+- 结论（PrefectFlow 实测，Code-First）：**不在**。FCL 族构建器 `basic_data_pool_config.py` 与 BPS 同步层 `flow/bps/` 对 `…monthly_loan_clean_data*` **均 0 引用**；FCL 的 `delq_status`/stage.group 由 `CREATE_FCL_RELATE_ATTR`（`basic_data_pool_config.py:1695-1771`）直接取原始 servicer 表（portnewrezgeneral+days360、portcarrington）。该表属 **portmonth/逾期线**：`…_base→_delinq→basic_data_monthly_loan_clean_data→portmonth→sync_portmonth`（喂 Delinquency 视图、prevdelinqchar 解码）。redshift_prod 确认表族存在。
+- 注：Explore 子代理初判"YES"（推断"逾期驱动止赎"），经读码纠正为"NO"——Code-First 规则生效。
+- 落地（用户选 2+3）：doc 21 §0.1 加「易混表名」注（zh v10/en v9）；doc 02 双写注后加注（zh/en v5）；`outputs/fcl_pipeline.html` prevdelinqchar 抽屉加一句分支说明（中英）。无 DB 写/无 Excel 改动。
+
+### Milestone: 定义 doc 21 的「FCL 阶段」与「FCL episode」[2026-06-08]
+- 缘由：用户在 doc 21 §0.3 N:N 表圈出「FCL 阶段」「FCL episode」问含义。根因：§0.3 用了两词但 6 阶段列表只在 §3、episode 全文未定义。
+- 答案：FCL 阶段=一次止赎推进的法律里程碑（6 主阶段 DEMAND→REFERRAL→FIRST_LEGAL→SERVICE→JUDGEMENT→SALE；物理表另含 NOI/PUBLICATION 共 8 桶，对 Newrez 通常空；BPS target/actual 视图细分 15 子阶段）。FCL episode=一笔贷款一次完整止赎经历，被治愈后可再入=新 episode（键 (loanid,deal_start)）；loan:episode 典型 1:1；episode↔BK=N:N（破产中止冻结整段止赎、可多次 BK）。
+- 落地：① doc 21 §0.3 N:N 表下新增「术语」说明（zh v9 / en v8）；② doc 21 §3 补 NOI/PUBLICATION 两桶说明（不止 6 桶）；③ doc 10 分类 C 新增两条综合词条 FCL 阶段 / FCL episode（zh+en v5）。源码 GEN_FCL_STAGE 8 桶、doc 13 的 15 子阶段为依据；无 DB 写、无 Excel/HTML 改动。
+
+### Milestone: 新增 doc 22 — BPS agg-summary 止赎页(Time Line/Stage)取数规则 [2026-06-07]
+- 缘由：用户问 `/#/portfolio/agg-summary` 的 Foreclosure → Time Line 页取数表/SQL、与 Stage 页关系、为何一行一 loan、"sync 表存当前态怎会有历史里程碑"。
+- 代码读证：Time Line/Stage 同取 `bpms.sync_fcl_stage_info`（SYNC key 12-FCL_STAGE，`sync_to_bps_config.py:13`；生成 `GEN_FCL_STAGE` `basic_data_pool_config.py:2344-2440`；group=`CREATE_FCL_RELATE_ATTR` 1695-1771；judicial=`basic_data_judicial_config`）。
+- prod bpms 实测：表 57 列；列映射(noi/referral/first_legal/service/judgement/sale `_start_date`)与 UI 列逐列对应；表保留 `fctrdt` 历史快照（8368 行/66 loan/300 fctrdt），与 `sync_loan_foreclosure`(DELETE+APPEND 1 行/loan)对比；页面取 `MAX(fctrdt)` → 一行一 loan。样本 7727000088 与截图逐列吻合（注 T16:00Z→美东次日；prod vs UAT 计数差异已标注）。
+- 落地：新增 `docs/zh/22_bps_fcl_timeline_sourcing.md` + `docs/en/22_...md`（标准文档头 + §1–§7）；zh/en `00_index.md` 各加 doc 22 条目。DB 全程只读。

@@ -23,6 +23,7 @@ Secondary: Compliance reviewers · System rewrite architects · Servicer liaison
 | 2026-05-26 | AI Agent (Claude Sonnet 4.6) | v2 | Added 9 missing terms: NOI/Demand Letter (Category C), 3rd Party Sale (Category C), Target/Actual/Var Days framework (Category C), MFR full definition (Category E), POC (Category E), dataasof and SMS/Shellpoint (Category G); updated Category G NOI and MFR one-liners to cross-reference full entries | doc 13 v4 |
 | 2026-06-02 | AI Agent (Claude Opus 4.8) | v3 | Added "Category H — Regulatory/Compliance Terms" (6 entries: CFPB, RESPA, Reg X, 12 CFR 1024.40/SPOC, 12 CFR 1024.41, Imminent Default); added CFPB/RESPA/SPOC cross-reference rows to Category G; updated scope to 8 categories | doc 14 |
 | 2026-06-03 | AI Agent (Claude Opus 4.8) | v4 | Category C new term `dtdeedrecorded` (deed recorded date = title transfer / FCL legal completion, ~2–3 weeks after fcsalehelddate, mostly→REO; BPS primary source for timeline_foreclosure_completed_date, proxy for REO acquisition date); also expanded doc 14 reo_acquisition_date verify-SQL comment | doc 14 · doc 13 §3.1 |
+| 2026-06-08 | AI Agent (Claude Opus 4.8) | v5 | Category C: added two consolidated terms **FCL Stages (6 stages / 8 buckets / 15 sub-stages)** and **FCL episode (one foreclosure experience)**; same source as doc 21 §0.3 terminology note | doc 21 §0.3/§3 · doc 13 · doc 17/18 |
 
 ## Dependencies
 
@@ -181,6 +182,31 @@ The court's favorable ruling for the lender, authorizing the property sale to pr
 The final disposition stage of the FCL process: the property is sold at public auction. Outcomes:
 - Third-party buyer present → `3rd Party Sale` (maps to `P`)
 - No third-party buyer → property goes to lender → `REO`
+
+---
+
+**FCL Stages (the 6 stages)**
+
+The ordered legal milestones one foreclosure case advances through. Standard **6-stage** order:
+`DEMAND` → `REFERRAL`(to attorney) → `FIRST_LEGAL` → `SERVICE` → `JUDGEMENT`(court ruling) → `SALE`(auction).
+The `fcl_stage_info` table uses these to place each loan at its **current stage** and compute time per stage (deducting non-actionable LM/Hold overlap days).
+
+- The physical table also carries `NOI` (between Demand and Referral) and `PUBLICATION` (between Service and Judgement) buckets — usually NULL for Newrez — so only the 6 main stages are typically listed (**8 buckets total**).
+- The BPS compliance target/actual/var view further splits stages into **15 sub-stages** (see doc 13 §3).
+
+**Related**: Referral; NOI / Demand Letter; Service; Judgment; Sale; FCL episode; doc 21 §3
+
+---
+
+**FCL episode**
+
+One continuous foreclosure experience for a loan: from entering foreclosure to exiting it (cured via Reinstatement / loss-mitigation / Paid, or completed via auction → REO).
+
+- After a cure a loan can **re-enter** foreclosure = a **new episode**; multi-attempt cases are keyed by `(loanid, deal_start)`.
+- Typically **loan : FCL episode = 1:1** — at most one active foreclosure at a time; across the loan's life there may be several (sequential).
+- Its relationship to BK is **N:N**: one bankruptcy **automatic stay** freezes the **entire foreclosure** (across all stages, not one stage), and within one episode the borrower may file BK **multiple times**.
+
+**Related**: FCL; BK / Bankruptcy; MFR; FCL Stages; doc 21 §0.3; doc 17 §1/§5; doc 18 §5
 
 ---
 

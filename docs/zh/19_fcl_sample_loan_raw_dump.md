@@ -182,71 +182,71 @@ flowchart LR
 SELECT t.* FROM newrez.portnewrezfc t JOIN (SELECT loanid, MAX(dataasof) AS _md FROM newrez.portnewrezfc WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') GROUP BY loanid) m ON t.loanid=m.loanid AND t.dataasof=m._md;
 ```
 
-| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-|---|---|---|---|---|---|
-| id | 1750674 | 1750233 | 1751818 | 1750695 | 1750688 |
-| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-| dataasof | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
-| shellpointloanid | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
-| fcsetupdate | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
-| fcreferraldate | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
-| smsdaysinfc | 368 | 79 | 294 | 254 | — |
-| daysinfc | 368 | 79 | 294 | 254 | — |
-| demandsentdate | 2025-02-18 | 2025-11-17 | 2025-05-20 | 2024-08-12 | 2026-04-10 |
-| demandexpirationdate | 2025-03-25 | 2025-12-22 | 2025-06-24 | 2024-09-18 | 2026-05-15 |
-| fcstage | Post Sale Review (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Post Sale Review (SCRA and PACER Check) | — |
-| lastfcstepcompleted | Post Sale Review (SCRA and PACER Check) | First Publication | Sale Scheduled For | Post Sale Review (SCRA and PACER Check) | — |
-| lastfcstepcompleteddate | 2026-05-26 | 2026-03-25 | 2026-05-19 | 2025-10-15 | — |
-| fchold1description | Court Delay | Delinquency Review | Delinquency Review | Court Delay | — |
-| fchold1startdate | 2026-04-09 | 2026-05-12 | 2026-04-17 | 2025-08-26 | — |
-| fchold1enddate | 2026-04-26 | 2026-05-27 | 2026-04-17 | 2025-08-28 | — |
-| fchold2description | Hearing Set | Loss Mitigation Workout | Hearing Set | Court Delay | — |
-| fchold2startdate | 2026-03-16 | 2026-03-25 | 2026-01-29 | 2025-07-02 | — |
-| fchold2enddate | 2026-04-07 | 2026-05-27 | 2026-02-13 | 2025-07-14 | — |
-| fcjudgmenthearingscheduled | 2026-03-27 | — | 2026-04-13 | 2025-10-15 | — |
-| fcjudgmententered | 2026-04-08 | — | 2026-02-13 | 2025-08-25 | — |
-| fcscheduledsaledate | — | — | 2026-05-19 | — | — |
-| fcsalehelddate | 2026-05-22 | — | — | 2025-10-14 | — |
-| fcsaleamount | 200100 | — | — | 357200 | — |
-| fcresults | REO | — | — | REO | — |
-| firstlegaldate | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
-| servicecompletedate | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
-| titleordereddate | — | — | — | 2025-11-13 | — |
-| titlecleardate | — | — | — | — | — |
-| titlereceiveddate | — | — | — | 2025-12-02 | — |
-| fcremovaldesc | Process Complete | Loss Mitigation | Paid in Full | Process Complete | — |
-| fcremovaldate | 2026-05-26 | 2026-05-27 | 2026-04-17 | 2025-10-15 | — |
-| fccontestedflag | 0 | 0 | 0 | 0 | 0 |
-| judicial | 1 | 0 | 1 | 1 | — |
-| fcfirm | Kelley Kronenberg, P.A. | Orlans Law Group PLLC | Johnson, Blumberg & Associates, LLC | RAS (Primary) | — |
-| jr_sr_lien_flag | 1 | 1 | 1 | 1 | — |
-| fcbidamount | 301500 | — | — | 390832.5 | — |
-| activefcflag | 0 | 0 | 0 | 0 | 0 |
-| fchold1projectedenddate | 2026-04-29 | 2026-07-11 | 2026-06-16 | 2025-09-15 | — |
-| fchold1comment | Delay Reason: Pending Ruling on Judgment, Hold Start Date: 2026-04-09, Date of Delay: 2026-04-06, Anticipated Resolution ETA: 2026-04-29, Additional Detail On Delay: We are pending judge's execution of the  proposed Order | Delinquency Review | Delinquency Review | Delay Reason: Pending Judges Decision/Ruling, Hold Start Date: 2025-08-26, Date of Delay: 2025-08-13, Anticipated Resolution ETA: 2025-09-15, Additional Detail On Delay: The Final Judgment was granted at NJT held 8/25/2025. At this time firm is pending the executed final Judgment with sale date scheduled to be docketed with the court a requirement to complete the Judgment entered.  | — |
-| fchold2projectedenddate | 2026-04-06 | 2026-06-01 | 2026-02-13 | 2025-07-22 | — |
-| fchold2comment | Hearing scheduled for 04/06/2026, Additional Detail: Plaintiff's Motion for Summary Judgment scheduled for 4.6.26. Please end court delay hold. Thanks | BRP Complete:  Complete Ack Sent:  RPP Approved: 03/24/2026 RPP Payments Due: 6 Last RPP Payment Made: 05/12/2026 Next Payment Due: 06/01/2026 | RID: 861849328; Judgment hearing scheduled for 2/13/26 | Delay Reason: Pending Judges Decision/Ruling, Hold Start Date: 2025-07-02, Date of Delay: 2025-07-01, Anticipated Resolution ETA: 2025-07-22, Additional Detail On Delay: Pending court's ruling on the Plaintiff's motion for clerk's default.  | — |
-| holdmodified | 2026-04-27 | 2026-05-27 | 2026-04-17 | 2025-08-29 | — |
-| holdmodified2 | 2026-04-07 | 2026-05-27 | 2026-02-13 | 2025-07-15 | — |
-| create_time | 2026-06-05 19:37:56 | 2026-06-05 19:37:56 | 2026-06-05 19:37:56 | 2026-06-05 19:37:56 | 2026-06-05 19:37:56 |
-| update_time | 2026-06-05 19:37:56 | 2026-06-05 19:37:56 | 2026-06-05 19:37:56 | 2026-06-05 19:37:56 | 2026-06-05 19:37:56 |
-| dtdeedrecorded | — | — | — | 2025-10-28 | — |
-| fcapprbidprice | 301500 | — | — | 390832.5 | — |
-| fcl3rdpartyproceedsreceiveddate | — | — | — | — | — |
-| investorloanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-| fchold3description | Court Delay | — | Service Delay | Bankruptcy Filed | — |
-| fchold3startdate | 2026-01-16 | — | 2025-12-30 | 2025-05-06 | — |
-| fchold3enddate | 2026-03-16 | — | 2026-01-23 | 2025-06-27 | — |
-| fchold3projectedenddate | 2026-03-17 | — | 2026-01-23 | 2025-07-07 | — |
-| fchold3comment | Delay Reason: Pending Hearing Date for Judgment, Hold Start Date: 2026-01-16, Date of Delay: 2026-01-19, Anticipated Resolution ETA: 2026-03-17, Additional Detail On Delay: We have reached out to the JA for dates in April and is pending a response. The JA had advised there were only limited dates. Pending response to proceed., Actions Taken by the Firm: Called the court, Most Recent Follow-Up Date: 02/20/2026, Additional Info:  We have reached out to the JA for dates in April and is pending a response. The JA had advised there were only limited dates. Pending response to proceed. | — | Due to title identifying the incorrect HOA, the new correct HOA had to be served.  The HOA was served 12/24/25 and the time period for the correct HOA to file their Answer does not expire until 1-23-2026.  See Step 9.  We cannot proceed to judgment until after 1-23-2026.   | CaseNumber: 2500228 Chapter: 7 Filed Date: 04/30/2025 POC Bar Date:  Post-Petition Due Date:  MFR Referral Date: 05/15/2025 MFR Filed Date: 06/10/2025 MFR Granted Date:  Dismissal Date: | — |
-| holdmodified3 | 2026-03-17 | — | 2026-01-23 | 2025-06-27 | — |
-| activejnrlienfcflag | 0 | 0 | 0 | 0 | 0 |
-| currentmilestone | Sold | Closed | Closed | Sold | — |
-| srlienmonitorflag | — | — | — | — | — |
-| srliensalescheduleddate | — | — | — | — | — |
-| srliensalehelddate | — | — | — | — | — |
-| srliensaleresult | — | — | — | — | — |
-| srliensaledate | — | — | — | — | — |
+| 字段 | 业务含义 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+|---|---|---|---|---|---|---|
+| id | MySQL 自增主键 | 1750674 | 1750233 | 1751818 | 1750695 | 1750688 |
+| loanid | Bridger/投资人贷款 ID | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+| dataasof | 数据快照日期 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
+| shellpointloanid | Newrez/Shellpoint 服务商贷款号 | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
+| fcsetupdate | FCL 立案/设置日期 | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
+| fcreferraldate | FCL Referral / 转交律师日期 | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
+| smsdaysinfc | Servicer/SMS 口径 FCL 已历天数 | 368 | 79 | 294 | 254 | — |
+| daysinfc | Newrez 自报 FCL 已历天数 | 368 | 79 | 294 | 254 | — |
+| demandsentdate | Demand / NOI 发出日 | 2025-02-18 | 2025-11-17 | 2025-05-20 | 2024-08-12 | 2026-04-10 |
+| demandexpirationdate | Demand / NOI 到期日 | 2025-03-25 | 2025-12-22 | 2025-06-24 | 2024-09-18 | 2026-05-15 |
+| fcstage | 当前 FCL 阶段描述 | Post Sale Review (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Post Sale Review (SCRA and PACER Check) | — |
+| lastfcstepcompleted | 最近完成的 FCL 步骤 | Post Sale Review (SCRA and PACER Check) | First Publication | Sale Scheduled For | Post Sale Review (SCRA and PACER Check) | — |
+| lastfcstepcompleteddate | 最近完成步骤日期 | 2026-05-26 | 2026-03-25 | 2026-05-19 | 2025-10-15 | — |
+| fchold1description | Hold 1 原因描述 | Court Delay | Delinquency Review | Delinquency Review | Court Delay | — |
+| fchold1startdate | Hold 1 开始日期 | 2026-04-09 | 2026-05-12 | 2026-04-17 | 2025-08-26 | — |
+| fchold1enddate | Hold 1 结束日期 | 2026-04-26 | 2026-05-27 | 2026-04-17 | 2025-08-28 | — |
+| fchold2description | Hold 2 原因描述 | Hearing Set | Loss Mitigation Workout | Hearing Set | Court Delay | — |
+| fchold2startdate | Hold 2 开始日期 | 2026-03-16 | 2026-03-25 | 2026-01-29 | 2025-07-02 | — |
+| fchold2enddate | Hold 2 结束日期 | 2026-04-07 | 2026-05-27 | 2026-02-13 | 2025-07-14 | — |
+| fcjudgmenthearingscheduled | 判决听证会/出售确认听证会的**排定日期**（未来计划事件；每次改期后此值更新为最新排期日） | 2026-03-27 | — | 2026-04-13 | 2025-10-15 | — |
+| fcjudgmententered | 法院**正式录入**判决的日期（已完成的法律事实；与 `fcjudgmenthearingscheduled` 含义不同：前者是排定日/计划事件，后者是录入日/已发生事实） | 2026-04-08 | — | 2026-02-13 | 2025-08-25 | — |
+| fcscheduledsaledate | 计划拍卖日期 | — | — | 2026-05-19 | — | — |
+| fcsalehelddate | 实际拍卖日期 | 2026-05-22 | — | — | 2025-10-14 | — |
+| fcsaleamount | 实际拍卖成交金额 | 200100 | — | — | 357200 | — |
+| fcresults | FCL 结果 | REO | — | — | REO | — |
+| firstlegaldate | First Legal 日期 | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
+| servicecompletedate | Service complete 日期 | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
+| titleordereddate | Title report ordered 日期 | — | — | — | 2025-11-13 | — |
+| titlecleardate | Title clear 日期 | — | — | — | — | — |
+| titlereceiveddate | Title report received 日期 | — | — | — | 2025-12-02 | — |
+| fcremovaldesc | FCL 移除/关闭原因描述 | Process Complete | Loss Mitigation | Paid in Full | Process Complete | — |
+| fcremovaldate | FCL 移除/关闭日期 | 2026-05-26 | 2026-05-27 | 2026-04-17 | 2025-10-15 | — |
+| fccontestedflag | 是否 contested litigation | 0 | 0 | 0 | 0 | 0 |
+| judicial | 是否 Judicial Foreclosure | 1 | 0 | 1 | 1 | — |
+| fcfirm | FCL 律师事务所 | Kelley Kronenberg, P.A. | Orlans Law Group PLLC | Johnson, Blumberg & Associates, LLC | RAS (Primary) | — |
+| jr_sr_lien_flag | Junior/Senior lien 标志 | 1 | 1 | 1 | 1 | — |
+| fcbidamount | FCL bid amount | 301500 | — | — | 390832.5 | — |
+| activefcflag | FCL 活跃标志 | 0 | 0 | 0 | 0 | 0 |
+| fchold1projectedenddate | Hold 1 预计结束日期 | 2026-04-29 | 2026-07-11 | 2026-06-16 | 2025-09-15 | — |
+| fchold1comment | Hold 1 备注 | Delay Reason: Pending Ruling on Judgment, Hold Start Date: 2026-04-09, Date of Delay: 2026-04-06, Anticipated Resolution ETA: 2026-04-29, Additional Detail On Delay: We are pending judge's execution of the  proposed Order | Delinquency Review | Delinquency Review | Delay Reason: Pending Judges Decision/Ruling, Hold Start Date: 2025-08-26, Date of Delay: 2025-08-13, Anticipated Resolution ETA: 2025-09-15, Additional Detail On Delay: The Final Judgment was granted at NJT held 8/25/2025. At this time firm is pending the executed final Judgment with sale date scheduled to be docketed with the court a requirement to complete the Judgment entered. | — |
+| fchold2projectedenddate | Hold 2 预计结束日期 | 2026-04-06 | 2026-06-01 | 2026-02-13 | 2025-07-22 | — |
+| fchold2comment | Hold 2 备注 | Hearing scheduled for 04/06/2026, Additional Detail: Plaintiff's Motion for Summary Judgment scheduled for 4.6.26. Please end court delay hold. Thanks | BRP Complete:  Complete Ack Sent:  RPP Approved: 03/24/2026 RPP Payments Due: 6 Last RPP Payment Made: 05/12/2026 Next Payment Due: 06/01/2026 | RID: 861849328; Judgment hearing scheduled for 2/13/26 | Delay Reason: Pending Judges Decision/Ruling, Hold Start Date: 2025-07-02, Date of Delay: 2025-07-01, Anticipated Resolution ETA: 2025-07-22, Additional Detail On Delay: Pending court's ruling on the Plaintiff's motion for clerk's default. | — |
+| holdmodified | Hold 1 修改日期 | 2026-04-27 | 2026-05-27 | 2026-04-17 | 2025-08-29 | — |
+| holdmodified2 | Hold 2 修改日期 | 2026-04-07 | 2026-05-27 | 2026-02-13 | 2025-07-15 | — |
+| create_time | 记录创建时间 | 2026-06-05 19:37:56 | 2026-06-05 19:37:56 | 2026-06-05 19:37:56 | 2026-06-05 19:37:56 | 2026-06-05 19:37:56 |
+| update_time | 记录更新时间 | 2026-06-05 19:37:56 | 2026-06-05 19:37:56 | 2026-06-05 19:37:56 | 2026-06-05 19:37:56 | 2026-06-05 19:37:56 |
+| dtdeedrecorded | Deed recorded 日期 | — | — | — | 2025-10-28 | — |
+| fcapprbidprice | 批准 bid price | 301500 | — | — | 390832.5 | — |
+| fcl3rdpartyproceedsreceiveddate | 第三方购买款到账日期 | — | — | — | — | — |
+| investorloanid | 投资人贷款号 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+| fchold3description | Hold 3 原因描述 | Court Delay | — | Service Delay | Bankruptcy Filed | — |
+| fchold3startdate | Hold 3 开始日期 | 2026-01-16 | — | 2025-12-30 | 2025-05-06 | — |
+| fchold3enddate | Hold 3 结束日期 | 2026-03-16 | — | 2026-01-23 | 2025-06-27 | — |
+| fchold3projectedenddate | Hold 3 预计结束日期 | 2026-03-17 | — | 2026-01-23 | 2025-07-07 | — |
+| fchold3comment | Hold 3 备注 | Delay Reason: Pending Hearing Date for Judgment, Hold Start Date: 2026-01-16, Date of Delay: 2026-01-19, Anticipated Resolution ETA: 2026-03-17, Additional Detail On Delay: We have reached out to the JA for dates in April and is pending a response. The JA had advised there were only limited dates. Pending response to proceed., Actions Taken by the Firm: Called the court, Most Recent Follow-Up Date: 02/20/2026, Additional Info:  We have reached out to the JA for dates in April and is pending a response. The JA had advised there were only limited dates. Pending response to proceed. | — | Due to title identifying the incorrect HOA, the new correct HOA had to be served.  The HOA was served 12/24/25 and the time period for the correct HOA to file their Answer does not expire until 1-23-2026.  See Step 9.  We cannot proceed to judgment until after 1-23-2026. | CaseNumber: 2500228 Chapter: 7 Filed Date: 04/30/2025 POC Bar Date:  Post-Petition Due Date:  MFR Referral Date: 05/15/2025 MFR Filed Date: 06/10/2025 MFR Granted Date:  Dismissal Date: | — |
+| holdmodified3 | Hold 3 修改日期 | 2026-03-17 | — | 2026-01-23 | 2025-06-27 | — |
+| activejnrlienfcflag | 活跃 junior lien FCL 标志 | 0 | 0 | 0 | 0 | 0 |
+| currentmilestone | 当前 FCL milestone | Sold | Closed | Closed | Sold | — |
+| srlienmonitorflag | Senior lien monitoring 标志 | — | — | — | — | — |
+| srliensalescheduleddate | Senior lien sale scheduled date | — | — | — | — | — |
+| srliensalehelddate | Senior lien sale held date | — | — | — | — | — |
+| srliensaleresult | Senior lien sale result | — | — | — | — | — |
+| srliensaledate | Senior lien sale date | — | — | — | — | — |
 
 ---
 
@@ -273,68 +273,68 @@ SELECT t.* FROM newrez.portnewrezfc t JOIN (SELECT loanid, MAX(dataasof) AS _md 
 SELECT t.* FROM newrez.portnewrezbk t JOIN (SELECT loanid, MAX(dataasof) AS _md FROM newrez.portnewrezbk WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') GROUP BY loanid) m ON t.loanid=m.loanid AND t.dataasof=m._md;
 ```
 
-| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-|---|---|---|---|---|---|
-| id | 1750674 | 1750233 | 1751818 | 1750695 | 1750688 |
-| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-| dataasof | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
-| shellpointloanid | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
-| bkfileddate | — | — | — | 2025-04-30 | 2024-02-06 |
-| bkstatus | — | — | — | 2 | 1 |
-| bkremovalcode | — | — | — | 1 | — |
-| bkremovaldate | — | — | — | 2025-07-29 | — |
-| bkchapter | — | — | — | 7 | 13 |
-| bkcasenumber | — | — | — | 2500228 | 2310152 |
-| bkpostpetitionduedate | — | — | — | — | 2026-06-01 |
-| prepetitionduedate | 2025-01-01 | 2026-02-01 | 2024-12-01 | 2024-03-01 | 2026-04-01 |
-| pocfileddate | — | — | — | — | 2023-09-30 |
-| dischargeddate | — | — | — | 2025-07-29 | — |
-| dismisseddate | — | — | — | — | — |
-| mfrfileddate | — | — | — | 2025-06-10 | — |
-| mfrhearingdate | — | — | — | 2025-06-24 | — |
-| mfrgranteddate | — | — | — | 2025-06-25 | — |
-| trusteeassetflag | — | — | — | 0 | 0 |
-| trusteeassetdate | — | — | — | 2025-06-01 | — |
-| planconfirmationdate | — | — | — | — | 2024-07-11 |
-| bkstage | — | — | — | 8 | 4 |
-| bkfirm | — | — | — | — | Aldridge Pite, LLP |
-| reaffirmationdate | — | — | — | — | — |
-| trusteeabandonmentdate | — | — | — | — | — |
-| pocreferreddate | — | — | — | — | — |
-| pocbardate | — | — | — | — | 2024-04-16 |
-| mfrreferred | — | — | — | 2025-05-15 | 2025-11-10 |
-| mfrhearingresults | — | — | — | 3 | 0 |
-| cramdowndatereferred | — | — | — | — | — |
-| cramdownobjectionfileddate | — | — | — | — | — |
-| cramdownresultdate | — | — | — | — | — |
-| cramdownhearingresults | — | — | — | 0 | 0 |
-| adversarialactionfileddate | — | — | — | — | — |
-| adversarialhearingdate | — | — | — | — | — |
-| adversarialresultdate | — | — | — | — | — |
-| adversarialresults | — | — | — | 0 | 0 |
-| cramdownflag | — | — | — | 0 | 0 |
-| bankruptcypaymenttype | — | — | — | — | 1 |
-| debtorintention | — | — | — | — | 1 |
-| jointfilerflag | — | — | — | — | 0 |
-| activebkflag | 0 | 0 | 0 | 0 | 1 |
-| apocfileddate | — | — | — | — | — |
-| apocreferraldate | — | — | — | — | — |
-| reasonforapoc | — | — | — | — | — |
-| attorney | — | — | — | — | — |
-| create_time | 2026-06-05 19:37:17 | 2026-06-05 19:37:17 | 2026-06-05 19:37:17 | 2026-06-05 19:37:17 | 2026-06-05 19:37:17 |
-| update_time | 2026-06-05 19:37:17 | 2026-06-05 19:37:17 | 2026-06-05 19:37:17 | 2026-06-05 19:37:17 | 2026-06-05 19:37:17 |
-| bkrepayplanpaymentcount | — | — | — | — | 60 |
-| bksourceoffundscode | — | — | — | — | — |
-| bkpoccourtreceiveddate | — | — | — | — | — |
-| bkrcurrentstatusdate | — | — | — | — | 2026-05-26 |
-| bkborrowerintent | — | — | — | — | 1 |
-| bkpostpetitionpaymentcurrent | — | — | — | — | 2192 |
-| bkcramdownpercent | — | — | — | — | — |
-| bkpostsuspensebalance | — | — | — | — | — |
-| bkpresuspensebalance | — | — | — | — | — |
-| investorloanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-| bkfilingstate | — | — | — | WV | FL |
-| bkfilingregion | — | — | — | Northern District of WV (Martinsburg) | Northern District of Florida, Gainesville Division                     |
+| 字段 | 业务含义 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+|---|---|---|---|---|---|---|
+| id | MySQL 自增主键 | 1750674 | 1750233 | 1751818 | 1750695 | 1750688 |
+| loanid | Bridger/投资人贷款 ID | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+| dataasof | 数据快照日期 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
+| shellpointloanid | Newrez/Shellpoint 服务商贷款号 | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
+| bkfileddate | 破产申请日 | — | — | — | 2025-04-30 | 2024-02-06 |
+| bkstatus | 破产状态编码（Newrez 内部数值码） | — | — | — | 2 | 1 |
+| bkremovalcode | 破产终止原因编码（1=Dismissed/2=Discharged 等） | — | — | — | 1 | — |
+| bkremovaldate | 破产程序终止日 | — | — | — | 2025-07-29 | — |
+| bkchapter | 破产章节（7=清算/11=重组/13=个人还款） | — | — | — | 7 | 13 |
+| bkcasenumber | 破产案件编号 | — | — | — | 2500228 | 2310152 |
+| bkpostpetitionduedate | 破产申请后贷款应付日 | — | — | — | — | 2026-06-01 |
+| prepetitionduedate | 破产申请前贷款应付日 | 2025-01-01 | 2026-02-01 | 2024-12-01 | 2024-03-01 | 2026-04-01 |
+| pocfileddate | 债权申报（POC）提交日 | — | — | — | — | 2023-09-30 |
+| dischargeddate | 债务免责（Discharge）日 | — | — | — | 2025-07-29 | — |
+| dismisseddate | 破产驳回（Dismiss）日 | — | — | — | — | — |
+| mfrfileddate | 解除自动中止动议（MFR）提交日 | — | — | — | 2025-06-10 | — |
+| mfrhearingdate | MFR 听证日 | — | — | — | 2025-06-24 | — |
+| mfrgranteddate | MFR 批准日（批准后可推进 FCL） | — | — | — | 2025-06-25 | — |
+| trusteeassetflag | 受托人资产标志（1=有可分配资产） | — | — | — | 0 | 0 |
+| trusteeassetdate | 受托人资产认定日 | — | — | — | 2025-06-01 | — |
+| planconfirmationdate | 还款计划确认日（Ch13 Plan Confirmed） | — | — | — | — | 2024-07-11 |
+| bkstage | 破产阶段编码（Newrez 内部数值码） | — | — | — | 8 | 4 |
+| bkfirm | 破产律师事务所名称 | — | — | — | — | Aldridge Pite, LLP |
+| reaffirmationdate | 重申债务确认（Reaffirmation）日 | — | — | — | — | — |
+| trusteeabandonmentdate | 受托人放弃资产日 | — | — | — | — | — |
+| pocreferreddate | POC 转介日 | — | — | — | — | — |
+| pocbardate | POC 申报截止日（Bar Date） | — | — | — | — | 2024-04-16 |
+| mfrreferred | MFR 转介日 | — | — | — | 2025-05-15 | 2025-11-10 |
+| mfrhearingresults | MFR 听证结果编码 | — | — | — | 3 | 0 |
+| cramdowndatereferred | Cramdown 转介日 | — | — | — | — | — |
+| cramdownobjectionfileddate | Cramdown 异议提交日 | — | — | — | — | — |
+| cramdownresultdate | Cramdown 结果日 | — | — | — | — | — |
+| cramdownhearingresults | Cramdown 听证结果编码 | — | — | — | 0 | 0 |
+| adversarialactionfileddate | 对抗性诉讼（Adversary）提交日 | — | — | — | — | — |
+| adversarialhearingdate | 对抗性诉讼听证日 | — | — | — | — | — |
+| adversarialresultdate | 对抗性诉讼结果日 | — | — | — | — | — |
+| adversarialresults | 对抗性诉讼结果编码 | — | — | — | 0 | 0 |
+| cramdownflag | Cramdown 标志（1=存在 cramdown） | — | — | — | 0 | 0 |
+| bankruptcypaymenttype | 破产还款类型编码 | — | — | — | — | 1 |
+| debtorintention | 债务人意向编码（保留/放弃房产） | — | — | — | — | 1 |
+| jointfilerflag | 是否共同申请人（1=joint） | — | — | — | — | 0 |
+| activebkflag | 是否在破产保护中（1=是/0=否） | 0 | 0 | 0 | 0 | 1 |
+| apocfileddate | 修订债权申报（APOC）提交日 | — | — | — | — | — |
+| apocreferraldate | APOC 转介日 | — | — | — | — | — |
+| reasonforapoc | APOC 原因（文本） | — | — | — | — | — |
+| attorney | 受理律师/律所名称 | — | — | — | — | — |
+| create_time | 记录创建时间 | 2026-06-05 19:37:17 | 2026-06-05 19:37:17 | 2026-06-05 19:37:17 | 2026-06-05 19:37:17 | 2026-06-05 19:37:17 |
+| update_time | 记录更新时间 | 2026-06-05 19:37:17 | 2026-06-05 19:37:17 | 2026-06-05 19:37:17 | 2026-06-05 19:37:17 | 2026-06-05 19:37:17 |
+| bkrepayplanpaymentcount | 破产还款计划期数 | — | — | — | — | 60 |
+| bksourceoffundscode | 资金来源编码 | — | — | — | — | — |
+| bkpoccourtreceiveddate | POC 法院收到日 | — | — | — | — | — |
+| bkrcurrentstatusdate | 当前破产状态生效日期 | — | — | — | — | 2026-05-26 |
+| bkborrowerintent | 借款人破产意向编码 | — | — | — | — | 1 |
+| bkpostpetitionpaymentcurrent | 破产后应付款当前额 | — | — | — | — | 2192 |
+| bkcramdownpercent | Cramdown 比例（本金削减%） | — | — | — | — | — |
+| bkpostsuspensebalance | 破产后暂记款（suspense）余额 | — | — | — | — | — |
+| bkpresuspensebalance | 破产前暂记款余额 | — | — | — | — | — |
+| investorloanid | 投资人贷款号 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+| bkfilingstate | 破产申请州 | — | — | — | WV | FL |
+| bkfilingregion | 破产申请法院辖区（含 Division） | — | — | — | Northern District of WV (Martinsburg) | Northern District of Florida, Gainesville Division |
 
 ---
 
@@ -361,64 +361,64 @@ SELECT t.* FROM newrez.portnewrezbk t JOIN (SELECT loanid, MAX(dataasof) AS _md 
 SELECT t.* FROM newrez.portnewrezlm t JOIN (SELECT loanid, MAX(dataasof) AS _md FROM newrez.portnewrezlm WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') GROUP BY loanid) m ON t.loanid=m.loanid AND t.dataasof=m._md;
 ```
 
-| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-|---|---|---|---|---|---|
-| id | 1747370 | 1746929 | 1748514 | 1747391 | 1747384 |
-| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-| dataasof | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
-| shellpointloanid | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
-| hardshiptype | 11 | 11 | 20 | 11 | 12 |
-| borrowerintention | — | — | — | — | — |
-| lmdeal | 7 | 4 | 1 | 2 | 1 |
-| dealstartdate | 2026-02-17 | 2026-02-25 | 2026-01-06 | 2025-07-01 | 2026-04-16 |
-| daysindeal | 66 | 99 | 27 | 0 | 12 |
-| lmstatus | 112 | 25 | 5 | 166 | 112 |
-| statusstartdate | 2026-04-22 | 2026-03-24 | 2026-01-14 | 2024-11-26 | 2026-04-23 |
-| daysinstatus | 2 | 72 | 19 | 217 | 5 |
-| lmprogram | 10 | 29 | 496 | 21 | 498 |
-| lmdecision | 6 | 99 | 10 | 11 | 6 |
-| lmremovaldate | 2026-04-24 | — | 2026-02-02 | 2025-07-01 | 2026-04-28 |
-| denialreason | 40 | — | — | — | 124 |
-| forbearanceagreementdate | — | — | 2025-02-01 | — | — |
-| forbearancedatecompleted | — | — | 2025-05-01 | — | — |
-| forbearancebeginningduedate | — | — | 2025-02-01 | — | — |
-| forbearanceendingduedate | — | — | 2025-04-30 | — | — |
-| forbearancenumberofmonths | — | — | 3 | — | — |
-| forbearancestatus | — | — | 4 | — | — |
-| forbearancetype | — | — | 61 | — | — |
-| trialagreementdate | — | — | — | — | — |
-| trialdatecompleted | — | — | — | — | — |
-| trialbeginningduedate | — | — | — | — | — |
-| trialendingduedate | — | — | — | — | — |
-| trialnumberofmonths | — | — | — | — | — |
-| trialstatus | — | — | — | — | — |
-| repaymentagreementdate | — | 2026-03-24 | — | — | — |
-| repaymentstartdate | — | 2026-05-01 | — | — | — |
-| repaymentenddate | — | 2026-10-31 | — | — | — |
-| repaymenttype | — | 4 | — | — | — |
-| repaymentstatus | — | 1 | — | — | — |
-| repaymentplandownpmt | — | 9000 | — | — | — |
-| repaymentplandownpmtdate | — | 2026-04-24 | — | — | — |
-| pradate1 | — | — | — | — | — |
-| praamount1 | — | — | — | — | — |
-| pradate2 | — | — | — | — | — |
-| praamount2 | — | — | — | — | — |
-| pradate3 | — | — | — | — | — |
-| praamount3 | — | — | — | — | — |
-| activelmflag | 0 | 1 | 0 | 0 | 0 |
-| create_time | 2026-06-05 19:38:36 | 2026-06-05 19:38:36 | 2026-06-05 19:38:36 | 2026-06-05 19:38:36 | 2026-06-05 19:38:36 |
-| update_time | 2026-06-05 19:38:36 | 2026-06-05 19:38:36 | 2026-06-05 19:38:36 | 2026-06-05 19:38:36 | 2026-06-05 19:38:36 |
-| lossmitmodtermsmodifiedtermextensionmonths | — | — | — | — | — |
-| deferment_flag | — | — | — | — | — |
-| deferment_amount | — | — | — | — | — |
-| number_pi_payments_deferred | — | — | — | — | — |
-| shortsalenetproceedsamount | — | — | — | — | — |
-| shortsalecontractofferamount | — | — | — | — | — |
-| appealperiodexpirationdate | — | — | — | — | 2026-05-11 |
-| lossmitmodpreviouslydeferredcapitalizedamount | — | — | — | — | — |
-| deferment_date | — | — | — | — | — |
-| denialletterdate | 2026-04-23 | 2025-08-12 | — | — | 2026-04-27 |
-| investorloanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+| 字段 | 业务含义 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+|---|---|---|---|---|---|---|
+| id | MySQL 自增主键 | 1747370 | 1746929 | 1748514 | 1747391 | 1747384 |
+| loanid | Bridger/投资人贷款 ID | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+| dataasof | 数据快照日期 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
+| shellpointloanid | Newrez/Shellpoint 服务商贷款号 | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
+| hardshiptype | Hardship 类型编码 | 11 | 11 | 20 | 11 | 12 |
+| borrowerintention | Borrower intention 编码 | — | — | — | — | — |
+| lmdeal | LM Deal 大类编码 | 7 | 4 | 1 | 2 | 1 |
+| dealstartdate | 本轮 LM cycle 打开日期 | 2026-02-17 | 2026-02-25 | 2026-01-06 | 2025-07-01 | 2026-04-16 |
+| daysindeal | 本轮 Deal 已持续天数 | 66 | 99 | 27 | 0 | 12 |
+| lmstatus | LM 当前状态编码 | 112 | 25 | 5 | 166 | 112 |
+| statusstartdate | 当前 LM status 开始日期 | 2026-04-22 | 2026-03-24 | 2026-01-14 | 2024-11-26 | 2026-04-23 |
+| daysinstatus | 当前 LM status 已持续天数 | 2 | 72 | 19 | 217 | 5 |
+| lmprogram | LM Program 编码 | 10 | 29 | 496 | 21 | 498 |
+| lmdecision | LM 最终决策编码 | 6 | 99 | 10 | 11 | 6 |
+| lmremovaldate | LM cycle 关闭/移除日期 | 2026-04-24 | — | 2026-02-02 | 2025-07-01 | 2026-04-28 |
+| denialreason | LM 拒绝原因编码 | 40 | — | — | — | 124 |
+| forbearanceagreementdate | Forbearance 协议日期 | — | — | 2025-02-01 | — | — |
+| forbearancedatecompleted | Forbearance 完成日期 | — | — | 2025-05-01 | — | — |
+| forbearancebeginningduedate | Forbearance 起始 due date | — | — | 2025-02-01 | — | — |
+| forbearanceendingduedate | Forbearance 结束 due date | — | — | 2025-04-30 | — | — |
+| forbearancenumberofmonths | Forbearance 月数 | — | — | 3 | — | — |
+| forbearancestatus | Forbearance 状态编码 | — | — | 4 | — | — |
+| forbearancetype | Forbearance 类型编码 | — | — | 61 | — | — |
+| trialagreementdate | Trial Period 协议日期 | — | — | — | — | — |
+| trialdatecompleted | Trial Period 完成日期 | — | — | — | — | — |
+| trialbeginningduedate | Trial 起始 due date | — | — | — | — | — |
+| trialendingduedate | Trial 结束 due date | — | — | — | — | — |
+| trialnumberofmonths | Trial 期数 / 月数 | — | — | — | — | — |
+| trialstatus | Trial 状态编码 | — | — | — | — | — |
+| repaymentagreementdate | Repayment Plan 协议日期 | — | 2026-03-24 | — | — | — |
+| repaymentstartdate | Repayment Plan 开始日期 | — | 2026-05-01 | — | — | — |
+| repaymentenddate | Repayment Plan 结束日期 | — | 2026-10-31 | — | — | — |
+| repaymenttype | Repayment 类型编码 | — | 4 | — | — | — |
+| repaymentstatus | Repayment 状态编码 | — | 1 | — | — | — |
+| repaymentplandownpmt | Repayment Plan down payment 金额 | — | 9000 | — | — | — |
+| repaymentplandownpmtdate | Repayment Plan down payment 日期 | — | 2026-04-24 | — | — | — |
+| pradate1 | PRA 日期 1 | — | — | — | — | — |
+| praamount1 | PRA 金额 1 | — | — | — | — | — |
+| pradate2 | PRA 日期 2 | — | — | — | — | — |
+| praamount2 | PRA 金额 2 | — | — | — | — | — |
+| pradate3 | PRA 日期 3 | — | — | — | — | — |
+| praamount3 | PRA 金额 3 | — | — | — | — | — |
+| activelmflag | LM 活跃标志 | 0 | 1 | 0 | 0 | 0 |
+| create_time | 记录创建时间 | 2026-06-05 19:38:36 | 2026-06-05 19:38:36 | 2026-06-05 19:38:36 | 2026-06-05 19:38:36 | 2026-06-05 19:38:36 |
+| update_time | 记录更新时间 | 2026-06-05 19:38:36 | 2026-06-05 19:38:36 | 2026-06-05 19:38:36 | 2026-06-05 19:38:36 | 2026-06-05 19:38:36 |
+| lossmitmodtermsmodifiedtermextensionmonths | Loss Mitigation modification term extension months | — | — | — | — | — |
+| deferment_flag | Deferment 标志 | — | — | — | — | — |
+| deferment_amount | Deferment 金额 | — | — | — | — | — |
+| number_pi_payments_deferred | 递延的 PI payment 数量 | — | — | — | — | — |
+| shortsalenetproceedsamount | Short Sale net proceeds 金额 | — | — | — | — | — |
+| shortsalecontractofferamount | Short Sale contract offer 金额 | — | — | — | — | — |
+| appealperiodexpirationdate | Appeal period expiration date | — | — | — | — | 2026-05-11 |
+| lossmitmodpreviouslydeferredcapitalizedamount | 贷款修改中以前递延并资本化的金额 | — | — | — | — | — |
+| deferment_date | Deferment 日期 | — | — | — | — | — |
+| denialletterdate | Denial letter 日期 | 2026-04-23 | 2025-08-12 | — | — | 2026-04-27 |
+| investorloanid | 投资人贷款号 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
 
 ---
 
@@ -445,133 +445,133 @@ SELECT t.* FROM newrez.portnewrezlm t JOIN (SELECT loanid, MAX(dataasof) AS _md 
 SELECT t.* FROM newrez.portnewrezgeneral t JOIN (SELECT loanid, MAX(dataasof) AS _md FROM newrez.portnewrezgeneral WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') GROUP BY loanid) m ON t.loanid=m.loanid AND t.dataasof=m._md;
 ```
 
-| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-|---|---|---|---|---|---|
-| id | 1749124 | 1748683 | 1750268 | 1749145 | 1749138 |
-| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-| dataasof | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
-| shellpointloanid | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
-| investorid | BI2726 | BI2725 | BIRTT1 | TT1REO | BI2726 |
-| investorloanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-| priorservicerloannumber | 9010021155 | 32288235 | 3260057082 | 9014327961 | 9014059868 |
-| boarddate | 2024-07-04 | 2024-07-04 | 2024-02-07 | 2024-07-04 | 2024-07-04 |
-| acquisitiondate | 2024-07-02 | 2024-07-02 | 2024-02-01 | 2024-07-02 | 2024-07-02 |
-| acquisitionbalance | 318856.09 | 421270.39 | 455612.06 | 470399.51 | 271997.47 |
-| mbadelinquency | 14 | 6 | 15 | 14 | 9 |
-| delinqstatatboarding | 3 | 4 | 3 | 6 | 10 |
-| lienposition | 1 | 1 | 1 | 1 | 1 |
-| loantype | 0 | 0 | 0 | 2 | 2 |
-| loanpurpose | 1 | 1 | 1 | 3 | 3 |
-| documentationtype | 0 | 0 | 0 | 0 | 0 |
-| dateinactive | — | — | 2026-04-16 | — | — |
-| currentinterestrate | 0.06625 | 0.09875 | 0.0275 | 0.0425 | 0.03625 |
-| originalterm | 360 | 360 | 360 | 360 | 360 |
-| originalnotedate | 2022-09-20 | 2022-09-15 | 2017-05-16 | 2022-05-24 | 2022-02-17 |
-| originalmaturitydate | 2052-10-01 | 2052-10-01 | 2047-06-01 | 2052-06-01 | 2052-03-01 |
-| originalamt | 324900 | 425000 | 532000 | 484200 | 282335 |
-| currentmaturitydate | 2052-10-01 | 2052-10-01 | 2047-06-01 | 2052-06-01 | 2052-03-01 |
-| amortizationterm | 360 | 360 | 360 | 360 | 360 |
-| remainingterm | 334 | 321 | 0 | 340 | 312 |
-| otherliens | — | — | — | — | — |
-| otherliensbalance | — | — | — | — | — |
-| legalstatus | REO | — | FCBU | REO | BK13 |
-| warningstatus | — | — | AttyCons | ICC-REO | — |
-| isattorneyrepresented | 0 | 0 | 0 | 0 | 0 |
-| issoldiersandsailors | 0 | 0 | 0 | 0 | 0 |
-| isloanlitigated | 0 | 0 | 0 | 0 | 0 |
-| isescrowed | 1 | 1 | 1 | 1 | 1 |
-| femaarea | 0 | 0 | 0 | 0 | 0 |
-| femaaffect | 0 | 0 | 0 | 0 | 0 |
-| balloonflag | 0 | 0 | 0 | 0 | 0 |
-| balloondate | — | — | — | — | — |
-| prepaymentpenaltyflag | 0 | 0 | 0 | 0 | 0 |
-| prepaymentpenaltyterm | 0 | 0 | 0 | 0 | 0 |
-| prepaymentpenaltyfee | 0 | 0 | 0 | 0 | 0 |
-| chargeoff | 0 | 0 | 0 | 0 | 0 |
-| chargeoffdate | — | — | — | — | — |
-| chargeoffamount | — | — | — | — | — |
-| payoffrequested | 0 | 0 | 1 | 0 | 0 |
-| payoffrequestdate | — | — | 2026-03-23 | — | — |
-| mersid | 101229710000033408 | 100859730000132976 | — | 100661190012111072 | 100661190011370480 |
-| servicefeepercent | 0 | 0 | 0 | 0 | 0 |
-| servicefeedollars | 0 | 0 | 0 | 0 | 0 |
-| interestmethod | 0 | 0 | 0 | 0 | 0 |
-| negamflag | 0 | 0 | 0 | 0 | 0 |
-| borrowerdeceasedflag | 0 | 0 | 0 | 0 | 0 |
-| coborrowerdeceasedflag | 0 | — | — | — | — |
-| priorservicer | Specialized Loan Servicing | Specialized Loan Servicing | Associated Bank | Specialized Loan Servicing | Specialized Loan Servicing |
-| foreignnationalflag | 0 | 0 | 0 | 0 | 0 |
-| min_status | 1 | 1 | — | 1 | 1 |
-| origorgid | 1012297 | 1008597 |  | 1006611 | 1006611 |
-| origorgname | Approved Mortgage Source, LLC | IMPAC Mortgage Corp. | — | Home Point Financial Corporation | — |
-| servicerorgid | 1007544 | 1007544 |  | 1007544 | 1003225 |
-| subservorgid |  |  |  |  |  |
-| ppc1_id | — | — | — | — | — |
-| investorname | TRESTLE TITLING TRUST-1 (TRUSTEE) | TRESTLE TITLING TRUST -1 | Trustee for Trestle Titling Trust-1 | Trestle Titling Trust-1 | TRESTLE TITLING TRUST-1 (TRUSTEE) |
-| min_number | 1.012297100000334e17 | 1.0085973000013298e17 | — | 1.0066119001211107e17 | 1.0066119001137048e17 |
-| registerstatus | Assigned For Default or BK | Assigned For Default or BK | — | Assigned For Default or BK | Inactive |
-| deactreason | FC-BK | FC-BK | — | FC-BK | — |
-| securitization | — | — | — | 	N | — |
-| poolnumber | 0 | 0 | 0 | 0 | 0 |
-| investororgid | 1012111 | 1012111 |  | 1012111 | 1012111 |
-| is_hpml | 0 | 0 | 0 | 0 | 0 |
-| investmentproperty | 0 | 0 | 0 | 0 | 0 |
-| hasadditionalcollateral | 0 | 0 | 0 | 0 | 0 |
-| creditorname | WILMINGTON SAVINGS FUND SOCIETY, FSB, not in its individual capacity, but solely as Trustee for Trestle Titling Trust-1 | TRESTLE TITLING TRUST -1 | WILMINGTON SAVINGS FUND SOCIETY, FSB, not in its individual capacity, but solely as Trustee for Trestle Titling Trust-1 | Trestle Titling Trust-1 | WILMINGTON SAVINGS FUND SOCIETY, FSB, not in its individual capacity, but solely as Trustee for Trestle Titling Trust-1 |
-| vestingname | TRESTLE REO- 1 LLC | TRESTLE REO- 1 LLC | TRESTLE REO- 1 LLC | TRESTLE REO- 1 LLC | TRESTLE REO- 1 LLC |
-| memberid | — | — | — | — | — |
-| welcomeletter | — | — | 2024-02-12 | — | — |
-| tilanotice | — | — | 2024-07-17 | — | — |
-| debenturerate | 3.25 | 3.25 | 2.75 | 1.875 | 1.875 |
-| reasonfordefault | Reduction in Borrower's Income | — | — | Unable to Contact Borrower | — |
-| custodianname | DC-WT | DC-WT | DC-WT | DC-WT | DC-WT |
-| custodiancollateralid | 8001883579 | 3111022026 | 7727004200 | 7001810280 | 6001690164 |
-| delinquency_status_mba | REO | 120-149 DPD | Full Payoff | REO | Performing Bankruptcy |
-| create_time | 2026-06-05 19:37:58 | 2026-06-05 19:37:58 | 2026-06-05 19:37:58 | 2026-06-05 19:37:58 | 2026-06-05 19:37:58 |
-| update_time | 2026-06-05 19:37:58 | 2026-06-05 19:37:58 | 2026-06-05 19:37:58 | 2026-06-05 19:37:58 | 2026-06-05 19:37:58 |
-| eoy_1099c_cancelled_date_reported | — | — | — | — | — |
-| loanscraflag | — | — | — | — | — |
-| srlienstatuscode | — | — | — | — | — |
-| srlienname | — | — | — | — | — |
-| srlienduedate | — | — | — | — | — |
-| srlienstatusdesc | — | — | — | — | — |
-| prepaypenaltyenddate | — | — | — | — | — |
-| loanscrapaymenteffectivedate | — | — | — | — | — |
-| cdfi | 0 | 0 | 0 | 0 | 0 |
-| investorchargeoff | 0 | 0 | 0 | 0 | 0 |
-| eoy_1099c_flag | — | — | — | — | — |
-| disasterdesignationdate | — | — | — | — | — |
-| inauctionflag | 0 | 0 | 0 | 1 | 0 |
-| fhavapmicasenumber | — | — | 1000201256 | 171762357107 | 171762373396 |
-| loanscraenddate | — | — | — | — | — |
-| borrowerprimarymilitarystatuscode | 0 | 0 | 0 | 0 | 0 |
-| borrowerprimarymilitarystatuscodedesc | Not Maintained | Not Maintained | Not Maintained | Not Maintained | Not Maintained |
-| dscr | 0 | 0 | 0 | 0 | 0 |
-| loanscrastartdate | — | — | — | — | — |
-| disastername | — | — | — | — | — |
-| bridgeloan | 0 | 0 | 0 | 0 | 0 |
-| secondhome | 0 | 0 | 0 | 0 | 0 |
-| priorservicername | Specialized Loan Servicing | Specialized Loan Servicing | Associated Bank | Specialized Loan Servicing | Specialized Loan Servicing |
-| disasterimpactcreateddate | — | — | — | — | — |
-| investorchargeoffdate | — | — | — | — | — |
-| disasterdeclarationnumber | — | — | — | — | — |
-| lienseniorbalanceprincipalcurrent | — | — | — | — | — |
-| loanscrainterestrate | — | — | — | — | — |
-| loanscrapipayment | — | — | — | — | — |
-| eoy_1099c_cancelled_amount_reported | — | — | — | — | — |
-| otsdelinquency | REO | 120-149 DPD | Full Payoff | REO | Performing Bankruptcy |
-| leadbilldays | — | — | — | — | — |
-| guarantyfeepercent | 0 | 0 | 0 | 0 | 0 |
-| acquiredduedate | 2024-07-01 | 2024-05-01 | 2024-01-01 | 2024-03-01 | 2024-03-01 |
-| interestpaidthroughdate | 2024-12-01 | 2026-01-01 | 2024-11-01 | 2024-02-01 | 2026-03-01 |
-| srstatus | — | — | — | — | — |
-| enoteflag | 0 | 0 | 0 | 0 | 0 |
-| billingstatementdate | 2026-05-18 | 2026-05-18 | 2026-03-18 | 2025-07-21 | 2026-05-18 |
-| vrmflag | 0 | 0 | 0 | 0 | 0 |
-| pendinginvestoridtransfer | 0 | 0 | 0 | 0 | 0 |
-| newinvestorid | — | — | — | — | — |
-| amltype | 0 | 0 | 0 | 0 | 0 |
-| successorservicer | — | — | — | — | — |
+| 字段 | 业务含义 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+|---|---|---|---|---|---|---|
+| id | 主键，自增 ID | 1749124 | 1748683 | 1750268 | 1749145 | 1749138 |
+| loanid | 投资人贷款ID（跨 Servicer 的统一标识） | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+| dataasof | 数据快照日期 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
+| shellpointloanid | Newrez/Shellpoint 服务商贷款号 | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
+| investorid | 投资人/资方编码（如 BI2726） | BI2726 | BI2725 | BIRTT1 | TT1REO | BI2726 |
+| investorloanid | 投资人贷款号 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+| priorservicerloannumber | 前服务商贷款号 | 9010021155 | 32288235 | 3260057082 | 9014327961 | 9014059868 |
+| boarddate | 贷款上线(boarding)到本服务商之日 | 2024-07-04 | 2024-07-04 | 2024-02-07 | 2024-07-04 | 2024-07-04 |
+| acquisitiondate | 资产收购日 | 2024-07-02 | 2024-07-02 | 2024-02-01 | 2024-07-02 | 2024-07-02 |
+| acquisitionbalance | 收购时本金余额 | 318856.09 | 421270.39 | 455612.06 | 470399.51 | 271997.47 |
+| mbadelinquency | MBA 逾期分类编码 | 14 | 6 | 15 | 14 | 9 |
+| delinqstatatboarding | 上线时逾期状态码 | 3 | 4 | 3 | 6 | 10 |
+| lienposition | 留置权顺位（1=第一顺位） | 1 | 1 | 1 | 1 | 1 |
+| loantype | 贷款类型编码 | 0 | 0 | 0 | 2 | 2 |
+| loanpurpose | 贷款用途编码（购房/再融资等） | 1 | 1 | 1 | 3 | 3 |
+| documentationtype | 文档类型编码 | 0 | 0 | 0 | 0 | 0 |
+| dateinactive | 贷款转为非活跃之日 | — | — | 2026-04-16 | — | — |
+| currentinterestrate | 当前利率 | 0.06625 | 0.09875 | 0.0275 | 0.0425 | 0.03625 |
+| originalterm | 原始期限（月） | 360 | 360 | 360 | 360 | 360 |
+| originalnotedate | 原始借据(Note)日期 | 2022-09-20 | 2022-09-15 | 2017-05-16 | 2022-05-24 | 2022-02-17 |
+| originalmaturitydate | 原始到期日 | 2052-10-01 | 2052-10-01 | 2047-06-01 | 2052-06-01 | 2052-03-01 |
+| originalamt | 原始贷款金额 | 324900 | 425000 | 532000 | 484200 | 282335 |
+| currentmaturitydate | 当前到期日 | 2052-10-01 | 2052-10-01 | 2047-06-01 | 2052-06-01 | 2052-03-01 |
+| amortizationterm | 摊还期限（月） | 360 | 360 | 360 | 360 | 360 |
+| remainingterm | 剩余期限（月） | 334 | 321 | 0 | 340 | 312 |
+| otherliens | 其他留置权 | — | — | — | — | — |
+| otherliensbalance | 其他留置权余额 | — | — | — | — | — |
+| legalstatus | 法律状态（如 REO/FCBU/BK13） | REO | — | FCBU | REO | BK13 |
+| warningstatus | 预警状态标记 | — | — | AttyCons | ICC-REO | — |
+| isattorneyrepresented | 借款人是否有律师代理（0/1） | 0 | 0 | 0 | 0 | 0 |
+| issoldiersandsailors | 是否适用《军人民事救济法》(SCRA)（0/1） | 0 | 0 | 0 | 0 | 0 |
+| isloanlitigated | 贷款是否处于诉讼中（0/1） | 0 | 0 | 0 | 0 | 0 |
+| isescrowed | 是否设有托管账户(escrow)（0/1） | 1 | 1 | 1 | 1 | 1 |
+| femaarea | 是否处于 FEMA 灾区（0/1） | 0 | 0 | 0 | 0 | 0 |
+| femaaffect | 是否受 FEMA 灾害影响（0/1） | 0 | 0 | 0 | 0 | 0 |
+| balloonflag | 是否气球贷（到期一次性还本）（0/1） | 0 | 0 | 0 | 0 | 0 |
+| balloondate | 气球贷到期日 | — | — | — | — | — |
+| prepaymentpenaltyflag | 是否有提前还款罚金（0/1） | 0 | 0 | 0 | 0 | 0 |
+| prepaymentpenaltyterm | 提前还款罚金期限 | 0 | 0 | 0 | 0 | 0 |
+| prepaymentpenaltyfee | 提前还款罚金金额 | 0 | 0 | 0 | 0 | 0 |
+| chargeoff | 是否核销（0/1） | 0 | 0 | 0 | 0 | 0 |
+| chargeoffdate | 核销日期 | — | — | — | — | — |
+| chargeoffamount | 核销金额 | — | — | — | — | — |
+| payoffrequested | 是否已申请结清报价（0/1） | 0 | 0 | 1 | 0 | 0 |
+| payoffrequestdate | 结清报价申请日 | — | — | 2026-03-23 | — | — |
+| mersid | MERS 登记号 | 101229710000033408 | 100859730000132976 | — | 100661190012111072 | 100661190011370480 |
+| servicefeepercent | 服务费率（%） | 0 | 0 | 0 | 0 | 0 |
+| servicefeedollars | 服务费金额 | 0 | 0 | 0 | 0 | 0 |
+| interestmethod | 计息方式编码 | 0 | 0 | 0 | 0 | 0 |
+| negamflag | 是否负摊还(negative amortization)（0/1） | 0 | 0 | 0 | 0 | 0 |
+| borrowerdeceasedflag | 借款人是否已故（0/1） | 0 | 0 | 0 | 0 | 0 |
+| coborrowerdeceasedflag | 共同借款人是否已故（0/1） | 0 | — | — | — | — |
+| priorservicer | 前服务商名称 | Specialized Loan Servicing | Specialized Loan Servicing | Associated Bank | Specialized Loan Servicing | Specialized Loan Servicing |
+| foreignnationalflag | 借款人是否外国国籍（0/1） | 0 | 0 | 0 | 0 | 0 |
+| min_status | MERS MIN 状态 | 1 | 1 | — | 1 | 1 |
+| origorgid | 发起机构编码 | 1012297 | 1008597 |  | 1006611 | 1006611 |
+| origorgname | 发起机构名称 | Approved Mortgage Source, LLC | IMPAC Mortgage Corp. | — | Home Point Financial Corporation | — |
+| servicerorgid | 服务机构编码 | 1007544 | 1007544 |  | 1007544 | 1003225 |
+| subservorgid | 次级服务机构编码 |  |  |  |  |  |
+| ppc1_id | PPC1 编码（内部） | — | — | — | — | — |
+| investorname | 投资人名称 | TRESTLE TITLING TRUST-1 (TRUSTEE) | TRESTLE TITLING TRUST -1 | Trustee for Trestle Titling Trust-1 | Trestle Titling Trust-1 | TRESTLE TITLING TRUST-1 (TRUSTEE) |
+| min_number | MERS MIN 号 | 1.012297100000334e17 | 1.0085973000013298e17 | — | 1.0066119001211107e17 | 1.0066119001137048e17 |
+| registerstatus | MERS 登记状态 | Assigned For Default or BK | Assigned For Default or BK | — | Assigned For Default or BK | Inactive |
+| deactreason | 停用/退出原因（如 FC-BK） | FC-BK | FC-BK | — | FC-BK | — |
+| securitization | 证券化标记 | — | — | — | N | — |
+| poolnumber | 资产池编号 | 0 | 0 | 0 | 0 | 0 |
+| investororgid | 投资人机构编码 | 1012111 | 1012111 |  | 1012111 | 1012111 |
+| is_hpml | 是否高价房贷(HPML)（0/1） | 0 | 0 | 0 | 0 | 0 |
+| investmentproperty | 是否投资性房产（0/1） | 0 | 0 | 0 | 0 | 0 |
+| hasadditionalcollateral | 是否有额外抵押物（0/1） | 0 | 0 | 0 | 0 | 0 |
+| creditorname | 债权人名称 | WILMINGTON SAVINGS FUND SOCIETY, FSB, not in its individual capacity, but solely as Trustee for Trestle Titling Trust-1 | TRESTLE TITLING TRUST -1 | WILMINGTON SAVINGS FUND SOCIETY, FSB, not in its individual capacity, but solely as Trustee for Trestle Titling Trust-1 | Trestle Titling Trust-1 | WILMINGTON SAVINGS FUND SOCIETY, FSB, not in its individual capacity, but solely as Trustee for Trestle Titling Trust-1 |
+| vestingname | 产权登记名义人 | TRESTLE REO- 1 LLC | TRESTLE REO- 1 LLC | TRESTLE REO- 1 LLC | TRESTLE REO- 1 LLC | TRESTLE REO- 1 LLC |
+| memberid | 成员编码 | — | — | — | — | — |
+| welcomeletter | 欢迎信发送日 | — | — | 2024-02-12 | — | — |
+| tilanotice | TILA 告知发送日 | — | — | 2024-07-17 | — | — |
+| debenturerate | 债券利率（FHA 理赔用） | 3.25 | 3.25 | 2.75 | 1.875 | 1.875 |
+| reasonfordefault | 借款人违约原因描述 | Reduction in Borrower's Income | — | — | Unable to Contact Borrower | — |
+| custodianname | 文件保管机构名称 | DC-WT | DC-WT | DC-WT | DC-WT | DC-WT |
+| custodiancollateralid | 保管机构抵押物编码 | 8001883579 | 3111022026 | 7727004200 | 7001810280 | 6001690164 |
+| delinquency_status_mba | MBA 逾期状态文案（如 REO/120-149 DPD） | REO | 120-149 DPD | Full Payoff | REO | Performing Bankruptcy |
+| create_time | 记录创建时间 | 2026-06-05 19:37:58 | 2026-06-05 19:37:58 | 2026-06-05 19:37:58 | 2026-06-05 19:37:58 | 2026-06-05 19:37:58 |
+| update_time | 最后更新时间 | 2026-06-05 19:37:58 | 2026-06-05 19:37:58 | 2026-06-05 19:37:58 | 2026-06-05 19:37:58 | 2026-06-05 19:37:58 |
+| eoy_1099c_cancelled_date_reported | 年末 1099-C 债务免除报告日 | — | — | — | — | — |
+| loanscraflag | SCRA 标记 | — | — | — | — | — |
+| srlienstatuscode | 优先留置权状态码 | — | — | — | — | — |
+| srlienname | 优先留置权人名称 | — | — | — | — | — |
+| srlienduedate | 优先留置权到期日 | — | — | — | — | — |
+| srlienstatusdesc | 优先留置权状态描述 | — | — | — | — | — |
+| prepaypenaltyenddate | 提前还款罚金截止日 | — | — | — | — | — |
+| loanscrapaymenteffectivedate | SCRA 还款生效日 | — | — | — | — | — |
+| cdfi | 是否 CDFI 相关（0/1） | 0 | 0 | 0 | 0 | 0 |
+| investorchargeoff | 投资人核销标记（0/1） | 0 | 0 | 0 | 0 | 0 |
+| eoy_1099c_flag | 年末 1099-C 标记 | — | — | — | — | — |
+| disasterdesignationdate | 灾害认定日 | — | — | — | — | — |
+| inauctionflag | 是否在拍卖中（0/1） | 0 | 0 | 0 | 1 | 0 |
+| fhavapmicasenumber | FHA/VA/PMI 案件号 | — | — | 1000201256 | 171762357107 | 171762373396 |
+| loanscraenddate | SCRA 结束日 | — | — | — | — | — |
+| borrowerprimarymilitarystatuscode | 借款人主军籍状态码 | 0 | 0 | 0 | 0 | 0 |
+| borrowerprimarymilitarystatuscodedesc | 借款人主军籍状态描述 | Not Maintained | Not Maintained | Not Maintained | Not Maintained | Not Maintained |
+| dscr | 债务偿还覆盖率（商业贷款） | 0 | 0 | 0 | 0 | 0 |
+| loanscrastartdate | SCRA 起始日 | — | — | — | — | — |
+| disastername | 灾害名称 | — | — | — | — | — |
+| bridgeloan | 是否过桥贷款（0/1） | 0 | 0 | 0 | 0 | 0 |
+| secondhome | 是否第二套住房（0/1） | 0 | 0 | 0 | 0 | 0 |
+| priorservicername | 前服务商名称 | Specialized Loan Servicing | Specialized Loan Servicing | Associated Bank | Specialized Loan Servicing | Specialized Loan Servicing |
+| disasterimpactcreateddate | 灾害影响记录创建日 | — | — | — | — | — |
+| investorchargeoffdate | 投资人核销日 | — | — | — | — | — |
+| disasterdeclarationnumber | 灾害声明编号 | — | — | — | — | — |
+| lienseniorbalanceprincipalcurrent | 优先留置权当前本金余额 | — | — | — | — | — |
+| loanscrainterestrate | SCRA 利率 | — | — | — | — | — |
+| loanscrapipayment | SCRA 本息月供 | — | — | — | — | — |
+| eoy_1099c_cancelled_amount_reported | 年末 1099-C 免除金额 | — | — | — | — | — |
+| otsdelinquency | OTS 逾期分类文案 | REO | 120-149 DPD | Full Payoff | REO | Performing Bankruptcy |
+| leadbilldays | 账单提前天数 | — | — | — | — | — |
+| guarantyfeepercent | 担保费率（%） | 0 | 0 | 0 | 0 | 0 |
+| acquiredduedate | 收购时的应还到期日 | 2024-07-01 | 2024-05-01 | 2024-01-01 | 2024-03-01 | 2024-03-01 |
+| interestpaidthroughdate | 利息已付至日期 | 2024-12-01 | 2026-01-01 | 2024-11-01 | 2024-02-01 | 2026-03-01 |
+| srstatus | 优先留置权状态 | — | — | — | — | — |
+| enoteflag | 是否电子借据(eNote)（0/1） | 0 | 0 | 0 | 0 | 0 |
+| billingstatementdate | 账单日 | 2026-05-18 | 2026-05-18 | 2026-03-18 | 2025-07-21 | 2026-05-18 |
+| vrmflag | 是否可调利率(VRM)（0/1） | 0 | 0 | 0 | 0 | 0 |
+| pendinginvestoridtransfer | 待转投资人编码 | 0 | 0 | 0 | 0 | 0 |
+| newinvestorid | 新投资人编码 | — | — | — | — | — |
+| amltype | AML 类型 | 0 | 0 | 0 | 0 | 0 |
+| successorservicer | 后继服务商 | — | — | — | — | — |
 
 ---
 
@@ -598,40 +598,40 @@ SELECT t.* FROM newrez.portnewrezgeneral t JOIN (SELECT loanid, MAX(dataasof) AS
 SELECT t.* FROM newrez.portnewrezprop t JOIN (SELECT loanid, MAX(dataasof) AS _md FROM newrez.portnewrezprop WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') GROUP BY loanid) m ON t.loanid=m.loanid AND t.dataasof=m._md;
 ```
 
-| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-|---|---|---|---|---|---|
-| id | 1747370 | 1746929 | 1748514 | 1747391 | 1747384 |
-| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-| dataasof | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
-| shellpointloanid | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
-| propertyaddressline1 | 21 LK CHARLES LN | W 3120 SCHLOSSER RD | 13977 W EMMA LN | 2331 SW FREEMAN ST | 19801 OLD BELLAMY RD |
-| propertyaddressline2 | — | — | — | — | — |
-| propertycity | PALM COAST | MORAN | METTAWA | PORT SAINT LUCIE | ALACHUA |
-| propertystate | FL | MI | IL | FL | FL |
-| propertyzip | 32137 | 49760 | 60045 | 34953 | 32615 |
-| propertycounty | FLAGLER | MACKINAC | LAKE | ST. LUCIE | ALACHUA |
-| propertytype | 20 | 20 | 39 | 20 | 20 |
-| currentoccupancy | 2 | 0 | 0 | 2 | 0 |
-| currentoccupancydate | 2026-05-26 | — | — | 2026-05-23 | 2026-01-28 |
-| mostrecentvalue | 287753 | 350000 | 855000 | 455900 | 320750 |
-| mostrecentvaluedate | 2026-06-01 | 2026-04-29 | 2026-03-05 | 2026-03-30 | 2022-12-06 |
-| valuationmethod | 2 | 4 | 2 | 2 | 2 |
-| bpoprovider | — | — | 10 | — | — |
-| originalpropertyvalue | 343000 | 508000 | 563000 | 538000 | 325000 |
-| originalpropertyvaluedate | 2022-08-01 | 2022-05-01 | — | 2022-05-01 | 2022-02-01 |
-| vacancyflag | 1 | 0 | 0 | 1 | 0 |
-| originalltv | 0.9472 | 0.8366 | 0.9449 | 0.9 | 0.8687 |
-| currentltv | 1.1013 | 1.189 | 0 | 1.0318 | 0.8103 |
-| numberofunits | 1 | 1 | 1 | 1 | 1 |
-| mostrecentbpovalue | 287753 | 539900 | 855000 | 455900 | 320750 |
-| mostrecentbpovaluedate | 2026-06-01 | 2026-04-25 | 2026-03-05 | 2026-03-30 | 2022-12-06 |
-| taxservice | First American Tax Service | First American Tax Service | First American Tax Service | First American Tax Service | First American Tax Service |
-| datesenttotaxoutsource | 2024-07-11 | 2024-07-23 | 2024-02-14 | 2024-07-11 | 2024-07-11 |
-| create_time | 2026-06-05 19:38:50 | 2026-06-05 19:38:49 | 2026-06-05 19:38:50 | 2026-06-05 19:38:50 | 2026-06-05 19:38:50 |
-| update_time | 2026-06-05 19:38:50 | 2026-06-05 19:38:49 | 2026-06-05 19:38:50 | 2026-06-05 19:38:50 | 2026-06-05 19:38:50 |
-| originaloccupancy | Primary Residence | Primary Residence | Primary Residence | Primary Residence | Primary Residence |
-| investorloanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-| countycode | 35 | 97 | 97 | 111 | 1 |
+| 字段 | 业务含义 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+|---|---|---|---|---|---|---|
+| id | 主键，自增 ID | 1747370 | 1746929 | 1748514 | 1747391 | 1747384 |
+| loanid | 投资人贷款ID（跨 Servicer 的统一标识） | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+| dataasof | 数据快照日期 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
+| shellpointloanid | Newrez/Shellpoint 服务商贷款号 | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
+| propertyaddressline1 | 房产地址行1 | 21 LK CHARLES LN | W 3120 SCHLOSSER RD | 13977 W EMMA LN | 2331 SW FREEMAN ST | 19801 OLD BELLAMY RD |
+| propertyaddressline2 | 房产地址行2 | — | — | — | — | — |
+| propertycity | 房产城市 | PALM COAST | MORAN | METTAWA | PORT SAINT LUCIE | ALACHUA |
+| propertystate | 房产所在州（决定司法/非司法法拍路径） | FL | MI | IL | FL | FL |
+| propertyzip | 房产邮编 | 32137 | 49760 | 60045 | 34953 | 32615 |
+| propertycounty | 房产所在县 | FLAGLER | MACKINAC | LAKE | ST. LUCIE | ALACHUA |
+| propertytype | 房产类型 | 20 | 20 | 39 | 20 | 20 |
+| currentoccupancy | 当前占用状态 | 2 | 0 | 0 | 2 | 0 |
+| currentoccupancydate | 当前占用状态日期 | 2026-05-26 | — | — | 2026-05-23 | 2026-01-28 |
+| mostrecentvalue | 最新估值 | 287753 | 350000 | 855000 | 455900 | 320750 |
+| mostrecentvaluedate | 最新估值日期 | 2026-06-01 | 2026-04-29 | 2026-03-05 | 2026-03-30 | 2022-12-06 |
+| valuationmethod | 估值方法 | 2 | 4 | 2 | 2 | 2 |
+| bpoprovider | BPO 估值提供方 | — | — | 10 | — | — |
+| originalpropertyvalue | 原始房产价值 | 343000 | 508000 | 563000 | 538000 | 325000 |
+| originalpropertyvaluedate | 原始估值日期 | 2022-08-01 | 2022-05-01 | — | 2022-05-01 | 2022-02-01 |
+| vacancyflag | 是否空置（0/1） | 1 | 0 | 0 | 1 | 0 |
+| originalltv | 原始贷款价值比(LTV) | 0.9472 | 0.8366 | 0.9449 | 0.9 | 0.8687 |
+| currentltv | 当前 LTV | 1.1013 | 1.189 | 0 | 1.0318 | 0.8103 |
+| numberofunits | 单元数 | 1 | 1 | 1 | 1 | 1 |
+| mostrecentbpovalue | 最新 BPO 估值 | 287753 | 539900 | 855000 | 455900 | 320750 |
+| mostrecentbpovaluedate | 最新 BPO 估值日期 | 2026-06-01 | 2026-04-25 | 2026-03-05 | 2026-03-30 | 2022-12-06 |
+| taxservice | 税务服务机构 | First American Tax Service | First American Tax Service | First American Tax Service | First American Tax Service | First American Tax Service |
+| datesenttotaxoutsource | 税务外包发送日 | 2024-07-11 | 2024-07-23 | 2024-02-14 | 2024-07-11 | 2024-07-11 |
+| create_time | 记录创建时间 | 2026-06-05 19:38:50 | 2026-06-05 19:38:49 | 2026-06-05 19:38:50 | 2026-06-05 19:38:50 | 2026-06-05 19:38:50 |
+| update_time | 最后更新时间 | 2026-06-05 19:38:50 | 2026-06-05 19:38:49 | 2026-06-05 19:38:50 | 2026-06-05 19:38:50 | 2026-06-05 19:38:50 |
+| originaloccupancy | 原始占用状态 | Primary Residence | Primary Residence | Primary Residence | Primary Residence | Primary Residence |
+| investorloanid | 投资人贷款号 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+| countycode | 县编码 | 35 | 97 | 97 | 111 | 1 |
 
 ---
 
@@ -659,86 +659,86 @@ SELECT t.* FROM newrez.portnewrezprop t JOIN (SELECT loanid, MAX(dataasof) AS _m
 SELECT t.* FROM port.basic_data_daily_loan_common t JOIN (SELECT loanid, MAX(asofdate) AS _md FROM port.basic_data_daily_loan_common WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') GROUP BY loanid) m ON t.loanid=m.loanid AND t.asofdate=m._md;
 ```
 
-| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-|---|---|---|---|---|---|
-| asofdate | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
-| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-| svcloanid | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
-| servicer | Newrez | Newrez | Newrez | Newrez | Newrez |
-| nextduedate | 2025-01-01 | 2026-02-01 | 2024-12-01 | 2024-03-01 | 2026-04-01 |
-| principalbalance | 316909.28 | 416163.45 | 0 | 470399.51 | 259917 |
-| deferredprincipalbalance | 0 | 0 | 0 | 0 | 0 |
-| deferredinterestbalance | 0 | 0 | 0 | 0 | 0 |
-| schedule_pandi_daily | 2080.37 | 3690.48 | 2195.33 | 2381.97 | 1287.59 |
-| principalpaidmtd | 0 | 0 | 0 | 0 | 1498.21 |
-| interestpaidmtd | 0 | 0 | 0 | 0 | 2364.56 |
-| interest_rate | 6.625 | 9.875 | 2.75 | 4.25 | 3.625 |
-| bal_prin_original | 324900 | 425000 | 532000 | 484200 | 282335 |
-| delq_status | REO | 120-149 DPD | Full Payoff | REO | Performing Bankruptcy |
-| originalterm | 360 | 360 | 360 | 360 | 360 |
-| escrowbalance | -15023.97 | -4631.78 | 0 | -12520.46 | -5261.99 |
-| escrow_advance_balance | 15023.97 | 4631.78 | 0 | 12520.46 | 5261.99 |
-| reccorpadvance | -10593.28 | -922.04 | -30 | -16073.44 | 0 |
-| nonrecovadvance | -1605.75 | -3240.8 | -2170.3 | 93480 | -2020.63 |
-| agency | Conventional | Conventional | Conventional | VA | VA |
-| purpose | Purchase | Purchase | Purchase | Refinance-Cash | Refinance-Cash |
-| proptype | SingleFamilyDetached | SingleFamilyDetached | PUD | SingleFamilyDetached | SingleFamilyDetached |
-| occupancy | Vacant | Owner Occupied | Owner Occupied | Vacant | Owner Occupied |
-| doctype | Full | Full | Full | Full | Full |
-| zipcode | 32137 | 49760 | 60045 | 34953 | 32615 |
-| propaddress | 21 LK CHARLES LN | W 3120 SCHLOSSER RD | 13977 W EMMA LN | 2331 SW FREEMAN ST | 19801 OLD BELLAMY RD |
-| city | PALM COAST | MORAN | METTAWA | PORT SAINT LUCIE | ALACHUA |
-| state | FL | MI | IL | FL | FL |
-| modi | N | N | N | N | N |
-| moditype |  |  |  |  |  |
-| modidate | — | — | 2021-09-23 | — | — |
-| origdate | — | — | — | — | — |
-| origmaturitydate | 2052-10-01 | 2052-10-01 | 2047-06-01 | 2052-06-01 | 2052-03-01 |
-| maturitydate_ | 2052-10-01 | 2052-10-01 | 2047-06-01 | 2052-06-01 | 2052-03-01 |
-| svcremterm | 334 | 321 | 0 | 340 | 312 |
-| firstpaymentdate | 2022-11-01 | 2022-11-01 | 2017-07-01 | 2022-07-01 | 2022-04-01 |
-| paymthist | 000001100000010010012345555555555555 | XXXXXXX11222300000001233321112224455 | XXXXXXX01000000000122344445555555550 | XXXXXXX00123444444444555555554666666 | 000123444444443434333333444444444444 |
-| origrate_daily | — | — | — | — | — |
-| fico | — | — | — | — | — |
-| currfico | — | — | — | — | — |
-| oltv | 0.9472 | 0.8366 | 0.9449 | 0.9 | 0.8687 |
-| origbpo | 343000 | 508000 | 563000 | 538000 | 325000 |
-| origbpodate | 2022-08-01 | 2022-05-01 | — | 2022-05-01 | 2022-02-01 |
-| bpo | 287753 | 350000 | 855000 | 455900 | 320750 |
-| bpodate | 2026-06-01 | 2026-04-29 | 2026-03-05 | 2026-03-30 | 2022-12-06 |
-| amorttype | — | — | — | — | — |
-| amortizeterm | 360 | 360 | 360 | 360 | 360 |
-| forbearance |  |  | 4.0 |  |  |
-| lien | 1 | 1 | 1 | 1 | 1 |
-| balloon | 0 | 0 | 0 | 0 | 0 |
-| pmiflag | 1 | 0 | 0 | 0 | 0 |
-| mitype | 100.0 |  | 100.0 |  |  |
-| pmilevel | 0.3 | 0 | 0.3 | 0 | 0 |
-| indextype | — | — | — | — | — |
-| margin | — | — | 0.0275 | — | — |
-| liferatefloor | — | — | 0.0275 | — | — |
-| liferatecap | — | — | — | — | — |
-| lifechgfloor | — | — | — | — | — |
-| lifechgcap | — | — | — | — | — |
-| firstcap | — | — | 0 | — | — |
-| periodiccap | — | — | — | — | — |
-| monthtofirstreset | — | — | — | — | — |
-| firstresetdate | — | — | — | — | — |
-| prepaypenalty | 0 | 0 | 0 | 0 | 0 |
-| prepaypenaltyterm | 0 | 0 | 0 | 0 | 0 |
-| io | 0 | 0 | 0 | 0 | 0 |
-| iomonth | 0 | 0 | 0 | 0 | 0 |
-| tiamount | 786.1 | 1111.95 | 1990.72 | 438.01 | 904.41 |
-| piti | 2866.47 | 4802.43 | 4186.05 | 2819.98 | 2192 |
-| fcl_flag | — | — | — | — | — |
-| lm_flag | N | Y | N | N | N |
-| lastcontactdate | 2026-04-28 | 2026-04-20 | 2026-02-27 | — | 2026-05-05 |
-| reasonfordefault | Reduction in Borrower's Income |  |  | Unable to Contact Borrower |  |
-| pmicanceldt | — | — | 2026-04-16 | — | — |
-| pmicancel | — | — | Y | — | — |
-| pmiexpirationdt | 2034-09-01 | — | 2025-09-01 | — | — |
-| balloondate | — | — | — | — | — |
-| balloonterm | — | — | — | — | — |
+| 字段 | 业务含义 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+|---|---|---|---|---|---|---|
+| asofdate | 数据观察日期（Servicer 上报数据的截止日） | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
+| loanid | 投资人贷款ID（跨 Servicer 的统一标识） | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+| svcloanid | Servicer 内部贷款号 | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
+| servicer | 当前服务商名称（hardcoded） | Newrez | Newrez | Newrez | Newrez | Newrez |
+| nextduedate | 下一个应还款日，即借款人下一笔到期付款的日期 | 2025-01-01 | 2026-02-01 | 2024-12-01 | 2024-03-01 | 2026-04-01 |
+| principalbalance | 当前未偿还本金余额 (UPB) | 316909.28 | 416163.45 | 0 | 470399.51 | 259917 |
+| deferredprincipalbalance | 递延本金余额（通常来自 COVID 修改） | 0 | 0 | 0 | 0 | 0 |
+| deferredinterestbalance | 递延利息余额 | 0 | 0 | 0 | 0 | 0 |
+| schedule_pandi_daily | 计划本息(日表) | 2080.37 | 3690.48 | 2195.33 | 2381.97 | 1287.59 |
+| principalpaidmtd | 本月已付本金 | 0 | 0 | 0 | 0 | 1498.21 |
+| interestpaidmtd | 本月已付利息 | 0 | 0 | 0 | 0 | 2364.56 |
+| interest_rate | 利率 | 6.625 | 9.875 | 2.75 | 4.25 | 3.625 |
+| bal_prin_original | 原始本金余额 | 324900 | 425000 | 532000 | 484200 | 282335 |
+| delq_status | Servicer 原始逾期状态描述（未标准化） | REO | 120-149 DPD | Full Payoff | REO | Performing Bankruptcy |
+| originalterm | 原始期限（月） | 360 | 360 | 360 | 360 | 360 |
+| escrowbalance | 托管账户余额 | -15023.97 | -4631.78 | 0 | -12520.46 | -5261.99 |
+| escrow_advance_balance | 托管垫款余额 | 15023.97 | 4631.78 | 0 | 12520.46 | 5261.99 |
+| reccorpadvance | 可回收公司垫款 | -10593.28 | -922.04 | -30 | -16073.44 | 0 |
+| nonrecovadvance | 不可回收垫款 | -1605.75 | -3240.8 | -2170.3 | 93480 | -2020.63 |
+| agency | 贷款担保机构类型 | Conventional | Conventional | Conventional | VA | VA |
+| purpose | 贷款用途 | Purchase | Purchase | Purchase | Refinance-Cash | Refinance-Cash |
+| proptype | 房产类型 | SingleFamilyDetached | SingleFamilyDetached | PUD | SingleFamilyDetached | SingleFamilyDetached |
+| occupancy | 入住状态 | Vacant | Owner Occupied | Owner Occupied | Vacant | Owner Occupied |
+| doctype | 贷款文件类型 | Full | Full | Full | Full | Full |
+| zipcode | 邮政编码 | 32137 | 49760 | 60045 | 34953 | 32615 |
+| propaddress | 房产地址 | 21 LK CHARLES LN | W 3120 SCHLOSSER RD | 13977 W EMMA LN | 2331 SW FREEMAN ST | 19801 OLD BELLAMY RD |
+| city | 城市 | PALM COAST | MORAN | METTAWA | PORT SAINT LUCIE | ALACHUA |
+| state | 州代码 | FL | MI | IL | FL | FL |
+| modi | 是否有贷款修改 Y/N | N | N | N | N | N |
+| moditype | 贷款修改类型 |  |  |  |  |  |
+| modidate | 贷款修改生效日 | — | — | 2021-09-23 | — | — |
+| origdate | 贷款起始日（签约日） | — | — | — | — | — |
+| origmaturitydate | 原始到期日 | 2052-10-01 | 2052-10-01 | 2047-06-01 | 2052-06-01 | 2052-03-01 |
+| maturitydate_ | 到期日 | 2052-10-01 | 2052-10-01 | 2047-06-01 | 2052-06-01 | 2052-03-01 |
+| svcremterm | Servicer报告的剩余期限（月数） | 334 | 321 | 0 | 340 | 312 |
+| firstpaymentdate | 首次还款日 | 2022-11-01 | 2022-11-01 | 2017-07-01 | 2022-07-01 | 2022-04-01 |
+| paymthist | 还款历史串 | 000001100000010010012345555555555555 | XXXXXXX11222300000001233321112224455 | XXXXXXX01000000000122344445555555550 | XXXXXXX00123444444444555555554666666 | 000123444444443434333333444444444444 |
+| origrate_daily | 原始利率(日表) | — | — | — | — | — |
+| fico | 原始信用评分 | — | — | — | — | — |
+| currfico | 当前信用评分 | — | — | — | — | — |
+| oltv | 原始LTV（贷款价值比） | 0.9472 | 0.8366 | 0.9449 | 0.9 | 0.8687 |
+| origbpo | 原始经纪人价值评估 | 343000 | 508000 | 563000 | 538000 | 325000 |
+| origbpodate | 原始BPO评估日期 | 2022-08-01 | 2022-05-01 | — | 2022-05-01 | 2022-02-01 |
+| bpo | 最新BPO（经纪人房产估值） | 287753 | 350000 | 855000 | 455900 | 320750 |
+| bpodate | 最新BPO评估日期 | 2026-06-01 | 2026-04-29 | 2026-03-05 | 2026-03-30 | 2022-12-06 |
+| amorttype | 摊还类型（固定/浮动/IO） | — | — | — | — | — |
+| amortizeterm | 当前摊还期（月数） | 360 | 360 | 360 | 360 | 360 |
+| forbearance | Forbearance（宽限期）状态 |  |  | 4.0 |  |  |
+| lien | 留置权顺位 | 1 | 1 | 1 | 1 | 1 |
+| balloon | 是否气球贷款（Y/N） | 0 | 0 | 0 | 0 | 0 |
+| pmiflag | 是否有私人抵押保险（Y/N） | 1 | 0 | 0 | 0 | 0 |
+| mitype | 抵押保险(MI)类型 | 100.0 |  | 100.0 |  |  |
+| pmilevel | PMI保费率 | 0.3 | 0 | 0.3 | 0 | 0 |
+| indextype | 利率指数类型（ARM） | — | — | — | — | — |
+| margin | 浮动利率基差（ARM贷款） | — | — | 0.0275 | — | — |
+| liferatefloor | 利率下限 | — | — | 0.0275 | — | — |
+| liferatecap | 利率上限 | — | — | — | — | — |
+| lifechgfloor | 利率变动下限 | — | — | — | — | — |
+| lifechgcap | 利率变动上限 | — | — | — | — | — |
+| firstcap | 首次调整上限 | — | — | 0 | — | — |
+| periodiccap | 周期调整上限 | — | — | — | — | — |
+| monthtofirstreset | 距首次重置月数 | — | — | — | — | — |
+| firstresetdate | 首次重置日期 | — | — | — | — | — |
+| prepaypenalty | 是否有提前还款罚金（Y/N） | 0 | 0 | 0 | 0 | 0 |
+| prepaypenaltyterm | 提前还款罚金期（月数） | 0 | 0 | 0 | 0 | 0 |
+| io | 是否为只付利息贷款（Y/N） | 0 | 0 | 0 | 0 | 0 |
+| iomonth | IO期剩余月数 | 0 | 0 | 0 | 0 | 0 |
+| tiamount | 税险(T&I)金额 | 786.1 | 1111.95 | 1990.72 | 438.01 | 904.41 |
+| piti | 月度PITI（含本息税险保险） | 2866.47 | 4802.43 | 4186.05 | 2819.98 | 2192 |
+| fcl_flag | Foreclosure 激活标志（各 Servicer 含义不一致） | — | — | — | — | — |
+| lm_flag | Loss Mitigation 激活标志 | N | Y | N | N | N |
+| lastcontactdate | 服务商最后一次成功联系借款人的日期 | 2026-04-28 | 2026-04-20 | 2026-02-27 | — | 2026-05-05 |
+| reasonfordefault | 借款人违约原因描述 | Reduction in Borrower's Income |  |  | Unable to Contact Borrower |  |
+| pmicanceldt | PMI取消日期 | — | — | 2026-04-16 | — | — |
+| pmicancel | PMI是否已取消（Y/N） | — | — | Y | — | — |
+| pmiexpirationdt | PMI到期日期 | 2034-09-01 | — | 2025-09-01 | — | — |
+| balloondate | 气球贷到期日 | — | — | — | — | — |
+| balloonterm | 气球贷款期限（月） | — | — | — | — | — |
 
 ---
 
@@ -766,111 +766,111 @@ SELECT t.* FROM port.basic_data_daily_loan_common t JOIN (SELECT loanid, MAX(aso
 SELECT t.* FROM port.basic_data_daily_loan_common_clean t JOIN (SELECT loanid, MAX(fctrdt) AS _md FROM port.basic_data_daily_loan_common_clean WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') GROUP BY loanid) m ON t.loanid=m.loanid AND t.fctrdt=m._md;
 ```
 
-| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-|---|---|---|---|---|---|
-| fctrdt | 2026-07-01 | 2026-07-01 | 2026-07-01 | 2026-07-01 | 2026-07-01 |
-| dealid | HMP002 | IMPAC001 | BOA002 | HMP002 | HMP002 |
-| fundingid | HMP002 | IMPAC001 | BOA002 | HMP002 | HMP002 |
-| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-| svcloanid | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
-| servicer | Newrez | Newrez | Newrez | Newrez | Newrez |
-| agency | Conventional | Conventional | Conventional | VA | VA |
-| channel | broker | broker | retail | broker | retail |
-| purpose | Purchase | Purchase | Purchase | Refinance-Cash | Refinance-Cash |
-| proptype | SingleFamilyDetached | SingleFamilyDetached | PUD | SingleFamilyDetached | SingleFamilyDetached |
-| occupancy | Vacant | Owner Occupied | Owner Occupied | Vacant | Owner Occupied |
-| doctype | Full | Full | Full | Full | Full |
-| zipcode | 32137 | 49760 | 60045 | 34953 | 32615 |
-| propaddress | 21 LK CHARLES LN | W 3120 SCHLOSSER RD | 13977 W EMMA LN | 2331 SW FREEMAN ST | 19801 OLD BELLAMY RD |
-| city | PALM COAST | MORAN | METTAWA | PORT SAINT LUCIE | ALACHUA |
-| state | FL | MI | IL | FL | FL |
-| msa | Deltona-Daytona Beach-Ormond Beach, FL Metropolitan Statistical Area | — | Chicago-Naperville-Elgin, IL-IN-WI Metropolitan Statistical Area | Port St. Lucie, FL Metropolitan Statistical Area | Gainesville, FL Metropolitan Statistical Area |
-| nextduedate | 2025-01-01 | 2026-02-01 | 2024-12-01 | 2024-03-01 | 2026-04-01 |
-| svcdelinq | REO | 120-149 DPD | Full Payoff | REO | Performing Bankruptcy |
-| delinq | REO | D120P | P | REO | D90 |
-| ots_delinq | REO | D120P | P | REO | D60 |
-| monthindelinq | 18 | 5 | 19 | 28 | 3 |
-| bankruptcy | N | N | N | N | Y |
-| modi | N | N | N | N | N |
-| moditype |  |  |  |  |  |
-| modidate | — | — | 2021-09-23 | — | — |
-| origdate | 2022-08-08 | 2022-09-15 | 2017-05-16 | 2022-04-26 | 2022-01-13 |
-| origmaturitydate | 2052-10-01 | 2052-10-01 | 2047-06-01 | 2052-06-01 | 2052-03-01 |
-| maturitydate | 2052-10-01 | 2052-10-01 | 2047-06-01 | 2052-06-01 | 2052-03-01 |
-| origterm | 360 | 360 | 360 | 360 | 360 |
-| svcremterm | 334 | 321 | 0 | 340 | 312 |
-| remterm | 315 | 315 | 251 | 311 | 308 |
-| loanage | 45 | 45 | 109 | 49 | 52 |
-| firstpaymtdt | 2022-11-01 | 2022-11-01 | 2017-07-01 | 2022-07-01 | 2022-04-01 |
-| svcpaymthist | 000001100000010010012345555555555555 | XXXXXXX11222300000001233321112224455 | XXXXXXX01000000000122344445555555550 | XXXXXXX00123444444444555555554666666 | 000123444444443434333333444444444444 |
-| origrate | 6.625 | 9.875 | 3.5 | 4.25 | 3.625 |
-| intrate | 6.625 | 9.875 | 2.75 | 4.25 | 3.625 |
-| fico | 629 | 613 | 647 | 662 | 655 |
-| currfico | — | — | — | — | — |
-| oltv | 94.72 | 83.66 | 94.49 | 90 | 86.87 |
-| combltv | 95 | 85 | 95 | 90 | 86.872 |
-| dti | 46.705 | 29.011 | 47 | 44.301 | 42.883 |
-| origbpo | 343000 | 508000 | 563000 | 538000 | 325000 |
-| origbpodate | 2022-08-01 | 2022-05-01 | — | 2022-05-01 | 2022-02-01 |
-| bpo | 287753 | 350000 | 855000 | 455900 | 320750 |
-| bpodate | 2026-06-01 | 2026-04-29 | 2026-03-05 | 2026-03-30 | 2022-12-06 |
-| salesprice | 342000 | 500000 | — | — | — |
-| amorttype | FIX | FIX | ARM | FIX | FIX |
-| origamortizeterm | 360 | 360 | 360 | 360 | 360 |
-| amortizeterm | 360 | 360 | 360 | 360 | 360 |
-| forbearance |  |  | Satisfied |  |  |
-| lien | 1 | 1 | 1 | 1 | 1 |
-| dpa | — | — | — | — | — |
-| fthb | — | N | — | — | — |
-| balloon | N | N | N | N | N |
-| balloonterm | — | — | 0 | — | — |
-| buydown | — | — | N | — | — |
-| pmiflag | Y | N | N | N | N |
-| pmitype | PMI | — | PMI | — | — |
-| pmilevel | 30 | 0 | 30 | 0 | 0 |
-| pmileveladj | — | 0 | — | — | — |
-| pmicancel | — | — | Y | — | — |
-| pmicanceldt | — | — | 2026-04-16 | — | — |
-| pmiexpirationdt | 2034-09-01 | — | 2025-09-01 | — | — |
-| pminotes | — | — | — | — | — |
-| partialclaim | — | — | — | — | — |
-| moreunits | 1 | 1 | 1 | 1 | 1 |
-| indextype | — | — | CMT1Y | — | — |
-| margin | — | — | 2.75 | — | — |
-| liferatefloor | — | — | 2.75 | — | — |
-| liferatecap | — | — | 7.75 | — | — |
-| lifechgfloor | — | — | — | — | — |
-| lifechgcap | — | — | — | — | — |
-| firstcap | — | — | 5 | — | — |
-| periodiccap | — | — | 2 | — | — |
-| monthtofirstreset | — | — | 137 | — | — |
-| firstresetdate | — | — | 2028-11-01 | — | — |
-| resetfreq | — | — | 12 | — | — |
-| piw | — | — | — | — | — |
-| prepaypenalty | N | N | N | N | N |
-| prepaypenaltyterm | 0 | 0 | 0 | 0 | 0 |
-| prepaypenaltytype | — | — | — | — | — |
-| io | N | N | N | N | N |
-| iomonth | 0 | 0 | 0 | 0 | 0 |
-| dscr | — | — | — | — | — |
-| origbal | 324900 | 425000 | 532000 | 484200 | 282335 |
-| prevbal | — | — | — | — | — |
-| balance | 316909.28 | 416163.45 | 0 | 470399.51 | 259917 |
-| deferredprin | 0 | 0 | 0 | 0 | 0 |
-| deferredint | 0 | 0 | 0 | 0 | 0 |
-| pandi | 2080.37 | 3690.48 | 2195.33 | 2381.97 | 1287.59 |
-| tandi | 786.1 | 1111.95 | 1990.72 | 438.01 | 904.41 |
-| piti | 2866.47 | 4802.43 | 4186.05 | 2819.98 | 2192 |
-| escrowbal | 0 | 0 | 0 | 0 | 0 |
-| escrowadv | 15023.97 | 4631.78 | 0 | 12520.46 | 5261.99 |
-| corpadvrec | 10593.28 | 922.04 | 30 | 16073.44 | 0 |
-| corpadvnonrec | 1605.75 | 3240.8 | 2170.3 | -93577.26 | 2020.63 |
-| corpadvtotal | 12199.03 | 4162.84 | 2200.3 | -77503.82 | 2020.63 |
-| invbal | 316909.28 | 416163.45 | 0 | 470399.51 | 259917 |
-| invbalsched | — | — | — | — | — |
-| lm_flag | N | Y | N | N | N |
-| lastcontactdate | 2026-04-28 | 2026-04-20 | 2026-02-27 | — | 2026-05-05 |
-| reasonfordefault | Reduction in Borrower's Income |  |  | Unable to Contact Borrower |  |
+| 字段 | 业务含义 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+|---|---|---|---|---|---|---|
+| fctrdt | Factor Date，月度报告日期（每月1日，代表上月末数据） | 2026-07-01 | 2026-07-01 | 2026-07-01 | 2026-07-01 | 2026-07-01 |
+| dealid | Deal 编号（投资交易标识） | HMP002 | IMPAC001 | BOA002 | HMP002 | HMP002 |
+| fundingid | Funding 编号（资金来源标识） | HMP002 | IMPAC001 | BOA002 | HMP002 | HMP002 |
+| loanid | 投资人贷款ID | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+| svcloanid | Servicer 内部贷款号 | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
+| servicer | 服务商名称 | Newrez | Newrez | Newrez | Newrez | Newrez |
+| agency | 贷款担保机构类型 | Conventional | Conventional | Conventional | VA | VA |
+| channel | 贷款发放渠道 | broker | broker | retail | broker | retail |
+| purpose | 贷款用途 | Purchase | Purchase | Purchase | Refinance-Cash | Refinance-Cash |
+| proptype | 房产类型 | SingleFamilyDetached | SingleFamilyDetached | PUD | SingleFamilyDetached | SingleFamilyDetached |
+| occupancy | 入住状态 | Vacant | Owner Occupied | Owner Occupied | Vacant | Owner Occupied |
+| doctype | 贷款文件类型 | Full | Full | Full | Full | Full |
+| zipcode | 邮政编码 | 32137 | 49760 | 60045 | 34953 | 32615 |
+| propaddress | 房产地址 | 21 LK CHARLES LN | W 3120 SCHLOSSER RD | 13977 W EMMA LN | 2331 SW FREEMAN ST | 19801 OLD BELLAMY RD |
+| city | 城市 | PALM COAST | MORAN | METTAWA | PORT SAINT LUCIE | ALACHUA |
+| state | 州代码 | FL | MI | IL | FL | FL |
+| msa | 都市统计区代码 | Deltona-Daytona Beach-Ormond Beach, FL Metropolitan Statistical Area | — | Chicago-Naperville-Elgin, IL-IN-WI Metropolitan Statistical Area | Port St. Lucie, FL Metropolitan Statistical Area | Gainesville, FL Metropolitan Statistical Area |
+| nextduedate | 下一应还款日 | 2025-01-01 | 2026-02-01 | 2024-12-01 | 2024-03-01 | 2026-04-01 |
+| svcdelinq | Servicer 原始逾期状态码（未标准化） | REO | 120-149 DPD | Full Payoff | REO | Performing Bankruptcy |
+| delinq | **标准化逾期状态码（全系统核心字段）** | REO | D120P | P | REO | D90 |
+| ots_delinq | OTS 逾期分类（清洗后） | REO | D120P | P | REO | D60 |
+| monthindelinq | 逾期月数（整数） | 18 | 5 | 19 | 28 | 3 |
+| bankruptcy | 破产标志 Y/N | N | N | N | N | Y |
+| modi | 是否有贷款修改 | N | N | N | N | N |
+| moditype | 贷款修改类型 |  |  |  |  |  |
+| modidate | 贷款修改生效日 | — | — | 2021-09-23 | — | — |
+| origdate | 贷款起始日（签约日） | 2022-08-08 | 2022-09-15 | 2017-05-16 | 2022-04-26 | 2022-01-13 |
+| origmaturitydate | 原始到期日 | 2052-10-01 | 2052-10-01 | 2047-06-01 | 2052-06-01 | 2052-03-01 |
+| maturitydate | 当前到期日（改期后可能调整） | 2052-10-01 | 2052-10-01 | 2047-06-01 | 2052-06-01 | 2052-03-01 |
+| origterm | 贷款原始期限（月数） | 360 | 360 | 360 | 360 | 360 |
+| svcremterm | Servicer报告的剩余期限（月数） | 334 | 321 | 0 | 340 | 312 |
+| remterm | 系统计算剩余期限（月数） | 315 | 315 | 251 | 311 | 308 |
+| loanage | 贷款已存续月数 | 45 | 45 | 109 | 49 | 52 |
+| firstpaymtdt | 首次还款日 | 2022-11-01 | 2022-11-01 | 2017-07-01 | 2022-07-01 | 2022-04-01 |
+| svcpaymthist | Servicer提供的还款历史字符串 | 000001100000010010012345555555555555 | XXXXXXX11222300000001233321112224455 | XXXXXXX01000000000122344445555555550 | XXXXXXX00123444444444555555554666666 | 000123444444443434333333444444444444 |
+| origrate | 原始利率 | 6.625 | 9.875 | 3.5 | 4.25 | 3.625 |
+| intrate | 当前利率 | 6.625 | 9.875 | 2.75 | 4.25 | 3.625 |
+| fico | 原始信用评分 | 629 | 613 | 647 | 662 | 655 |
+| currfico | 当前信用评分 | — | — | — | — | — |
+| oltv | 原始LTV（贷款价值比） | 94.72 | 83.66 | 94.49 | 90 | 86.87 |
+| combltv | 综合LTV（含次级留置权） | 95 | 85 | 95 | 90 | 86.872 |
+| dti | 债务收入比 | 46.705 | 29.011 | 47 | 44.301 | 42.883 |
+| origbpo | 原始经纪人价值评估 | 343000 | 508000 | 563000 | 538000 | 325000 |
+| origbpodate | 原始BPO评估日期 | 2022-08-01 | 2022-05-01 | — | 2022-05-01 | 2022-02-01 |
+| bpo | 最新BPO（经纪人房产估值） | 287753 | 350000 | 855000 | 455900 | 320750 |
+| bpodate | 最新BPO评估日期 | 2026-06-01 | 2026-04-29 | 2026-03-05 | 2026-03-30 | 2022-12-06 |
+| salesprice | 原始购买价格 | 342000 | 500000 | — | — | — |
+| amorttype | 摊还类型（固定/浮动/IO） | FIX | FIX | ARM | FIX | FIX |
+| origamortizeterm | 原始摊还期（月数） | 360 | 360 | 360 | 360 | 360 |
+| amortizeterm | 当前摊还期（月数） | 360 | 360 | 360 | 360 | 360 |
+| forbearance | Forbearance 状态 |  |  | Satisfied |  |  |
+| lien | 留置权顺位 | 1 | 1 | 1 | 1 | 1 |
+| dpa | 首付援助（Down Payment Assistance） | — | — | — | — | — |
+| fthb | 首次购房者（First-Time Home Buyer） | — | N | — | — | — |
+| balloon | 是否气球贷款（Y/N） | N | N | N | N | N |
+| balloonterm | 气球贷款期限（月） | — | — | 0 | — | — |
+| buydown | 利率买入点（Y/N） | — | — | N | — | — |
+| pmiflag | 是否有私人抵押保险（Y/N） | Y | N | N | N | N |
+| pmitype | PMI类型 | PMI | — | PMI | — | — |
+| pmilevel | PMI保费率 | 30 | 0 | 30 | 0 | 0 |
+| pmileveladj | 调整后PMI保费率 | — | 0 | — | — | — |
+| pmicancel | PMI是否已取消（Y/N） | — | — | Y | — | — |
+| pmicanceldt | PMI取消日期 | — | — | 2026-04-16 | — | — |
+| pmiexpirationdt | PMI到期日期 | 2034-09-01 | — | 2025-09-01 | — | — |
+| pminotes | PMI备注 | — | — | — | — | — |
+| partialclaim | 部分求偿金额（HUD部分偿还） | — | — | — | — | — |
+| moreunits | 房产单元数（多单元住宅） | 1 | 1 | 1 | 1 | 1 |
+| indextype | 利率指数类型（ARM） | — | — | CMT1Y | — | — |
+| margin | 浮动利率基差（ARM贷款） | — | — | 2.75 | — | — |
+| liferatefloor | 利率下限 | — | — | 2.75 | — | — |
+| liferatecap | 利率上限 | — | — | 7.75 | — | — |
+| lifechgfloor | 利率变动下限 | — | — | — | — | — |
+| lifechgcap | 利率变动上限 | — | — | — | — | — |
+| firstcap | 首次调整上限 | — | — | 5 | — | — |
+| periodiccap | 周期调整上限 | — | — | 2 | — | — |
+| monthtofirstreset | 距首次重置月数 | — | — | 137 | — | — |
+| firstresetdate | 首次重置日期 | — | — | 2028-11-01 | — | — |
+| resetfreq | 重置频率（月） | — | — | 12 | — | — |
+| piw | 免罚款窗口期（Y/N） | — | — | — | — | — |
+| prepaypenalty | 是否有提前还款罚金（Y/N） | N | N | N | N | N |
+| prepaypenaltyterm | 提前还款罚金期（月数） | 0 | 0 | 0 | 0 | 0 |
+| prepaypenaltytype | 提前还款罚金类型 | — | — | — | — | — |
+| io | 是否为只付利息贷款（Y/N） | N | N | N | N | N |
+| iomonth | IO期剩余月数 | 0 | 0 | 0 | 0 | 0 |
+| dscr | 债务偿还覆盖率（商业贷款） | — | — | — | — | — |
+| origbal | 原始贷款金额 | 324900 | 425000 | 532000 | 484200 | 282335 |
+| prevbal | 上期期末余额 | — | — | — | — | — |
+| balance | 当前未偿还本金余额 | 316909.28 | 416163.45 | 0 | 470399.51 | 259917 |
+| deferredprin | 递延本金余额 | 0 | 0 | 0 | 0 | 0 |
+| deferredint | 递延利息余额 | 0 | 0 | 0 | 0 | 0 |
+| pandi | 月度本利合计（P&I，Scheduled Principal and Interest） | 2080.37 | 3690.48 | 2195.33 | 2381.97 | 1287.59 |
+| tandi | 月度本息税险应还（T&I，含税险） | 786.1 | 1111.95 | 1990.72 | 438.01 | 904.41 |
+| piti | 月度PITI（含本息税险保险） | 2866.47 | 4802.43 | 4186.05 | 2819.98 | 2192 |
+| escrowbal | 托管账户余额 | 0 | 0 | 0 | 0 | 0 |
+| escrowadv | 累计托管垫付金额 | 15023.97 | 4631.78 | 0 | 12520.46 | 5261.99 |
+| corpadvrec | 可回收公司垫付款（Recoverable Corporate Advance） | 10593.28 | 922.04 | 30 | 16073.44 | 0 |
+| corpadvnonrec | 不可追偿企业垫付 | 1605.75 | 3240.8 | 2170.3 | -93577.26 | 2020.63 |
+| corpadvtotal | 企业垫付合计 | 12199.03 | 4162.84 | 2200.3 | -77503.82 | 2020.63 |
+| invbal | 投资人账面余额（actual） | 316909.28 | 416163.45 | 0 | 470399.51 | 259917 |
+| invbalsched | 投资人应还账面余额（scheduled） | — | — | — | — | — |
+| lm_flag | Loss Mitigation 激活标志 Y/N | N | Y | N | N | N |
+| lastcontactdate | 最后联系日期 | 2026-04-28 | 2026-04-20 | 2026-02-27 | — | 2026-05-05 |
+| reasonfordefault | 违约原因 | Reduction in Borrower's Income |  |  | Unable to Contact Borrower |  |
 
 ---
 
@@ -897,45 +897,45 @@ SELECT t.* FROM port.basic_data_daily_loan_common_clean t JOIN (SELECT loanid, M
 SELECT t.* FROM tempfc.temp_basic_data_fcl t JOIN (SELECT loanid, MAX(dataasof) AS _md FROM tempfc.temp_basic_data_fcl WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') GROUP BY loanid) m ON t.loanid=m.loanid AND t.dataasof=m._md;
 ```
 
-| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-|---|---|---|---|---|---|
-| dataasof | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
-| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-| servicer | Newrez | Newrez | Newrez | Newrez | Newrez |
-| svc_loanid | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
-| activefcflag | 0 | 0 | 0 | 0 | 0 |
-| titleordereddate | — | — | — | 2025-11-13 | — |
-| titlereceiveddate | — | — | — | 2025-12-02 | — |
-| titlecleardate | — | — | — | — | — |
-| noi_date | — | — | — | — | — |
-| fcsetupdate | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
-| referral_start_date | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
-| svc_days_infc | 368 | 79 | 294 | 254 | — |
-| daysinfc | 368 | 79 | 294 | 254 | — |
-| demandsentdate | 2025-02-18 | 2025-11-17 | 2025-05-20 | 2024-08-12 | 2026-04-10 |
-| demandexpirationdate | 2025-03-25 | 2025-12-22 | 2025-06-24 | 2024-09-18 | 2026-05-15 |
-| legal_start_date | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
-| service_start_date | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
-| fcjudgment_hearing_scheduled | 2026-03-27 | — | 2026-04-13 | 2025-10-15 | — |
-| fcjudgment_end_date | 2026-04-08 | — | 2026-02-13 | 2025-08-25 | — |
-| fcscheduled_sale_date | — | — | 2026-05-19 | — | — |
-| fcsale_held_date | 2026-05-22 | — | — | 2025-10-14 | — |
-| fcbidamount | 301500 | — | — | 390832.5 | — |
-| fcapprbidprice | 301500 | — | — | 390832.5 | — |
-| fcsaleamount | 200100 | — | — | 357200 | — |
-| fcl3rdpartyproceedsreceiveddate | — | — | — | — | — |
-| fcresults | REO |  |  | REO |  |
-| fcstage | Post Sale Review (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Post Sale Review (SCRA and PACER Check) |  |
-| lastfcstepcompleted | Post Sale Review (SCRA and PACER Check) | First Publication | Sale Scheduled For | Post Sale Review (SCRA and PACER Check) |  |
-| lastfcstepcompleteddate | 2026-05-26 | 2026-03-25 | 2026-05-19 | 2025-10-15 | — |
-| fcremovaldesc | Process Complete | Loss Mitigation | Paid in Full | Process Complete |  |
-| fcremovaldate | 2026-05-26 | 2026-05-27 | 2026-04-17 | 2025-10-15 | — |
-| judicial | 1.0 | 0.0 | 1.0 | 1.0 |  |
-| fcfirm | Kelley Kronenberg, P.A. | Orlans Law Group PLLC | Johnson, Blumberg & Associates, LLC | RAS (Primary) |  |
-| fccontestedflag | 0 | 0 | 0 | 0 | 0 |
-| jr_sr_lien_flag | 1.0 | 1.0 | 1.0 | 1.0 |  |
-| dtdeedrecorded | — | — | — | 2025-10-28 | — |
-| activejnrlienfcflag | 0 | 0 | 0 | 0 | 0 |
+| 字段 | 业务含义 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+|---|---|---|---|---|---|---|
+| dataasof | 数据快照日期 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
+| loanid | 投资人贷款ID（跨 Servicer 的统一标识） | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+| servicer | 当前服务商名称（hardcoded） | Newrez | Newrez | Newrez | Newrez | Newrez |
+| svc_loanid | Servicer 自有贷款号 | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
+| activefcflag | 法拍激活标志（整数） | 0 | 0 | 0 | 0 | 0 |
+| titleordereddate | 产权报告委托日期 | — | — | — | 2025-11-13 | — |
+| titlereceiveddate | 产权报告收到日期 | — | — | — | 2025-12-02 | — |
+| titlecleardate | 产权清晰确认日期 | — | — | — | — | — |
+| noi_date | 意向通知日（Notice of Intent，正式告知借款人即将进入止赎流程） | — | — | — | — | — |
+| fcsetupdate | 法拍案件建立日期 | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
+| referral_start_date | FCL 转交律师日期（止赎时间线正式起点） | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
+| svc_days_infc | Servicer 自报的 FCL 持续天数 | 368 | 79 | 294 | 254 | — |
+| daysinfc | 法拍已历天数（另一口径） | 368 | 79 | 294 | 254 | — |
+| demandsentdate | 催款函（Demand Letter）发出日期 | 2025-02-18 | 2025-11-17 | 2025-05-20 | 2024-08-12 | 2026-04-10 |
+| demandexpirationdate | 催款函到期日期（到期仍未还款则推进止赎） | 2025-03-25 | 2025-12-22 | 2025-06-24 | 2024-09-18 | 2026-05-15 |
+| legal_start_date | 初次法律行动日期（First Legal Action，司法止赎中为法院立案日） | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
+| service_start_date | 法律文件送达完成日期（借款人被正式告知诉状） | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
+| fcjudgment_hearing_scheduled | 判决听证会计划日期 | 2026-03-27 | — | 2026-04-13 | 2025-10-15 | — |
+| fcjudgment_end_date | 判决完成日期（法院裁定止赎） | 2026-04-08 | — | 2026-02-13 | 2025-08-25 | — |
+| fcscheduled_sale_date | 计划拍卖日期（Auction/Sale Date） | — | — | 2026-05-19 | — | — |
+| fcsale_held_date | 实际拍卖执行日期 | 2026-05-22 | — | — | 2025-10-14 | — |
+| fcbidamount | 投资人出价 | 301500 | — | — | 390832.5 | — |
+| fcapprbidprice | 批准的竞价价格 | 301500 | — | — | 390832.5 | — |
+| fcsaleamount | 拍卖成交价 | 200100 | — | — | 357200 | — |
+| fcl3rdpartyproceedsreceiveddate | 第三方购买收益到账日期 | — | — | — | — | — |
+| fcresults | 法拍结果描述 | REO |  |  | REO |  |
+| fcstage | 法拍当前阶段描述 | Post Sale Review (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Post Sale Review (SCRA and PACER Check) |  |
+| lastfcstepcompleted | 最后完成的法拍步骤 | Post Sale Review (SCRA and PACER Check) | First Publication | Sale Scheduled For | Post Sale Review (SCRA and PACER Check) |  |
+| lastfcstepcompleteddate | 最后完成步骤的日期 | 2026-05-26 | 2026-03-25 | 2026-05-19 | 2025-10-15 | — |
+| fcremovaldesc | 退出 FCL 流程的文字说明 | Process Complete | Loss Mitigation | Paid in Full | Process Complete |  |
+| fcremovaldate | 退出 FCL 流程的日期 | 2026-05-26 | 2026-05-27 | 2026-04-17 | 2025-10-15 | — |
+| judicial | 是否为 Judicial 州（法拍需法院程序） | 1.0 | 0.0 | 1.0 | 1.0 |  |
+| fcfirm | 承办律师事务所名称 | Kelley Kronenberg, P.A. | Orlans Law Group PLLC | Johnson, Blumberg & Associates, LLC | RAS (Primary) |  |
+| fccontestedflag | 是否有争议的法拍（借款人提出法律挑战） | 0 | 0 | 0 | 0 | 0 |
+| jr_sr_lien_flag | 初级/高级留置权标志 | 1.0 | 1.0 | 1.0 | 1.0 |  |
+| dtdeedrecorded | 产权契约（Deed）登记日期（REO转移后在政府登记） | — | — | — | 2025-10-28 | — |
+| activejnrlienfcflag | 活跃次级留置权 FCL 标志 | 0 | 0 | 0 | 0 | 0 |
 
 ---
 
@@ -962,69 +962,69 @@ SELECT t.* FROM tempfc.temp_basic_data_fcl t JOIN (SELECT loanid, MAX(dataasof) 
 SELECT t.* FROM port.basic_data_loan_fcl t JOIN (SELECT loanid, MAX(dataasof) AS _md FROM port.basic_data_loan_fcl WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') GROUP BY loanid) m ON t.loanid=m.loanid AND t.dataasof=m._md;
 ```
 
-| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-|---|---|---|---|---|---|
-| dataasof | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
-| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-| servicer | Newrez | Newrez | Newrez | Newrez | Newrez |
-| svc_loanid | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
-| activefcflag | 0 | 0 | 0 | 0 | 0 |
-| titleordereddate | — | — | — | 2025-11-13 | — |
-| titlereceiveddate | — | — | — | 2025-12-02 | — |
-| titlecleardate | — | — | — | — | — |
-| noi_date | — | — | — | — | — |
-| fcsetupdate | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
-| referral_start_date | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
-| svc_days_infc | 368 | 79 | 294 | 254 | — |
-| daysinfc | 368 | 79 | 294 | 254 | — |
-| demandsentdate | 2025-02-18 | 2025-11-17 | 2025-05-20 | 2024-08-12 | 2026-04-10 |
-| demandexpirationdate | 2025-03-25 | 2025-12-22 | 2025-06-24 | 2024-09-18 | 2026-05-15 |
-| legal_start_date | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
-| service_start_date | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
-| fcjudgment_hearing_scheduled | 2026-03-27 | — | 2026-04-13 | 2025-10-15 | — |
-| fcjudgment_end_date | 2026-04-08 | — | 2026-02-13 | 2025-08-25 | — |
-| fcscheduled_sale_date | — | — | 2026-05-19 | — | — |
-| fcsale_held_date | 2026-05-22 | — | — | 2025-10-14 | — |
-| fcbidamount | 301500 | — | — | 390832.5 | — |
-| fcapprbidprice | 301500 | — | — | 390832.5 | — |
-| fcsaleamount | 200100 | — | — | 357200 | — |
-| fcl3rdpartyproceedsreceiveddate | — | — | — | — | — |
-| fcresults | REO |  |  | REO |  |
-| fcstage | Post Sale Review (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Post Sale Review (SCRA and PACER Check) |  |
-| lastfcstepcompleted | Post Sale Review (SCRA and PACER Check) | First Publication | Sale Scheduled For | Post Sale Review (SCRA and PACER Check) |  |
-| lastfcstepcompleteddate | 2026-05-26 | 2026-03-25 | 2026-05-19 | 2025-10-15 | — |
-| fcremovaldesc | Process Complete | Loss Mitigation | Paid in Full | Process Complete |  |
-| fcremovaldate | 2026-05-26 | 2026-05-27 | 2026-04-17 | 2025-10-15 | — |
-| judicial | 1.0 | 0.0 | 1.0 | 1.0 |  |
-| fcfirm | Kelley Kronenberg, P.A. | Orlans Law Group PLLC | Johnson, Blumberg & Associates, LLC | RAS (Primary) |  |
-| fccontestedflag | 0 | 0 | 0 | 0 | 0 |
-| jr_sr_lien_flag | 1.0 | 1.0 | 1.0 | 1.0 |  |
-| dtdeedrecorded | — | — | — | 2025-10-28 | — |
-| activejnrlienfcflag | 0 | 0 | 0 | 0 | 0 |
-| fchold1description | Court Delay | Delinquency Review | Delinquency Review | Court Delay | — |
-| fchold1startdate | 2026-04-09 | 2026-05-12 | 2026-04-17 | 2025-08-26 | — |
-| fchold1enddate | 2026-04-26 | 2026-05-27 | 2026-04-17 | 2025-08-28 | — |
-| fchold1projectedenddate | 2026-04-29 | 2026-07-11 | 2026-06-16 | 2025-09-15 | — |
-| fchold1comment | Delay Reason: Pending Ruling on Judgment, Hold Start Date: 2026-04-09, Date of Delay: 2026-04-06, Anticipated Resolution ETA: 2026-04-29, Additional Detail On Delay: We are pending judge's execution of the  proposed Order | Delinquency Review | Delinquency Review | Delay Reason: Pending Judges Decision/Ruling, Hold Start Date: 2025-08-26, Date of Delay: 2025-08-13, Anticipated Resolution ETA: 2025-09-15, Additional Detail On Delay: The Final Judgment was granted at NJT held 8/25/2025. At this time firm is pending the executed final Judgment with sale date scheduled to be docketed with the court a requirement to complete the Judgment entered.  | — |
-| holdmodified | 2026-04-27 | 2026-05-27 | 2026-04-17 | 2025-08-29 | — |
-| fchold2description | Hearing Set | Loss Mitigation Workout | Hearing Set | Court Delay | — |
-| fchold2startdate | 2026-03-16 | 2026-03-25 | 2026-01-29 | 2025-07-02 | — |
-| fchold2enddate | 2026-04-07 | 2026-05-27 | 2026-02-13 | 2025-07-14 | — |
-| fchold2projectedenddate | 2026-04-06 | 2026-06-01 | 2026-02-13 | 2025-07-22 | — |
-| fchold2comment | Hearing scheduled for 04/06/2026, Additional Detail: Plaintiff's Motion for Summary Judgment scheduled for 4.6.26. Please end court delay hold. Thanks | BRP Complete:  Complete Ack Sent:  RPP Approved: 03/24/2026 RPP Payments Due: 6 Last RPP Payment Made: 05/12/2026 Next Payment Due: 06/01/2026 | RID: 861849328; Judgment hearing scheduled for 2/13/26 | Delay Reason: Pending Judges Decision/Ruling, Hold Start Date: 2025-07-02, Date of Delay: 2025-07-01, Anticipated Resolution ETA: 2025-07-22, Additional Detail On Delay: Pending court's ruling on the Plaintiff's motion for clerk's default.  | — |
-| holdmodified2 | 2026-04-07 | 2026-05-27 | 2026-02-13 | 2025-07-15 | — |
-| fchold3description | Court Delay |  | Service Delay | Bankruptcy Filed | — |
-| fchold3startdate | 2026-01-16 | — | 2025-12-30 | 2025-05-06 | — |
-| fchold3enddate | 2026-03-16 | — | 2026-01-23 | 2025-06-27 | — |
-| fchold3projectedenddate | 2026-03-17 | — | 2026-01-23 | 2025-07-07 | — |
-| fchold3comment | Delay Reason: Pending Hearing Date for Judgment, Hold Start Date: 2026-01-16, Date of Delay: 2026-01-19, Anticipated Resolution ETA: 2026-03-17, Additional Detail On Delay: We have reached out to the JA for dates in April and is pending a response. The JA had advised there were only limited dates. Pending response to proceed., Actions Taken by the Firm: Called the court, Most Recent Follow-Up Date: 02/20/2026, Additional Info:  We have reached out to the JA for dates in April and is pending a response. The JA had advised there were only limited dates. Pending response to proceed. |  | Due to title identifying the incorrect HOA, the new correct HOA had to be served.  The HOA was served 12/24/25 and the time period for the correct HOA to file their Answer does not expire until 1-23-2026.  See Step 9.  We cannot proceed to judgment until after 1-23-2026.   | CaseNumber: 2500228 Chapter: 7 Filed Date: 04/30/2025 POC Bar Date:  Post-Petition Due Date:  MFR Referral Date: 05/15/2025 MFR Filed Date: 06/10/2025 MFR Granted Date:  Dismissal Date: | — |
-| holdmodified3 | 2026-03-17 | — | 2026-01-23 | 2025-06-27 | — |
-| fchold4description | — | — | — | — | — |
-| fchold4startdate | — | — | — | — | — |
-| fchold4enddate | — | — | — | — | — |
-| fchold4projectedenddate | — | — | — | — | — |
-| fchold4comment | — | — | — | — | — |
-| holdmodified4 | — | — | — | — | — |
+| 字段 | 业务含义 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+|---|---|---|---|---|---|---|
+| dataasof | 数据快照日期 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
+| loanid | Bridger贷款ID | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+| servicer | 服务商名称（固定字符串） | Newrez | Newrez | Newrez | Newrez | Newrez |
+| svc_loanid | Servicer 自有贷款号 | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
+| activefcflag | FCL 激活标志（1=激活，NULL=未激活） | 0 | 0 | 0 | 0 | 0 |
+| titleordereddate | 产权调查委托日期（拍卖前对房产产权进行调查） | — | — | — | 2025-11-13 | — |
+| titlereceiveddate | 产权报告收到日期 | — | — | — | 2025-12-02 | — |
+| titlecleardate | 产权清理完成日期（产权无争议后可推进拍卖） | — | — | — | — | — |
+| noi_date | 意向通知日（Notice of Intent，正式告知借款人即将进入止赎流程） | — | — | — | — | — |
+| fcsetupdate | FCL 立案/受理日期 | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
+| referral_start_date | FCL 转交律师日期（止赎时间线正式起点） | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
+| svc_days_infc | Servicer 自报的 FCL 持续天数 | 368 | 79 | 294 | 254 | — |
+| daysinfc | 系统计算的 FCL 持续天数 | 368 | 79 | 294 | 254 | — |
+| demandsentdate | 催款函（Demand Letter）发出日期 | 2025-02-18 | 2025-11-17 | 2025-05-20 | 2024-08-12 | 2026-04-10 |
+| demandexpirationdate | 催款函到期日期（到期仍未还款则推进止赎） | 2025-03-25 | 2025-12-22 | 2025-06-24 | 2024-09-18 | 2026-05-15 |
+| legal_start_date | 初次法律行动日期（First Legal Action，司法止赎中为法院立案日） | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
+| service_start_date | 法律文件送达完成日期（借款人被正式告知诉状） | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
+| fcjudgment_hearing_scheduled | 判决听证会计划日期 | 2026-03-27 | — | 2026-04-13 | 2025-10-15 | — |
+| fcjudgment_end_date | 判决完成日期（法院裁定止赎） | 2026-04-08 | — | 2026-02-13 | 2025-08-25 | — |
+| fcscheduled_sale_date | 计划拍卖日期（Auction/Sale Date） | — | — | 2026-05-19 | — | — |
+| fcsale_held_date | 实际拍卖执行日期 | 2026-05-22 | — | — | 2025-10-14 | — |
+| fcbidamount | 止赎拍卖出价/底价金额 | 301500 | — | — | 390832.5 | — |
+| fcapprbidprice | 批准的竞价价格 | 301500 | — | — | 390832.5 | — |
+| fcsaleamount | 实际拍卖成交金额 | 200100 | — | — | 357200 | — |
+| fcl3rdpartyproceedsreceiveddate | 第三方购买收益到账日期 | — | — | — | — | — |
+| fcresults | FCL 结案原因描述 | REO |  |  | REO |  |
+| fcstage | FCL 当前阶段描述 | Post Sale Review (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Post Sale Review (SCRA and PACER Check) |  |
+| lastfcstepcompleted | 最近完成的 FCL 阶段名称（文字描述） | Post Sale Review (SCRA and PACER Check) | First Publication | Sale Scheduled For | Post Sale Review (SCRA and PACER Check) |  |
+| lastfcstepcompleteddate | 最近完成阶段的日期 | 2026-05-26 | 2026-03-25 | 2026-05-19 | 2025-10-15 | — |
+| fcremovaldesc | 退出 FCL 流程的文字说明 | Process Complete | Loss Mitigation | Paid in Full | Process Complete |  |
+| fcremovaldate | 退出 FCL 流程的日期 | 2026-05-26 | 2026-05-27 | 2026-04-17 | 2025-10-15 | — |
+| judicial | 是否为司法止赎（需法院程序） | 1.0 | 0.0 | 1.0 | 1.0 |  |
+| fcfirm | 承办律师事务所名称 | Kelley Kronenberg, P.A. | Orlans Law Group PLLC | Johnson, Blumberg & Associates, LLC | RAS (Primary) |  |
+| fccontestedflag | 是否有借款人争议诉讼标志 | 0 | 0 | 0 | 0 | 0 |
+| jr_sr_lien_flag | 初级/高级留置权标志 | 1.0 | 1.0 | 1.0 | 1.0 |  |
+| dtdeedrecorded | 产权契约（Deed）登记日期（REO转移后在政府登记） | — | — | — | 2025-10-28 | — |
+| activejnrlienfcflag | 活跃次级留置权 FCL 标志 | 0 | 0 | 0 | 0 | 0 |
+| fchold1description | Hold #1 类型名称（止赎暂停的具体原因） | Court Delay | Delinquency Review | Delinquency Review | Court Delay | — |
+| fchold1startdate | Hold #1 开始日期 | 2026-04-09 | 2026-05-12 | 2026-04-17 | 2025-08-26 | — |
+| fchold1enddate | Hold #1 结束日期（NULL = Hold仍活跃） | 2026-04-26 | 2026-05-27 | 2026-04-17 | 2025-08-28 | — |
+| fchold1projectedenddate | Hold #1 预计结束日期 | 2026-04-29 | 2026-07-11 | 2026-06-16 | 2025-09-15 | — |
+| fchold1comment | Hold #1 备注说明（自由文本） | Delay Reason: Pending Ruling on Judgment, Hold Start Date: 2026-04-09, Date of Delay: 2026-04-06, Anticipated Resolution ETA: 2026-04-29, Additional Detail On Delay: We are pending judge's execution of the  proposed Order | Delinquency Review | Delinquency Review | Delay Reason: Pending Judges Decision/Ruling, Hold Start Date: 2025-08-26, Date of Delay: 2025-08-13, Anticipated Resolution ETA: 2025-09-15, Additional Detail On Delay: The Final Judgment was granted at NJT held 8/25/2025. At this time firm is pending the executed final Judgment with sale date scheduled to be docketed with the court a requirement to complete the Judgment entered. | — |
+| holdmodified | Hold #1 记录最后修改日期 | 2026-04-27 | 2026-05-27 | 2026-04-17 | 2025-08-29 | — |
+| fchold2description | Hold #2 类型名称 | Hearing Set | Loss Mitigation Workout | Hearing Set | Court Delay | — |
+| fchold2startdate | Hold #2 开始日期 | 2026-03-16 | 2026-03-25 | 2026-01-29 | 2025-07-02 | — |
+| fchold2enddate | Hold #2 结束日期 | 2026-04-07 | 2026-05-27 | 2026-02-13 | 2025-07-14 | — |
+| fchold2projectedenddate | Hold #2 预计结束日期 | 2026-04-06 | 2026-06-01 | 2026-02-13 | 2025-07-22 | — |
+| fchold2comment | Hold #2 备注 | Hearing scheduled for 04/06/2026, Additional Detail: Plaintiff's Motion for Summary Judgment scheduled for 4.6.26. Please end court delay hold. Thanks | BRP Complete:  Complete Ack Sent:  RPP Approved: 03/24/2026 RPP Payments Due: 6 Last RPP Payment Made: 05/12/2026 Next Payment Due: 06/01/2026 | RID: 861849328; Judgment hearing scheduled for 2/13/26 | Delay Reason: Pending Judges Decision/Ruling, Hold Start Date: 2025-07-02, Date of Delay: 2025-07-01, Anticipated Resolution ETA: 2025-07-22, Additional Detail On Delay: Pending court's ruling on the Plaintiff's motion for clerk's default. | — |
+| holdmodified2 | Hold #2 记录最后修改日期 | 2026-04-07 | 2026-05-27 | 2026-02-13 | 2025-07-15 | — |
+| fchold3description | Hold #3 类型名称 | Court Delay |  | Service Delay | Bankruptcy Filed | — |
+| fchold3startdate | Hold #3 开始日期 | 2026-01-16 | — | 2025-12-30 | 2025-05-06 | — |
+| fchold3enddate | Hold #3 结束日期 | 2026-03-16 | — | 2026-01-23 | 2025-06-27 | — |
+| fchold3projectedenddate | Hold #3 预计结束日期 | 2026-03-17 | — | 2026-01-23 | 2025-07-07 | — |
+| fchold3comment | Hold #3 备注 | Delay Reason: Pending Hearing Date for Judgment, Hold Start Date: 2026-01-16, Date of Delay: 2026-01-19, Anticipated Resolution ETA: 2026-03-17, Additional Detail On Delay: We have reached out to the JA for dates in April and is pending a response. The JA had advised there were only limited dates. Pending response to proceed., Actions Taken by the Firm: Called the court, Most Recent Follow-Up Date: 02/20/2026, Additional Info:  We have reached out to the JA for dates in April and is pending a response. The JA had advised there were only limited dates. Pending response to proceed. |  | Due to title identifying the incorrect HOA, the new correct HOA had to be served.  The HOA was served 12/24/25 and the time period for the correct HOA to file their Answer does not expire until 1-23-2026.  See Step 9.  We cannot proceed to judgment until after 1-23-2026. | CaseNumber: 2500228 Chapter: 7 Filed Date: 04/30/2025 POC Bar Date:  Post-Petition Due Date:  MFR Referral Date: 05/15/2025 MFR Filed Date: 06/10/2025 MFR Granted Date:  Dismissal Date: | — |
+| holdmodified3 | Hold #3 记录最后修改日期 | 2026-03-17 | — | 2026-01-23 | 2025-06-27 | — |
+| fchold4description | Hold #4 类型名称 | — | — | — | — | — |
+| fchold4startdate | Hold #4 开始日期 | — | — | — | — | — |
+| fchold4enddate | Hold #4 结束日期 | — | — | — | — | — |
+| fchold4projectedenddate | Hold #4 预计结束日期 | — | — | — | — | — |
+| fchold4comment | Hold #4 备注 | — | — | — | — | — |
+| holdmodified4 | Hold #4 记录最后修改日期 | — | — | — | — | — |
 
 ---
 
@@ -1051,70 +1051,70 @@ SELECT t.* FROM port.basic_data_loan_fcl t JOIN (SELECT loanid, MAX(dataasof) AS
 SELECT t.* FROM port.basic_data_loan_foreclosure t JOIN (SELECT loanid, MAX(dataasof) AS _md FROM port.basic_data_loan_foreclosure WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') GROUP BY loanid) m ON t.loanid=m.loanid AND t.dataasof=m._md;
 ```
 
-| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-|---|---|---|---|---|---|
-| dataasof | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
-| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-| svcloanid | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
-| servicer | Newrez | Newrez | Newrez | Newrez | Newrez |
-| timeline_notice_of_intent_date | — | — | — | — | — |
-| timeline_notice_of_intent_end_date | — | — | — | — | — |
-| timeline_approved_for_referral_date | — | — | — | — | — |
-| timeline_referred_to_attorney_date | — | — | — | — | — |
-| timeline_referred_to_foreclosure_date | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
-| timeline_title_report_received_date | — | — | — | 2025-12-02 | — |
-| timeline_preliminary_title_cleared_date | — | — | — | — | — |
-| timeline_first_legal_date | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
-| timeline_service_date | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
-| timeline_publication_date | — | — | — | — | — |
-| timeline_judgement_hearing_set_date | 2025-12-17 | — | 2026-02-13 | 2025-07-15 | — |
-| timeline_judgement_date | 2026-03-27 | — | 2026-04-13 | 2025-10-15 | — |
-| timeline_sale_date_projected_date | — | — | 2026-05-19 | — | — |
-| timeline_sale_date_set_date | — | — | 2026-02-19 | — | — |
-| timeline_final_title_cleared_date | — | — | — | — | — |
-| timeline_sale_date_held_date | 2026-05-22 | — | — | 2025-10-14 | — |
-| timeline_foreclosure_completed_date | — | — | — | — | — |
-| timeline_third_party_sold_date_date | — | — | — | — | — |
-| timeline_third_party_proceeds_received_date | — | — | — | — | — |
-| target_notice_of_intent_days | — | — | — | — | — |
-| target_notice_of_intent_expired_days | — | — | — | — | — |
-| target_approved_for_referral_days | — | — | — | — | — |
-| target_referred_to_attorney_days | — | — | — | — | — |
-| target_referred_to_foreclosure_days | — | — | — | — | — |
-| target_title_report_received_days | — | — | — | — | — |
-| target_preliminary_title_cleared_days | — | — | — | — | — |
-| target_first_legal_days | — | — | — | — | — |
-| target_service_days | — | — | — | — | — |
-| target_publication_days | — | — | — | — | — |
-| target_judgement_hearing_set_days | — | — | — | — | — |
-| target_judgement_days | — | — | — | — | — |
-| target_sale_date_set_days | — | — | — | — | — |
-| target_final_title_cleared_days | — | — | — | — | — |
-| target_sale_date_held_days | — | — | — | — | — |
-| variance_active_bankruptcy | — | — | — | — | — |
-| variance_completed_bankruptcy | — | — | — | — | — |
-| variance_estimated_hold_days | — | — | — | — | — |
-| variance_bankruptcies | — | — | — | — | — |
-| bid_approval_status | — | — | — | — | — |
-| bid_approval_sale_date | — | — | — | — | — |
-| bid_approval_bid_amount | 301500 | — | — | 390832.5 | — |
-| bid_approval_loan_resolution_holods | — | — | — | — | — |
-| summary_servicer_number | — | — | — | — | — |
-| summary_foreclosure_status | Closed Foreclosure:Process Complete | Closed Foreclosure:Loss Mitigation | Closed Foreclosure:Paid in Full | Closed Foreclosure:Process Complete | — |
-| summary_completed_foreclosure | — | — | — | — | — |
-| summary_foreclosure_bid_amount | 301500 | — | — | 390832.5 | — |
-| summary_srv_fc_bid_amount | 301500 | — | — | 390832.5 | — |
-| summary_foreclosure_sale_amount | 200100 | — | — | 357200 | — |
-| summary_judicial_foreclosure | 1 | 0 | 1 | 1 | — |
-| summary_foreclosure_attorney | — | — | — | — | — |
-| summary_contested_litigation | 0 | 0 | 0 | 0 | 0 |
-| summary_firm | Kelley Kronenberg, P.A. | Orlans Law Group PLLC | Johnson, Blumberg & Associates, LLC | RAS (Primary) |  |
-| summary_type | Judicial | Non Judicial | Judicial | Judicial | — |
-| summary_sms_days_in_fcl | 368 | 79 | 294 | 254 | — |
-| summary_days_in_fcl | 368 | 79 | 294 | 254 | — |
-| summary_current_step | Post Sale Review (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Post Sale Review (SCRA and PACER Check) |  |
-| summary_last_step_completed | Post Sale Review (SCRA and PACER Check) | First Publication | Sale Scheduled For | Post Sale Review (SCRA and PACER Check) |  |
-| summary_last_step_completed_date | 2026-05-26 | 2026-03-25 | 2026-05-19 | 2025-10-15 | — |
+| 字段 | 业务含义 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+|---|---|---|---|---|---|---|
+| dataasof | 数据快照日期 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
+| loanid | Bridger 贷款 ID | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+| svcloanid | Servicer 自有贷款号 | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
+| servicer | 服务商名称 | Newrez | Newrez | Newrez | Newrez | Newrez |
+| timeline_notice_of_intent_date | 意向通知日 | — | — | — | — | — |
+| timeline_notice_of_intent_end_date | 意向通知截止日 | — | — | — | — | — |
+| timeline_approved_for_referral_date | 批准转交日 | — | — | — | — | — |
+| timeline_referred_to_attorney_date | 转交律师日 | — | — | — | — | — |
+| timeline_referred_to_foreclosure_date | FCL 转交日（Referral 起点） | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
+| timeline_title_report_received_date | 产权报告收到日 | — | — | — | 2025-12-02 | — |
+| timeline_preliminary_title_cleared_date | 初步产权清理完成日 | — | — | — | — | — |
+| timeline_first_legal_date | 初次法律行动日 | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
+| timeline_service_date | 法律文件送达完成日 | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
+| timeline_publication_date | 止赎公告发布日 | — | — | — | — | — |
+| timeline_judgement_hearing_set_date | 判决听证会设定日 | 2025-12-17 | — | 2026-02-13 | 2025-07-15 | — |
+| timeline_judgement_date | 判决日期 | 2026-03-27 | — | 2026-04-13 | 2025-10-15 | — |
+| timeline_sale_date_projected_date | 预计拍卖日 | — | — | 2026-05-19 | — | — |
+| timeline_sale_date_set_date | 拍卖日设定日（首次出现日期） | — | — | 2026-02-19 | — | — |
+| timeline_final_title_cleared_date | 最终产权清理完成日 | — | — | — | — | — |
+| timeline_sale_date_held_date | 实际拍卖完成日 | 2026-05-22 | — | — | 2025-10-14 | — |
+| timeline_foreclosure_completed_date | 止赎完成日 | — | — | — | — | — |
+| timeline_third_party_sold_date_date | 第三方购买完成日 | — | — | — | — | — |
+| timeline_third_party_proceeds_received_date | 第三方收益到账日 | — | — | — | — | — |
+| target_notice_of_intent_days | 意向通知完成目标天数 | — | — | — | — | — |
+| target_notice_of_intent_expired_days | 意向通知有效期目标天数 | — | — | — | — | — |
+| target_approved_for_referral_days | 批准转交目标天数 | — | — | — | — | — |
+| target_referred_to_attorney_days | 转交律师目标天数 | — | — | — | — | — |
+| target_referred_to_foreclosure_days | 转交止赎目标天数 | — | — | — | — | — |
+| target_title_report_received_days | 产权报告收到目标天数 | — | — | — | — | — |
+| target_preliminary_title_cleared_days | 初步产权清理目标天数 | — | — | — | — | — |
+| target_first_legal_days | 初次法律行动目标天数（通常为 FNMA 合规基准） | — | — | — | — | — |
+| target_service_days | 送达完成目标天数 | — | — | — | — | — |
+| target_publication_days | 公告发布目标天数 | — | — | — | — | — |
+| target_judgement_hearing_set_days | 判决听证会设定目标天数 | — | — | — | — | — |
+| target_judgement_days | 判决发布目标天数 | — | — | — | — | — |
+| target_sale_date_set_days | 拍卖日设定目标天数 | — | — | — | — | — |
+| target_final_title_cleared_days | 最终产权清理目标天数 | — | — | — | — | — |
+| target_sale_date_held_days | 实际拍卖目标天数 | — | — | — | — | — |
+| variance_active_bankruptcy | 当前是否有活跃破产（1=是，0=否） | — | — | — | — | — |
+| variance_completed_bankruptcy | 是否有已完成破产记录（1=是，0=否） | — | — | — | — | — |
+| variance_estimated_hold_days | 预计剩余 Hold 天数 | — | — | — | — | — |
+| variance_bankruptcies | 历史破产申请总次数 | — | — | — | — | — |
+| bid_approval_status | 竞价审批状态 | — | — | — | — | — |
+| bid_approval_sale_date | 竞价对应的拍卖日期 | — | — | — | — | — |
+| bid_approval_bid_amount | 竞价金额 | 301500 | — | — | 390832.5 | — |
+| bid_approval_loan_resolution_holods | 贷款处置 Hold 说明（长文本；注意字段名 'holods' 疑为拼写错误，应为 'holds'） | — | — | — | — | — |
+| summary_servicer_number | 服务商编号标识 | — | — | — | — | — |
+| summary_foreclosure_status | FCL 状态文字描述（BPS 主要消费字段） | Closed Foreclosure:Process Complete | Closed Foreclosure:Loss Mitigation | Closed Foreclosure:Paid in Full | Closed Foreclosure:Process Complete | — |
+| summary_completed_foreclosure | 是否完成止赎标志 | — | — | — | — | — |
+| summary_foreclosure_bid_amount | 止赎竞价金额 | 301500 | — | — | 390832.5 | — |
+| summary_srv_fc_bid_amount | Servicer 自报竞价金额（与上字段同源） | 301500 | — | — | 390832.5 | — |
+| summary_foreclosure_sale_amount | 实际拍卖成交金额 | 200100 | — | — | 357200 | — |
+| summary_judicial_foreclosure | 是否司法止赎（0=非司法，1=司法，NULL=未知） | 1 | 0 | 1 | 1 | — |
+| summary_foreclosure_attorney | 止赎律师姓名 | — | — | — | — | — |
+| summary_contested_litigation | 是否有借款人争议诉讼（0=无，1=有） | 0 | 0 | 0 | 0 | 0 |
+| summary_firm | 承办律师事务所名称 | Kelley Kronenberg, P.A. | Orlans Law Group PLLC | Johnson, Blumberg & Associates, LLC | RAS (Primary) |  |
+| summary_type | 司法/非司法止赎类型文字 | Judicial | Non Judicial | Judicial | Judicial | — |
+| summary_sms_days_in_fcl | Servicer 自报 FCL 持续天数 | 368 | 79 | 294 | 254 | — |
+| summary_days_in_fcl | 系统计算 FCL 持续天数 | 368 | 79 | 294 | 254 | — |
+| summary_current_step | 当前 FCL 阶段 | Post Sale Review (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Post Sale Review (SCRA and PACER Check) |  |
+| summary_last_step_completed | 最近完成的 FCL 阶段名称 | Post Sale Review (SCRA and PACER Check) | First Publication | Sale Scheduled For | Post Sale Review (SCRA and PACER Check) |  |
+| summary_last_step_completed_date | 最近完成阶段的日期 | 2026-05-26 | 2026-03-25 | 2026-05-19 | 2025-10-15 | — |
 
 ---
 
@@ -1141,22 +1141,22 @@ SELECT t.* FROM port.basic_data_loan_foreclosure t JOIN (SELECT loanid, MAX(data
 SELECT t.* FROM port.basic_data_fcl_related t JOIN (SELECT loanid, MAX(dataasof) AS _md FROM port.basic_data_fcl_related WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') GROUP BY loanid) m ON t.loanid=m.loanid AND t.dataasof=m._md;
 ```
 
-| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-|---|---|---|---|---|---|
-| dataasof | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
-| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-| servicer | Newrez | Newrez | Newrez | Newrez | Newrez |
-| delq_status | REO | D120P | P | REO | D60 |
-| isloanlitigated | 0 | 0 | 0 | 0 | 0 |
-| deactreason | FC-BK | FC-BK |  | FC-BK |  |
-| reasonfordefault | Reduction in Borrower's Income |  |  | Unable to Contact Borrower |  |
-| inauctionflag | 0 | 0 | 0 | 1 | 0 |
-| liquidationdate | — | — | 2026-04-16 | — | — |
-| liquidationtype |  |  | 3.0 |  |  |
-| liquidationproceeds |  |  | 503557.98 |  |  |
-| pmt | 0 | 0 | 0 | 0 | 6339.72 |
-| bk_flag | 0 | 0 | 0 | 0 | 1 |
-| propertystate | FL | MI | IL | FL | FL |
+| 字段 | 业务含义 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+|---|---|---|---|---|---|---|
+| dataasof | 数据快照日期 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 | 2026-06-04 |
+| loanid | 投资人贷款ID（跨 Servicer 的统一标识） | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+| servicer | 当前服务商名称（hardcoded） | Newrez | Newrez | Newrez | Newrez | Newrez |
+| delq_status | Servicer 原始逾期状态描述（未标准化） | REO | D120P | P | REO | D60 |
+| isloanlitigated | 贷款是否处于诉讼中（0/1） | 0 | 0 | 0 | 0 | 0 |
+| deactreason | 停用/退出原因（如 FC-BK） | FC-BK | FC-BK |  | FC-BK |  |
+| reasonfordefault | 借款人违约原因描述 | Reduction in Borrower's Income |  |  | Unable to Contact Borrower |  |
+| inauctionflag | 是否在拍卖中（0/1） | 0 | 0 | 0 | 1 | 0 |
+| liquidationdate | 清算/处置日 | — | — | 2026-04-16 | — | — |
+| liquidationtype | 清算/处置类型 |  |  | 3.0 |  |  |
+| liquidationproceeds | 清算/处置回收款 |  |  | 503557.98 |  |  |
+| pmt | 月供 | 0 | 0 | 0 | 0 | 6339.72 |
+| bk_flag | 是否破产标记（0/1） | 0 | 0 | 0 | 0 | 1 |
+| propertystate | 房产所在州（决定司法/非司法法拍路径） | FL | MI | IL | FL | FL |
 
 ---
 
@@ -1183,56 +1183,56 @@ SELECT t.* FROM port.basic_data_fcl_related t JOIN (SELECT loanid, MAX(dataasof)
 SELECT t.* FROM port.fcl_stage_info t JOIN (SELECT loanid, MAX(fctrdt) AS _md FROM port.fcl_stage_info WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') GROUP BY loanid) m ON t.loanid=m.loanid AND t.fctrdt=m._md;
 ```
 
-| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-|---|---|---|---|---|---|
-| fctrdt | 2026-05-25 | 2026-05-26 | 2026-04-15 | 2025-10-14 | 2026-05-31 |
-| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-| group | REO | FCL | FCL | REO | D120P |
-| servicer | Newrez | Newrez | Newrez | Newrez | Newrez |
-| state | FL | MI | IL | FL | FL |
-| judicial | Y | N | Y | Y | Y |
-| demand_start_date | 2025-02-18 | 2025-11-17 | 2025-05-20 | 2024-08-12 | 2026-04-10 |
-| demand_end_date | 2025-03-25 | 2025-12-22 | 2025-06-24 | 2024-09-18 | 2026-05-15 |
-| demand_stage_days | 464 | 193 | 333 | 431 | 54 |
-| demand_in_lm_days | — | 93 | 197 | — | — |
-| demand_on_hold_days | — | 17 | — | — | — |
-| noi_start_date | — | — | — | — | — |
-| noi_end_date | — | — | — | — | — |
-| noi_stage_days | — | — | — | — | — |
-| noi_in_lm_days | — | — | — | — | — |
-| noi_on_hold_days | — | — | — | — | — |
-| referral_start_date | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
-| referral_end_date | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
-| referral_stage_days | 22 | 17 | 25 | 53 | — |
-| referral_in_lm_days | — | — | — | — | — |
-| referral_on_hold_days | — | 1 | — | — | — |
-| first_legal_start_date | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
-| first_legal_end_date | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
-| first_legal_stage_days | 36 | 65 | 157 | 38 | — |
-| first_legal_in_lm_days | — | — | 83 | — | — |
-| first_legal_on_hold_days | — | 17 | — | — | — |
-| first_legal_date_history | — | — | — | — | — |
-| service_start_date | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
-| service_end_date | 2025-12-17 | — | 2026-02-13 | 2025-07-15 | — |
-| service_stage_days | 153 | — | 52 | 74 | — |
-| service_in_lm_days | — | — | — | — | — |
-| service_on_hold_days | — | — | — | — | — |
-| publication_start_date | — | — | — | — | — |
-| publication_end_date | — | — | — | — | — |
-| publication_stage_days | — | — | — | — | — |
-| publication_in_lm_days | — | — | — | — | — |
-| publication_on_hold_days | — | — | — | — | — |
-| judgement_start_date | 2026-03-27 | — | 2026-04-13 | 2025-10-15 | — |
-| judgement_end_date | — | — | — | — | — |
-| to_judgement_days | 0 | — | 0 | 0 | — |
-| judgement_in_lm_days | — | — | — | — | — |
-| judgement_on_hold_days | — | — | — | — | — |
-| sale_start_date | — | 2026-08-06 | 2026-05-19 | — | — |
-| sale_end_date | — | — | — | — | — |
-| to_sale_days | — | 70 | 32 | — | — |
-| sale_in_lm_days | — | — | — | — | — |
-| sale_on_hold_days | — | — | — | — | — |
-| stage | JUDGEMENT | SALE | SALE | JUDGEMENT | DEMAND |
+| 字段 | 业务含义 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+|---|---|---|---|---|---|---|
+| fctrdt | 数据快照日（每贷款每天一行） | 2026-05-25 | 2026-05-26 | 2026-04-15 | 2025-10-14 | 2026-05-31 |
+| loanid | 系统贷款 ID | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+| group | 派生分类（FCL/REO/D120P/D90） | REO | FCL | FCL | REO | D120P |
+| servicer | Servicer 名称 | Newrez | Newrez | Newrez | Newrez | Newrez |
+| state | 物业所在州 | FL | MI | IL | FL | FL |
+| judicial | 是否司法州（Y/N） | Y | N | Y | Y | Y |
+| demand_start_date | NOI/Demand Letter 阶段 · 阶段开始日 | 2025-02-18 | 2025-11-17 | 2025-05-20 | 2024-08-12 | 2026-04-10 |
+| demand_end_date | NOI/Demand Letter 阶段 · 阶段结束日 | 2025-03-25 | 2025-12-22 | 2025-06-24 | 2024-09-18 | 2026-05-15 |
+| demand_stage_days | NOI/Demand Letter 阶段 · 在该阶段已历天数 | 464 | 193 | 333 | 431 | 54 |
+| demand_in_lm_days | NOI/Demand Letter 阶段 · 该阶段内处于 LM 的天数 | — | 93 | 197 | — | — |
+| demand_on_hold_days | NOI/Demand Letter 阶段 · 该阶段内处于 Hold 的天数 | — | 17 | — | — | — |
+| noi_start_date | NOI(Approved for Referral) 阶段 · 阶段开始日 | — | — | — | — | — |
+| noi_end_date | NOI(Approved for Referral) 阶段 · 阶段结束日 | — | — | — | — | — |
+| noi_stage_days | NOI(Approved for Referral) 阶段 · 在该阶段已历天数 | — | — | — | — | — |
+| noi_in_lm_days | NOI(Approved for Referral) 阶段 · 该阶段内处于 LM 的天数 | — | — | — | — | — |
+| noi_on_hold_days | NOI(Approved for Referral) 阶段 · 该阶段内处于 Hold 的天数 | — | — | — | — | — |
+| referral_start_date | Referral 阶段 · 阶段开始日 | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
+| referral_end_date | Referral 阶段 · 阶段结束日 | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
+| referral_stage_days | Referral 阶段 · 在该阶段已历天数 | 22 | 17 | 25 | 53 | — |
+| referral_in_lm_days | Referral 阶段 · 该阶段内处于 LM 的天数 | — | — | — | — | — |
+| referral_on_hold_days | Referral 阶段 · 该阶段内处于 Hold 的天数 | — | 1 | — | — | — |
+| first_legal_start_date | First Legal 阶段 · 阶段开始日 | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
+| first_legal_end_date | First Legal 阶段 · 阶段结束日 | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
+| first_legal_stage_days | First Legal 阶段 · 在该阶段已历天数 | 36 | 65 | 157 | 38 | — |
+| first_legal_in_lm_days | First Legal 阶段 · 该阶段内处于 LM 的天数 | — | — | 83 | — | — |
+| first_legal_on_hold_days | First Legal 阶段 · 该阶段内处于 Hold 的天数 | — | 17 | — | — | — |
+| first_legal_date_history | 首次法律行动日变更历史 | — | — | — | — | — |
+| service_start_date | Service 阶段 · 阶段开始日 | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
+| service_end_date | Service 阶段 · 阶段结束日 | 2025-12-17 | — | 2026-02-13 | 2025-07-15 | — |
+| service_stage_days | Service 阶段 · 在该阶段已历天数 | 153 | — | 52 | 74 | — |
+| service_in_lm_days | Service 阶段 · 该阶段内处于 LM 的天数 | — | — | — | — | — |
+| service_on_hold_days | Service 阶段 · 该阶段内处于 Hold 的天数 | — | — | — | — | — |
+| publication_start_date | Publication 阶段 · 阶段开始日 | — | — | — | — | — |
+| publication_end_date | Publication 阶段 · 阶段结束日 | — | — | — | — | — |
+| publication_stage_days | Publication 阶段 · 在该阶段已历天数 | — | — | — | — | — |
+| publication_in_lm_days | Publication 阶段 · 该阶段内处于 LM 的天数 | — | — | — | — | — |
+| publication_on_hold_days | Publication 阶段 · 该阶段内处于 Hold 的天数 | — | — | — | — | — |
+| judgement_start_date | Upcoming Judgement 阶段 · 阶段开始日 | 2026-03-27 | — | 2026-04-13 | 2025-10-15 | — |
+| judgement_end_date | Upcoming Judgement 阶段 · 阶段结束日 | — | — | — | — | — |
+| to_judgement_days | 距判决日剩余天数 | 0 | — | 0 | 0 | — |
+| judgement_in_lm_days | Upcoming Judgement 阶段 · 该阶段内处于 LM 的天数 | — | — | — | — | — |
+| judgement_on_hold_days | Upcoming Judgement 阶段 · 该阶段内处于 Hold 的天数 | — | — | — | — | — |
+| sale_start_date | Upcoming FC Sales 阶段 · 阶段开始日 | — | 2026-08-06 | 2026-05-19 | — | — |
+| sale_end_date | Upcoming FC Sales 阶段 · 阶段结束日 | — | — | — | — | — |
+| to_sale_days | 距拍卖日剩余天数 | — | 70 | 32 | — | — |
+| sale_in_lm_days | Upcoming FC Sales 阶段 · 该阶段内处于 LM 的天数 | — | — | — | — | — |
+| sale_on_hold_days | Upcoming FC Sales 阶段 · 该阶段内处于 Hold 的天数 | — | — | — | — | — |
+| stage | 当前 FCL 阶段代码（全大写） | JUDGEMENT | SALE | SALE | JUDGEMENT | DEMAND |
 
 ---
 
@@ -1259,65 +1259,65 @@ SELECT t.* FROM port.fcl_stage_info t JOIN (SELECT loanid, MAX(fctrdt) AS _md FR
 SELECT * FROM port.portfunding WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') ORDER BY loanid;
 ```
 
-| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-|---|---|---|---|---|---|
-| fundingid | HMP002 | IMPAC001 | BOA002 | HMP002 | HMP002 |
-| dealid | HMP002 | IMPAC001 | BOA002 | HMP002 | HMP002 |
-| cutoffdate | 2023-01-25 | 2023-07-05 | 2024-06-01 | 2023-01-25 | 2023-01-25 |
-| settledate | 2023-01-31 | 2023-07-18 | 2024-06-26 | 2023-01-31 | 2023-01-31 |
-| wal | 8.03 | 8.06 | 5.66 | 8.03 | 8.03 |
-| hurdlespread | 415 | 408 | 332 | 415 | 415 |
-| hurdleyield | 7.57 | 7.54 | 7.36 | 7.57 | 7.57 |
-| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-| sellerloanid | 9010021155 | 3111022026 | 3260057082 | 9014327961 | 9014059868 |
-| interestbearingupb | 324035.29 | 423410.11 | 449829.52 | 479480.42 | 277928.4 |
-| deferredprin | 0 | 0 | 14062.83 | 0 | 0 |
-| deferredint | 0 | 0 | 8753.85 | 0 | 0 |
-| netpurchasepriceinterestbearingupb | 82.5613812225759 | 101.540001016981 | 88.78 | 72.37 | 72.7996399257241 |
-| netpurchasepricedeferredprin | — | — | 88.78 | — | — |
-| netpurchasepricedeferredint | — | — | 88.78 | — | — |
-| interestbearingupbmv | — | — | 399358.647856 | — | — |
-| deferredprinbought | — | — | 12484.980474 | — | — |
-| deferredintbought | — | — | 7771.66803 | — | — |
-| sellercredit | — | — | 0 | — | — |
-| netmvtoseller | 267528.011072579 | 429930.63 | 419615.29636 | 346999.979954 | 202330.874451326 |
-| netpurchaseprice | 82.5613812225759 | 101.540001016981 | 88.78 | 72.37 | 72.7996399257241 |
-| intrate | 6.625 | 9.875 | 2.75 | 4.25 | 3.625 |
-| lastpaydt | 2023-01-01 | 2023-06-01 | 2024-05-01 | 2023-01-01 | 2023-01-01 |
-| nextduedate | 2023-02-01 | 2023-07-01 | 2024-06-01 | 2023-02-01 | 2023-02-01 |
-| escrowadvancebought | 0 | 0 | 0 | 0 | 0 |
-| corporateadvancerecoverablebought | 0 | 0 | 0 | 0 | 0 |
-| thirdpartyadvancebought | 0 | 0 | 0 | 0 | 0 |
-| daysaccrued | 30 | 47 | 55 | 30 | 30 |
-| interestaccrued | 1788.94483020833 | 5458.76 | 1889.90874722222 | 1698.15982083333 | 839.575375 |
-| totadv | 0 | 0 | 0 | 0 | 0 |
-| duetoseller | 269316.955902788 | 435389.39 | 421505.208747222 | 348698.139774833 | 203170.449826326 |
-| brokerfeepct | 0.5 | 0.5 | 0 | 0.5 | 0.5 |
-| brokerfee | 1620.17645 | 2117.05055 | 0 | 2397.4021 | 1389.642 |
-| ddcost | 629.56155 | 707.27 | 333.44 | 629.56155 | 629.56155 |
-| sourcingfeefactor | — | — | 0.9942 | — | — |
-| sourcingfeepct | — | — | 0.25 | — | — |
-| sourcingfee | 674.98 | 1089.18 | 1048.48 | 874.21 | 510 |
-| totaldiscount | 53582.56 | -10434.02 | 26942.39 | 128579.27 | 73068.32 |
-| discountpct | 0.165360260606183 | -0.0246428220620429 | 0.0598946685402061 | 0.268163755258244 | 0.262903395262953 |
-| managementfeefactor | — | — | 0.9942 | — | — |
-| managementfeepct | — | — | 0.375 | — | — |
-| managementfee | 84.5820850606723 | 136.485916807753 | 131.385744812653 | 109.548199189678 | 63.9083110583573 |
-| escrowadvance | 0 | 0 | 0 | 0 | 0 |
-| corporateadvancerecoverable | 0 | 0 | 0 | 0 | 0 |
-| thirdpartyadvance | 0 | 0 | 0 | 0 | 0 |
-| nonrecoverableadvance | 0 | 0 | 0 | 0 | 0 |
-| purchase_net_price | 82.5613812226 | 101.540001017 | 88.78 | 72.37 | 72.7996399257 |
-| internal_net_price | 83.0372862717 | 101.152267885 | 79.0130389449069 | 74.7014579014 | 71.4849405604 |
-| gross_irr | 8.8781698585 | 8.1359041454 | 7.9526963823298 | 8.8781698585 | 8.8781698585 |
-| actddcost | — | 744.758076923077 | — | — | — |
-| trust | Trestle | Trestle | Trestle | Trestle | Trestle |
-| semiannual | first_semi_annual | second_semi_annual | third_semi_annual | first_semi_annual | first_semi_annual |
-| servicing_retained | N | N | N | N | N |
-| net_mv_to_seller_internal | 269070.111378633 | 428288.928719373 | 373452.126077623 | 358178.864091756 | 198676.951540471 |
-| sourcingfee_internal | 678.811908006076 | 1085.09972903903 | 933.741392677152 | 901.997861086816 | 500.917058071928 |
-| managementfee_internal | 85.0623868754281 | 135.974593051944 | 117.007775863581 | 113.029972096318 | 62.7702609274707 |
-| pool | A | A | A | A | A |
+| 字段 | 业务含义 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+|---|---|---|---|---|---|---|
+| fundingid | Funding 编号（资金来源标识） | HMP002 | IMPAC001 | BOA002 | HMP002 | HMP002 |
+| dealid | Deal 编号（投资交易标识） | HMP002 | IMPAC001 | BOA002 | HMP002 | HMP002 |
+| cutoffdate | 融资池切分日 | 2023-01-25 | 2023-07-05 | 2024-06-01 | 2023-01-25 | 2023-01-25 |
+| settledate | 交割日 | 2023-01-31 | 2023-07-18 | 2024-06-26 | 2023-01-31 | 2023-01-31 |
+| wal | 加权平均存续期(WAL) | 8.03 | 8.06 | 5.66 | 8.03 | 8.03 |
+| hurdlespread | 门槛利差 | 415 | 408 | 332 | 415 | 415 |
+| hurdleyield | 门槛收益率 | 7.57 | 7.54 | 7.36 | 7.57 | 7.57 |
+| loanid | 投资人贷款ID（跨 Servicer 的统一标识） | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+| sellerloanid | 卖方贷款号 | 9010021155 | 3111022026 | 3260057082 | 9014327961 | 9014059868 |
+| interestbearingupb | 计息未偿本金(UPB) | 324035.29 | 423410.11 | 449829.52 | 479480.42 | 277928.4 |
+| deferredprin | 递延本金余额 | 0 | 0 | 14062.83 | 0 | 0 |
+| deferredint | 递延利息余额 | 0 | 0 | 8753.85 | 0 | 0 |
+| netpurchasepriceinterestbearingupb | 计息 UPB 净购买价 | 82.5613812225759 | 101.540001016981 | 88.78 | 72.37 | 72.7996399257241 |
+| netpurchasepricedeferredprin | 递延本金净购买价 | — | — | 88.78 | — | — |
+| netpurchasepricedeferredint | 递延利息净购买价 | — | — | 88.78 | — | — |
+| interestbearingupbmv | 计息 UPB 市值 | — | — | 399358.647856 | — | — |
+| deferredprinbought | 买入递延本金 | — | — | 12484.980474 | — | — |
+| deferredintbought | 买入递延利息 | — | — | 7771.66803 | — | — |
+| sellercredit | 卖方让利 | — | — | 0 | — | — |
+| netmvtoseller | 给卖方的净市值 | 267528.011072579 | 429930.63 | 419615.29636 | 346999.979954 | 202330.874451326 |
+| netpurchaseprice | 净购买价 | 82.5613812225759 | 101.540001016981 | 88.78 | 72.37 | 72.7996399257241 |
+| intrate | 当前利率 | 6.625 | 9.875 | 2.75 | 4.25 | 3.625 |
+| lastpaydt | 最近还款日 | 2023-01-01 | 2023-06-01 | 2024-05-01 | 2023-01-01 | 2023-01-01 |
+| nextduedate | 下一个应还款日，即借款人下一笔到期付款的日期 | 2023-02-01 | 2023-07-01 | 2024-06-01 | 2023-02-01 | 2023-02-01 |
+| escrowadvancebought | 买入托管垫款 | 0 | 0 | 0 | 0 | 0 |
+| corporateadvancerecoverablebought | 买入可回收公司垫款 | 0 | 0 | 0 | 0 | 0 |
+| thirdpartyadvancebought | 买入第三方垫款 | 0 | 0 | 0 | 0 | 0 |
+| daysaccrued | 计息天数 | 30 | 47 | 55 | 30 | 30 |
+| interestaccrued | 应计利息 | 1788.94483020833 | 5458.76 | 1889.90874722222 | 1698.15982083333 | 839.575375 |
+| totadv | 垫款合计 | 0 | 0 | 0 | 0 | 0 |
+| duetoseller | 应付卖方金额 | 269316.955902788 | 435389.39 | 421505.208747222 | 348698.139774833 | 203170.449826326 |
+| brokerfeepct | 经纪费率(%) | 0.5 | 0.5 | 0 | 0.5 | 0.5 |
+| brokerfee | 经纪费 | 1620.17645 | 2117.05055 | 0 | 2397.4021 | 1389.642 |
+| ddcost | 尽调成本 | 629.56155 | 707.27 | 333.44 | 629.56155 | 629.56155 |
+| sourcingfeefactor | 寻源费系数 | — | — | 0.9942 | — | — |
+| sourcingfeepct | 寻源费率(%) | — | — | 0.25 | — | — |
+| sourcingfee | 寻源费 | 674.98 | 1089.18 | 1048.48 | 874.21 | 510 |
+| totaldiscount | 折让合计 | 53582.56 | -10434.02 | 26942.39 | 128579.27 | 73068.32 |
+| discountpct | 折让率(%) | 0.165360260606183 | -0.0246428220620429 | 0.0598946685402061 | 0.268163755258244 | 0.262903395262953 |
+| managementfeefactor | 管理费系数 | — | — | 0.9942 | — | — |
+| managementfeepct | 管理费率(%) | — | — | 0.375 | — | — |
+| managementfee | 管理费 | 84.5820850606723 | 136.485916807753 | 131.385744812653 | 109.548199189678 | 63.9083110583573 |
+| escrowadvance | 托管垫款 | 0 | 0 | 0 | 0 | 0 |
+| corporateadvancerecoverable | 可回收公司垫款 | 0 | 0 | 0 | 0 | 0 |
+| thirdpartyadvance | 第三方垫款 | 0 | 0 | 0 | 0 | 0 |
+| nonrecoverableadvance | 不可回收垫款 | 0 | 0 | 0 | 0 | 0 |
+| purchase_net_price | 购买净价 | 82.5613812226 | 101.540001017 | 88.78 | 72.37 | 72.7996399257 |
+| internal_net_price | 内部净价 | 83.0372862717 | 101.152267885 | 79.0130389449069 | 74.7014579014 | 71.4849405604 |
+| gross_irr | 毛内部收益率(IRR) | 8.8781698585 | 8.1359041454 | 7.9526963823298 | 8.8781698585 | 8.8781698585 |
+| actddcost | 实际尽调成本 | — | 744.758076923077 | — | — | — |
+| trust | 信托/资产池 | Trestle | Trestle | Trestle | Trestle | Trestle |
+| semiannual | 是否半年付息 | first_semi_annual | second_semi_annual | third_semi_annual | first_semi_annual | first_semi_annual |
+| servicing_retained | 是否保留服务权 | N | N | N | N | N |
+| net_mv_to_seller_internal | 给卖方净市值(内部) | 269070.111378633 | 428288.928719373 | 373452.126077623 | 358178.864091756 | 198676.951540471 |
+| sourcingfee_internal | 寻源费(内部) | 678.811908006076 | 1085.09972903903 | 933.741392677152 | 901.997861086816 | 500.917058071928 |
+| managementfee_internal | 管理费(内部) | 85.0623868754281 | 135.974593051944 | 117.007775863581 | 113.029972096318 | 62.7702609274707 |
+| pool | 资产池 | A | A | A | A | A |
 
 ---
 
@@ -1343,6 +1343,30 @@ SELECT * FROM port.portfunding WHERE loanid IN ('7727000088','7727000672','77270
 -- port.basic_data_loan_foreclosure_hold · redshift_prod(只读) · 多行/贷款（全历史） · 业务日 2026-06-01
 SELECT * FROM port.basic_data_loan_foreclosure_hold WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') ORDER BY loanid, fctrdt;
 ```
+
+<!-- FIELDLEGEND:port.basic_data_loan_foreclosure_hold START -->
+**字段说明**
+
+| 字段 | 业务含义 |
+|---|---|
+| dataasof | 数据快照日期 |
+| servicer | 当前服务商名称（hardcoded） |
+| loanid | 系统贷款 ID |
+| svcloanid | Servicer 内部贷款号 |
+| fctrdt | 数据来源批次日期 |
+| description1 | Hold 槽1 原因描述 |
+| description1_start_date | Hold 槽1 开始日 |
+| description1_end_date | Hold 槽1 结束日 |
+| description2 | Hold 槽2 原因描述 |
+| description2_start_date | Hold 槽2 开始日 |
+| description2_end_date | Hold 槽2 结束日 |
+| description3 | Hold 槽3 原因描述 |
+| description3_start_date | Hold 槽3 开始日 |
+| description3_end_date | Hold 槽3 结束日 |
+| description4 | Hold 槽4 原因描述 |
+| description4_start_date | Hold 槽4 开始日 |
+| description4_end_date | Hold 槽4 结束日 |
+<!-- FIELDLEGEND:port.basic_data_loan_foreclosure_hold END -->
 
 | dataasof | servicer | loanid | svcloanid | fctrdt | description1 | description1_start_date | description1_end_date | description2 | description2_start_date | description2_end_date | description3 | description3_start_date | description3_end_date | description4 | description4_start_date | description4_end_date |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -1393,6 +1417,29 @@ SELECT * FROM port.basic_data_loan_foreclosure_hold WHERE loanid IN ('7727000088
 SELECT * FROM port.basic_data_loan_foreclosure_loss_mitigation WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') ORDER BY loanid, fctrdt;
 ```
 
+<!-- FIELDLEGEND:port.basic_data_loan_foreclosure_loss_mitigation START -->
+**字段说明**
+
+| 字段 | 业务含义 |
+|---|---|
+| dataasof | 数据快照日期 |
+| servicer | 当前服务商名称（hardcoded） |
+| loanid | 系统贷款 ID |
+| svcloanid | Servicer 内部贷款号 |
+| fctrdt | 数据来源批次日期 |
+| deal | LM 大类（解码文本） |
+| program | LM 具体方案（解码文本） |
+| lmc_status | LM 当前状态（解码文本） |
+| cycle_opened_date | LM 周期开始日 |
+| cycle_closed_date | LM 周期结束日（NULL=进行中） |
+| final_disposition | 最终处置结论（解码文本） |
+| improgram | LM 项目(program)编码——经 portnewrezdatadic 解码为项目名称（疑似 lmprogram） |
+| denialreason | 拒绝原因（解码文本，无则空串） |
+| borrower_intentions | 借款人意向（解码文本） |
+| imminent_default | 即将违约标识（CFPB Reg X） |
+| single_point_of_contact | 专属联系人（CFPB 12 CFR 1024.40） |
+<!-- FIELDLEGEND:port.basic_data_loan_foreclosure_loss_mitigation END -->
+
 | dataasof | servicer | loanid | svcloanid | fctrdt | deal | program | lmc_status | cycle_opened_date | cycle_closed_date | final_disposition | improgram | denialreason | borrower_intentions | imminent_default | single_point_of_contact |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 2026-04-15 | Newrez | 7727000010 | 1031718692 | 2026-04-15 | Evaluation | Evaluation | Pending Financials  | 2024-11-26 | 2024-12-23 | Request Incomplete/Failed to Provide Information | 21.0 |  |  | — | — |
@@ -1442,6 +1489,28 @@ SELECT * FROM port.basic_data_loan_foreclosure_loss_mitigation WHERE loanid IN (
 SELECT * FROM port.basic_data_loan_foreclosure_bankruptcy WHERE loanid IN ('7727000088','7727000672','7727004200','7727000065','7727000010') ORDER BY loanid, fctrdt;
 ```
 
+<!-- FIELDLEGEND:port.basic_data_loan_foreclosure_bankruptcy START -->
+**字段说明**
+
+| 字段 | 业务含义 |
+|---|---|
+| dataasof | 数据快照日期 |
+| servicer | 当前服务商名称（hardcoded） |
+| loanid | 系统贷款 ID |
+| svcloanid | Servicer 内部贷款号 |
+| fctrdt | 数据来源批次日期 |
+| bankruptcy_status | 破产状态（解码文本） |
+| legal_status | 法律程序状态 |
+| status_date | 破产申请日（作状态日期用） |
+| chapter | 破产章节（7/11/13） |
+| lien_status | 留置权状态 |
+| mfr_status | MFR 状态 |
+| mfr_filed_date | MFR 提交日 |
+| claim_status | 债权状态 |
+| proof_of_claim_date | 债权申报（POC）日 |
+| post_petition_due_date | 破产申请后应付日 |
+<!-- FIELDLEGEND:port.basic_data_loan_foreclosure_bankruptcy END -->
+
 | dataasof | servicer | loanid | svcloanid | fctrdt | bankruptcy_status | legal_status | status_date | chapter | lien_status | mfr_status | mfr_filed_date | claim_status | proof_of_claim_date | post_petition_due_date |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 2024-07-24 | Newrez | 7727000010 | 1031718692 | 2024-07-24 | Active | BK13 | 2023-08-23 | 13 | — | — | — | — | 2023-09-30 | 2023-09-01 |
@@ -1474,80 +1543,80 @@ SELECT * FROM port.basic_data_loan_foreclosure_bankruptcy WHERE loanid IN ('7727
 SELECT * FROM bpms.sync_loan_foreclosure WHERE loanid IN (7727000088,7727000672,7727004200,7727000065,7727000010) ORDER BY loanid;
 ```
 
-| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-|---|---|---|---|---|---|
-| id | 217 | 530 | 257 | 82 | — |
-| bid_id | HMP002 | IMPAC001 | BOA002 | HMP002 | — |
-| funding_id | HMP002 | IMPAC001 | BOA002 | HMP002 | — |
-| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | — |
-| svcloanid | 1031718838 | 1032761570 | 0688132141 | 1031718621 | — |
-| servicer | Newrez | Newrez | Newrez | Newrez | — |
-| timeline_notice_of_intent_date | — | — | — | — | — |
-| timeline_notice_of_intent_end_date | — | — | — | — | — |
-| timeline_approved_for_referral_date | — | — | — | — | — |
-| timeline_referred_to_attorney_date | — | — | — | — | — |
-| timeline_referred_to_foreclosure_date | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
-| timeline_title_report_received_date | — | — | — | 2025-12-02 | — |
-| timeline_preliminary_title_cleared_date | — | — | — | — | — |
-| timeline_first_legal_date | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
-| timeline_service_date | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
-| timeline_publication_date | — | — | — | — | — |
-| timeline_judgement_hearing_set_date | 2025-12-17 | — | 2026-02-13 | 2025-07-15 | — |
-| timeline_judgement_date | 2026-03-27 | — | 2026-04-13 | 2025-10-15 | — |
-| timeline_sale_date_projected_date | — | — | 2026-05-19 | — | — |
-| timeline_sale_date_set_date | — | — | 2026-02-19 | — | — |
-| timeline_final_title_cleared_date | — | — | — | — | — |
-| timeline_sale_date_held_date | 2026-05-22 | — | — | 2025-10-14 | — |
-| timeline_foreclosure_completed_date | — | — | — | — | — |
-| timeline_third_party_sold_date_date | — | — | — | — | — |
-| timeline_third_party_proceeds_received_date | — | — | — | — | — |
-| target_notice_of_intent_days | 30 | 30 | 30 | 30 | — |
-| target_notice_of_intent_expired_days | 90 | 90 | 90 | 90 | — |
-| target_approved_for_referral_days | 30 | 30 | 30 | 30 | — |
-| target_referred_to_attorney_days | 1 | 1 | 1 | 1 | — |
-| target_referred_to_foreclosure_days | 1 | 1 | 1 | 1 | — |
-| target_title_report_received_days | 30 | 30 | 30 | 30 | — |
-| target_preliminary_title_cleared_days | 30 | 30 | 30 | 30 | — |
-| target_first_legal_days | 120 | 120 | 120 | 120 | — |
-| target_service_days | 90 | 90 | 90 | 90 | — |
-| target_publication_days | 30 | 30 | 30 | 30 | — |
-| target_judgement_hearing_set_days | 120 | 120 | 120 | 120 | — |
-| target_judgement_days | 30 | 30 | 30 | 30 | — |
-| target_sale_date_set_days | 30 | 30 | 30 | 30 | — |
-| target_final_title_cleared_days | 5 | 5 | 5 | 5 | — |
-| target_sale_date_held_days | 0 | 0 | 0 | 0 | — |
-| variance_active_bankruptcy | — | — | — | — | — |
-| variance_completed_bankruptcy | — | — | — | — | — |
-| variance_estimated_hold_days | — | — | — | — | — |
-| variance_bankruptcies | — | — | — | — | — |
-| bid_approval_status | — | — | — | — | — |
-| bid_approval_sale_date | — | — | — | — | — |
-| bid_approval_bid_amount | 301500 | — | — | 390832.5 | — |
-| bid_approval_loan_resolution_holods | — | — | — | — | — |
-| summary_servicer_number | — | — | — | — | — |
-| summary_foreclosure_status | Closed Foreclosure:Process Complete | Closed Foreclosure:Loss Mitigation | Closed Foreclosure:Paid in Full | Closed Foreclosure:Process Complete | — |
-| summary_completed_foreclosure | — | — | — | — | — |
-| summary_foreclosure_bid_amount | 301500 | — | — | 390832.5 | — |
-| summary_srv_fc_bid_amount | 301500 | — | — | 390832.5 | — |
-| summary_foreclosure_sale_amount | 200100 | — | — | 357200 | — |
-| summary_judicial_foreclosure | 1 | 0 | 1 | 1 | — |
-| summary_foreclosure_attorney | — | — | — | — | — |
-| summary_contested_litigation | 0 | 0 | 0 | 0 | — |
-| summary_firm | Kelley Kronenberg, P.A. | Orlans Law Group PLLC | Johnson, Blumberg & Associates, LLC | RAS (Primary) | — |
-| summary_type | Judicial | Non Judicial | Judicial | Judicial | — |
-| summary_sms_days_in_fcl | 370 | 81 | 296 | 256 | — |
-| summary_days_in_fcl | 370 | 81 | 296 | 256 | — |
-| summary_current_step | Post Sale Review (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Post Sale Review (SCRA and PACER Check) | — |
-| summary_last_step_completed | Post Sale Review (SCRA and PACER Check) | First Publication | Sale Scheduled For | Post Sale Review (SCRA and PACER Check) | — |
-| summary_last_step_completed_date | 2026-05-26 | 2026-03-25 | 2026-05-19 | 2025-10-15 | — |
-| create_user | — | — | — | — | — |
-| create_dept | — | — | — | — | — |
-| create_time | — | — | — | — | — |
-| update_user | — | — | — | — | — |
-| update_time | — | — | — | — | — |
-| status | 0 | 0 | 0 | 0 | — |
-| is_deleted | 0 | 0 | 0 | 0 | — |
-| tenant_id | 000000 | 000000 | 000000 | 000000 | — |
+| 字段 | 业务含义 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+|---|---|---|---|---|---|---|
+| id | 主键，自增 ID | 217 | 530 | 257 | 82 | — |
+| bid_id | Bid/资产业务编号（非自增，文本代码） | HMP002 | IMPAC001 | BOA002 | HMP002 | — |
+| funding_id | Fund / Funding 编号 | HMP002 | IMPAC001 | BOA002 | HMP002 | — |
+| loanid | 系统贷款 ID（跨 Servicer 统一标识） | 7727000088 | 7727000672 | 7727004200 | 7727000065 | — |
+| svcloanid | Servicer 内部贷款号 | 1031718838 | 1032761570 | 0688132141 | 1031718621 | — |
+| servicer | Servicer 名称 | Newrez | Newrez | Newrez | Newrez | — |
+| timeline_notice_of_intent_date | NOI / Demand 信函发出日 | — | — | — | — | — |
+| timeline_notice_of_intent_end_date | NOI 到期日（通常发出+30天） | — | — | — | — | — |
+| timeline_approved_for_referral_date | 批准转案/开案日（BPS 建档日） | — | — | — | — | — |
+| timeline_referred_to_attorney_date | 转介律师日 | — | — | — | — | — |
+| timeline_referred_to_foreclosure_date | 正式转 FCL 日期 | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
+| timeline_title_report_received_date | 产权报告收到日 | — | — | — | 2025-12-02 | — |
+| timeline_preliminary_title_cleared_date | 初步产权清查日 | — | — | — | — | — |
+| timeline_first_legal_date | 第一次法律行动日（Filing） | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
+| timeline_service_date | 法律文书送达完成日 | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
+| timeline_publication_date | 拍卖公告发布日 | — | — | — | — | — |
+| timeline_judgement_hearing_set_date | 当前听证日首次出现日（ETL 追踪） | 2025-12-17 | — | 2026-02-13 | 2025-07-15 | — |
+| timeline_judgement_date | 当前排定的判决听证会日期 | 2026-03-27 | — | 2026-04-13 | 2025-10-15 | — |
+| timeline_sale_date_projected_date | 最新预计/排定拍卖日 | — | — | 2026-05-19 | — | — |
+| timeline_sale_date_set_date | 当前拍卖日首次出现日（ETL 追踪） | — | — | 2026-02-19 | — | — |
+| timeline_final_title_cleared_date | 最终产权清查日 | — | — | — | — | — |
+| timeline_sale_date_held_date | 实际拍卖举行日 | 2026-05-22 | — | — | 2025-10-14 | — |
+| timeline_foreclosure_completed_date | FCL 流程完结日 | — | — | — | — | — |
+| timeline_third_party_sold_date_date | 第三方买家成交日 | — | — | — | — | — |
+| timeline_third_party_proceeds_received_date | 第三方拍卖款到账日 | — | — | — | — | — |
+| target_notice_of_intent_days | NOI 阶段目标天数 | 30 | 30 | 30 | 30 | — |
+| target_notice_of_intent_expired_days | NOI 到期等待目标天数 | 90 | 90 | 90 | 90 | — |
+| target_approved_for_referral_days | 批准转案目标天数 | 30 | 30 | 30 | 30 | — |
+| target_referred_to_attorney_days | 转案至律师接案目标天数 | 1 | 1 | 1 | 1 | — |
+| target_referred_to_foreclosure_days | 转案至正式启动FCL目标天数 | 1 | 1 | 1 | 1 | — |
+| target_title_report_received_days | 产权报告到位目标天数 | 30 | 30 | 30 | 30 | — |
+| target_preliminary_title_cleared_days | 初步产权确认目标天数 | 30 | 30 | 30 | 30 | — |
+| target_first_legal_days | 第一次法律行动目标天数 | 120 | 120 | 120 | 120 | — |
+| target_service_days | 送达完成目标天数 | 90 | 90 | 90 | 90 | — |
+| target_publication_days | 公告发布目标天数 | 30 | 30 | 30 | 30 | — |
+| target_judgement_hearing_set_days | Judgment Hearing 安排目标天数 | 120 | 120 | 120 | 120 | — |
+| target_judgement_days | Judgment 完成目标天数 | 30 | 30 | 30 | 30 | — |
+| target_sale_date_set_days | 拍卖日期确定目标天数 | 30 | 30 | 30 | 30 | — |
+| target_final_title_cleared_days | 最终产权确认目标天数 | 5 | 5 | 5 | 5 | — |
+| target_sale_date_held_days | 拍卖完成目标天数 | 0 | 0 | 0 | 0 | — |
+| variance_active_bankruptcy | 当前是否处于活跃破产保护（1/0） | — | — | — | — | — |
+| variance_completed_bankruptcy | 历史上是否曾完结破产（1/0） | — | — | — | — | — |
+| variance_estimated_hold_days | 预计 Hold 调整天数合计 | — | — | — | — | — |
+| variance_bankruptcies | 该贷款历史 BK 申请总次数 | — | — | — | — | — |
+| bid_approval_status | 竞拍审批状态 | — | — | — | — | — |
+| bid_approval_sale_date | 竞拍关联的拍卖日期 | — | — | — | — | — |
+| bid_approval_bid_amount | 竞拍出价金额 | 301500 | — | — | 390832.5 | — |
+| bid_approval_loan_resolution_holods | **贷款处置 Hold 原因** | — | — | — | — | — |
+| summary_servicer_number | Servicer 内部编号 | — | — | — | — | — |
+| summary_foreclosure_status | **FCL 当前状态**（Servicer 状态描述） | Closed Foreclosure:Process Complete | Closed Foreclosure:Loss Mitigation | Closed Foreclosure:Paid in Full | Closed Foreclosure:Process Complete | — |
+| summary_completed_foreclosure | FCL 是否已完结 | — | — | — | — | — |
+| summary_foreclosure_bid_amount | FCL 出价金额（投资人口径） | 301500 | — | — | 390832.5 | — |
+| summary_srv_fc_bid_amount | Servicer 上报的 FCL 出价金额 | 301500 | — | — | 390832.5 | — |
+| summary_foreclosure_sale_amount | 实际拍卖成交金额 | 200100 | — | — | 357200 | — |
+| summary_judicial_foreclosure | 是否司法 FCL（1=司法） | 1 | 0 | 1 | 1 | — |
+| summary_foreclosure_attorney | FCL 律师名称 | — | — | — | — | — |
+| summary_contested_litigation | 是否有争议诉讼（1=有） | 0 | 0 | 0 | 0 | — |
+| summary_firm | 律师事务所名称 | Kelley Kronenberg, P.A. | Orlans Law Group PLLC | Johnson, Blumberg & Associates, LLC | RAS (Primary) | — |
+| summary_type | FCL 类型文本（与 judicial 配合） | Judicial | Non Judicial | Judicial | Judicial | — |
+| summary_sms_days_in_fcl | SMS系统统计的 FCL 历时天数（Servicer口径） | 370 | 81 | 296 | 256 | — |
+| summary_days_in_fcl | 投资人口径 FCL 历时天数 | 370 | 81 | 296 | 256 | — |
+| summary_current_step | 当前 FCL 步骤 | Post Sale Review (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Post Sale Review (SCRA and PACER Check) | — |
+| summary_last_step_completed | 最近完成的 FCL 步骤 | Post Sale Review (SCRA and PACER Check) | First Publication | Sale Scheduled For | Post Sale Review (SCRA and PACER Check) | — |
+| summary_last_step_completed_date | 最近完成步骤的日期 | 2026-05-26 | 2026-03-25 | 2026-05-19 | 2025-10-15 | — |
+| create_user | 记录创建用户 | — | — | — | — | — |
+| create_dept | 记录创建部门 | — | — | — | — | — |
+| create_time | 记录创建时间 | — | — | — | — | — |
+| update_user | 最后更新用户 | — | — | — | — | — |
+| update_time | 最后更新时间 | — | — | — | — | — |
+| status | 记录状态（0=正常） | 0 | 0 | 0 | 0 | — |
+| is_deleted | 是否软删除（0=未删） | 0 | 0 | 0 | 0 | — |
+| tenant_id | 租户 ID（多租户架构） | 000000 | 000000 | 000000 | 000000 | — |
 
 ---
 
@@ -1574,65 +1643,65 @@ SELECT * FROM bpms.sync_loan_foreclosure WHERE loanid IN (7727000088,7727000672,
 SELECT t.* FROM bpms.sync_fcl_stage_info t JOIN (SELECT loanid, MAX(fctrdt) AS _md FROM bpms.sync_fcl_stage_info WHERE loanid IN (7727000088,7727000672,7727004200,7727000065,7727000010) GROUP BY loanid) m ON t.loanid=m.loanid AND t.fctrdt=m._md;
 ```
 
-| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-|---|---|---|---|---|---|
-| id | 1550100 | 1549886 | 1545354 | 1544054 | 1548985 |
-| stage | JUDGEMENT | SALE | SALE | JUDGEMENT | DEMAND |
-| fctrdt | 2026-05-25 | 2026-05-26 | 2026-04-15 | 2025-10-14 | 2026-05-31 |
-| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-| group | REO | FCL | FCL | REO | D120P |
-| servicer | Newrez | Newrez | Newrez | Newrez | Newrez |
-| state | FL | MI | IL | FL | FL |
-| judicial | Y | N | Y | Y | Y |
-| demand_start_date | 2025-02-18 | 2025-11-17 | 2025-05-20 | 2024-08-12 | 2026-04-10 |
-| demand_end_date | 2025-03-25 | 2025-12-22 | 2025-06-24 | 2024-09-18 | 2026-05-15 |
-| demand_stage_days | 464 | 193 | 333 | 431 | 54 |
-| demand_in_lm_days | — | 93 | 197 | — | — |
-| demand_on_hold_days | — | 17 | — | — | — |
-| noi_start_date | — | — | — | — | — |
-| noi_end_date | — | — | — | — | — |
-| noi_stage_days | — | — | — | — | — |
-| noi_in_lm_days | — | — | — | — | — |
-| noi_on_hold_days | — | — | — | — | — |
-| referral_start_date | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
-| referral_end_date | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
-| referral_stage_days | 22 | 17 | 25 | 53 | — |
-| referral_in_lm_days | — | — | — | — | — |
-| referral_on_hold_days | — | 1 | — | — | — |
-| first_legal_start_date | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
-| first_legal_end_date | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
-| first_legal_stage_days | 36 | 65 | 157 | 38 | — |
-| first_legal_in_lm_days | — | — | 83 | — | — |
-| first_legal_on_hold_days | — | 17 | — | — | — |
-| first_legal_date_history | — | — | — | — | — |
-| service_start_date | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
-| service_end_date | 2025-12-17 | — | 2026-02-13 | 2025-07-15 | — |
-| service_stage_days | 153 | — | 52 | 74 | — |
-| service_in_lm_days | — | — | — | — | — |
-| service_on_hold_days | — | — | — | — | — |
-| publication_start_date | — | — | — | — | — |
-| publication_end_date | — | — | — | — | — |
-| publication_stage_days | — | — | — | — | — |
-| publication_in_lm_days | — | — | — | — | — |
-| publication_on_hold_days | — | — | — | — | — |
-| judgement_start_date | 2026-03-27 | — | 2026-04-13 | 2025-10-15 | — |
-| judgement_end_date | — | — | — | — | — |
-| to_judgement_days | 0 | — | 0 | 0 | — |
-| judgement_in_lm_days | — | — | — | — | — |
-| judgement_on_hold_days | — | — | — | — | — |
-| sale_start_date | — | 2026-08-06 | 2026-05-19 | — | — |
-| sale_end_date | — | — | — | — | — |
-| to_sale_days | — | 70 | 32 | — | — |
-| sale_in_lm_days | — | — | — | — | — |
-| sale_on_hold_days | — | — | — | — | — |
-| create_time | 2026-06-06 08:52:45 | 2026-06-06 08:52:45 | 2026-06-06 08:52:45 | 2026-06-06 08:52:45 | 2026-06-06 08:52:45 |
-| update_time | 2026-06-06 08:52:45 | 2026-06-06 08:52:45 | 2026-06-06 08:52:45 | 2026-06-06 08:52:45 | 2026-06-06 08:52:45 |
-| create_user | — | — | — | — | — |
-| create_dept | — | — | — | — | — |
-| update_user | — | — | — | — | — |
-| status | 0 | 0 | 0 | 0 | 0 |
-| is_deleted | 0 | 0 | 0 | 0 | 0 |
-| tenant_id | 000000 | 000000 | 000000 | 000000 | 000000 |
+| 字段 | 业务含义 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+|---|---|---|---|---|---|---|
+| id | 自增主键 | 1550100 | 1549886 | 1545354 | 1544054 | 1548985 |
+| stage | 当前 FCL 阶段代码（全大写） | JUDGEMENT | SALE | SALE | JUDGEMENT | DEMAND |
+| fctrdt | 数据快照日（每贷款每天一行） | 2026-05-25 | 2026-05-26 | 2026-04-15 | 2025-10-14 | 2026-05-31 |
+| loanid | 系统贷款 ID | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+| group | 派生分类（FCL/REO/D120P/D90） | REO | FCL | FCL | REO | D120P |
+| servicer | Servicer 名称 | Newrez | Newrez | Newrez | Newrez | Newrez |
+| state | 物业所在州 | FL | MI | IL | FL | FL |
+| judicial | 是否司法州（Y/N） | Y | N | Y | Y | Y |
+| demand_start_date | NOI/Demand Letter 阶段 · 阶段开始日 | 2025-02-18 | 2025-11-17 | 2025-05-20 | 2024-08-12 | 2026-04-10 |
+| demand_end_date | NOI/Demand Letter 阶段 · 阶段结束日 | 2025-03-25 | 2025-12-22 | 2025-06-24 | 2024-09-18 | 2026-05-15 |
+| demand_stage_days | NOI/Demand Letter 阶段 · 在该阶段已历天数 | 464 | 193 | 333 | 431 | 54 |
+| demand_in_lm_days | NOI/Demand Letter 阶段 · 该阶段内处于 LM 的天数 | — | 93 | 197 | — | — |
+| demand_on_hold_days | NOI/Demand Letter 阶段 · 该阶段内处于 Hold 的天数 | — | 17 | — | — | — |
+| noi_start_date | NOI(Approved for Referral) 阶段 · 阶段开始日 | — | — | — | — | — |
+| noi_end_date | NOI(Approved for Referral) 阶段 · 阶段结束日 | — | — | — | — | — |
+| noi_stage_days | NOI(Approved for Referral) 阶段 · 在该阶段已历天数 | — | — | — | — | — |
+| noi_in_lm_days | NOI(Approved for Referral) 阶段 · 该阶段内处于 LM 的天数 | — | — | — | — | — |
+| noi_on_hold_days | NOI(Approved for Referral) 阶段 · 该阶段内处于 Hold 的天数 | — | — | — | — | — |
+| referral_start_date | Referral 阶段 · 阶段开始日 | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
+| referral_end_date | Referral 阶段 · 阶段结束日 | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
+| referral_stage_days | Referral 阶段 · 在该阶段已历天数 | 22 | 17 | 25 | 53 | — |
+| referral_in_lm_days | Referral 阶段 · 该阶段内处于 LM 的天数 | — | — | — | — | — |
+| referral_on_hold_days | Referral 阶段 · 该阶段内处于 Hold 的天数 | — | 1 | — | — | — |
+| first_legal_start_date | First Legal 阶段 · 阶段开始日 | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
+| first_legal_end_date | First Legal 阶段 · 阶段结束日 | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
+| first_legal_stage_days | First Legal 阶段 · 在该阶段已历天数 | 36 | 65 | 157 | 38 | — |
+| first_legal_in_lm_days | First Legal 阶段 · 该阶段内处于 LM 的天数 | — | — | 83 | — | — |
+| first_legal_on_hold_days | First Legal 阶段 · 该阶段内处于 Hold 的天数 | — | 17 | — | — | — |
+| first_legal_date_history | 首次法律行动日变更历史 | — | — | — | — | — |
+| service_start_date | Service 阶段 · 阶段开始日 | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
+| service_end_date | Service 阶段 · 阶段结束日 | 2025-12-17 | — | 2026-02-13 | 2025-07-15 | — |
+| service_stage_days | Service 阶段 · 在该阶段已历天数 | 153 | — | 52 | 74 | — |
+| service_in_lm_days | Service 阶段 · 该阶段内处于 LM 的天数 | — | — | — | — | — |
+| service_on_hold_days | Service 阶段 · 该阶段内处于 Hold 的天数 | — | — | — | — | — |
+| publication_start_date | Publication 阶段 · 阶段开始日 | — | — | — | — | — |
+| publication_end_date | Publication 阶段 · 阶段结束日 | — | — | — | — | — |
+| publication_stage_days | Publication 阶段 · 在该阶段已历天数 | — | — | — | — | — |
+| publication_in_lm_days | Publication 阶段 · 该阶段内处于 LM 的天数 | — | — | — | — | — |
+| publication_on_hold_days | Publication 阶段 · 该阶段内处于 Hold 的天数 | — | — | — | — | — |
+| judgement_start_date | Upcoming Judgement 阶段 · 阶段开始日 | 2026-03-27 | — | 2026-04-13 | 2025-10-15 | — |
+| judgement_end_date | Upcoming Judgement 阶段 · 阶段结束日 | — | — | — | — | — |
+| to_judgement_days | 距判决日剩余天数 | 0 | — | 0 | 0 | — |
+| judgement_in_lm_days | Upcoming Judgement 阶段 · 该阶段内处于 LM 的天数 | — | — | — | — | — |
+| judgement_on_hold_days | Upcoming Judgement 阶段 · 该阶段内处于 Hold 的天数 | — | — | — | — | — |
+| sale_start_date | Upcoming FC Sales 阶段 · 阶段开始日 | — | 2026-08-06 | 2026-05-19 | — | — |
+| sale_end_date | Upcoming FC Sales 阶段 · 阶段结束日 | — | — | — | — | — |
+| to_sale_days | 距拍卖日剩余天数 | — | 70 | 32 | — | — |
+| sale_in_lm_days | Upcoming FC Sales 阶段 · 该阶段内处于 LM 的天数 | — | — | — | — | — |
+| sale_on_hold_days | Upcoming FC Sales 阶段 · 该阶段内处于 Hold 的天数 | — | — | — | — | — |
+| create_time | 记录创建时间 | 2026-06-06 08:52:45 | 2026-06-06 08:52:45 | 2026-06-06 08:52:45 | 2026-06-06 08:52:45 | 2026-06-06 08:52:45 |
+| update_time | 记录更新时间 | 2026-06-06 08:52:45 | 2026-06-06 08:52:45 | 2026-06-06 08:52:45 | 2026-06-06 08:52:45 | 2026-06-06 08:52:45 |
+| create_user | 记录创建用户 | — | — | — | — | — |
+| create_dept | 记录创建部门 | — | — | — | — | — |
+| update_user | 最后更新用户 | — | — | — | — | — |
+| status | 记录状态（0=正常） | 0 | 0 | 0 | 0 | 0 |
+| is_deleted | 是否软删除（0=未删） | 0 | 0 | 0 | 0 | 0 |
+| tenant_id | 租户 ID | 000000 | 000000 | 000000 | 000000 | 000000 |
 
 ---
 
@@ -1659,112 +1728,112 @@ SELECT t.* FROM bpms.sync_fcl_stage_info t JOIN (SELECT loanid, MAX(fctrdt) AS _
 SELECT t.* FROM bpms.biz_data_view_loan_details_foreclosure t JOIN (SELECT loanid, MAX(fctrdt) AS _md FROM bpms.biz_data_view_loan_details_foreclosure WHERE loanid IN (7727000088,7727000672,7727004200,7727000065,7727000010) GROUP BY loanid) m ON t.loanid=m.loanid AND t.fctrdt=m._md;
 ```
 
-| 字段 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-|---|---|---|---|---|---|
-| id | 217 | 530 | 257 | 82 | — |
-| loanid | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
-| svcloanid | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
-| fctrdt | 2026-06-01 | 2026-06-01 | 2026-06-01 | 2026-06-01 | 2026-06-01 |
-| nextduedate | 2025-01-01 | 2026-02-01 | 2024-12-01 | 2024-03-01 | 2026-01-01 |
-| timeline_notice_of_intent_date | — | — | — | — | — |
-| timeline_notice_of_intent_end_date | — | — | — | — | — |
-| timeline_approved_for_referral_date | — | — | — | — | — |
-| timeline_referred_to_attorney_date | — | — | — | — | — |
-| timeline_referred_to_foreclosure_date | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
-| timeline_title_report_received_date | — | — | — | 2025-12-02 | — |
-| timeline_preliminary_title_cleared_date | — | — | — | — | — |
-| timeline_first_legal_date | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
-| timeline_service_date | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
-| timeline_publication_date | — | — | — | — | — |
-| timeline_judgement_hearing_set_date | 2025-12-17 | — | 2026-02-13 | 2025-07-15 | — |
-| timeline_judgement_date | 2026-03-27 | — | 2026-04-13 | 2025-10-15 | — |
-| timeline_sale_date_projected_date | — | — | 2026-05-19 | — | — |
-| timeline_sale_date_set_date | — | — | 2026-02-19 | — | — |
-| timeline_final_title_cleared_date | — | — | — | — | — |
-| timeline_sale_date_held_date | 2026-05-22 | — | — | 2025-10-14 | — |
-| timeline_foreclosure_completed_date | — | — | — | — | — |
-| timeline_third_party_sold_date_date | — | — | — | — | — |
-| timeline_third_party_proceeds_received_date | — | — | — | — | — |
-| target_notice_of_intent_days | 30 | 30 | 30 | 30 | 30 |
-| target_notice_of_intent_expired_days | 90 | 90 | 90 | 90 | 90 |
-| target_approved_for_referral_days | 30 | 30 | 30 | 30 | 30 |
-| target_referred_to_attorney_days | 1 | 1 | 1 | 1 | 1 |
-| target_referred_to_foreclosure_days | 1 | 1 | 1 | 1 | 1 |
-| target_title_report_received_days | 30 | 30 | 30 | 30 | 30 |
-| target_preliminary_title_cleared_days | 30 | 30 | 30 | 30 | 30 |
-| target_first_legal_days | 120 | 120 | 120 | 120 | 120 |
-| target_service_days | 90 | 90 | 90 | 90 | 90 |
-| target_publication_days | 30 | 30 | 30 | 30 | 30 |
-| target_judgement_hearing_set_days | 120 | 120 | 120 | 120 | 120 |
-| target_judgement_days | 30 | 30 | 30 | 30 | 30 |
-| target_sale_date_set_days | 30 | 30 | 30 | 30 | 30 |
-| target_final_title_cleared_days | 5 | 5 | 5 | 5 | 5 |
-| target_sale_date_held_days | 0 | 0 | 0 | 0 | 0 |
-| actual_notice_of_intent_days | — | — | — | — | — |
-| actual_notice_of_intent_expire_days | — | — | — | — | — |
-| actual_approved_for_referral_days | — | — | — | — | — |
-| actual_referred_to_attorney_days | — | — | — | — | — |
-| actual_referred_to_foreclosure_days | 142 | 36 | 208 | 339 | — |
-| actual_title_report_received_days | — | — | — | 641 | — |
-| actual_preliminary_title_cleared_days | — | — | — | — | — |
-| actual_first_legal_days | 163 | 52 | 232 | 391 | — |
-| actual_service_days | 198 | — | 388 | 428 | — |
-| actual_publication_days | — | — | — | — | — |
-| actual_judgement_hearing_set_days | 350 | — | 439 | 501 | — |
-| actual_judgement_days | 450 | — | 498 | 593 | — |
-| actual_sale_date_set_days | — | — | 445 | — | — |
-| actual_final_title_cleared_days | — | — | — | — | — |
-| actual_sale_date_held_days | 506 | — | — | 592 | — |
-| variance_active_bankruptcy | — | — | — | — | — |
-| variance_completed_bankruptcy | — | — | — | — | — |
-| variance_estimated_hold_days | — | — | — | — | — |
-| variance_bankruptcies | — | — | — | — | — |
-| bid_approval_status | — | — | — | — | — |
-| bid_approval_sale_date | — | — | — | — | — |
-| bid_approval_bid_amount | 301500 | — | — | 390832.5 | — |
-| bid_approval_loan_resolution_holods | — | — | — | — | — |
-| summary_servicer_number | — | — | — | — | — |
-| summary_foreclosure_status | Closed Foreclosure:Process Complete | Closed Foreclosure:Loss Mitigation | Closed Foreclosure:Paid in Full | Closed Foreclosure:Process Complete | — |
-| summary_completed_foreclosure | — | — | — | — | — |
-| summary_foreclosure_bid_amount | 301500 | — | — | 390832.5 | — |
-| summary_srv_fc_bid_amount | 301500 | — | — | 390832.5 | — |
-| summary_foreclosure_sale_amount | 200100 | — | — | 357200 | — |
-| summary_judicial_foreclosure | 1 | 0 | 1 | 1 | — |
-| summary_foreclosure_attorney | — | — | — | — | — |
-| summary_contested_litigation | 0 | 0 | 0 | 0 | — |
-| summary_firm | Kelley Kronenberg, P.A. | Orlans Law Group PLLC | Johnson, Blumberg & Associates, LLC | RAS (Primary) | — |
-| summary_type | Judicial | Non Judicial | Judicial | Judicial | — |
-| summary_sms_days_in_fcl | 370 | 81 | 296 | 256 | — |
-| summary_days_in_fcl | 370 | 81 | 296 | 256 | — |
-| summary_current_step | Post Sale Review (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Post Sale Review (SCRA and PACER Check) | — |
-| summary_last_step_completed | Post Sale Review (SCRA and PACER Check) | First Publication | Sale Scheduled For | Post Sale Review (SCRA and PACER Check) | — |
-| summary_last_step_completed_date | 2026-05-26 | 2026-03-25 | 2026-05-19 | 2025-10-15 | — |
-| create_user | — | — | — | — | — |
-| create_dept | — | — | — | — | — |
-| create_time | — | — | — | — | — |
-| update_user | — | — | — | — | — |
-| update_time | — | — | — | — | — |
-| status | 0 | 0 | 0 | 0 | — |
-| is_deleted | 0 | 0 | 0 | 0 | 0 |
-| tenant_id | 000000 | 000000 | 000000 | 000000 | — |
-| var_notice_of_intent_days | — | — | — | — | — |
-| var_notice_of_intent_expire_days | — | — | — | — | — |
-| var_approved_for_referral_days | — | — | — | — | — |
-| var_referred_to_attorney_days | — | — | — | — | — |
-| var_referred_to_foreclosure_days | -10 | -116 | 56 | 187 | — |
-| var_title_report_received_days | — | — | — | 459 | — |
-| var_preliminary_title_cleared_days | — | — | — | — | — |
-| var_first_legal_days | -169 | -280 | -100 | 59 | — |
-| var_service_days | -224 | — | -34 | 6 | — |
-| var_publication_days | — | — | — | — | — |
-| var_judgement_hearing_set_days | -222 | — | -133 | -71 | — |
-| var_judgement_days | -152 | — | -104 | -9 | — |
-| var_sale_date_set_days | — | — | -187 | — | — |
-| var_final_title_cleared_days | — | — | — | — | — |
-| var_sale_date_held_days | -131 | — | — | -45 | — |
-| var_total | — | — | — | — | — |
-| target_total | 637 | 637 | 637 | 637 | 637 |
-| actual_total | — | — | — | — | — |
+| 字段 | 业务含义 | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+|---|---|---|---|---|---|---|
+| id | FCL 记录 ID（来自 loan_fcl） | 217 | 530 | 257 | 82 | — |
+| loanid | 系统贷款 ID | 7727000088 | 7727000672 | 7727004200 | 7727000065 | 7727000010 |
+| svcloanid | Servicer 内部贷款号 | 1031718838 | 1032761570 | 0688132141 | 1031718621 | 1031718692 |
+| fctrdt | 数据快照日（月度） | 2026-06-01 | 2026-06-01 | 2026-06-01 | 2026-06-01 | 2026-06-01 |
+| nextduedate | 下次应还款日（DPD/历时计算锚点） | 2025-01-01 | 2026-02-01 | 2024-12-01 | 2024-03-01 | 2026-01-01 |
+| timeline_notice_of_intent_date | FCL 里程碑日期（同表17 `timeline_notice_of_intent_date`） | — | — | — | — | — |
+| timeline_notice_of_intent_end_date | FCL 里程碑日期（同表17 `timeline_notice_of_intent_end_date`） | — | — | — | — | — |
+| timeline_approved_for_referral_date | FCL 里程碑日期（同表17 `timeline_approved_for_referral_date`） | — | — | — | — | — |
+| timeline_referred_to_attorney_date | FCL 里程碑日期（同表17 `timeline_referred_to_attorney_date`） | — | — | — | — | — |
+| timeline_referred_to_foreclosure_date | FCL 里程碑日期（同表17 `timeline_referred_to_foreclosure_date`） | 2025-05-23 | 2026-03-09 | 2025-06-27 | 2025-02-03 | — |
+| timeline_title_report_received_date | FCL 里程碑日期（同表17 `timeline_title_report_received_date`） | — | — | — | 2025-12-02 | — |
+| timeline_preliminary_title_cleared_date | FCL 里程碑日期（同表17 `timeline_preliminary_title_cleared_date`） | — | — | — | — | — |
+| timeline_first_legal_date | FCL 里程碑日期（同表17 `timeline_first_legal_date`） | 2025-06-13 | 2026-03-25 | 2025-07-21 | 2025-03-27 | — |
+| timeline_service_date | FCL 里程碑日期（同表17 `timeline_service_date`） | 2025-07-18 | — | 2025-12-24 | 2025-05-03 | — |
+| timeline_publication_date | FCL 里程碑日期（同表17 `timeline_publication_date`） | — | — | — | — | — |
+| timeline_judgement_hearing_set_date | FCL 里程碑日期（同表17 `timeline_judgement_hearing_set_date`） | 2025-12-17 | — | 2026-02-13 | 2025-07-15 | — |
+| timeline_judgement_date | FCL 里程碑日期（同表17 `timeline_judgement_date`） | 2026-03-27 | — | 2026-04-13 | 2025-10-15 | — |
+| timeline_sale_date_projected_date | FCL 里程碑日期（同表17 `timeline_sale_date_projected_date`） | — | — | 2026-05-19 | — | — |
+| timeline_sale_date_set_date | FCL 里程碑日期（同表17 `timeline_sale_date_set_date`） | — | — | 2026-02-19 | — | — |
+| timeline_final_title_cleared_date | FCL 里程碑日期（同表17 `timeline_final_title_cleared_date`） | — | — | — | — | — |
+| timeline_sale_date_held_date | FCL 里程碑日期（同表17 `timeline_sale_date_held_date`） | 2026-05-22 | — | — | 2025-10-14 | — |
+| timeline_foreclosure_completed_date | FCL 里程碑日期（同表17 `timeline_foreclosure_completed_date`） | — | — | — | — | — |
+| timeline_third_party_sold_date_date | FCL 里程碑日期（同表17 `timeline_third_party_sold_date_date`） | — | — | — | — | — |
+| timeline_third_party_proceeds_received_date | FCL 里程碑日期（同表17 `timeline_third_party_proceeds_received_date`） | — | — | — | — | — |
+| target_notice_of_intent_days | SLA 目标天数（同表17 `target_notice_of_intent_days`） | 30 | 30 | 30 | 30 | 30 |
+| target_notice_of_intent_expired_days | SLA 目标天数（同表17 `target_notice_of_intent_expired_days`） | 90 | 90 | 90 | 90 | 90 |
+| target_approved_for_referral_days | SLA 目标天数（同表17 `target_approved_for_referral_days`） | 30 | 30 | 30 | 30 | 30 |
+| target_referred_to_attorney_days | SLA 目标天数（同表17 `target_referred_to_attorney_days`） | 1 | 1 | 1 | 1 | 1 |
+| target_referred_to_foreclosure_days | SLA 目标天数（同表17 `target_referred_to_foreclosure_days`） | 1 | 1 | 1 | 1 | 1 |
+| target_title_report_received_days | SLA 目标天数（同表17 `target_title_report_received_days`） | 30 | 30 | 30 | 30 | 30 |
+| target_preliminary_title_cleared_days | SLA 目标天数（同表17 `target_preliminary_title_cleared_days`） | 30 | 30 | 30 | 30 | 30 |
+| target_first_legal_days | SLA 目标天数（同表17 `target_first_legal_days`） | 120 | 120 | 120 | 120 | 120 |
+| target_service_days | SLA 目标天数（同表17 `target_service_days`） | 90 | 90 | 90 | 90 | 90 |
+| target_publication_days | SLA 目标天数（同表17 `target_publication_days`） | 30 | 30 | 30 | 30 | 30 |
+| target_judgement_hearing_set_days | SLA 目标天数（同表17 `target_judgement_hearing_set_days`） | 120 | 120 | 120 | 120 | 120 |
+| target_judgement_days | SLA 目标天数（同表17 `target_judgement_days`） | 30 | 30 | 30 | 30 | 30 |
+| target_sale_date_set_days | SLA 目标天数（同表17 `target_sale_date_set_days`） | 30 | 30 | 30 | 30 | 30 |
+| target_final_title_cleared_days | SLA 目标天数（同表17 `target_final_title_cleared_days`） | 5 | 5 | 5 | 5 | 5 |
+| target_sale_date_held_days | SLA 目标天数（同表17 `target_sale_date_held_days`） | 0 | 0 | 0 | 0 | 0 |
+| actual_notice_of_intent_days | 实际历时天数（notice_of_intent） | — | — | — | — | — |
+| actual_notice_of_intent_expire_days | 实际历时天数（notice_of_intent_expire） | — | — | — | — | — |
+| actual_approved_for_referral_days | 实际历时天数（approved_for_referral） | — | — | — | — | — |
+| actual_referred_to_attorney_days | 实际历时天数（referred_to_attorney） | — | — | — | — | — |
+| actual_referred_to_foreclosure_days | 实际历时天数（referred_to_foreclosure） | 142 | 36 | 208 | 339 | — |
+| actual_title_report_received_days | 实际历时天数（title_report_received） | — | — | — | 641 | — |
+| actual_preliminary_title_cleared_days | 实际历时天数（preliminary_title_cleared） | — | — | — | — | — |
+| actual_first_legal_days | 实际历时天数（first_legal） | 163 | 52 | 232 | 391 | — |
+| actual_service_days | 实际历时天数（service） | 198 | — | 388 | 428 | — |
+| actual_publication_days | 实际历时天数（publication） | — | — | — | — | — |
+| actual_judgement_hearing_set_days | 实际历时天数（judgement_hearing_set） | 350 | — | 439 | 501 | — |
+| actual_judgement_days | 实际历时天数（judgement） | 450 | — | 498 | 593 | — |
+| actual_sale_date_set_days | 实际历时天数（sale_date_set） | — | — | 445 | — | — |
+| actual_final_title_cleared_days | 实际历时天数（final_title_cleared） | — | — | — | — | — |
+| actual_sale_date_held_days | 实际历时天数（sale_date_held） | 506 | — | — | 592 | — |
+| variance_active_bankruptcy | 同表17 `variance_active_bankruptcy | — | — | — | — | — |
+| variance_completed_bankruptcy | 同表17 `variance_completed_bankruptcy | — | — | — | — | — |
+| variance_estimated_hold_days | 同表17 `variance_estimated_hold_days | — | — | — | — | — |
+| variance_bankruptcies | 同表17 `variance_bankruptcies | — | — | — | — | — |
+| bid_approval_status | 同表17 `bid_approval_status | — | — | — | — | — |
+| bid_approval_sale_date | 同表17 `bid_approval_sale_date | — | — | — | — | — |
+| bid_approval_bid_amount | 同表17 `bid_approval_bid_amount | 301500 | — | — | 390832.5 | — |
+| bid_approval_loan_resolution_holods | 同表17 `bid_approval_loan_resolution_holods | — | — | — | — | — |
+| summary_servicer_number | 同表17 `summary_servicer_number | — | — | — | — | — |
+| summary_foreclosure_status | 同表17 `summary_foreclosure_status | Closed Foreclosure:Process Complete | Closed Foreclosure:Loss Mitigation | Closed Foreclosure:Paid in Full | Closed Foreclosure:Process Complete | — |
+| summary_completed_foreclosure | 同表17 `summary_completed_foreclosure | — | — | — | — | — |
+| summary_foreclosure_bid_amount | 同表17 `summary_foreclosure_bid_amount | 301500 | — | — | 390832.5 | — |
+| summary_srv_fc_bid_amount | 同表17 `summary_srv_fc_bid_amount | 301500 | — | — | 390832.5 | — |
+| summary_foreclosure_sale_amount | 同表17 `summary_foreclosure_sale_amount | 200100 | — | — | 357200 | — |
+| summary_judicial_foreclosure | 同表17 `summary_judicial_foreclosure | 1 | 0 | 1 | 1 | — |
+| summary_foreclosure_attorney | 同表17 `summary_foreclosure_attorney | — | — | — | — | — |
+| summary_contested_litigation | 同表17 `summary_contested_litigation | 0 | 0 | 0 | 0 | — |
+| summary_firm | 同表17 `summary_firm | Kelley Kronenberg, P.A. | Orlans Law Group PLLC | Johnson, Blumberg & Associates, LLC | RAS (Primary) | — |
+| summary_type | 同表17 `summary_type | Judicial | Non Judicial | Judicial | Judicial | — |
+| summary_sms_days_in_fcl | 同表17 `summary_sms_days_in_fcl | 370 | 81 | 296 | 256 | — |
+| summary_days_in_fcl | 同表17 `summary_days_in_fcl | 370 | 81 | 296 | 256 | — |
+| summary_current_step | 同表17 `summary_current_step | Post Sale Review (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Pre-Sale Review 1 (SCRA and PACER Check) | Post Sale Review (SCRA and PACER Check) | — |
+| summary_last_step_completed | 同表17 `summary_last_step_completed | Post Sale Review (SCRA and PACER Check) | First Publication | Sale Scheduled For | Post Sale Review (SCRA and PACER Check) | — |
+| summary_last_step_completed_date | 同表17 `summary_last_step_completed_date | 2026-05-26 | 2026-03-25 | 2026-05-19 | 2025-10-15 | — |
+| create_user | 管理字段（同表17 `create_user`） | — | — | — | — | — |
+| create_dept | 管理字段（同表17 `create_dept`） | — | — | — | — | — |
+| create_time | 管理字段（同表17 `create_time`） | — | — | — | — | — |
+| update_user | 管理字段（同表17 `update_user`） | — | — | — | — | — |
+| update_time | 管理字段（同表17 `update_time`） | — | — | — | — | — |
+| status | 管理字段（同表17 `status`） | 0 | 0 | 0 | 0 | — |
+| is_deleted | 是否软删除 | 0 | 0 | 0 | 0 | 0 |
+| tenant_id | 管理字段（同表17 `tenant_id`） | 000000 | 000000 | 000000 | 000000 | — |
+| var_notice_of_intent_days | SLA 偏差天数（notice_of_intent；正=超期） | — | — | — | — | — |
+| var_notice_of_intent_expire_days | SLA 偏差天数（notice_of_intent_expire；正=超期） | — | — | — | — | — |
+| var_approved_for_referral_days | SLA 偏差天数（approved_for_referral；正=超期） | — | — | — | — | — |
+| var_referred_to_attorney_days | SLA 偏差天数（referred_to_attorney；正=超期） | — | — | — | — | — |
+| var_referred_to_foreclosure_days | SLA 偏差天数（referred_to_foreclosure；正=超期） | -10 | -116 | 56 | 187 | — |
+| var_title_report_received_days | SLA 偏差天数（title_report_received；正=超期） | — | — | — | 459 | — |
+| var_preliminary_title_cleared_days | SLA 偏差天数（preliminary_title_cleared；正=超期） | — | — | — | — | — |
+| var_first_legal_days | SLA 偏差天数（first_legal；正=超期） | -169 | -280 | -100 | 59 | — |
+| var_service_days | SLA 偏差天数（service；正=超期） | -224 | — | -34 | 6 | — |
+| var_publication_days | SLA 偏差天数（publication；正=超期） | — | — | — | — | — |
+| var_judgement_hearing_set_days | SLA 偏差天数（judgement_hearing_set；正=超期） | -222 | — | -133 | -71 | — |
+| var_judgement_days | SLA 偏差天数（judgement；正=超期） | -152 | — | -104 | -9 | — |
+| var_sale_date_set_days | SLA 偏差天数（sale_date_set；正=超期） | — | — | -187 | — | — |
+| var_final_title_cleared_days | SLA 偏差天数（final_title_cleared；正=超期） | — | — | — | — | — |
+| var_sale_date_held_days | SLA 偏差天数（sale_date_held；正=超期） | -131 | — | — | -45 | — |
+| var_total | 总偏差合计 | — | — | — | — | — |
+| target_total | 目标天数合计 | 637 | 637 | 637 | 637 | 637 |
+| actual_total | 实际历时合计 | — | — | — | — | — |
 
 ---
 
@@ -1790,6 +1859,28 @@ SELECT t.* FROM bpms.biz_data_view_loan_details_foreclosure t JOIN (SELECT loani
 -- bpms.sync_loan_foreclosure_hold · mysql_prod(只读) · 多行/贷款（全历史） · 业务日 2026-06-01
 SELECT * FROM bpms.sync_loan_foreclosure_hold WHERE loanid IN (7727000088,7727000672,7727004200,7727000065,7727000010) ORDER BY loanid, description_start_date;
 ```
+
+<!-- FIELDLEGEND:bpms.sync_loan_foreclosure_hold START -->
+**字段说明**
+
+| 字段 | 业务含义 |
+|---|---|
+| id | 自增主键 |
+| loanid | 系统贷款 ID |
+| svcloanid | Servicer 内部贷款号 |
+| fctrdt | 数据来源批次日期 |
+| description | Hold 原因描述（文本） |
+| description_start_date | Hold 开始日 |
+| description_end_date | Hold 结束日（NULL=仍持续） |
+| create_user | 记录创建用户 |
+| create_dept | 记录创建部门 |
+| create_time | 记录创建时间 |
+| update_user | 最后更新用户 |
+| update_time | 最后更新时间 |
+| status | 记录状态（0=正常） |
+| is_deleted | 是否软删除（0=未删） |
+| tenant_id | 租户 ID |
+<!-- FIELDLEGEND:bpms.sync_loan_foreclosure_hold END -->
 
 | id | loanid | svcloanid | fctrdt | description | description_start_date | description_end_date | create_user | create_dept | create_time | update_user | update_time | status | is_deleted | tenant_id |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -1840,6 +1931,35 @@ SELECT * FROM bpms.sync_loan_foreclosure_hold WHERE loanid IN (7727000088,772700
 SELECT * FROM bpms.sync_loan_foreclosure_loss_mitigation WHERE loanid IN (7727000088,7727000672,7727004200,7727000065,7727000010) ORDER BY loanid, cycle_opened_date;
 ```
 
+<!-- FIELDLEGEND:bpms.sync_loan_foreclosure_loss_mitigation START -->
+**字段说明**
+
+| 字段 | 业务含义 |
+|---|---|
+| id | 自增主键 |
+| loanid | 系统贷款 ID |
+| svcloanid | Servicer 内部贷款号 |
+| fctrdt | 数据来源批次日期 |
+| deal | LM 大类（解码文本） |
+| program | LM 具体方案（解码文本） |
+| lmc_status | LM 当前状态（解码文本） |
+| cycle_opened_date | LM 周期开始日 |
+| cycle_closed_date | LM 周期结束日（NULL=进行中） |
+| final_disposition | 最终处置结论（解码文本） |
+| denialreason | 拒绝原因（解码文本，无则空串） |
+| borrower_intentions | 借款人意向（解码文本） |
+| imminent_default | 即将违约标识（CFPB Reg X） |
+| single_point_of_contact | 专属联系人（CFPB 12 CFR 1024.40） |
+| create_user | 记录创建用户 |
+| create_dept | 记录创建部门 |
+| create_time | 记录创建时间 |
+| update_user | 最后更新用户 |
+| update_time | 最后更新时间 |
+| status | 记录状态（0=正常） |
+| is_deleted | 是否软删除（0=未删） |
+| tenant_id | 租户 ID |
+<!-- FIELDLEGEND:bpms.sync_loan_foreclosure_loss_mitigation END -->
+
 | id | loanid | svcloanid | fctrdt | deal | program | lmc_status | cycle_opened_date | cycle_closed_date | final_disposition | denialreason | borrower_intentions | imminent_default | single_point_of_contact | create_user | create_dept | create_time | update_user | update_time | status | is_deleted | tenant_id |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 183363 | 7727000010 | 1031718692 | 2026-04-15 | Evaluation | Evaluation | Pending Financials  | 2024-11-26 | 2024-12-23 | Request Incomplete/Failed to Provide Information |  |  | — | — | — | — | — | — | — | 0 | 0 | 000000 |
@@ -1889,6 +2009,35 @@ SELECT * FROM bpms.sync_loan_foreclosure_loss_mitigation WHERE loanid IN (772700
 SELECT * FROM bpms.sync_loan_foreclosure_bankruptcy WHERE loanid IN (7727000088,7727000672,7727004200,7727000065,7727000010) ORDER BY loanid, status_date;
 ```
 
+<!-- FIELDLEGEND:bpms.sync_loan_foreclosure_bankruptcy START -->
+**字段说明**
+
+| 字段 | 业务含义 |
+|---|---|
+| id | 自增主键 |
+| loanid | 系统贷款 ID |
+| svcloanid | Servicer 内部贷款号 |
+| fctrdt | 数据来源批次日期 |
+| bankruptcy_status | 破产状态（解码文本） |
+| legal_status | 法律程序状态 |
+| status_date | 破产申请日（作状态日期用） |
+| chapter | 破产章节（7/11/13） |
+| lien_status | 留置权状态 |
+| mfr_status | MFR 状态 |
+| mfr_filed_date | MFR 提交日 |
+| claim_status | 债权状态 |
+| proof_of_claim_date | 债权申报（POC）日 |
+| post_petition_due_date | 破产申请后应付日 |
+| create_user | 记录创建用户 |
+| create_dept | 记录创建部门 |
+| create_time | 记录创建时间 |
+| update_user | 最后更新用户 |
+| update_time | 最后更新时间 |
+| status | 记录状态（0=正常） |
+| is_deleted | 是否软删除（0=未删） |
+| tenant_id | 租户 ID |
+<!-- FIELDLEGEND:bpms.sync_loan_foreclosure_bankruptcy END -->
+
 | id | loanid | svcloanid | fctrdt | bankruptcy_status | legal_status | status_date | chapter | lien_status | mfr_status | mfr_filed_date | claim_status | proof_of_claim_date | post_petition_due_date | create_user | create_dept | create_time | update_user | update_time | status | is_deleted | tenant_id |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 20797 | 7727000010 | 1031718692 | 2024-07-24 | Active | BK13 | 2023-08-23 | 13 | — | — | — | — | 2023-09-30 | 2023-09-01 | — | — | — | — | — | 0 | 0 | 000000 |
@@ -1925,95 +2074,95 @@ WHERE (module_name='LossMitigation' AND field_name IN
 
 ### LMDeal ← `newrez.portnewrezlm.lmdeal`（LossMitigation；字典 13 码 · prod 8 码 · 本5贷款 6 码）
 
-| 编码 | 解码（description） |
-|---|---|
-| 1 | Modification |
-| 2 | Evaluation |
-| 4 | Payment Plan |
-| 5 | Forbearance |
-| 6 | Short Sale |
-| 7 | DIL |
+| 编码 | 解码（description） | 业务含义 |
+|---|---|---|
+| 1 | Modification | 永久性修改贷款条款，把月供降到可负担水平 |
+| 2 | Evaluation | LM 评估期——收材料、判定适用方案 |
+| 4 | Payment Plan | 还款计划——正常月供外分期补缴欠款 |
+| 5 | Forbearance | 暂缓/减少月供，到期后补缴(Forbearance，临时性) |
+| 6 | Short Sale | 短售——低于欠款价售房，贷方免除差额 |
+| 7 | DIL | 自愿移交房产所有权(Deed-in-Lieu)抵债 |
 
 ### LMProgram ← `newrez.portnewrezlm.lmprogram`（LossMitigation；字典 388 码 · prod 22 码 · 本5贷款 9 码）
 
-| 编码 | 解码（description） |
-|---|---|
-| 8 | Short Sale |
-| 10 | Deed-in-Lieu |
-| 12 | Short-term Forbearance |
-| 14 | Unemployment Forbearance |
-| 21 | Evaluation |
-| 29 | Repayment Plan |
-| 419 | Bridger mod |
-| 496 | （字典无此码） |
-| 498 | （字典无此码） |
+| 编码 | 解码（description） | 业务含义 |
+|---|---|---|
+| 8 | Short Sale | 短售项目 |
+| 10 | Deed-in-Lieu | 以房抵债(DIL)项目 |
+| 12 | Short-term Forbearance | 短期暂缓还款 |
+| 14 | Unemployment Forbearance | 失业暂缓还款 |
+| 21 | Evaluation | 方案评估 |
+| 29 | Repayment Plan | 还款计划 |
+| 419 | Bridger mod | Bridger 自有修改方案 |
+| 496 | （字典无此码） | 项目码在字典中无对应文案（需向 Newrez 核对） |
+| 498 | （字典无此码） | 项目码在字典中无对应文案（需向 Newrez 核对） |
 
 ### LMStatus ← `newrez.portnewrezlm.lmstatus`（LossMitigation；字典 149 码 · prod 16 码 · 本5贷款 18 码）
 
-| 编码 | 解码（description） |
-|---|---|
-| 5 | Document Follow-up |
-| 10 | Underwriting Review |
-| 11 | Underwriting Review Complete |
-| 13 | Follow up for 1st Trial Payment |
-| 24 | Awaiting investor approval |
-| 25 | Monitor for pmts/funds |
-| 44 | Submitted for Approval |
-| 45 | Countered by Supervisor |
-| 48 | Underwriting Follow Up Required |
-| 101 | Resubmitted to Underwriting |
-| 104 | Awaiting MI Approval |
-| 112 | Workout Denial |
-| 113 | Monitor Forbearance |
-| 126 | DIL Title Ordered |
-| 127 | Negotiate DIL liens |
-| 128 | DIL Agreement Ordered |
-| 166 | Pending Financials  |
-| 172 | Liquidation Referral |
+| 编码 | 解码（description） | 业务含义 |
+|---|---|---|
+| 5 | Document Follow-up | 催收/跟进所需材料 |
+| 10 | Underwriting Review | 承保审核中 |
+| 11 | Underwriting Review Complete | 承保审核完成 |
+| 13 | Follow up for 1st Trial Payment | 跟进首笔试用期还款 |
+| 24 | Awaiting investor approval | 等待投资人审批 |
+| 25 | Monitor for pmts/funds | 监控还款/资金到账 |
+| 44 | Submitted for Approval | 已提交审批 |
+| 45 | Countered by Supervisor | 主管提出还价/修改条件 |
+| 48 | Underwriting Follow Up Required | 需承保补充跟进 |
+| 101 | Resubmitted to Underwriting | 重新提交承保审核 |
+| 104 | Awaiting MI Approval | 等待抵押保险(MI)审批 |
+| 112 | Workout Denial | 方案被拒(Workout Denial) |
+| 113 | Monitor Forbearance | 监控暂缓还款执行 |
+| 126 | DIL Title Ordered | 已订购 DIL 产权报告 |
+| 127 | Negotiate DIL liens | 协商 DIL 留置权 |
+| 128 | DIL Agreement Ordered | 已下单 DIL 协议 |
+| 166 | Pending Financials | 待借款人财务资料 |
+| 172 | Liquidation Referral | 转清算(短售/DIL/法拍) |
 
 ### LMDecision ← `newrez.portnewrezlm.lmdecision`（LossMitigation；字典 23 码 · prod 13 码 · 本5贷款 5 码）
 
-| 编码 | 解码（description） |
-|---|---|
-| 4 | Forbearance Complete |
-| 6 | Referral to FC |
-| 10 | Request Incomplete/Failed to Provide Information |
-| 11 | LMS Opened in Error |
-| 99 | Pending |
+| 编码 | 解码（description） | 业务含义 |
+|---|---|---|
+| 4 | Forbearance Complete | 暂缓还款期满结束 |
+| 6 | Referral to FC | 转法拍(Referral to FC)——LM 未成功 |
+| 10 | Request Incomplete/Failed to Provide Information | 资料不全/未按时提供 |
+| 11 | LMS Opened in Error | 误开 LM 工单 |
+| 99 | Pending | 处理中/待决 |
 
 ### DenialReason ← `newrez.portnewrezlm.denialreason`（LossMitigation；字典 130 码 · prod 19 码 · 本5贷款 6 码）
 
-| 编码 | 解码（description） |
-|---|---|
-| 2 | Trial Plan Default |
-| 4 | Withdrawal of Request/Non-Acceptance |
-| 21 | Request Incomplete/Failed to Provide Documentation |
-| 40 | PMI Company Decline |
-| 76 | HAMP Sunset |
-| 124 | Hardship not resolved |
+| 编码 | 解码（description） | 业务含义 |
+|---|---|---|
+| 2 | Trial Plan Default | 此前试用期计划违约 |
+| 4 | Withdrawal of Request/Non-Acceptance | 借款人撤回申请/不接受方案 |
+| 21 | Request Incomplete/Failed to Provide Documentation | 资料不全/未提供文件 |
+| 40 | PMI Company Decline | 抵押保险(PMI)公司拒绝 |
+| 76 | HAMP Sunset | HAMP 项目已到期终止 |
+| 124 | Hardship not resolved | 困难未解决 |
 
 ### BorrowerIntention ← `newrez.portnewrezlm.borrowerintention`（LossMitigation；字典 3 码 · prod 2 码 · 本5贷款 1 码）
 
-| 编码 | 解码（description） |
-|---|---|
-| 2 | Retention |
+| 编码 | 解码（description） | 业务含义 |
+|---|---|---|
+| 2 | Retention | 保留房产（争取留房方案） |
 
 ### BKStatus ← `newrez.portnewrezbk.bkstatus`（Bankruptcy；字典 5 码 · prod 5 码 · 本5贷款 4 码）
 
-| 编码 | 解码（description） |
-|---|---|
-| 1 | Active |
-| 2 | Discharged |
-| 4 | Closed |
-| 5 | ReliefGranted |
+| 编码 | 解码（description） | 业务含义 |
+|---|---|---|
+| 1 | Active | 破产案进行中——自动暂停(Automatic Stay)保护，法拍暂停 |
+| 2 | Discharged | 债务已免除（借款人个人债务责任解除） |
+| 4 | Closed | 破产案结案 |
+| 5 | ReliefGranted | 已批准解除自动暂停——债权人可推进法拍/MFR 获准 |
 
 ### BKStage ← `newrez.portnewrezbk.bkstage`（Bankruptcy；字典 22 码 · prod 6 码 · 本5贷款 6 码）
 
-| 编码 | 解码（description） |
-|---|---|
-| 1 | Received |
-| 4 | Confirmation |
-| 8 | Discharged |
-| 13 | Transfer of Claim |
-| 17 | Termination |
-| 21 | Motion to Determine Final Cure |
+| 编码 | 解码（description） | 业务含义 |
+|---|---|---|
+| 1 | Received | 已收到破产通知 |
+| 4 | Confirmation | 还款计划获法院确认(Confirmation) |
+| 8 | Discharged | 债务已免除(Discharged) |
+| 13 | Transfer of Claim | 债权转让 |
+| 17 | Termination | 终止 |
+| 21 | Motion to Determine Final Cure | 申请认定最终补缴是否完成 |

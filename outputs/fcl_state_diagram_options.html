@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>贷款状态图 — 4 个画法对比（决策用）</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  // Render mermaid; if CDN blocked, show a note.
+  window.addEventListener('load',function(){
+    if(window.mermaid){ mermaid.initialize({startOnLoad:true, theme:'default', flowchart:{htmlLabels:true}, securityLevel:'loose'}); }
+    else { document.querySelectorAll('.mermaid').forEach(function(m){ m.insertAdjacentHTML('beforebegin','<div class="cdnwarn">⚠ 无法加载 mermaid（离线？）。此图为 mermaid 源码，可贴到 mermaid.live 查看：</div><pre>'+m.textContent.replace(/</g,'&lt;')+'</pre>'); m.style.display='none'; }); }
+  });
+</script>
+<style>
+  body{font-family:-apple-system,"Segoe UI",Roboto,"Microsoft YaHei",sans-serif;margin:0;background:#f4f6f8;color:#1f2630;line-height:1.6}
+  .wrap{max-width:1100px;margin:0 auto;padding:24px 28px 80px}
+  h1{font-size:24px;margin:6px 0 2px} h2{font-size:19px;margin:30px 0 6px;padding-top:14px;border-top:2px solid #d7dee6}
+  .sub{color:#5b6b7d;font-size:13.5px;margin:0 0 10px}
+  .card{background:#fff;border:1px solid #dce3ea;border-radius:12px;padding:16px 18px;margin:12px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  .rec{border-left:5px solid #2e7d32}
+  .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;margin-left:8px;vertical-align:middle}
+  .tag.r{background:#e6f4ea;color:#1e7d34} .tag.n{background:#eef1f4;color:#5b6b7d}
+  .pc{display:flex;gap:18px;flex-wrap:wrap;margin-top:8px}
+  .pc div{flex:1;min-width:240px;font-size:13px}
+  .pc b{display:block;margin-bottom:2px}
+  ul{margin:4px 0 0;padding-left:18px} li{margin:2px 0;font-size:13px}
+  table{border-collapse:collapse;margin:10px 0;font-size:13px;background:#fff}
+  th,td{border:1px solid #cdd6df;padding:5px 10px;text-align:left} th{background:#eef2f6}
+  code{background:#eef1f4;padding:1px 5px;border-radius:4px;font-size:12.5px}
+  .cdnwarn{color:#b5651d;font-size:12.5px;margin:6px 0}
+  .mermaid{background:#fff;border:1px dashed #cdd6df;border-radius:8px;padding:10px;overflow:auto}
+  .lanes{font-family:"Cascadia Code",Consolas,monospace;font-size:13px}
+  .lane{display:grid;grid-template-columns:140px 1fr;align-items:center;gap:10px;margin:6px 0}
+  .lane .nm{color:#37434f;font-weight:600}
+  .track{position:relative;height:26px;background:#f0f3f6;border-radius:6px;border:1px solid #e0e6ec}
+  .seg{position:absolute;top:3px;height:18px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff}
+  .axis .seg{background:#5b9bd5} .fcl .seg{background:#d4a017} .lm .seg{background:#3ca06a} .bk .seg{background:#9c6fb0}
+  .legend{font-size:12px;color:#5b6b7d;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>贷款状态图 — 4 个画法对比（决策用）</h1>
+  <p class="sub">目的：FCL / LM / BK 是叠加在贷款上的<b>独立并发维度</b>，不是逾期轴上的「下一个状态」。下面给出你现有的线性图 + 3 个候选画法，供对比选择。本页是临时决策稿（不改动 fcl_pipeline.html 与 docs）。</p>
+
+  <div class="card">
+    <b>四个独立维度（所有方案共享的认知）</b>
+    <table>
+      <tr><th>维度</th><th>含义</th><th>取值</th><th>数据字段</th></tr>
+      <tr><td>A · Delinquency 逾期程度</td><td>欠款多严重？</td><td>Current → D30 → D60 → D90 → D120P</td><td><code>delinq</code>（同字段还含 FCL/REO/P 处置值）</td></tr>
+      <tr><td>B · FCL 止赎</td><td>法律程序是否启动？</td><td>N / Y</td><td><code>activefcflag</code> / 止赎业务族</td></tr>
+      <tr><td>C · LM 损失缓解</td><td>是否有主动补救方案？</td><td>N / Y</td><td><code>lm_flag</code>(<code>activelmflag</code>)</td></tr>
+      <tr><td>D · BK 破产</td><td>借款人是否申请破产？</td><td>N / Y</td><td><code>bankruptcy</code>(<code>activebkflag</code>)</td></tr>
+    </table>
+    <b>同一笔贷款可同时处于多个维度：</b>
+    <table>
+      <tr><th>示例</th><th>Delinquency</th><th>FCL</th><th>LM</th><th>BK</th><th>业务含义</th></tr>
+      <tr><td>典型止赎</td><td><code>D120P</code></td><td>Y</td><td>N</td><td>N</td><td>严重逾期已进入法律程序</td></tr>
+      <tr><td>止赎中谈判</td><td><code>FCL</code></td><td>Y</td><td>Y</td><td>N</td><td>进入止赎但同时在谈宽限</td></tr>
+      <tr><td>破产保护中</td><td><code>D90</code></td><td>Y</td><td>N</td><td>Y</td><td>破产自动中止令暂停止赎</td></tr>
+      <tr><td>正常贷款</td><td><code>Current</code></td><td>N</td><td>N</td><td>N</td><td>按时还款，无任何特殊状态</td></tr>
+    </table>
+    <p class="legend">数据落地：BK/LM/Hold 生效期间 <code>delinq</code> 不退回逾期档、保持 FCL（代码 <code>CREATE_FCL_RELATE_ATTR</code> 把 <code>Foreclosure / Perf BK</code>、<code>Non-Perf BK</code> 都映射为 <code>FCL</code>）。</p>
+  </div>
+
+  <h2>方案 0 — 现有线性图（参考，已删去错误的 BK→P）<span class="tag n">你现在用的</span></h2>
+  <div class="card">
+    <div class="pc"><div><b>优点</b><ul><li>一条主线，最易读，叙事顺</li><li>新人 5 秒看懂「正常→逾期→止赎→拍卖」</li></ul></div>
+    <div><b>缺点</b><ul><li>把 FCL/LM/BK 画成链上节点 → 误读为「逾期之后的下一个状态」</li><li>无法表达「同时 D90 + BK」这类并发</li></ul></div></div>
+    <div class="mermaid">
+flowchart TD
+    START([贷款发放]) --> C[C — Current]
+    C -->|错过1期| D30 --> |错过2期| D60 --> |错过3期| D90 --> |第4期+| D120P
+    D60 & D90 & D120P -->|申请修改/宽限| LM
+    LM -->|方案成功| C
+    LM -->|失败/再违约| D90
+    D90 & D120P -->|启动止赎 ≥120天| FCL
+    FCL -->|Hold触发| HOLD[FCL-Hold]
+    HOLD -->|Hold解除| FCL
+    FCL -->|拍卖流标| REO
+    FCL -->|第三方/短售/赎回| P[P — 贷款终止]
+    REO -->|房产出售| P
+    C & D30 & D60 & D90 & D120P -->|全额还清| P
+    D30 & D60 & D90 & D120P & FCL -->|申请破产| BK[BK — 破产保护]
+    BK -->|BK解除/Ch.7清偿→恢复| FCL
+    BK -->|Ch.13完成| C
+    </div>
+  </div>
+
+  <h2>方案 A — 正交并行区（4 维同时演进）<span class="tag n">不推荐（见下）</span></h2>
+  <div class="card">
+    <div class="pc"><div><b>优点</b><ul><li>形式最正确：一眼看出 4 维各自独立、可并发</li><li>彻底消除「FCL/LM/BK 是逾期下一步」的误读</li><li>4 个并排子图、各带维度标题，语法稳</li></ul></div>
+    <div><b>缺点</b><ul><li><b>画不出维度耦合</b>：BK 自动中止令 / LM 审核会把 <code>FCL进行中</code>→<code>FCL-Hold</code>（B 维度内由 C/D 触发的子态），正交独立轴表达不了</li><li><b>缺 P / REO 终态</b>（其实是 A 轴 delinq 的处置取值）——说明 4 维<b>并非完全正交</b></li><li>比线性图「重」，需解释「并行区=同时成立」</li></ul></div></div>
+    <div class="mermaid">
+flowchart TB
+  subgraph A["A · Delinquency 逾期程度 — 唯一的进展轴"]
+    direction LR
+    a1["Current"] --> a2["D30"] --> a3["D60"] --> a4["D90"] --> a5["D120P"]
+  end
+  subgraph B["B · FCL 止赎 — 独立开关"]
+    direction LR
+    b1["N 未启动"] -->|启动止赎| b2["Y 止赎进行中"]
+    b2 -->|完成 / 撤销| b1
+  end
+  subgraph C["C · LM 损失缓解 — 独立开关"]
+    direction LR
+    c1["N 无 LM"] -->|开案| c2["Y 在谈方案"]
+    c2 -->|关案 / 失败| c1
+  end
+  subgraph D["D · BK 破产 — 独立开关"]
+    direction LR
+    d1["N 未破产"] -->|申请破产| d2["Y 自动中止令"]
+    d2 -->|驳回 / discharge / Ch.13| d1
+  end
+  A ~~~ B
+  B ~~~ C
+  C ~~~ D
+    </div>
+    <p class="legend">读法：贷款在每个区里各处于一个值；4 个值的组合 = 业务状态（如 A=D120P、B=Y、C=N、D=Y）。BK/LM 翻成 Y 时不改变 A 区的值。</p>
+  </div>
+
+  <h2>方案 B — 主轴 + 标志泳道（时间线/Gantt 风）<span class="tag n">最直观</span></h2>
+  <div class="card">
+    <div class="pc"><div><b>优点</b><ul><li>最贴近运营直觉：一眼看出某段时间内哪些维度同时为 Y</li><li>「重叠区=并发」非常直白</li></ul></div>
+    <div><b>缺点</b><ul><li>不是严格状态机（是时间线视角）</li><li>需要一个样例时间轴来画（示意，非精确）</li></ul></div></div>
+    <div class="lanes">
+      <div class="lane"><span class="nm">A · Delinquency</span><div class="track axis">
+        <span class="seg" style="left:0;width:14%">C</span><span class="seg" style="left:15%;width:11%">D30</span><span class="seg" style="left:27%;width:11%">D60</span><span class="seg" style="left:39%;width:11%">D90</span><span class="seg" style="left:51%;width:48%">D120P → FCL → REO/Paid</span>
+      </div></div>
+      <div class="lane"><span class="nm">B · FCL（止赎）</span><div class="track fcl">
+        <span class="seg" style="left:51%;width:48%">Y（止赎进行中）</span>
+      </div></div>
+      <div class="lane"><span class="nm">C · LM（损失缓解）</span><div class="track lm">
+        <span class="seg" style="left:33%;width:14%">Y 第1轮</span><span class="seg" style="left:60%;width:12%">Y 第2轮</span>
+      </div></div>
+      <div class="lane"><span class="nm">D · BK（破产）</span><div class="track bk">
+        <span class="seg" style="left:62%;width:16%">Y（自动中止令）</span>
+      </div></div>
+    </div>
+    <p class="legend">示意时间轴（左→右）：逾期逐步升级 → 进入止赎；其间 LM 谈了两轮、后期借款人申请破产暂停止赎。各泳道独立开关，竖向重叠即「同时成立」。</p>
+  </div>
+
+  <h2>方案 C — 线性处置链 + 独立布尔标志（改动最小）<span class="tag n">最小改动</span></h2>
+  <div class="card">
+    <div class="pc"><div><b>优点</b><ul><li>保留你熟悉的主链，仅把 LM/BK/Hold 从链上「摘下来」当标志</li><li>改动小、风险低</li></ul></div>
+    <div><b>缺点</b><ul><li>并发性仍靠文字/表，不如 A/B 直观</li></ul></div></div>
+    <div class="mermaid">
+flowchart LR
+    C[C — Current] --> D30 --> D60 --> D90 --> D120P --> FCL[FCL 止赎进行] --> REO
+    FCL --> P[P 还清/售出/短售]
+    REO --> P
+    </div>
+    <p class="legend">↑ 这条链只表示 <b>维度 A（逾期程度）+ 处置结果</b>。下面三个是<b>独立布尔标志</b>，可在任意逾期/止赎阶段叠加，<b>不在链上</b>：</p>
+    <table>
+      <tr><th>独立标志</th><th>取值</th><th>翻转条件</th></tr>
+      <tr><td>B · FCL</td><td>N / Y</td><td>启动止赎 / 完成·撤销</td></tr>
+      <tr><td>C · LM</td><td>N / Y</td><td>开案（宽限/修改/还款计划）/ 关案·失败</td></tr>
+      <tr><td>D · BK</td><td>N / Y</td><td>申请破产 / 驳回·discharge·Ch.13完成</td></tr>
+    </table>
+  </div>
+
+  <h2>★ 推荐落地方案 — 原线性图为主 + 叠加态虚线标注 + 补充说明<span class="tag r">推荐</span></h2>
+  <div class="card rec">
+    <p style="font-size:13.5px;margin:0 0 4px">你说得对：方案 A 的「完全正交」假设过度简化——画不出 <code>FCL⇄FCL-Hold</code> 的耦合，也没有 <code>P/REO</code> 终态。而<b>原线性图本就表达了这些</b>，只需把三个「并发叠加态」用<b>虚线</b>区分、并补充说明即可。下图：<b>实线 = delinq 主轴真实取值</b>（Current→D30…→FCL→REO/P）；<b>虚线紫块 = 并发叠加态</b>（LM / BK / FCL-Hold，不改变 delinq）。</p>
+    <div class="mermaid">
+flowchart TD
+    START([贷款发放]) --> C[C — Current]
+    C -->|错过1期| D30 --> |错过2期| D60 --> |错过3期| D90 --> |第4期+| D120P
+    D60 & D90 & D120P -->|申请修改/宽限| LM
+    LM -->|方案成功| C
+    LM -->|失败/再违约| D90
+    D90 & D120P -->|启动止赎 ≥120天| FCL
+    FCL -->|BK中止令 / LM审核 触发| HOLD[FCL-Hold 止赎暂停]
+    HOLD -->|中止解除| FCL
+    FCL -->|拍卖流标| REO
+    FCL -->|第三方/短售/赎回| P[P — 贷款终止]
+    REO -->|房产出售| P
+    C & D30 & D60 & D90 & D120P -->|全额还清| P
+    D30 & D60 & D90 & D120P & FCL -->|申请破产| BK[BK — 破产保护]
+    BK -->|BK解除/Ch.7清偿→恢复| FCL
+    BK -->|Ch.13完成| C
+    classDef overlay stroke-dasharray:5 5,fill:#f3e9fb,stroke:#9c6fb0,color:#5a3d77;
+    class LM,BK,HOLD overlay;
+    </div>
+    <b>配套三条关键澄清（补充说明）：</b>
+    <ul>
+      <li><b>FCL-Hold 是 FCL 的子态，由 LM 审核 / BK 自动中止令触发</b>（非独立第 5 态）：<code>FCL进行中 ⇄ FCL-Hold</code>。</li>
+      <li><b>LM / BK / Hold 生效期间 <code>delinq</code> 不变</b>（仍 FCL 或原逾期档）——它们是叠加标志，不是逾期轴上的下一步（代码 <code>CREATE_FCL_RELATE_ATTR</code>：<code>Foreclosure / Perf·Non-Perf BK</code> → <code>FCL</code>）。</li>
+      <li><b>P / REO 是处置终态</b>（A 轴 delinq 的取值），由 FCL/REO 或全额还清到达；<b>Ch.7 discharge ≠ 还清</b>（Lien 存续），故无 <code>BK→P</code> 直达。</li>
+    </ul>
+    <p class="legend">配合本页顶部「四维度表 + 示例组合表」一起看：图给叙事与耦合，表给「四维独立、可并发」的认知。</p>
+  </div>
+</div>
+</body>
+</html>

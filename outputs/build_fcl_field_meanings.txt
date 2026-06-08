@@ -1,0 +1,165 @@
+# -*- coding: utf-8 -*-
+# Build outputs/fcl_field_meanings.json — single source of truth for doc 19 per-field 业务含义.
+# Run inline (endpoint security forbids executing .py under user dir):
+#     python - < outputs/build_fcl_field_meanings.txt
+# Source of meanings (reuse, do not invent):
+#   - docs/foreclosure_data_dictionary.md  (已有「字段业务含义」列, 表01–26)  → exact + same-field reuse
+#   - GAPFILL below  → authored for the 232 columns not covered by the dictionary
+# Output keyed by doc19 JSON table key (e.g. 'portnewrezfc'); each field carries {m, src}.
+import json, re
+
+DD = open('docs/foreclosure_data_dictionary.md', encoding='utf-8').read().splitlines()
+DATA = json.load(open('outputs/fcl_sample_raw_dump_data.json', encoding='utf-8'))['tables']
+
+# ---- 1. parse the data dictionary -> per-table + global field->meaning ----
+per, glob = {}, {}
+cur = None
+hdr = re.compile(r'^### 表\s*\d+\s*[:：]\s*`([^`]+)`')
+def cell(s): return s.strip().strip('`').strip()
+i = 0
+while i < len(DD):
+    line = DD[i]
+    m = hdr.match(line)
+    if m:
+        cur = m.group(1).strip(); per.setdefault(cur, {}); i += 1; continue
+    if line.startswith('|') and '字段名' in line and '含义' in line:
+        cols = [c.strip() for c in line.strip('|').split('|')]
+        try: mi = next(j for j, c in enumerate(cols) if j >= 1 and '含义' in c)
+        except StopIteration: mi = 1
+        i += 1
+        if i < len(DD) and set(DD[i].replace('|', '').strip()) <= set('-: '): i += 1
+        while i < len(DD) and DD[i].lstrip().startswith('|'):
+            p = DD[i].strip().strip('|').split('|')
+            if len(p) > mi:
+                f, mean = cell(p[0]), cell(p[mi])
+                if f and f != '字段名' and mean and not set(f) <= set('-: '):
+                    if cur: per[cur][f.lower()] = mean
+                    glob.setdefault(f.lower(), mean)
+            i += 1
+        continue
+    i += 1
+
+# doc19 table (schema.table) -> dictionary section (bpms_dev normalized to bpms);
+# port.fcl_stage_info / port hold-lm-bk reuse their bpms sync twins as a base.
+def norm(s): return s.replace('bpms_dev.', 'bpms.')
+permap = {norm(k): v for k, v in per.items()}
+DICTREF = {
+    'port.fcl_stage_info': 'bpms.sync_fcl_stage_info',
+    'port.basic_data_loan_foreclosure_hold': 'bpms.sync_loan_foreclosure_hold',
+    'port.basic_data_loan_foreclosure_loss_mitigation': 'bpms.sync_loan_foreclosure_loss_mitigation',
+    'port.basic_data_loan_foreclosure_bankruptcy': 'bpms.sync_loan_foreclosure_bankruptcy',
+}
+
+# ---- 2. authored gap-fill (232 columns the dictionary does not cover) ----
+GAP = {
+# newrez.portnewrezgeneral (通用源表，账户层属性)
+'investorid':'投资人/资方编码（如 BI2726）','priorservicerloannumber':'前服务商贷款号',
+'boarddate':'贷款上线(boarding)到本服务商之日','acquisitiondate':'资产收购日',
+'acquisitionbalance':'收购时本金余额','mbadelinquency':'MBA 逾期分类编码',
+'delinqstatatboarding':'上线时逾期状态码','lienposition':'留置权顺位（1=第一顺位）',
+'loantype':'贷款类型编码','loanpurpose':'贷款用途编码（购房/再融资等）','documentationtype':'文档类型编码',
+'dateinactive':'贷款转为非活跃之日','currentinterestrate':'当前利率','originalterm':'原始期限（月）',
+'originalnotedate':'原始借据(Note)日期','originalmaturitydate':'原始到期日','originalamt':'原始贷款金额',
+'currentmaturitydate':'当前到期日','amortizationterm':'摊还期限（月）','remainingterm':'剩余期限（月）',
+'otherliens':'其他留置权','otherliensbalance':'其他留置权余额','legalstatus':'法律状态（如 REO/FCBU/BK13）',
+'warningstatus':'预警状态标记','isattorneyrepresented':'借款人是否有律师代理（0/1）',
+'issoldiersandsailors':'是否适用《军人民事救济法》(SCRA)（0/1）','isloanlitigated':'贷款是否处于诉讼中（0/1）',
+'isescrowed':'是否设有托管账户(escrow)（0/1）','femaarea':'是否处于 FEMA 灾区（0/1）',
+'femaaffect':'是否受 FEMA 灾害影响（0/1）','balloonflag':'是否气球贷（到期一次性还本）（0/1）',
+'balloondate':'气球贷到期日','prepaymentpenaltyflag':'是否有提前还款罚金（0/1）',
+'prepaymentpenaltyterm':'提前还款罚金期限','prepaymentpenaltyfee':'提前还款罚金金额',
+'chargeoff':'是否核销（0/1）','chargeoffdate':'核销日期','chargeoffamount':'核销金额',
+'payoffrequested':'是否已申请结清报价（0/1）','payoffrequestdate':'结清报价申请日','mersid':'MERS 登记号',
+'servicefeepercent':'服务费率（%）','servicefeedollars':'服务费金额','interestmethod':'计息方式编码',
+'negamflag':'是否负摊还(negative amortization)（0/1）','borrowerdeceasedflag':'借款人是否已故（0/1）',
+'coborrowerdeceasedflag':'共同借款人是否已故（0/1）','priorservicer':'前服务商名称',
+'foreignnationalflag':'借款人是否外国国籍（0/1）','min_status':'MERS MIN 状态','origorgid':'发起机构编码',
+'origorgname':'发起机构名称','servicerorgid':'服务机构编码','subservorgid':'次级服务机构编码',
+'ppc1_id':'PPC1 编码（内部）','investorname':'投资人名称','min_number':'MERS MIN 号',
+'registerstatus':'MERS 登记状态','deactreason':'停用/退出原因（如 FC-BK）','securitization':'证券化标记',
+'poolnumber':'资产池编号','investororgid':'投资人机构编码','is_hpml':'是否高价房贷(HPML)（0/1）',
+'investmentproperty':'是否投资性房产（0/1）','hasadditionalcollateral':'是否有额外抵押物（0/1）',
+'creditorname':'债权人名称','vestingname':'产权登记名义人','memberid':'成员编码','welcomeletter':'欢迎信发送日',
+'tilanotice':'TILA 告知发送日','debenturerate':'债券利率（FHA 理赔用）','custodianname':'文件保管机构名称',
+'custodiancollateralid':'保管机构抵押物编码','delinquency_status_mba':'MBA 逾期状态文案（如 REO/120-149 DPD）',
+'eoy_1099c_cancelled_date_reported':'年末 1099-C 债务免除报告日','loanscraflag':'SCRA 标记',
+'srlienstatuscode':'优先留置权状态码','srlienname':'优先留置权人名称','srlienduedate':'优先留置权到期日',
+'srlienstatusdesc':'优先留置权状态描述','prepaypenaltyenddate':'提前还款罚金截止日',
+'loanscrapaymenteffectivedate':'SCRA 还款生效日','cdfi':'是否 CDFI 相关（0/1）',
+'investorchargeoff':'投资人核销标记（0/1）','eoy_1099c_flag':'年末 1099-C 标记','disasterdesignationdate':'灾害认定日',
+'inauctionflag':'是否在拍卖中（0/1）','fhavapmicasenumber':'FHA/VA/PMI 案件号','loanscraenddate':'SCRA 结束日',
+'borrowerprimarymilitarystatuscode':'借款人主军籍状态码','borrowerprimarymilitarystatuscodedesc':'借款人主军籍状态描述',
+'loanscrastartdate':'SCRA 起始日','disastername':'灾害名称','bridgeloan':'是否过桥贷款（0/1）',
+'secondhome':'是否第二套住房（0/1）','priorservicername':'前服务商名称','disasterimpactcreateddate':'灾害影响记录创建日',
+'investorchargeoffdate':'投资人核销日','disasterdeclarationnumber':'灾害声明编号',
+'lienseniorbalanceprincipalcurrent':'优先留置权当前本金余额','loanscrainterestrate':'SCRA 利率',
+'loanscrapipayment':'SCRA 本息月供','eoy_1099c_cancelled_amount_reported':'年末 1099-C 免除金额',
+'otsdelinquency':'OTS 逾期分类文案','leadbilldays':'账单提前天数','guarantyfeepercent':'担保费率（%）',
+'acquiredduedate':'收购时的应还到期日','interestpaidthroughdate':'利息已付至日期','srstatus':'优先留置权状态',
+'enoteflag':'是否电子借据(eNote)（0/1）','billingstatementdate':'账单日','vrmflag':'是否可调利率(VRM)（0/1）',
+'pendinginvestoridtransfer':'待转投资人编码','newinvestorid':'新投资人编码','amltype':'AML 类型','successorservicer':'后继服务商',
+# newrez.portnewrezprop (房产源表)
+'propertyaddressline1':'房产地址行1','propertyaddressline2':'房产地址行2','propertycity':'房产城市',
+'propertystate':'房产所在州（决定司法/非司法法拍路径）','propertyzip':'房产邮编','propertycounty':'房产所在县',
+'propertytype':'房产类型','currentoccupancy':'当前占用状态','currentoccupancydate':'当前占用状态日期',
+'mostrecentvalue':'最新估值','mostrecentvaluedate':'最新估值日期','valuationmethod':'估值方法',
+'bpoprovider':'BPO 估值提供方','originalpropertyvalue':'原始房产价值','originalpropertyvaluedate':'原始估值日期',
+'vacancyflag':'是否空置（0/1）','originalltv':'原始贷款价值比(LTV)','currentltv':'当前 LTV','numberofunits':'单元数',
+'mostrecentbpovalue':'最新 BPO 估值','mostrecentbpovaluedate':'最新 BPO 估值日期','taxservice':'税务服务机构',
+'datesenttotaxoutsource':'税务外包发送日','originaloccupancy':'原始占用状态','countycode':'县编码',
+# port.portfunding (融资池/定价维度)
+'cutoffdate':'融资池切分日','settledate':'交割日','wal':'加权平均存续期(WAL)','hurdlespread':'门槛利差',
+'hurdleyield':'门槛收益率','sellerloanid':'卖方贷款号','interestbearingupb':'计息未偿本金(UPB)',
+'netpurchasepriceinterestbearingupb':'计息 UPB 净购买价','netpurchasepricedeferredprin':'递延本金净购买价',
+'netpurchasepricedeferredint':'递延利息净购买价','interestbearingupbmv':'计息 UPB 市值','deferredprinbought':'买入递延本金',
+'deferredintbought':'买入递延利息','sellercredit':'卖方让利','netmvtoseller':'给卖方的净市值','netpurchaseprice':'净购买价',
+'lastpaydt':'最近还款日','escrowadvancebought':'买入托管垫款','corporateadvancerecoverablebought':'买入可回收公司垫款',
+'thirdpartyadvancebought':'买入第三方垫款','daysaccrued':'计息天数','interestaccrued':'应计利息','totadv':'垫款合计',
+'duetoseller':'应付卖方金额','brokerfeepct':'经纪费率(%)','brokerfee':'经纪费','ddcost':'尽调成本',
+'sourcingfeefactor':'寻源费系数','sourcingfeepct':'寻源费率(%)','sourcingfee':'寻源费','totaldiscount':'折让合计',
+'discountpct':'折让率(%)','managementfeefactor':'管理费系数','managementfeepct':'管理费率(%)','managementfee':'管理费',
+'escrowadvance':'托管垫款','corporateadvancerecoverable':'可回收公司垫款','thirdpartyadvance':'第三方垫款',
+'nonrecoverableadvance':'不可回收垫款','purchase_net_price':'购买净价','internal_net_price':'内部净价',
+'gross_irr':'毛内部收益率(IRR)','actddcost':'实际尽调成本','trust':'信托/资产池','semiannual':'是否半年付息',
+'servicing_retained':'是否保留服务权','net_mv_to_seller_internal':'给卖方净市值(内部)','sourcingfee_internal':'寻源费(内部)',
+'managementfee_internal':'管理费(内部)','pool':'资产池',
+# port.basic_data_daily_loan_common (逾期支线 L2 统一日表)
+'deferredinterestbalance':'递延利息余额','schedule_pandi_daily':'计划本息(日表)','principalpaidmtd':'本月已付本金',
+'interestpaidmtd':'本月已付利息','interest_rate':'利率','bal_prin_original':'原始本金余额',
+'escrowbalance':'托管账户余额','escrow_advance_balance':'托管垫款余额','reccorpadvance':'可回收公司垫款',
+'nonrecovadvance':'不可回收垫款','maturitydate_':'到期日','firstpaymentdate':'首次还款日','paymthist':'还款历史串',
+'origrate_daily':'原始利率(日表)','mitype':'抵押保险(MI)类型','tiamount':'税险(T&I)金额',
+# port.basic_data_loan_foreclosure_hold (Redshift Hold 历史；4 个 Hold 槽)
+'description1':'Hold 槽1 原因描述','description1_start_date':'Hold 槽1 开始日','description1_end_date':'Hold 槽1 结束日',
+'description2':'Hold 槽2 原因描述','description2_start_date':'Hold 槽2 开始日','description2_end_date':'Hold 槽2 结束日',
+'description3':'Hold 槽3 原因描述','description3_start_date':'Hold 槽3 开始日','description3_end_date':'Hold 槽3 结束日',
+'description4':'Hold 槽4 原因描述','description4_start_date':'Hold 槽4 开始日','description4_end_date':'Hold 槽4 结束日',
+# port.basic_data_fcl_related (FCL 关联/过滤中间表)
+'liquidationdate':'清算/处置日','liquidationtype':'清算/处置类型','liquidationproceeds':'清算/处置回收款',
+'pmt':'月供','bk_flag':'是否破产标记（0/1）',
+# strays
+'improgram':'LM 项目(program)编码——经 portnewrezdatadic 解码为项目名称（疑似 lmprogram）',
+'ots_delinq':'OTS 逾期分类（清洗后）',
+}
+
+# ---- 3. assemble per doc19 table key, with provenance ----
+out, gaplog = {}, []
+for key, v in DATA.items():
+    st = f"{v['schema']}.{v['table']}"
+    dictt = permap.get(DICTREF.get(st, st), {})
+    fields = {}
+    for c in v.get('columns', []):
+        cl = c.lower()
+        if cl in dictt:        fields[c] = {'m': dictt[cl], 'src': 'dict_exact'}
+        elif cl in glob:       fields[c] = {'m': glob[cl],  'src': 'dict_reuse'}
+        elif cl in GAP:        fields[c] = {'m': GAP[cl],   'src': 'authored'}
+        else:                  fields[c] = {'m': '',        'src': 'MISSING'}; gaplog.append(f"{st}.{c}")
+    out[key] = {'schema_table': st, 'fields': fields}
+
+json.dump(out, open('outputs/fcl_field_meanings.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+from collections import Counter
+cnt = Counter(f['src'] for t in out.values() for f in t['fields'].values())
+print('wrote outputs/fcl_field_meanings.json')
+print('provenance:', dict(cnt))
+print('MISSING (no meaning):', len(gaplog))
+for g in gaplog: print('  !', g)

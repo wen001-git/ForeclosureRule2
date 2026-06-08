@@ -25,6 +25,7 @@
 |------|------|------|---------|
 | 2026-06-07 | AI Agent (Claude Opus 4.8) | v5 | 新增 **§8.1 as-of date 演变 + 为何 BPS `sync_*` 无 as-of、只有 `update_time`**（code + MCP 实证：DELETE+APPEND 覆盖刷新 `df_db_util.py:691,693`、两步 `UPDATE_FORECLOSURE`、`datediff` 实时校正吸收 as-of `asset_managment_config.py:597-598`；真实数据示例 loan 7727000088：368+2=370）；新增 **§9 各表取数验证 SQL（最新数据日期）**（as-of 列 information_schema 全量核验；同款 SQL 注入 fcl_pipeline.html 各节点抽屉）；§8.1 订正写入机制（主表 `bpms.sync_loan_foreclosure` 经 `UPDATE_FORECLOSURE` 的 `ON DUPLICATE KEY UPDATE` 写入，UPDATE 列表排除 create/update_time → NULL） | PrefectFlow 源码 + mysql_prod/redshift_prod 实测 |
 | 2026-06-06 | AI Agent (Claude Opus 4.8) | v4 | **更正为 MySQL+Redshift 双写架构**（原"一层一平台"有误）：§1 图 + §2/§3/§4/§5 各层补"落库 DB+file:line"，**§7 重写为双写证据表** + §7.1 今天其它更正（两支线/days360/fcl_flag 非归一/Carrington 整列缺失/delinq_clean 生成代码不在仓库）；交叉链接 doc 20 §B.6 / doc 21 | PrefectFlow 源码 + mysql_prod/redshift 实测 |
+| 2026-06-08 | AI Agent (Claude Opus 4.8) | v5 | 加注：`basic_data_monthly_loan_clean_data`(含 `_delinq`) 属 portmonth/逾期线（→`sync_portmonth`），**不在 FCL/`sync_loan_foreclosure` 管道**；FCL 自有 `delq_status`（`basic_data_fcl_related`，直接取原始表），`basic_data_pool_config.py`/`flow/bps/` 对月度 clean 表 0 引用（实测）| PrefectFlow 源码实测 · doc 21 §0.1 |
 | 2026-06-05 | AI Agent (Claude Opus 4.8) | v3 | 表名改正 `portshellpoint*`→`portnewrez*`（DB 实测 newrez 现役表，2024-07-05 改名）+ 加命名说明（DB 实测；doc 01） |
 | 2026-05-21 | AI Agent (Claude Sonnet 4.6) | v1 | 初始版本，代码分析 + DB 实证 |
 | 2026-05-28 | AI Agent (Claude Sonnet 4.6) | v2 | MCP 实证修正：(1) Layer 5 平台由 Redshift 更正为 MySQL（`port` + `bpms_dev` 两个 schema）；(2) 补充缺失的 `bpms_dev.sync_loan_foreclosure`（主 FCL BPS 表）；(3) `5-FORECLOSURE` 目标更正为 `port.basic_data_loan_foreclosure`（MySQL）；(4) Layer 3→4 补充 `basic_data_pool_config.py`；(5) 新增 `bpms_dev.biz_data_view_loan_details_foreclosure` |
@@ -102,6 +103,8 @@
 ```
 
 > ⚠️ **双写架构更正（2026-06-06，code+MCP 实证）**：上图各层**不是"一层一平台"**——**L1–L4 同时写入 MySQL 与 Redshift 两套库**（同名表各一份）：plain 配置→Redshift、`mysql_` 前缀配置→MySQL，由各自 flow 分别构建。只有 **L4 的 FCL 业务族**（`basic_data_loan_foreclosure`/`fcl_stage_info`/`_hold`/`_loss_mitigation`/`_bankruptcy`）是 **Redshift 单建、再由 L5 同步进 MySQL**。逐层代码证据见 **§7**；落库证据表另见 [doc 20 §B.6](20_end_to_end_walkthrough.md)，字段级血缘见 [doc 21](21_fcl_field_lineage.md)。
+
+> ⚠️ **`basic_data_monthly_loan_clean_data`（含 `_delinq` 子表）不在 FCL/`sync_loan_foreclosure` 管道上**：它属**月度组合/逾期线（portmonth）**——`…_delinq → basic_data_monthly_loan_clean_data → portmonth → bpms.sync_portmonth`（喂 BPS「Delinquency」视图）。FCL 业务族自有 `delq_status`（`basic_data_fcl_related`，直接取原始 servicer 表），**不读**该月度 clean 表（`basic_data_pool_config.py`、`flow/bps/` 均 0 引用，实测）。详见 [doc 21 §0.1](21_fcl_field_lineage.md)。
 
 ---
 
