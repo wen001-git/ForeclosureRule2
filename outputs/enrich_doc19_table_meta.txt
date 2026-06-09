@@ -24,16 +24,18 @@ md=open(MD,encoding='utf-8').read()
 md=re.sub(r'\n*<!-- META:[^\n]*? START -->.*?<!-- META:[^\n]*? END -->\n?', '\n', md, flags=re.S)
 
 def md_block(key,t):
+    # order: 所处层级 → 上游(链路+表) → 下游(链路+表) → 业务含义/何时来查/为什么/数据粒度 →（备注）
     L=['<!-- META:%s START -->'%key,
        '> **📋 业务含义与全链路血缘**','>',
-       '> - **业务含义/目的**：%s %s'%(t['business_meaning'],t['business_purpose']),
-       '> - **何时来查这张表**：%s'%t['when_to_query'],
-       '> - **为什么 pipeline 这样处理**：%s'%t['why_pipeline'],
-       '> - **数据粒度**：%s'%t['grain'],
+       '> - **所处层级**：%s'%t['layer'],
        '> - **上游链路**：%s'%t['upstream_chain'],
        '> - **全部上游表**：%s'%JOIN(t['upstream_tables']),
        '> - **下游链路**：%s'%t['downstream_chain'],
-       '> - **全部下游表**：%s'%JOIN(t['downstream_tables'])]
+       '> - **全部下游表**：%s'%JOIN(t['downstream_tables']),
+       '> - **业务含义/目的**：%s %s'%(t['business_meaning'],t['business_purpose']),
+       '> - **何时来查这张表**：%s'%t['when_to_query'],
+       '> - **为什么 pipeline 这样处理**：%s'%t['why_pipeline'],
+       '> - **数据粒度**：%s'%t['grain']]
     if t.get('note'): L.append('> - **备注**：%s'%t['note'])
     L.append('<!-- META:%s END -->'%key)
     return '\n'.join(L)
@@ -72,6 +74,11 @@ if '| v6 |' not in md:
     idx=md.find('### 修订历史'); sep=md.find('\n|---',idx); eol=md.find('\n',sep+1)
     v6='\n| 2026-06-07 | AI Agent (Claude Opus 4.8) | v6 | 全表按 **L1→L5 层序重排** + 圆圈号 ②–㉔ 顺序化（MD 小节/索引、Excel 各表 sheet 与 ⓪ 总览同步）；新增 **全局 L1→L5 Pipeline 图**（MD Mermaid 流程图 + Excel ⓪b 全局Pipeline图 sheet）；与 doc 02 五层模型核对一致 | doc 02 · 20 · 21 · fcl_pipeline.html |'
     md=md[:eol]+v6+md[eol:]
+# v8 revision row (idempotent) — 说明块重排：先标所处层级，再上游、再下游
+if '| v8 |' not in md:
+    idx=md.find('### 修订历史'); sep=md.find('\n|---',idx); eol=md.find('\n',sep+1)
+    v8='\n| 2026-06-08 | AI Agent (Claude Opus 4.8) | v8 | 每表「业务含义与全链路血缘」说明块**重排**：首行新增 **所处层级**（L1–L5，取自 fcl_table_meta.json），紧接 **上游链路/全部上游表** → **下游链路/全部下游表**，再业务含义/何时来查/为什么/数据粒度；MD 块 + Excel 各表块 + ⓪ 总览同步 | fcl_table_meta.json |'
+    md=md[:eol]+v8+md[eol:]
 open(MD,'w',encoding='utf-8').write(md)
 
 # ================= XLSX =================
@@ -84,15 +91,17 @@ WRAP=Alignment(wrap_text=True,vertical='top',horizontal='left')
 START_S='📋 业务含义与全链路血缘'; END_S='▲ 以上为「业务含义与全链路血缘」说明块'
 
 def block_rows(t):
+    # order: 所处层级 → 上游(链路+表) → 下游(链路+表) → 业务含义/何时来查/为什么/数据粒度 →（备注）
     r=[('S',START_S+'  〔自动生成·勿手改本块；改 outputs/fcl_table_meta.json 后重跑〕'),
-       ('k','业务含义/目的：'+t['business_meaning']+' '+t['business_purpose']),
-       ('k','何时来查：'+t['when_to_query']),
-       ('k','为什么这样处理：'+t['why_pipeline']),
-       ('k','数据粒度：'+t['grain']),
+       ('k','所处层级：'+t['layer']),
        ('k','上游链路：'+t['upstream_chain']),
        ('k','全部上游表：'+JOIN(t['upstream_tables'])),
        ('k','下游链路：'+t['downstream_chain']),
-       ('k','全部下游表：'+JOIN(t['downstream_tables']))]
+       ('k','全部下游表：'+JOIN(t['downstream_tables'])),
+       ('k','业务含义/目的：'+t['business_meaning']+' '+t['business_purpose']),
+       ('k','何时来查：'+t['when_to_query']),
+       ('k','为什么这样处理：'+t['why_pipeline']),
+       ('k','数据粒度：'+t['grain'])]
     if t.get('note'): r.append(('k','备注：'+t['note']))
     r.append(('E',END_S+'；下方为原始数据 ────'))
     return r
@@ -110,18 +119,24 @@ for sn in list(wb.sheetnames):
             v=ws.cell(rr,cc).value
             if isinstance(v,str) and '人工' in v: bad=True
     if bad: skipped.append(sn); continue
-    # remove prior block (idempotent)
-    s=e=None
-    for rr in range(1,min(ws.max_row,50)+1):
+    # remove ALL prior blocks anywhere in the sheet (idempotent; cleans up blocks
+    # that earlier versions mis-placed/duplicated at the bottom of the datadic sheet)
+    spans=[]; s=None
+    for rr in range(1,ws.max_row+1):
         v=ws.cell(rr,1).value
-        if isinstance(v,str) and v.startswith(START_S) and s is None: s=rr
-        if isinstance(v,str) and v.startswith(END_S): e=rr; break
-    if s and e and e>=s:
+        if isinstance(v,str) and v.startswith(START_S): s=rr
+        if isinstance(v,str) and v.startswith(END_S) and s is not None:
+            spans.append((s,rr)); s=None
+    for s0,e0 in reversed(spans):
         for mr in list(ws.merged_cells.ranges):
-            if mr.min_row>=s and mr.max_row<=e: ws.unmerge_cells(str(mr))
-        ws.delete_rows(s,e-s+1)
-    # insert above data, below merged title/note/sql
-    idx=max((m.max_row for m in ws.merged_cells.ranges),default=0)+1
+            if mr.min_row>=s0 and mr.max_row<=e0: ws.unmerge_cells(str(mr))
+        ws.delete_rows(s0,e0-s0+1)
+    # insert right after the 查询 SQL row (consistent anchor for transposed/flat/datadic).
+    # NB: do NOT use max(merged)+1 — the datadic sheet has full-width merged sub-table
+    # titles throughout, which would push the block to the bottom of the sheet.
+    sqlrow=next((rr for rr in range(1,min(ws.max_row,8)+1)
+                 if isinstance(ws.cell(rr,1).value,str) and ws.cell(rr,1).value.startswith('查询 SQL')),None)
+    idx=(sqlrow+1) if sqlrow else max((m.max_row for m in ws.merged_cells.ranges if m.min_row<=4),default=3)+1
     rows=block_rows(t); ws.insert_rows(idx,len(rows))
     for off,(kind,text) in enumerate(rows):
         r=idx+off; c=ws.cell(r,1,text)
@@ -158,6 +173,15 @@ for num in ORDER:
 for c,w in enumerate([22,18,40,26,40,18,54,28,54,28,28],1):
     ws.column_dimensions[get_column_letter(c)].width=w
 ws.freeze_panes='C3'
+
+# ① 索引 sheet 修订单元格 B7（自由文本）幂等前插 v8 说明
+IDX='① 表清单 索引'
+if IDX in wb.sheetnames:
+    iw=wb[IDX]
+    cur=iw.cell(7,2).value or ''
+    if 'v8' not in cur:
+        note='2026-06-08 v8：每表说明块重排——首行加「所处层级」(L1–L5)，紧接上游(链路+表)、下游(链路+表)，再业务含义等。'
+        iw.cell(7,2).value=note+'  ||  '+cur
 wb.save(XLSX)
 
 print('MD blocks:',n_md,'| sheets enriched:',n_sheets,'| overview rows:',n_ovr,'| skipped(人工):',skipped,'| total sheets:',len(wb.sheetnames))

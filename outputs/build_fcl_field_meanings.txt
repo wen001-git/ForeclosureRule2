@@ -15,7 +15,9 @@ DATA = json.load(open('outputs/fcl_sample_raw_dump_data.json', encoding='utf-8')
 per, glob = {}, {}
 cur = None
 hdr = re.compile(r'^### 表\s*\d+\s*[:：]\s*`([^`]+)`')
-def cell(s): return s.strip().strip('`').strip()
+# escaped-pipe-aware cell splitter (keeps \| inside a cell intact), matching the
+# doc-19 md injector so the dictionary and doc 19 parse markdown tables the same way.
+def cells(line): return [c.strip().strip('`').strip() for c in re.split(r'(?<!\\)\|', line.strip())][1:-1]
 i = 0
 while i < len(DD):
     line = DD[i]
@@ -23,15 +25,14 @@ while i < len(DD):
     if m:
         cur = m.group(1).strip(); per.setdefault(cur, {}); i += 1; continue
     if line.startswith('|') and '字段名' in line and '含义' in line:
-        cols = [c.strip() for c in line.strip('|').split('|')]
-        try: mi = next(j for j, c in enumerate(cols) if j >= 1 and '含义' in c)
-        except StopIteration: mi = 1
+        cols = cells(line)
+        mi = next((j for j, c in enumerate(cols) if j >= 1 and '含义' in c), 1)
         i += 1
         if i < len(DD) and set(DD[i].replace('|', '').strip()) <= set('-: '): i += 1
         while i < len(DD) and DD[i].lstrip().startswith('|'):
-            p = DD[i].strip().strip('|').split('|')
+            p = cells(DD[i])
             if len(p) > mi:
-                f, mean = cell(p[0]), cell(p[mi])
+                f, mean = p[0], p[mi]
                 if f and f != '字段名' and mean and not set(f) <= set('-: '):
                     if cur: per[cur][f.lower()] = mean
                     glob.setdefault(f.lower(), mean)

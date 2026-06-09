@@ -1,0 +1,140 @@
+# -*- coding: utf-8 -*-
+# Idempotent injection of 业务含义 into docs/19_fcl_sample_loan_raw_dump.xlsx.
+#   transposed sheets : insert 业务含义 column right after 字段 (col B)
+#   flat sheets       : insert a 字段说明 legend block (字段|业务含义) above the data grid
+#   datadic sheet     : insert 业务含义 column after 解码（description） (col C)
+# Header-located (never hardcoded indices); aborts on any 「人工」 column (Excel guard rule).
+# Run: python - < outputs/inject_doc19_field_meaning_xlsx.txt
+import json, re
+from copy import copy
+import openpyxl
+from openpyxl.utils import get_column_letter
+from openpyxl.styles import Font
+
+XL = 'docs/19_fcl_sample_loan_raw_dump.xlsx'
+FM = json.load(open('outputs/fcl_field_meanings.json', encoding='utf-8'))
+DM = json.load(open('outputs/fcl_datadic_meanings.json', encoding='utf-8'))
+DATA = json.load(open('outputs/fcl_sample_raw_dump_data.json', encoding='utf-8'))['tables']
+
+byst = {t['schema_table']: {f.lower(): d['m'] for f, d in t['fields'].items()} for t in FM.values()}
+kind_by = {f"{v['schema']}.{v['table']}": v['kind'] for v in DATA.values()}
+cols_by = {f"{v['schema']}.{v['table']}": v['columns'] for v in DATA.values()}
+
+def cp(dst, src):
+    dst.font = copy(src.font); dst.fill = copy(src.fill)
+    dst.border = copy(src.border); dst.alignment = copy(src.alignment)
+
+def insert_col_keep_merges(ws, at):
+    # openpyxl won't auto-extend full-width merges across an inserted column, and
+    # unmerging AFTER insert corrupts the cell registry. So: unmerge full-width
+    # ranges first, insert, then re-merge them one column wider.
+    om = ws.max_column
+    fw = [(m.min_row, m.max_row) for m in ws.merged_cells.ranges
+          if m.min_col == 1 and m.max_col == om]
+    for m in list(ws.merged_cells.ranges):
+        if m.min_col == 1 and m.max_col == om:
+            ws.unmerge_cells(str(m))
+    ws.insert_cols(at)
+    for r0, r1 in fw:
+        ws.merge_cells(start_row=r0, start_column=1, end_row=r1, end_column=om + 1)
+
+def manual_col(ws):
+    # CLAUDE.md guard: any column whose header (any cell) contains 「人工」 is user-owned.
+    for row in ws.iter_rows():
+        for c in row:
+            if isinstance(c.value, str) and '人工' in c.value:
+                return True
+    return False
+
+def do_transpose(ws, st):
+    lk = byst[st]
+    hr = next((r for r in range(1, ws.max_row + 1)
+               if str(ws.cell(r, 1).value).strip() == '字段'), None)
+    if not hr:
+        return 'no-header'
+    already = str(ws.cell(hr, 2).value).strip() == '业务含义'
+    if not already:
+        insert_col_keep_merges(ws, 2)
+        ws.cell(hr, 2).value = '业务含义'
+        cp(ws.cell(hr, 2), ws.cell(hr, 1))       # header look = 字段 header
+        ws.column_dimensions[get_column_letter(2)].width = 34
+    r = hr + 1
+    while r <= ws.max_row and ws.cell(r, 1).value not in (None, ''):
+        f = str(ws.cell(r, 1).value).strip().lower()
+        cell = ws.cell(r, 2); cell.value = lk.get(f, '')
+        if not already:
+            cp(cell, ws.cell(r, 1))
+        r += 1
+    return 'inserted' if not already else 'refreshed'
+
+def do_datadic(ws):
+    already = any(str(ws.cell(r, 1).value).strip() == '编码' and
+                  str(ws.cell(r, 3).value).strip() == '业务含义'
+                  for r in range(1, ws.max_row + 1))
+    if not already:
+        insert_col_keep_merges(ws, 3)
+        ws.column_dimensions[get_column_letter(3)].width = 40
+    field = None
+    for r in range(1, ws.max_row + 1):
+        a = ws.cell(r, 1).value
+        if isinstance(a, str):
+            m = re.match(r'(\w+)\s*←', a.strip())
+            if m:
+                field = m.group(1); continue
+            if a.strip() == '编码':
+                ws.cell(r, 3).value = '业务含义'
+                if not already:
+                    cp(ws.cell(r, 3), ws.cell(r, 2))
+                continue
+        code = str(a).strip() if a is not None else ''
+        if field and code and code.lstrip('-').isdigit():
+            cell = ws.cell(r, 3); cell.value = DM.get(field, {}).get(code, '')
+            if not already:
+                cp(cell, ws.cell(r, 2))
+    return 'ok'
+
+def do_flat(ws, st):
+    lk = byst[st]; data_cols = cols_by[st]; n = len(data_cols)
+    low = [c.lower() for c in data_cols]
+    gh = None
+    for r in range(1, ws.max_row + 1):
+        rv = [str(ws.cell(r, c).value).strip().lower() if ws.cell(r, c).value is not None else ''
+              for c in range(1, n + 1)]
+        if rv == low:
+            gh = r; break
+    if not gh:
+        return 'no-grid'
+    # remove an existing legend (sentinel 字段说明 immediately above grid) for clean re-run
+    for r in range(gh - 1, 0, -1):
+        if str(ws.cell(r, 1).value).strip() == '字段说明':
+            ws.delete_rows(r, gh - r); gh = r; break
+    ws.insert_rows(gh, n + 2)
+    ws.cell(gh, 1).value = '字段说明'; ws.cell(gh, 1).font = Font(bold=True, name='微软雅黑')
+    ws.cell(gh + 1, 1).value = '字段'; ws.cell(gh + 1, 2).value = '业务含义'
+    ws.cell(gh + 1, 1).font = Font(bold=True, name='微软雅黑')
+    ws.cell(gh + 1, 2).font = Font(bold=True, name='微软雅黑')
+    for i, col in enumerate(data_cols):
+        ws.cell(gh + 2 + i, 1).value = col
+        ws.cell(gh + 2 + i, 2).value = lk.get(col.lower(), '')
+    return 'ok'
+
+wb = openpyxl.load_workbook(XL)
+stre = re.compile(r'([a-z_]+\.[a-z0-9_]+)')
+counts = {'transpose': 0, 'flat': 0, 'datadic': 0, 'skip': 0}
+for name in wb.sheetnames:
+    ws = wb[name]
+    t1 = ws.cell(1, 1).value
+    m = stre.match(str(t1 or '').strip())
+    if not m:
+        continue                                  # ⓪/⓪b/① cover sheets
+    st = m.group(1)
+    if manual_col(ws):
+        print(f'  ! SKIP {name}: contains 人工 column'); counts['skip'] += 1; continue
+    if st.endswith('portnewrezdatadic'):
+        do_datadic(ws); counts['datadic'] += 1
+    elif kind_by.get(st) == 'flat':
+        do_flat(ws, st); counts['flat'] += 1
+    elif st in byst:
+        do_transpose(ws, st); counts['transpose'] += 1
+wb.save(XL)
+print('xlsx injected:', counts)

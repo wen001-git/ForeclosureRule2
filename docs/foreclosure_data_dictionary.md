@@ -20,6 +20,7 @@
 
 | Date | Author | Version | Changes | Related |
 |------|--------|---------|---------|---------|
+| 2026-06-08 | AI Agent (Claude Opus 4.8) | v15 | **表26 8 张解码子表新增「业务含义」列**（编码 → 解码 → 业务含义），与 doc 19 ㉔ 同步；业务含义按工作流/业务语义撰写（复用 doc 10 LM 六型/破产 Ch7·13、doc 18 LM 生命周期、doc 04 BK 码） | doc 19 v7 · doc 10 · doc 18 |
 | 2026-06-05 | AI Agent (Claude Opus 4.8) | v14 | 表名改正 `portshellpoint*`→`portnewrez*`（DB 实测 newrez 现役表，2024-07-05 改名）+ 加命名说明 | DB 实测 · doc 01 |
 | 2026-06-04 | AI Agent (Claude Opus 4.8) | v13 | 新增**表26 `newrez.portnewrezdatadic`**（Redshift 解码字典）：结构+角色+解码表（小字段 LMDeal/BorrowerIntention/BKStatus/BKStage 全量；大字段 LMProgram/LMStatus/LMDecision/DenialReason 去长尾=prod 最新快照出现的码）；「表19 LM 解码参考」加表26交叉引用。数据经 redshift_prod 只读预取 | doc 19 v3 · redshift_prod |
 | 2026-06-03 | AI Agent (Claude Opus 4.8) | v12 | 「表19 LM 编码字段解码参考」补充解码机制溯源：映射数据在 **Redshift 字典表 `newrez.portnewrezdatadic`**（dev MySQL 无），解码 JOIN 在代码 `basic_data_pool_config.py:835-840`（BK :367），非硬编码；LMDeal 字典 13 码（实测 8） | basic_data_pool_config.py · Redshift portnewrezdatadic · doc 13 v33 |
@@ -2073,156 +2074,156 @@ WHERE (module_name='LossMitigation' AND field_name IN
 
 #### LMDeal ← `newrez.portnewrezlm.lmdeal`（LossMitigation；字典 13 码，本表全量列出）
 
-| 编码 | 解码（description） |
-|---|---|
-| 1 | Modification |
-| 2 | Evaluation |
-| 3 | Reinstatement |
-| 4 | Payment Plan |
-| 5 | Forbearance |
-| 6 | Short Sale |
-| 7 | DIL |
-| 8 | Loan Sale |
-| 9 | Payoff |
-| 10 | Settlement |
-| 11 | Deferment |
-| 12 | CFK |
-| 13 | Consent Judgement |
+| 编码 | 解码（description） | 业务含义 |
+|---|---|---|
+| 1 | Modification | 永久性修改贷款条款，把月供降到可负担水平 |
+| 2 | Evaluation | LM 评估期——收材料、判定适用方案 |
+| 3 | Reinstatement | 一次性补齐全部欠款使贷款恢复正常(Reinstatement) |
+| 4 | Payment Plan | 还款计划——正常月供外分期补缴欠款 |
+| 5 | Forbearance | 暂缓/减少月供，到期后补缴(Forbearance，临时性) |
+| 6 | Short Sale | 短售——低于欠款价售房，贷方免除差额 |
+| 7 | DIL | 自愿移交房产所有权(Deed-in-Lieu)抵债 |
+| 8 | Loan Sale | 将该贷款出售给第三方 |
+| 9 | Payoff | 全额结清贷款 |
+| 10 | Settlement | 与借款人和解结案 |
+| 11 | Deferment | 递延——把欠款挪到贷款末尾，月供恢复正常 |
+| 12 | CFK | Cash for Keys——付款换借款人腾房交钥匙 |
+| 13 | Consent Judgement | 同意判决——与借款人协商达成的法拍判决 |
 
 #### LMProgram ← `newrez.portnewrezlm.lmprogram`（LossMitigation；字典 388 码 · prod 实际 22 码，本表列 prod 出现的码）
 
-| 编码 | 解码（description） |
-|---|---|
-| 8 | Short Sale |
-| 10 | Deed-in-Lieu |
-| 12 | Short-term Forbearance |
-| 21 | Evaluation |
-| 25 | Payoff |
-| 29 | Repayment Plan |
-| 73 | Deferment |
-| 151 | Disaster Forbearance |
-| 215 | Short-term FB COVID (RETIRED 2023-11-01) |
-| 240 | SLS Standard Mod |
-| 273 | Standard Proprietary Modification |
-| 348 | FHA Recovery SAPC |
-| 359 | Standard Proprietary Mod - IA Required |
-| 365 | VA 40 Year Modification |
-| 396 | VA Traditional |
-| 419 | Bridger mod |
-| 491 | （字典无此码） |
-| 496 | （字典无此码） |
-| 498 | （字典无此码） |
-| 499 | （字典无此码） |
-| 527 | （字典无此码） |
-| 531 | （字典无此码） |
+| 编码 | 解码（description） | 业务含义 |
+|---|---|---|
+| 8 | Short Sale | 短售项目 |
+| 10 | Deed-in-Lieu | 以房抵债(DIL)项目 |
+| 12 | Short-term Forbearance | 短期暂缓还款 |
+| 21 | Evaluation | 方案评估 |
+| 25 | Payoff | 结清 |
+| 29 | Repayment Plan | 还款计划 |
+| 73 | Deferment | 递延 |
+| 151 | Disaster Forbearance | 灾害暂缓还款 |
+| 215 | Short-term FB COVID (RETIRED 2023-11-01) | COVID 短期暂缓（已于 2023-11-01 停用） |
+| 240 | SLS Standard Mod | SLS 标准修改方案 |
+| 273 | Standard Proprietary Modification | 标准自有(proprietary)修改方案 |
+| 348 | FHA Recovery SAPC | FHA 复苏 SAPC 项目 |
+| 359 | Standard Proprietary Mod - IA Required | 标准自有修改（需独立评估 IA） |
+| 365 | VA 40 Year Modification | VA 40 年期修改 |
+| 396 | VA Traditional | VA 传统方案 |
+| 419 | Bridger mod | Bridger 自有修改方案 |
+| 491 | （字典无此码） | 项目码在字典中无对应文案（需向 Newrez 核对） |
+| 496 | （字典无此码） | 项目码在字典中无对应文案（需向 Newrez 核对） |
+| 498 | （字典无此码） | 项目码在字典中无对应文案（需向 Newrez 核对） |
+| 499 | （字典无此码） | 项目码在字典中无对应文案（需向 Newrez 核对） |
+| 527 | （字典无此码） | 项目码在字典中无对应文案（需向 Newrez 核对） |
+| 531 | （字典无此码） | 项目码在字典中无对应文案（需向 Newrez 核对） |
 
 #### LMStatus ← `newrez.portnewrezlm.lmstatus`（LossMitigation；字典 149 码 · prod 实际 17 码，本表列 prod 出现的码）
 
-| 编码 | 解码（description） |
-|---|---|
-| 5 | Document Follow-up |
-| 13 | Follow up for 1st Trial Payment |
-| 20 | Book mod |
-| 25 | Monitor for pmts/funds |
-| 45 | Countered by Supervisor |
-| 48 | Underwriting Follow Up Required |
-| 101 | Resubmitted to Underwriting |
-| 112 | Workout Denial |
-| 113 | Monitor Forbearance |
-| 116 | Not Assigned |
-| 126 | DIL Title Ordered |
-| 135 | DIL Sent for Recording |
-| 139 | Deferment Plan In Progress |
-| 140 | Deferment Agreement Ordered |
-| 166 | Pending Financials  |
-| 172 | Liquidation Referral |
-| 186 | Monitor for Mod Agreement – Final Trial Payment Due |
+| 编码 | 解码（description） | 业务含义 |
+|---|---|---|
+| 5 | Document Follow-up | 催收/跟进所需材料 |
+| 13 | Follow up for 1st Trial Payment | 跟进首笔试用期还款 |
+| 20 | Book mod | 入账修改（修改正式生效） |
+| 25 | Monitor for pmts/funds | 监控还款/资金到账 |
+| 45 | Countered by Supervisor | 主管提出还价/修改条件 |
+| 48 | Underwriting Follow Up Required | 需承保补充跟进 |
+| 101 | Resubmitted to Underwriting | 重新提交承保审核 |
+| 112 | Workout Denial | 方案被拒(Workout Denial) |
+| 113 | Monitor Forbearance | 监控暂缓还款执行 |
+| 116 | Not Assigned | 尚未分配处理人 |
+| 126 | DIL Title Ordered | 已订购 DIL 产权报告 |
+| 135 | DIL Sent for Recording | DIL 文件已送登记 |
+| 139 | Deferment Plan In Progress | 递延计划执行中 |
+| 140 | Deferment Agreement Ordered | 已下单递延协议 |
+| 166 | Pending Financials | 待借款人财务资料 |
+| 172 | Liquidation Referral | 转清算(短售/DIL/法拍) |
+| 186 | Monitor for Mod Agreement – Final Trial Payment Due | 监控修改协议——末笔试用期还款将到期 |
 
 #### LMDecision ← `newrez.portnewrezlm.lmdecision`（LossMitigation；字典 23 码 · prod 实际 13 码，本表列 prod 出现的码）
 
-| 编码 | 解码（description） |
-|---|---|
-| 1 | Modification Complete |
-| 3 | DIL Complete |
-| 4 | Forbearance Complete |
-| 5 | Reinstated/Current |
-| 6 | Referral to FC |
-| 7 | Not Eligible for Loss Mitigation |
-| 10 | Request Incomplete/Failed to Provide Information |
-| 11 | LMS Opened in Error |
-| 12 | No Change in Circumstance |
-| 14 | Deferment Completed |
-| 17 | Full Pay Off |
-| 18 | FC Sale Held |
-| 99 | Pending |
+| 编码 | 解码（description） | 业务含义 |
+|---|---|---|
+| 1 | Modification Complete | 修改完成（贷款重组成功） |
+| 3 | DIL Complete | DIL 完成（房产已移交） |
+| 4 | Forbearance Complete | 暂缓还款期满结束 |
+| 5 | Reinstated/Current | 已补齐欠款恢复正常 |
+| 6 | Referral to FC | 转法拍(Referral to FC)——LM 未成功 |
+| 7 | Not Eligible for Loss Mitigation | 不符合 LM 资格 |
+| 10 | Request Incomplete/Failed to Provide Information | 资料不全/未按时提供 |
+| 11 | LMS Opened in Error | 误开 LM 工单 |
+| 12 | No Change in Circumstance | 处境无变化，不重启评估 |
+| 14 | Deferment Completed | 递延完成 |
+| 17 | Full Pay Off | 全额结清 |
+| 18 | FC Sale Held | 法拍已成交，LM 终止 |
+| 99 | Pending | 处理中/待决 |
 
 #### DenialReason ← `newrez.portnewrezlm.denialreason`（LossMitigation；字典 130 码 · prod 实际 18 码，本表列 prod 出现的码）
 
-| 编码 | 解码（description） |
-|---|---|
-| 4 | Withdrawal of Request/Non-Acceptance |
-| 6 | Ineligible Borrower |
-| 9 | Investor Not Participating |
-| 19 | Exceeds Allowable Timeframe |
-| 21 | Request Incomplete/Failed to Provide Documentation |
-| 30 | Failed Plan |
-| 34 | Ineligible Borrower: Not a Natural Person |
-| 40 | PMI Company Decline |
-| 50 | Request Withdrawn Before Offer |
-| 75 | Declined Mod Review in favor of SS/DIL |
-| 76 | HAMP Sunset |
-| 86 | Request Withdrawn |
-| 95 | Loan not eligible for deferment |
-| 108 | Unable to achieve target payment |
-| 109 | Loan not due for 3 or more monthly payments |
-| 112 | No verifiable Hardship |
-| 118 | Loan not 90+ DPD  |
-| 124 | Hardship not resolved |
+| 编码 | 解码（description） | 业务含义 |
+|---|---|---|
+| 4 | Withdrawal of Request/Non-Acceptance | 借款人撤回申请/不接受方案 |
+| 6 | Ineligible Borrower | 借款人不符合资格 |
+| 9 | Investor Not Participating | 投资人不参与该方案 |
+| 19 | Exceeds Allowable Timeframe | 超出允许时限 |
+| 21 | Request Incomplete/Failed to Provide Documentation | 资料不全/未提供文件 |
+| 30 | Failed Plan | 此前方案违约失败 |
+| 34 | Ineligible Borrower: Not a Natural Person | 借款人非自然人，不符合资格 |
+| 40 | PMI Company Decline | 抵押保险(PMI)公司拒绝 |
+| 50 | Request Withdrawn Before Offer | 报价前撤回申请 |
+| 75 | Declined Mod Review in favor of SS/DIL | 放弃修改审核，转短售/DIL |
+| 76 | HAMP Sunset | HAMP 项目已到期终止 |
+| 86 | Request Withdrawn | 申请被撤回 |
+| 95 | Loan not eligible for deferment | 贷款不符合递延条件 |
+| 108 | Unable to achieve target payment | 无法达到目标月供 |
+| 109 | Loan not due for 3 or more monthly payments | 逾期不足 3 期，未达条件 |
+| 112 | No verifiable Hardship | 无可证实的困难 |
+| 118 | Loan not 90+ DPD | 逾期未满 90 天，未达条件 |
+| 124 | Hardship not resolved | 困难未解决 |
 
 #### BorrowerIntention ← `newrez.portnewrezlm.borrowerintention`（LossMitigation；字典 3 码，本表全量列出）
 
-| 编码 | 解码（description） |
-|---|---|
-| 1 | Unknown |
-| 2 | Retention |
-| 3 | Disposition |
+| 编码 | 解码（description） | 业务含义 |
+|---|---|---|
+| 1 | Unknown | 意向未知 |
+| 2 | Retention | 保留房产（争取留房方案） |
+| 3 | Disposition | 处置房产（短售/DIL/放弃） |
 
 #### BKStatus ← `newrez.portnewrezbk.bkstatus`（Bankruptcy；字典 5 码，本表全量列出）
 
-| 编码 | 解码（description） |
-|---|---|
-| 1 | Active |
-| 2 | Discharged |
-| 3 | Dismissed |
-| 4 | Closed |
-| 5 | ReliefGranted |
+| 编码 | 解码（description） | 业务含义 |
+|---|---|---|
+| 1 | Active | 破产案进行中——自动暂停(Automatic Stay)保护，法拍暂停 |
+| 2 | Discharged | 债务已免除（借款人个人债务责任解除） |
+| 3 | Dismissed | 破产案被驳回——保护解除，法拍可恢复推进 |
+| 4 | Closed | 破产案结案 |
+| 5 | ReliefGranted | 已批准解除自动暂停——债权人可推进法拍/MFR 获准 |
 
 #### BKStage ← `newrez.portnewrezbk.bkstage`（Bankruptcy；字典 22 码，本表全量列出）
 
-| 编码 | 解码（description） |
-|---|---|
-| 0 | Petition |
-| 1 | Received |
-| 2 | 341 Meeting |
-| 3 | Objection to Plan |
-| 4 | Confirmation |
-| 5 | Discharge Ability |
-| 6 | POC Bar |
-| 7 | Proof of Claim |
-| 8 | Discharged |
-| 9 | Discharged Review |
-| 10 | Dismissed |
-| 11 | Reaffirmed |
-| 12 | Vacated |
-| 13 | Transfer of Claim |
-| 14 | Final Cure (Chapter 13) |
-| 15 | Attorney Consent |
-| 16 | Chapter Converted |
-| 17 | Termination |
-| 18 | Trustee No Asset CH 7 |
-| 19 | Trustee Abandonment CH 7  |
-| 20 | Plan Review |
-| 21 | Motion to Determine Final Cure |
+| 编码 | 解码（description） | 业务含义 |
+|---|---|---|
+| 0 | Petition | 递交破产申请(Petition) |
+| 1 | Received | 已收到破产通知 |
+| 2 | 341 Meeting | 债权人会议(341 Meeting) |
+| 3 | Objection to Plan | 对还款计划提出异议 |
+| 4 | Confirmation | 还款计划获法院确认(Confirmation) |
+| 5 | Discharge Ability | 评估可否获债务免除 |
+| 6 | POC Bar | 债权申报截止(POC Bar Date) |
+| 7 | Proof of Claim | 提交债权证明(Proof of Claim) |
+| 8 | Discharged | 债务已免除(Discharged) |
+| 9 | Discharged Review | 债务免除后复核 |
+| 10 | Dismissed | 破产案被驳回 |
+| 11 | Reaffirmed | 重申债务，继续承担 |
+| 12 | Vacated | 撤销（裁定作废） |
+| 13 | Transfer of Claim | 债权转让 |
+| 14 | Final Cure (Chapter 13) | 第13章最终补缴确认(Final Cure) |
+| 15 | Attorney Consent | 律师同意 |
+| 16 | Chapter Converted | 破产章节转换（如 Ch13→Ch7） |
+| 17 | Termination | 终止 |
+| 18 | Trustee No Asset CH 7 | 第7章受托人认定无可分配资产 |
+| 19 | Trustee Abandonment CH 7 | 第7章受托人放弃资产（房产交还债权人推进） |
+| 20 | Plan Review | 还款计划审查 |
+| 21 | Motion to Determine Final Cure | 申请认定最终补缴是否完成 |
 
 <!-- DATADIC26 END -->
 

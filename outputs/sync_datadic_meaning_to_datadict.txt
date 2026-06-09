@@ -1,0 +1,44 @@
+# -*- coding: utf-8 -*-
+# Idempotently add a 业务含义 column to the 8 decode sub-tables of 表26 in
+# docs/foreclosure_data_dictionary.md, sourced from outputs/fcl_datadic_meanings.json.
+# Keeps 表26 consistent with doc 19 ㉔. Operates ONLY within the 表26 region.
+# Run: python - < outputs/sync_datadic_meaning_to_datadict.txt
+import json, re
+
+DOC = 'docs/foreclosure_data_dictionary.md'
+DM = json.load(open('outputs/fcl_datadic_meanings.json', encoding='utf-8'))
+
+def esc(s): return (s or '').replace('|', r'\|').replace('\n', '<br>')
+def cells(line): return [c.strip() for c in re.split(r'(?<!\\)\|', line.strip())][1:-1]
+def mkrow(cs): return '| ' + ' | '.join(cs) + ' |'
+def is_sep(s): return s.lstrip().startswith('|') and set(s.strip()) <= set('|-: ') and '-' in s
+
+lines = open(DOC, encoding='utf-8').read().split('\n')
+start = next(i for i, l in enumerate(lines) if l.startswith('### 表 26'))
+end = next((i for i, l in enumerate(lines) if 'DATADIC26 END' in l), len(lines))
+
+out = lines[:start]
+i = start; ddf = None; n = 0
+while i < end:
+    ln = lines[i]
+    fm = re.match(r'^#{3,4}\s+(\w+)\s*←', ln)
+    if fm:
+        ddf = fm.group(1); out.append(ln); i += 1; continue
+    if ln.startswith('|') and i + 1 < end and is_sep(lines[i+1]):
+        header = cells(ln)
+        rows = []; j = i + 2
+        while j < end and lines[j].lstrip().startswith('|'):
+            rows.append(lines[j]); j += 1
+        if header and header[0] == '编码' and ddf in DM:
+            out.append(mkrow(['编码', '解码（description）', '业务含义']))
+            out.append('|---|---|---|')
+            lk = DM[ddf]
+            for r in rows:
+                rc = cells(r); code = rc[0].strip()
+                out.append(mkrow([rc[0], rc[1] if len(rc) > 1 else '', esc(lk.get(code, ''))]))
+            n += 1; i = j; continue
+    out.append(ln); i += 1
+out += lines[end:]
+
+open(DOC, 'w', encoding='utf-8').write('\n'.join(out))
+print(f'表26 datadic sub-tables updated with 业务含义: {n}')

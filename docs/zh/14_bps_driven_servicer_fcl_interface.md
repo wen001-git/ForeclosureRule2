@@ -46,6 +46,7 @@
 | 2026-06-03 | AI Agent (Claude Opus 4.8) | v32 | 标准接口字段 `sms_days_in_fcl` → **`servicer_days_in_fcl`**（去除单一 servicer 品牌名 SMS=Shellpoint；标准接口应 servicer-中性，与 `days_in_fcl` 配对、与 ETL 别名 svc_days_infc 一致）。保留 Newrez 列 `smsdaysinfc`/BPS 列 `summary_sms_days_in_fcl`/UI "SMS Days" 不变。改 Excel col C+业务含义+col13注释→sync zh 卡片；en 横表、doc 13 §3.7 脚注、3 生成脚本 key 同步 | DB/代码核实 · doc 13 v34 |
 | 2026-06-03 | AI Agent (Claude Opus 4.8) | v31 | 明确 `sms_days_in_fcl` vs `days_in_fcl` 业务含义（代码+DB 核实）：days_in_fcl=投资人/全程，按 `fcreferraldate` 起算（ETL datediff+1）；sms_days_in_fcl=Newrez 原生 `smsdaysinfc`(svc_days_infc，servicer/SMS=Shellpoint 口径)，实测自 `fcsetupdate` 起算 → `sms ≤ days`；BPS 两者均 +DATEDIFF 实时修正。Excel+zh 卡片同步；doc 13 §3.7 同步 | 代码 basic_data_pool_config.py:280/1545/1628 · doc 13 v34 |
 | 2026-06-08 | AI Agent (Claude Opus 4.8) | v39 | 更正附录 D 状态机：删除错误的 `BK →（债务清偿）→ P` 边（Ch.7 discharge 仅免除个人债务、抵押权 Lien 存续，贷款并未结清）；P 节点标签去「债务清偿」；BK→FCL 边补「/Ch.7 清偿」；D.3 表 `BK→P` 行改为「无 P 直达」澄清——与 doc 7/17/fcl_pipeline.html 同步 | doc 7 · doc 17 · fcl_pipeline.html |
+| 2026-06-08 | AI Agent (Claude Opus 4.8) | v40 | 附录 D 状态图下**新增「四个独立维度」补充说明**（维度表 + 示例组合表 + 3 条澄清）。**原状态图保持不变**（仅补充文字） | doc 7/17 · fcl_pipeline.html |
 | 2026-06-03 | AI Agent (Claude Opus 4.8) | v30 | `lm_status` 标准接口取值范围列全**实测 22 个** lmc_status（一值一行；原为「等20+种」省略），末注字典完整域约 150 码（完整 code→text 见数据字典/Redshift portnewrezdatadic）；状态流转图见 doc 18 §4.5 | DB 实测 · doc 18 v3 |
 | 2026-06-03 | AI Agent (Claude Opus 4.8) | v29 | `reo_acquisition_date` 验证SQL 头注略扩：解释 `dtdeedrecorded`=止赎契据登记日（产权过户/止赎完成点，约在 fcsalehelddate 后 2-3 周，多数→REO，近似 REO 取得日）；查询/结果不变。Excel + zh 卡片同步；术语收录 doc 10 分类C（v4） | doc 10 v4 |
 | 2026-06-03 | AI Agent (Claude Opus 4.8) | v28 | `lm_type` 验证SQL/验证结果补充：原仅验 Newrez 源 `lmdeal` 码分布，改为**跨表 join**（Newrez `lmdeal` × BPS `deal`，同 lm_deal），同时验证源表与 BPS 表；结果显示 lmdeal→deal 解码映射（实测 8 deal）。生成器 add_field_spec_verify_sql.py 同步把 lm_type 归为 lm_code 类型 | DB 实测（跨库 JOIN） |
@@ -4315,6 +4316,26 @@ flowchart TD
     style REO fill:#F08080,stroke:#DC143C
     style P fill:#90EE90,stroke:#228B22
 ```
+
+> **四个独立维度（补充说明，不改上图）**：上面的线性图便于叙事，但 **FCL / LM / BK 不是逾期轴上的「下一个状态」**，而是**叠加在贷款上的并发维度**，并**不改变 `delinq`**。其中 **FCL-Hold 是 FCL 的子态**，由 BK 自动中止令 / LM 审核触发（非独立第 5 态）。
+
+| 维度 | 含义 | 取值 | 数据字段 |
+|------|------|------|---------|
+| A · Delinquency 逾期程度 | 欠款多严重？ | Current → D30 → D60 → D90 → D120P | `delinq`（同字段含 FCL/REO/P 处置值）|
+| B · FCL 止赎 | 法律程序是否启动？ | N / Y | `activefcflag` |
+| C · LM 损失缓解 | 是否有主动补救方案？ | N / Y | `lm_flag`(`activelmflag`) |
+| D · BK 破产 | 借款人是否申请破产？ | N / Y | `bankruptcy`(`activebkflag`) |
+
+**同一笔贷款可同时处于多个维度：**
+
+| 示例 | Delinquency | FCL | LM | BK | 业务含义 |
+|------|-------------|-----|----|----|---------|
+| 典型止赎 | `D120P` | Y | N | N | 严重逾期已进入法律程序 |
+| 止赎中谈判 | `FCL` | Y | Y | N | 进入止赎但同时在谈宽限 |
+| 破产保护中 | `D90` | Y | N | Y | 破产自动中止令暂停止赎 |
+| 正常贷款 | `Current` | N | N | N | 按时还款，无任何特殊状态 |
+
+> 关键澄清：① **FCL-Hold 由 BK 自动中止令 / LM 审核触发**（FCL 子态，非独立第 5 态）；② **LM/BK/Hold 生效期间 `delinq` 不变**（仍 FCL 或原逾期档；代码 `CREATE_FCL_RELATE_ATTR` 把 `Foreclosure / Perf·Non-Perf BK` 都映射为 `FCL`）；③ **P/REO 是 A 轴处置终态**，Ch.7 discharge ≠ 还清（Lien 存续），故无 `BK→P` 直达。
 
 ### D.2 状态说明与系统 delinq 码对应
 

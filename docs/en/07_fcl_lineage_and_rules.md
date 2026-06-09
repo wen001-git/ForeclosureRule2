@@ -31,6 +31,8 @@
 | 2026-05-26 | AI Agent (Claude Sonnet 4.6) | v2 | New section 2.4.6: BPS FCL Operational Stage Pipeline (Mermaid flowchart, 7-stage table, "Upcoming" naming rationale, design rationale analysis, comparison with theoretical model) | — |
 | 2026-06-05 | AI Agent (Claude Opus 4.8) | v2.1 | §2.4.6 ① NOI/Demand Letter node: flowchart now distinguishes NOI vs Demand Letter (Judicial=NOI/NOD, Non-Judicial=Demand Letter, same field demandsentdate, ~30-day cure, pre-FCL, per doc 10 glossary); Key Fields demand_date/noi_date → demand_start_date (noi_start_date always NULL); added the data caveat (this DEMAND stage is normally 0 in agg-summary — ingestion needs fcreferraldate non-null, DEMAND needs it NULL, only pre-referral D90/D120P). Synced to doc 17 §4.6 / fcl_pipeline.html | doc 10 · doc 17 · fcl_pipeline.html |
 | 2026-06-08 | AI Agent (Claude Opus 4.8) | v2.2 | Corrected §2.4 state machine: removed the wrong `BK →(debt discharged)→ P` edge (Ch.7 discharge only releases personal liability; the mortgage lien survives, the loan is NOT paid off); removed "discharge" from the P node label; §2.4.3 `BK → P` row rewritten as "no direct P" — consistent with §2.5 Ch.7 lien note and doc 17/14/fcl_pipeline.html | doc 17 · doc 14 · fcl_pipeline.html |
+| 2026-06-08 | AI Agent (Claude Opus 4.8) | v2.3 | Added a "four independent dimensions" supplementary note below the §2.4 state machine (dimension table + example-combinations table + 3 clarifications). **The state diagram itself is unchanged** (text-only addition) | doc 17/14 · fcl_pipeline.html |
+| 2026-06-08 | AI Agent (Claude Opus 4.8) | v2.4 | §2.5 BK deep dive: added "Official Sources & Legal Basis for BK State Transitions" — uscourts.gov Bankruptcy Basics links + per-transition Title 11 statute links (§ 362 / § 1322 / § 1328 / § 727 / § 524, Cornell LII) with verbatim excerpts; §2.4.3 pointer; clarified the system passes through servicer status (no coded BK→C trigger, 03_fcl_status_logic.md §2.1 L77–114). URLs + quotes verified via WebFetch | doc 17 · 03_fcl_status_logic.md |
 
 ---
 
@@ -567,6 +569,26 @@ flowchart TD
     style P fill:#90EE90,stroke:#228B22
 ```
 
+> **Four independent dimensions (supplementary note — diagram unchanged)**: the linear diagram above is good for narrative, but **FCL / LM / BK are NOT "the next state" on the delinquency axis** — they are **concurrent dimensions overlaid on the loan** and do **not** change `delinq`. **FCL-Hold is an FCL sub-state** triggered by BK automatic stay / LM review (not a 5th independent state).
+
+| Dimension | Meaning | Values | Field |
+|-----------|---------|--------|-------|
+| A · Delinquency | How severe is the arrears? | Current → D30 → D60 → D90 → D120P | `delinq` (also holds FCL/REO/P) |
+| B · FCL | Legal process started? | N / Y | `activefcflag` |
+| C · LM | Active remediation? | N / Y | `lm_flag`(`activelmflag`) |
+| D · BK | Borrower filed bankruptcy? | N / Y | `bankruptcy`(`activebkflag`) |
+
+**A loan can sit in several dimensions at once:**
+
+| Example | Delinquency | FCL | LM | BK | Meaning |
+|---------|-------------|-----|----|----|---------|
+| Typical FCL | `D120P` | Y | N | N | Severe arrears, in legal process |
+| FCL + LM talks | `FCL` | Y | Y | N | In FCL but negotiating relief |
+| In bankruptcy | `D90` | Y | N | Y | BK automatic stay pauses FCL |
+| Normal | `Current` | N | N | N | Performing, no special status |
+
+> Clarifications: ① **FCL-Hold is triggered by BK automatic stay / LM review** (FCL sub-state, not a 5th independent state); ② **while LM/BK/Hold are active, `delinq` is unchanged** (stays FCL or the prior bucket; code `CREATE_FCL_RELATE_ATTR` maps `Foreclosure / Perf·Non-Perf BK` → `FCL`); ③ **P/REO are A-axis disposition terminals**; Ch.7 discharge ≠ payoff (lien survives), so there is no direct `BK→P`.
+
 #### 2.4.2 State Reference & System delinq Code Mapping
 
 | State | System delinq code | How produced | Notes |
@@ -607,6 +629,8 @@ flowchart TD
 | BK → FCL | Bankruptcy dismissed or discharged; FCL resumes | After BK closes |
 | BK → C | Ch.13 repayment plan successfully completed | 3–5 years |
 | BK → (no direct P) | **Ch.7 discharge only releases the borrower's personal liability; the mortgage lien survives → the loan is NOT paid off**; foreclosure typically resumes (→ FCL → sale, see the Ch.7 lien note below). Ch.13 completion → C (reinstated to current), not P | — |
+
+> **The legal basis and official links for each BK transition** (`Dx/FCL→BK` / `BK→FCL` / `BK→C` / `Ch.7→FCL`) are in §2.5 "Official Sources & Legal Basis for BK State Transitions" (uscourts.gov + Title 11 § 362 / § 1322 / § 1328 / § 727 / § 524).
 
 #### 2.4.4 FCL Internal Sub-Stages
 
@@ -876,6 +900,24 @@ This explains why Newrez's raw `delq_status` field includes these two combined v
 | `Foreclosure / Perf BK` | FCL active + borrower in BK and **actively performing** Ch.13 repayment plan | `FCL` |
 
 Both map to `delinq = 'FCL'`. The difference is the BK compliance status, which affects how long the Hold is expected to last and which exit path is likely.
+
+##### Official Sources & Legal Basis for BK State Transitions
+
+> ⚠️ **These transitions are legal/business reality under the U.S. Bankruptcy Code — not rules this system computes.** The ETL does **not** auto-compute `BK→C` etc.: each month it **passes through** the servicer-reported `delinquency_status_mba`; `Foreclosure / Perf BK` and `Foreclosure / Non-Perf BK` are both mapped to `FCL` by `CREATE_FCL_RELATE_ATTR`, and the loan stays `FCL` until the servicer re-reports `Current` (see `docs/en/03_fcl_status_logic.md` §2.1 lines 77–114 — there is no coded "Ch.13 completed → delinq=C" trigger).
+
+**Authoritative sources (U.S. Courts — Bankruptcy Basics)**
+
+- Chapter 7: <https://www.uscourts.gov/court-programs/bankruptcy/bankruptcy-basics/chapter-7-bankruptcy-basics>
+- Chapter 13: <https://www.uscourts.gov/court-programs/bankruptcy/bankruptcy-basics/chapter-13-bankruptcy-basics>
+
+**Per-transition statutory basis (Title 11 U.S. Code; links to Cornell LII official text)**
+
+| Transition | Statutory basis | Official link | Key statutory text (excerpt) |
+|------------|-----------------|---------------|------------------------------|
+| `Dx/FCL → BK` (borrower files BK; FCL pauses) | **11 U.S.C. § 362(a)** automatic stay | <https://www.law.cornell.edu/uscode/text/11/362> | filing *"operates as a stay"* on *"any act to … enforce any lien against property of the estate"* / *"any act to collect … a claim against the debtor"* |
+| `BK → FCL` (lender resumes FCL) | **11 U.S.C. § 362(d)** relief from stay (Motion for Relief); or BK dismissed/discharged | <https://www.law.cornell.edu/uscode/text/11/362> | court *"shall grant relief from the stay … such as by terminating, annulling, modifying, or conditioning such stay"*, *"for cause, including the lack of adequate protection"* |
+| `BK → C` (Ch.13 plan completed → current) | **11 U.S.C. § 1322(b)(5)** cure arrears + maintain payments; **§ 1328(a)** discharge on completion | <https://www.law.cornell.edu/uscode/text/11/1322> · <https://www.law.cornell.edu/uscode/text/11/1328> | § 1322(b)(5): *"provide for the curing of any default within a reasonable time and maintenance of payments while the case is pending …"*; § 1328(a): discharge *"as soon as practicable after completion by the debtor of all payments under the plan"* |
+| `Ch.7 → FCL` (no direct `BK→P`: discharge ≠ payoff, lien survives) | **11 U.S.C. § 727** Ch.7 discharge of personal liability; **§ 524(a)(2)** injunction limited to personal liability | <https://www.law.cornell.edu/uscode/text/11/727> · <https://www.law.cornell.edu/uscode/text/11/524> | § 524(a)(2): discharge *"operates as an injunction against … an action … to collect … any such debt **as a personal liability of the debtor**"* → in rem lien survives (cf. *Dewsnup v. Timm*, 502 U.S. 410) |
 
 ---
 

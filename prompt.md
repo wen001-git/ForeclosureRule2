@@ -1,5 +1,63 @@
 # Prompt & Decision Log — ForeclosureRule2
 
+## [2026-06-08 UTC] 解释 BK→Current 与 BK→Foreclosure 的核心差异（参考 doc 17 + 权威资料）
+> BK到current 和 BK 到Foreclosure的核心差异是？你可以参考 doc 17 和网上查一下权威资料
+>
+> （追加）好的，你补进doc 17,另外，是否可以把这个问题再单独做成一个文档
+
+### Milestone: BK→C vs BK→FCL 核心差异 → 补 doc 17 + 新建专题 doc 24（zh/en）[2026-06-08]
+- 核心结论：分水岭=**房贷违约是否被 cure**（≠ 是否 discharge）。BK→C=Ch.13 补缴 arrears + reinstate（§ 1322(b)(5)+§ 1328(a)）；BK→FCL=中止令被解除（§ 362(c) 驳回 / § 362(d) MFR / Ch.7 后 lien 存续 § 727+§ 524(a)(2)）。经 WebSearch uscourts.gov + Cornell LII 核对。
+- 落地：① `docs/zh/17` §5.4 在法条依据表后新增「BK→Current 与 BK→Foreclosure 核心差异」对比表（zh/17→v6）；② 新建专题 `docs/zh/24` + `docs/en/24`（标准头 + 问题/一句话/两边详解/对比表/章节视角/中止令机制/系统透传/权威来源/相关文档）；③ 登记进 zh+en `00_index`（doc 23 之后）。
+- 一致性：强化既有「Ch.7 discharge≠还清、lien 存续、无 BK→P 直达」结论；重申系统透传 servicer 状态、不计算转换。未触 DB。
+> 请通过MCP查一下 一笔贷款 从BK discharge 到P一般历时多久？并提供查询验证的sql
+>
+> （追加）请输出文档
+>
+> （追加）是的，输出 en 镜像并登记进 index
+
+### Milestone: BK discharge → P 历时 DB 实测 + 输出 doc 23 [2026-06-08]
+- prod Redshift 实测：BK 表（`port.basic_data_loan_foreclosure_bankruptcy`，74 行/69 笔/仅 FCL 业务族）无专门 discharge 日期字段，以 `status_date` 代理；payoff 取 `port.basic_data_loan_funding.paidoffdate`。
+- 结果：能同时取到两端的仅 11 笔（严格 Discharged 4 笔），间隔 135–199 月、中位 186 月（≈15.5 年）。**非流程耗时**：discharge 多在 2008–2014、payoff 在 2023–2026，二者相隔约 15 年且不相关——实证 Ch.7/11 discharge≠还清、lien 存续（呼应 doc 17 §5.4 / doc 07 §2.5）。
+- 新建 `docs/zh/23_bk_discharge_to_payoff_analysis.md`（标准文档头 + 问题/结论/来源/方法/结果/解读/局限/验证SQL/相关文档）。
+- **（追加完成）** 输出 en 镜像 `docs/en/23_bk_discharge_to_payoff_analysis.md`（与 zh 同结构、同数据）；并登记进 `docs/zh/00_index.md` 与 `docs/en/00_index.md`（doc 22 之后插入 doc 23 行）。
+- 全程 `redshift_prod` 只读；`MEDIAN()` 触发只读角色报错，改用 `PERCENTILE_CONT(0.5) WITHIN GROUP`。
+
+## [2026-06-08 08:40 UTC] doc 19：每表说明块先标「所处层级」，再上游、再下游
+> doc 19, 每个表 的说明中，请 先说明本表处于 pipline的第几层，然后再说上游是谁，下游是谁
+> 落地：改幂等生成器 outputs/enrich_doc19_table_meta.txt 的 md_block/block_rows，块重排为 所处层级→上游(链路+表)→下游(链路+表)→业务含义/何时来查/为什么/数据粒度；层级取自 fcl_table_meta.json 既有 layer 字段；MD+Excel 各表块+⓪总览同步；doc19→v8。
+
+### Milestone: doc 19 说明块重排（先层级→上游→下游）[2026-06-08]
+- 改 `outputs/enrich_doc19_table_meta.txt`：`md_block`/`block_rows` 重排（首行新增「所处层级」=fcl_table_meta.json 既有 `layer`，紧接上游链路/全部上游表→下游链路/全部下游表→业务含义/何时来查/为什么/数据粒度）；新增幂等 v8 MD 修订行 + ① 索引 B7 v8 前插。
+- **顺带修生成器既有 bug**：xlsx 块删除原仅扫前 50 行、插入点用 `max(merged)+1`——导致 ㉔ datadic（含全宽子表标题合并贯穿全表）的说明块被放到表底且历次运行重复堆叠（备份实测已堆 2 块）。改为：删除全表所有 START/END 块跨度 + 插入点锚定「查询 SQL」行之后（各表型一致）。㉔ 块现移到顶部 R4，单块。
+- 验证：MD+XLSX 连跑两次均幂等；23 块全部首行「所处层级」（MD/Excel 各 0 失败）；不回归——② 业务含义列+id=1750674、⑮ 字段说明 legend、㉔ datadic 三列(编码/解码/业务含义/模块)、⓪ 总览 23 行均完好。doc19→v8；DB 只读、未碰人工列；备份已清理。
+- 质量：本轮仅小幅 reorder + 明确注释的 bug 修复，无新增重复/复杂度；故未再跑 4-agent /simplify（上一里程碑已对这些脚本跑过）。
+
+## [2026-06-08 UTC] doc 17/07：补 Ch.7/Ch.13 官方链接 + BK 状态转换的法条依据（URL+章节+原文）
+> 在 doc 17 中，我们提到了 chapter 7 和 chapter 13 [...Ch.7/Ch.13 表格...] 你能找到 chapter 7 和 chapter 13 的官方链接吗？ 我想找出 BK状态 转向 Current 以及其他状态的具体依据
+>
+> （追加）你需要在文档中提供 你所依据的法律法规的URL，以及具体的章节/内容
+
+### Decision: BK 状态转换依据——法律事实 vs 系统规则 [2026-06-08]
+- **Context**: 用户要为 doc 17 的 BK→C / BK→FCL / Ch.7→FCL 等转换补「官方依据」；需厘清这些转换是系统计算出来的、还是法律/业务事实。
+- **Options considered**: A 只给 uscourts 链接; B 给 uscourts + Title 11 法条链接 + 章节号 + 原文节录，并显式标注「系统其实是透传 servicer 上报的 delinquency_status_mba，并不计算 BK→C」; C 还需 DB 实测真实贷款是否出现该转换。
+- **Choice**: B（用户在两道澄清问题中选定：更新 doc 17 zh + doc 07 en/zh；引用深度=完整法条链接+原文节录）。
+- **Reason**: 这些转换是美国破产法事实，ETL 无 BK→C 代码触发器（03_fcl_status_logic.md §2.1 L77–114，CREATE_FCL_RELATE_ATTR 把 Perf/Non-Perf BK 映射为 FCL）；逐条给 § 362/§ 1322/§ 1328/§ 727/§ 524 的 Cornell LII 官方链接+原文，并加「系统透传」澄清，避免读者误以为系统自动计算。所有 URL 与原文经 WebFetch 实测核对。
+
+### Milestone: BK 状态转换法律依据落地 doc 17 + doc 07（zh/en）[2026-06-08]
+- 3 处插入「Ch.7 / Ch.13 官方依据与 BK 状态转换的法律依据」块：`docs/zh/17`（§5.4）、`docs/zh/07`（§2.5）、`docs/en/07`（§2.5）。含 uscourts.gov Bankruptcy Basics（Ch.7/Ch.13）官方链接 + 各转换 Title 11 法条（§ 362(a)/(d)、§ 1322(b)(5)、§ 1328(a)、§ 727、§ 524(a)(2)）Cornell LII 链接与**原文节录**。
+- 转换→依据：`Dx/FCL→BK`=§362(a) 自动中止；`BK→FCL`=§362(d) 解除中止/MFR；`BK→C`=§1322(b)(5)+§1328(a)（Ch.13 计划完成）；`Ch.7→FCL`（无 BK→P 直达）=§727+§524(a)(2) 仅免个人责任、Lien 存续（*Dewsnup v. Timm*）。
+- 关键澄清写入：系统**不计算** BK→C，仅透传 servicer `delinquency_status_mba`（`CREATE_FCL_RELATE_ATTR` 把 Perf/Non-Perf BK→FCL）。§4.3/§2.4.3 转换表加指引；三份文档各加修订行（zh/17 v5、doc07 zh/en v2.4）。
+- **验证**：7 个 URL 全部经 WebFetch 实测可达且原文核对一致；grep 三份文档各 9 处命中；与 v2.2「无 BK→P 直达」更正一致（强化非反转）。
+- **测试/`/simplify`**：本次为 Markdown 文档改动、无代码，`/simplify`（代码清理）与单元测试不适用，已跳过；DB 全程未触。
+
+## [2026-06-08 UTC] 把叠加态图形改动加到预览页 fcl_state_dimensions_preview.html
+> 你 先前为体现叠加态做的图形改动，可以加到 fcl_state_dimensions_preview.html
+
+## [2026-06-08 UTC] 研究项目 + 创建 AI 导向的项目索引文档 (PROJECT_INDEX.md)
+> pls reserch this project, I have open 3 claude codes in parallel , you don't mind ,right?
+>
+> （后续）创建一个这个项目的索引index文档，以便后续其他AI coding工具来开发这个项目时，能够快速了解这个项目，你觉得呢？这样页节省token
+
 ## [2026-06-08 UTC] 把 3 个状态图方案都画出来供对比选择（保留原线性图）
 > 你建议的3个方案，都画给我看看，然后再决定选取什么方案，你原来画的状态图挺好理解的，我不想删除，除非你画的新图更好
 
@@ -12,6 +70,12 @@
 - **Options considered**: A 现写含义并硬编码进脚本; B 复用既有权威源 `docs/foreclosure_data_dictionary.md`(已有「字段业务含义」列, 表01–26)解析为 JSON 真源 + 幂等 stdin 脚本就地注入两载体; C 恢复旧生成器重建。
 - **Choice**: B。
 - **Reason**: 复用 DB 实测过的数据字典避免凭空造义(符合 Schema-Verify/复用规则)；单一 JSON 真源保 MD⇄Excel 一致；脚本经 `python - < .txt` 绕过 .py 限制且幂等可重跑；转置表内联「业务含义」列、平铺表(Hold/LM/BK)加「字段说明」legend 块、datadic 解码加第 3 列「业务含义」并同步数据字典表26；不碰人工列、DB 全程只读。
+
+### Milestone: doc 19 字段业务含义 + datadic 解码业务含义 [2026-06-08]
+- 真源：`outputs/fcl_field_meanings.json`（1136 字段：709 dict_exact + 195 dict_reuse + 232 authored，0 缺）、`outputs/fcl_datadic_meanings.json`（8 字段 122 码，覆盖 doc19+表26 全部码）。两者由 `outputs/build_fcl_field_meanings.txt` / `build_fcl_datadic_meanings.txt` 生成（解析 foreclosure_data_dictionary.md「字段业务含义」列 + 缺口补写）。
+- 注入脚本（幂等、`python - <`）：`outputs/inject_doc19_field_meaning_md.txt`（MD：16 转置内联列 + 6 平铺 legend + 8 datadic 三列）、`inject_doc19_field_meaning_xlsx.txt`（XLSX：16 转置插列 + 6 平铺 legend + 1 datadic 插列；header 定位、护栏跳过人工列、插列时重并全宽合并）、`sync_datadic_meaning_to_datadict.txt`（数据字典表26 八子表加业务含义列）。
+- 验证：二次运行幂等（MD diff 空、XLSX 维度一致、表26 diff 空）；全量扫描 0 空业务含义（MD 转置 16/平铺 legend 6/datadic 8、表26 8 子表、XLSX 16+6+1）；样例数据完好（② id=1750674）、R1 合并扩为 A1:G1、平铺数据网格未损。doc19→v7（md+xlsx）、数据字典→v15。DB 全程只读。
+- 备份已清理（.bak 删除）。原生成器缺失，改用就地幂等脚本（见 Decision）。
 > 在 fcl_pipeline.html 的贷款状态图中，BK -> P 画得不太对了，BK 状态 经过 Debt Discharged 后不一定是 P (Debt Discharge只能说明 Borrower 的个人债务责任被法院免除，并不说明 Mortgage Lien（抵押权）消失)，对吗？ what's your recommendation?
 
 ## [2026-06-08 UTC] 核查 port.basic_data_monthly_loan_clean_data_delinq 是否在 servicer→BPS FCL 管道中
@@ -2152,6 +2216,12 @@
 - 待办：Python 执行限制规则待写入 项目级&用户级 CLAUDE.md（被自我修改护栏拦截，需用户授权/手动粘贴）。
 
 ## [2026-06-07 ~UTC] Research this project
+
+### Milestone: AI-facing project index (PROJECT_INDEX.md) [2026-06-08]
+- 研究全项目（3 个并行 Explore agent：结构/文档地图、ETL 与脚本、FCL 业务与字段血缘）后，按用户要求创建 root 级 `PROJECT_INDEX.md`——供其他 AI coding 工具一次读取即可定位，省 token。
+- 内容：项目定位、被文档化的源系统位置（PrefectFlow）、5 层管道速查、4 维状态正交、核心 FCL 规则、仓库布局、文档地图（#→文件→何时读，en/zh 共号）、DB 连接（仅名称/角色、只读、无凭据）、强制规则摘要（指向 CLAUDE.md）、按任务的阅读路径、已知不一致（被删脚本 vs CLAUDE.md 引用）。
+- 验证：20 en docs + 27 zh docs 文件名经 Glob 核对、链接可解析；`docs/14_servicer_fcl_field_spec.xlsx` 存在；grep 确认无凭据/host 泄漏（已把 dev host 片段泛化为 schema 名）；Header 符合 Standard Document Header Rule。
+- 默认仅英文单文件（AI 面向、省 token）；如需 en/zh 双份再加 zh 镜像。
 > pls research this project
 
 ### Milestone: lineage graph 图例可点高亮 + tip 注释 [2026-06-07]
@@ -2179,6 +2249,30 @@
 - prompt.md：按用户要求把我自己写的标题/决策/小结里的「老板/CTO」改为「管理层/团队/技术读者」（共 10 处）；保留用户逐字 prompt 原话与「描述删除该词」的元引用不动。
 - 验证：`grep 老板|Boss` over docs/**/*.{md,html} = 0；Excel/HTML = 0；prompt.md 残留均为逐字 prompt 或元引用。DB 未涉及。
 
+### Milestone: 把审核通过的预览整体同步进 fcl_pipeline.html [2026-06-08]
+- 用户：fcl_state_dimensions_preview.html 审核通过 → 全部同步（按预览原样，含状态图叠加态改动）。
+- 落地 fcl_pipeline.html（因有外部进程并发改动该文件导致 Edit 工具 stale-read 反复失败，改用 python 原子读改写 + 逐锚点 assert count==1）：① drawFlow 节点 rect 加 overlay 虚线逻辑（紫框 #7b2fb0 + dasharray）；② HOLD/LM/BK 节点 overlay:true；③ FCL→Hold 边标签 → 「BK中止令/LM审核」；④ <style> 加命名空间化 .dimlanes 泳道 CSS；⑤ lifecycleSection 在 📌 注与 Key transitions 之间插入「四个独立维度」块（🔶注+维度表+示例表+3澄清）+「补充视角—主轴+标志泳道」块。
+- 校验：JS ok=1/err=0；overlay:true×3、dash 逻辑、边标签、四维块、dimlanes 泳道、lane CSS、Key transitions、BK→P?(no) 行 全部命中。lifecycleSection 由 Primer §3 与 Status 视图共用，两处同时生效。无 DB 写。
+
+### Milestone: 预览页加入方案 B 泳道图作补充视角 [2026-06-08]
+- 用户决定：把方案 B（主轴+标志泳道/时间线）作为补充说明，加到预览候选页 `fcl_state_dimensions_preview.html`（四维表下方）。我的意见：赞成——四维表「声明」独立、泳道图「展示」随时间并发，互补且不动原状态图。
+- 落地：预览页新增 `.lanes/.lane/.track/.seg`（暗色适配）CSS + `swimlaneBlock()`（中英 via L()，A 主轴逾期→止赎 + B/C/D 独立 on/off 泳道，竖向重叠=并发，示意时间轴）；`render()=lifecycleFlowSVG()+fourDimBlock()+swimlaneBlock()`。JS ok=1/err=0。真实 fcl_pipeline.html 仍未改。
+
+### Milestone: 四维补充改为「独立预览页 → 审核后再迁移」[2026-06-08]
+- 用户要求：先把「原图 + 四维补充」做成**独立 HTML 预览页**给看；满意后再迁移到 fcl_pipeline.html。
+- 落地：① 新建 `outputs/fcl_state_dimensions_preview.html`（自包含、离线可渲染）——逐字复制 fcl_pipeline.html 的 drawFlow/lifecycleFlowSVG/esc/L + 相关 CSS，**原线性状态图一字未改**地渲染，下方接「四个独立维度」补充块（维度表 + 示例组合表 + 3 澄清），含 中/EN 切换。② 把上一轮已插入 `fcl_pipeline.html` lifecycleSection 的四维补充块**回退移除**（恢复为 原图 + 📌 注 + Key transitions；保留 BK→P 修正与「BK → P?(no)」行）。
+- 校验：两文件内嵌 JS vm.Script ok=1/err=0；fcl_pipeline.html 已无「四个独立维度」、Key transitions 仍在。
+- 待用户确认预览后再迁移回 fcl_pipeline.html；docs 7/17/14 的 markdown 四维补充块暂保留（如最终措辞微调，迁移时一并对齐）。无 DB 写。
+
+### Milestone: 状态图加「四个独立维度」补充说明（不改原图）[2026-06-08]
+- 背景：讨论「如何画状态图体现 FCL/LM/BK 是独立并发维度」。先做了对比页 `outputs/fcl_state_diagram_options.html`（原图 + 方案 A 正交/方案 B 泳道/方案 C；方案 A 经用户指出无法表达 FCL⇄FCL-Hold 耦合且缺 P/REO，已降级标"不推荐"）。
+- 用户最终决定：**以原线性状态图为主，仅加补充说明，不修改原状态图**。
+- 落地（纯补充，未改任何状态图）：
+  - `outputs/fcl_pipeline.html`：先前为体现叠加态做的「虚线 overlay 节点 + FCL→Hold 标签改写」**已全部回退**（drawFlow 复原、HOLD/LM/BK 去 overlay、FCL→Hold 标签复原 "Hold 触发/解除"；grep stroke-dasharray=0/overlay=0）；仅在 lifecycleSection 状态图**下方新增**「四个独立维度」说明 + 维度表 + 示例组合表 + 数据落地注。embedded JS ok=1/err=0。
+  - doc 17 zh（v4）、doc 7 zh（v2.3）、doc 7 en（v2.3）、doc 14 zh 附录 D（v40）：各自在状态图**下方、§x.2 标题前**新增同款「四个独立维度」补充块（维度表 + 示例组合表 + 3 条澄清）。**mermaid 状态图本身一字未改**（grep 确认无 dasharray/classDef/标签改写）。
+- 三条澄清：① FCL-Hold 是 FCL 子态、由 BK 自动中止令/LM 审核触发；② LM/BK/Hold 期间 delinq 不变（代码 CREATE_FCL_RELATE_ATTR：Perf/Non-Perf BK→FCL）；③ P/REO 是 A 轴处置终态，Ch.7 discharge≠还清，无 BK→P。
+- 无 DB 写。
+
 ### Milestone: 更正状态图 BK→P（Ch.7 discharge ≠ 还清/Lien 存续）[2026-06-08]
 - 用户指出：状态图 `BK →(债务清偿)→ P` 不准——Ch.7 discharge 仅免除借款人个人债务责任，抵押权 Mortgage Lien 不消失，贷款并未结清。结论：用户正确，且该边与各文件自身的 Ch.7 Lien 说明 + 关键转换图例（从未列 BK→P）矛盾。
 - 采纳方案 1（删边 + 加澄清）。同一错误存在于 4 处状态图，全部修正：
@@ -2204,3 +2298,12 @@
 - 代码读证：Time Line/Stage 同取 `bpms.sync_fcl_stage_info`（SYNC key 12-FCL_STAGE，`sync_to_bps_config.py:13`；生成 `GEN_FCL_STAGE` `basic_data_pool_config.py:2344-2440`；group=`CREATE_FCL_RELATE_ATTR` 1695-1771；judicial=`basic_data_judicial_config`）。
 - prod bpms 实测：表 57 列；列映射(noi/referral/first_legal/service/judgement/sale `_start_date`)与 UI 列逐列对应；表保留 `fctrdt` 历史快照（8368 行/66 loan/300 fctrdt），与 `sync_loan_foreclosure`(DELETE+APPEND 1 行/loan)对比；页面取 `MAX(fctrdt)` → 一行一 loan。样本 7727000088 与截图逐列吻合（注 T16:00Z→美东次日；prod vs UAT 计数差异已标注）。
 - 落地：新增 `docs/zh/22_bps_fcl_timeline_sourcing.md` + `docs/en/22_...md`（标准文档头 + §1–§7）；zh/en `00_index.md` 各加 doc 22 条目。DB 全程只读。
+
+### Milestone: 「数据流动」Tab 升级为表级 DAG（表↔表流动，参考 doc 21）[2026-06-08]
+- 应用户要求把流动视图从 7 个层框改为表级有向图：25 张表节点 + 33 条按 doc 21 §0.1/§0.2/§0.5 的真实依赖边。
+- 列=层(L0..L5,BPS)；跨列横向边、同列纵向边(L4 内 temp→fcl→foreclosure→stage、L5 内 mysraw→s1→view)。A 模式逐表点亮+入边高亮+该表旁白；B 粒子沿每条边；C 边宽≈体量；D 单贷款沿主线 s0→fc→temp→fcl→foreclosure→port中转→s1→view→bps。
+- 修正 L5 平台：Redshift建→MySQL(橙)。新增 FPCOL.MY。
+- preview 实测：25 节点/33 边渲染、A 第12/25步=basic_data_loan_foreclosure、关键链边齐、L5=MySQL、B 66 粒子、C 边宽变化、D token；errors=[]，切 pipeline/graph 无回归。本地改动未推送。
+
+## [2026-06-08 01:28 UTC] git push
+> pls git push

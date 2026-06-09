@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>贷款状态图 + 四个独立维度（预览）</title>
+<style>
+  :root{ --bg:#0e1116; --panel:#161b22; --panel2:#1c232d; --border:#2a323d;
+    --txt:#d7dde5; --muted:#8b96a5; --accent:#4da3ff; --accent2:#7ee787; }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI",Roboto,"Microsoft YaHei",sans-serif;margin:0;background:var(--bg);color:var(--txt);line-height:1.6}
+  .wrap{max-width:1100px;margin:0 auto;padding:22px 26px 70px}
+  h1{font-size:21px;margin:4px 0 2px} h3{font-size:15px;margin:18px 0 6px;color:var(--txt)}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 12px}
+  .toggle{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin:6px 0 14px}
+  .toggle button{background:var(--panel2);color:var(--muted);border:none;padding:6px 14px;cursor:pointer;font-size:12.5px}
+  .toggle button.on{background:var(--accent);color:#0e1116;font-weight:600}
+  .flowwrap{overflow:auto;border:1px solid var(--border);border-radius:10px;background:#0b0e12;padding:6px;margin:4px 0 10px}
+  svg.fchart .fnode{cursor:default}
+  svg.fchart .fedge{fill:none;stroke:#8b96a5;stroke-width:1.6}
+  svg.fchart .felabel{fill:#9fb0c3;font-size:10px}
+  svg.fchart text.ft1{font-size:11px;font-weight:700;fill:#15202b}
+  svg.fchart text.ft2{font-size:9px;fill:#33414f}
+  .note{font-size:12px;color:var(--muted);background:var(--panel2);border:1px dashed var(--border);border-radius:8px;padding:10px 12px;line-height:1.6;margin:8px 0}
+  .note b{color:var(--txt)}
+  table.mini{width:100%;border-collapse:collapse;font-size:12.5px;margin:8px 0}
+  table.mini th,table.mini td{text-align:left;padding:6px 9px;border-bottom:1px solid var(--border)}
+  table.mini th{color:var(--muted);font-weight:600;background:var(--panel2)}
+  code{background:var(--panel2);padding:1px 5px;border-radius:4px;font-size:11.5px;color:var(--accent2)}
+  .pill2{border:1px solid var(--border);border-radius:7px;padding:2px 8px;background:var(--panel2);font-size:11.5px}
+  .banner{background:rgba(126,231,135,.08);border:1px solid #2e7d32;border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:16px}
+  .lanes{font-family:"Cascadia Code",Consolas,monospace;font-size:12.5px;margin:8px 0}
+  .lane{display:grid;grid-template-columns:128px 1fr;align-items:center;gap:10px;margin:6px 0}
+  .lane .nm{color:var(--txt);font-weight:600}
+  .track{position:relative;height:26px;background:#11161c;border-radius:6px;border:1px solid var(--border)}
+  .seg{position:absolute;top:3px;height:18px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;white-space:nowrap;overflow:hidden}
+  .axis .seg{background:#3f72a8} .fcl .seg{background:#c08a17} .lm .seg{background:#2f8a5b} .bk .seg{background:#8451a8}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>贷款状态图 + 四个独立维度（预览稿）</h1>
+  <p class="sub">本页是<strong>预览/评估稿</strong>：在原线性状态图基础上<strong>叠加两处「体现叠加态」的图形改动</strong>，下方再接<strong>「四个独立维度」补充说明</strong>。满意后再决定是否迁移到 <code>fcl_pipeline.html</code>。</p>
+  <div class="banner">🧪 本预览对图做了两处改动供评估：① <strong>LM / BK / FCL-Hold 用虚线紫框</strong>标为「并发叠加态」（区别于实线的 delinq 主轴节点）；② <strong>FCL→Hold 边标注触发源「BK中止令 / LM审核」</strong>。⚠️ 真实 <code>fcl_pipeline.html</code> 仍保持原样、未改。</div>
+  <div class="toggle"><button id="bzh" class="on" onclick="setLang('zh')">中文</button><button id="ben" onclick="setLang('en')">EN</button></div>
+  <div id="app"></div>
+</div>
+<script>
+let lang='zh';
+function L(o){return o&&typeof o==='object'&&('en'in o||'zh'in o)?o[lang]:o;}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function drawFlow(spec){
+  const pos={}; spec.nodes.forEach(n=>pos[n.id]=n);
+  const W=n=>n.w||120, H=n=>n.h||46;
+  const anchor=(n,d)=>{const w=W(n),h=H(n); return d==='r'?[n.x+w,n.y+h/2]:d==='l'?[n.x,n.y+h/2]:d==='b'?[n.x+w/2,n.y+h]:[n.x+w/2,n.y];};
+  let ed='';
+  spec.edges.forEach(e=>{ const s=pos[e.from],t=pos[e.to]; if(!s||!t) return;
+    const scx=s.x+W(s)/2,scy=s.y+H(s)/2,tcx=t.x+W(t)/2,tcy=t.y+H(t)/2,dx=tcx-scx,dy=tcy-scy; let sd,td;
+    if(Math.abs(dx)>=Math.abs(dy)){sd=dx>0?'r':'l';td=dx>0?'l':'r';}else{sd=dy>0?'b':'t';td=dy>0?'t':'b';}
+    const a=anchor(s,sd),b=anchor(t,td),x1=a[0],y1=a[1],x2=b[0],y2=b[1],k=42; let c1x=x1,c1y=y1,c2x=x2,c2y=y2;
+    if(sd==='r')c1x+=k;else if(sd==='l')c1x-=k;else if(sd==='b')c1y+=k;else c1y-=k;
+    if(td==='r')c2x+=k;else if(td==='l')c2x-=k;else if(td==='b')c2y+=k;else c2y-=k;
+    const ms=e.dir==='bi'?' marker-start="url(#fa)"':'';
+    ed+=`<path class="fedge" d="M${x1},${y1} C${c1x},${c1y} ${c2x},${c2y} ${x2},${y2}" marker-end="url(#fa)"${ms}></path>`;
+    if(e.label){const mx=(x1+x2)/2,my=(y1+y2)/2,lw=e.label.length*9+8; ed+=`<rect x="${mx-lw/2}" y="${my-13}" width="${lw}" height="15" rx="3" fill="#0b0e12" opacity="0.88"></rect><text class="felabel" x="${mx}" y="${my-2}" text-anchor="middle">${esc(e.label)}</text>`;}
+  });
+  let nd='';
+  spec.nodes.forEach(n=>{ const w=W(n),h=H(n);
+    nd+=`<g class="fnode"><rect x="${n.x}" y="${n.y}" width="${w}" height="${h}" rx="8" fill="${n.fill||'#cfe0f5'}" stroke="${n.overlay?'#7b2fb0':'#5b6b7d'}" stroke-width="${n.overlay?2:1.3}"${n.overlay?' stroke-dasharray="6 4"':''}></rect>`
+      +`<text class="ft1" x="${n.x+w/2}" y="${n.y+(n.t2?h/2-1:h/2+4)}" text-anchor="middle">${esc(n.t1)}</text>`
+      +(n.t2?`<text class="ft2" x="${n.x+w/2}" y="${n.y+h/2+12}" text-anchor="middle">${esc(n.t2)}</text>`:'')+`</g>`;
+  });
+  return `<div class="flowwrap"><svg class="fchart" width="${spec.w}" height="${spec.h}" viewBox="0 0 ${spec.w} ${spec.h}">`
+    +`<defs><marker id="fa" markerWidth="9" markerHeight="9" refX="7.5" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#8b96a5"></path></marker></defs>`+ed+nd+`</svg></div>`;
+}
+
+// ↓↓↓ verbatim from fcl_pipeline.html (original diagram, unchanged) ↓↓↓
+function lifecycleFlowSVG(){
+  return drawFlow({w:1200,h:430,nodes:[
+    {id:'START',x:20,y:16,w:150,h:32,t1:L({en:'Loan Originated',zh:'贷款发放'}),fill:'#E6E6FA'},
+    {id:'C',x:30,y:95,w:118,t1:'C — Current',t2:L({en:'performing',zh:'正常还款'}),fill:'#87CEEB',code:'C'},
+    {id:'D30',x:200,y:95,w:118,t1:'D30',t2:L({en:'30–59 DPD',zh:'逾期 30–59 天'}),fill:'#FFE4B5',code:'D30'},
+    {id:'D60',x:370,y:95,w:118,t1:'D60',t2:L({en:'60–89 DPD',zh:'逾期 60–89 天'}),fill:'#FFDAB9',code:'D60'},
+    {id:'D90',x:540,y:95,w:118,t1:'D90',t2:L({en:'90–119 DPD',zh:'逾期 90–119 天'}),fill:'#FFA07A',code:'D90'},
+    {id:'D120P',x:710,y:95,w:118,t1:'D120P',t2:L({en:'120+ DPD',zh:'逾期 120+ 天'}),fill:'#FF6347',code:'D120P'},
+    {id:'FCL',x:895,y:95,w:128,t1:L({en:'FCL — Foreclosure',zh:'FCL — 止赎中'}),t2:L({en:'legal process started',zh:'法律程序已启动'}),fill:'#FFD700',code:'FCL'},
+    {id:'REO',x:1050,y:28,w:130,t1:'REO',t2:L({en:'bank-owned',zh:'银行取回房产'}),fill:'#F08080',code:'REO'},
+    {id:'P',x:1050,y:165,w:130,t1:L({en:'P — Loan ends',zh:'P — 贷款终止'}),t2:L({en:'paid off / sold / short sale',zh:'还清/售出/短售'}),fill:'#90EE90',code:'P'},
+    {id:'HOLD',x:892,y:205,w:132,t1:L({en:'FCL-Hold',zh:'FCL-Hold 止赎暂停'}),t2:'BK/LM/SCRA',fill:'#FFA500',overlay:true},
+    {id:'LM',x:520,y:240,w:140,t1:L({en:'LM — Loss Mit',zh:'LM — 损失缓解'}),t2:L({en:'modification / forbearance',zh:'还款修改/宽限'}),fill:'#98FB98',overlay:true},
+    {id:'BK',x:740,y:335,w:150,t1:L({en:'BK — Bankruptcy',zh:'BK — 破产保护'}),t2:'Chapter 7 / 13',fill:'#DDA0DD',overlay:true},
+  ],edges:[
+    {from:'START',to:'C'},
+    {from:'C',to:'D30',label:L({en:'miss 1 pmt',zh:'错过1期'})},{from:'D30',to:'D60',label:L({en:'miss 2',zh:'错过2期'})},{from:'D60',to:'D90',label:L({en:'miss 3',zh:'错过3期'})},{from:'D90',to:'D120P',label:L({en:'4th+',zh:'第4期+'})},
+    {from:'D120P',to:'FCL',label:L({en:'FCL filed ≥120d',zh:'启动止赎≥120天'})},
+    {from:'FCL',to:'HOLD',label:L({en:'BK stay / LM review',zh:'BK中止令/LM审核'}),dir:'bi'},
+    {from:'FCL',to:'REO',label:L({en:'no auction bid',zh:'拍卖流标'})},{from:'REO',to:'P',label:L({en:'property sold',zh:'房产出售'})},{from:'FCL',to:'P',label:L({en:'3rd Party / short sale / redeem',zh:'3rd Party/短售/赎回'})},
+    {from:'D90',to:'LM',label:L({en:'apply mod / forbearance',zh:'申请修改/宽限'})},{from:'LM',to:'C',label:L({en:'mod success',zh:'方案成功'})},
+    {from:'D120P',to:'BK',label:L({en:'file BK',zh:'申请破产'})},{from:'BK',to:'FCL',label:L({en:'BK lifted/discharged → resume',zh:'BK解除/清偿→恢复'})},{from:'BK',to:'C',label:L({en:'Ch.13 done',zh:'Ch.13完成'})},
+  ]});
+}
+// ↑↑↑ original diagram ↑↑↑
+
+function tbl(head,rows){return `<table class="mini"><tr>${head.map(x=>`<th>${x}</th>`).join('')}</tr>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</table>`;}
+const sp=c=>`<span class="pill2">${c}</span>`;
+
+// ↓↓↓ the proposed supplementary block (to be migrated) ↓↓↓
+function fourDimBlock(){
+  return `<div class="note">`+L({
+       zh:`📌 任意 <b>D30~D120P</b>：补缴欠款 → ${sp('C')}；全额还清 → ${sp('P')}；申请破产 → BK（图中省略重复连线）。`,
+       en:`📌 Any <b>D30~D120P</b>: cure arrears → ${sp('C')}; pay in full → ${sp('P')}; file bankruptcy → BK (repeat edges omitted).`
+     })+`</div>`
+   +`<div class="note">`+L({
+       zh:`🔶 <b>实线节点</b> = delinq 主轴真实取值（Current→D30…→FCL→REO/P）；<b>虚线紫框节点</b>（LM / BK / FCL-Hold）= <b>并发叠加态</b>，叠加在贷款上、<b>不改变 <code>delinq</code></b>。其中 FCL-Hold 是 FCL 的子态，由 <b>BK 自动中止令 / LM 审核</b> 触发（非独立第 5 态）。`,
+       en:`🔶 <b>Solid nodes</b> = real delinq-axis values (Current→D30…→FCL→REO/P); <b>dashed purple nodes</b> (LM / BK / FCL-Hold) = <b>concurrent overlays</b> on the loan that do <b>not</b> change <code>delinq</code>. FCL-Hold is an FCL sub-state triggered by <b>BK automatic stay / LM review</b> (not a 5th independent state).`
+     })+`</div>`
+   +`<h3>${L({en:'Four independent dimensions',zh:'四个独立维度'})}</h3>`
+   +tbl([L({en:'Dimension',zh:'维度'}),L({en:'Meaning',zh:'含义'}),L({en:'Values',zh:'取值'}),L({en:'Field',zh:'数据字段'})],[
+     [L({en:'A · Delinquency',zh:'A · Delinquency 逾期程度'}),L({en:'How severe is the arrears?',zh:'欠款多严重？'}),'C → D30 → D60 → D90 → D120P',L({en:'<code>delinq</code> (also holds FCL/REO/P)',zh:'<code>delinq</code>（同字段含 FCL/REO/P 处置值）'})],
+     [L({en:'B · FCL',zh:'B · FCL 止赎'}),L({en:'Legal process started?',zh:'法律程序是否启动？'}),'N / Y',L({en:'<code>activefcflag</code>',zh:'<code>activefcflag</code>'})],
+     [L({en:'C · LM',zh:'C · LM 损失缓解'}),L({en:'Active remediation?',zh:'是否有主动补救方案？'}),'N / Y',L({en:'<code>lm_flag</code>(<code>activelmflag</code>)',zh:'<code>lm_flag</code>(<code>activelmflag</code>)'})],
+     [L({en:'D · BK',zh:'D · BK 破产'}),L({en:'Borrower filed bankruptcy?',zh:'借款人是否申请破产？'}),'N / Y',L({en:'<code>bankruptcy</code>(<code>activebkflag</code>)',zh:'<code>bankruptcy</code>(<code>activebkflag</code>)'})],
+   ])
+   +`<div style="margin-top:6px"><b>${L({en:'A loan can sit in several dimensions at once:',zh:'同一笔贷款可同时处于多个维度：'})}</b></div>`
+   +tbl([L({en:'Example',zh:'示例'}),'Delinquency','FCL','LM','BK',L({en:'Meaning',zh:'业务含义'})],[
+     [L({en:'Typical FCL',zh:'典型止赎'}),'<code>D120P</code>','Y','N','N',L({en:'Severe arrears, in legal process',zh:'严重逾期已进入法律程序'})],
+     [L({en:'FCL + LM talks',zh:'止赎中谈判'}),'<code>FCL</code>','Y','Y','N',L({en:'In FCL but negotiating relief',zh:'进入止赎但同时在谈宽限'})],
+     [L({en:'In bankruptcy',zh:'破产保护中'}),'<code>D90</code>','Y','N','Y',L({en:'BK automatic stay pauses FCL',zh:'破产自动中止令暂停止赎'})],
+     [L({en:'Normal',zh:'正常贷款'}),'<code>Current</code>','N','N','N',L({en:'Performing, no special status',zh:'按时还款，无特殊状态'})],
+   ])
+   +`<div class="note">`+L({
+       zh:`关键澄清：① <b>FCL-Hold 由 BK 自动中止令 / LM 审核触发</b>（FCL 子态，非独立第 5 态）；② <b>LM/BK/Hold 生效期间 <code>delinq</code> 不变</b>（仍 FCL 或原逾期档；代码 <code>CREATE_FCL_RELATE_ATTR</code> 把 <code>Foreclosure / Perf·Non-Perf BK</code> 都映射为 <code>FCL</code>）；③ <b>P/REO 是 A 轴处置终态</b>，Ch.7 discharge ≠ 还清（Lien 存续），故无 <code>BK→P</code> 直达。`,
+       en:`Clarifications: ① <b>FCL-Hold is triggered by BK automatic stay / LM review</b> (FCL sub-state, not a 5th independent state); ② <b>while LM/BK/Hold are active, <code>delinq</code> is unchanged</b> (stays FCL or the prior bucket; code <code>CREATE_FCL_RELATE_ATTR</code> maps <code>Foreclosure / Perf·Non-Perf BK</code> → <code>FCL</code>); ③ <b>P/REO are A-axis disposition terminals</b>; Ch.7 discharge ≠ payoff (lien survives), so there is no direct <code>BK→P</code>.`
+     })+`</div>`;
+}
+// ↑↑↑ supplementary block ↑↑↑
+
+// ↓↓↓ supplementary view: main axis + flag swimlanes (方案 B) ↓↓↓
+function swimlaneBlock(){
+  const seg=(left,width,txt)=>`<span class="seg" style="left:${left};width:${width}">${txt}</span>`;
+  return `<h3>${L({zh:'补充视角 — 主轴 + 标志泳道（随时间并发）',en:'Supplementary view — main axis + flag swimlanes (concurrency over time)'})}</h3>`
+   +`<div class="note">`+L({
+       zh:`四维表「声明」独立；此泳道图「展示」随时间<b>并发重叠</b>。主轴 A = 逾期逐步升级 → 进入止赎；其下 FCL / LM / BK 为<b>独立 on/off 泳道</b>，竖向重叠即「同时成立」。（示意时间轴，非精确数据）`,
+       en:`The four-dimensions table <i>declares</i> independence; these swimlanes <i>show</i> <b>concurrency</b> over time. Track A = arrears escalate → enter foreclosure; below it FCL / LM / BK are <b>independent on/off lanes</b> — vertical overlap = co-occurring. (Illustrative timeline, not exact data.)`
+     })+`</div>`
+   +`<div class="lanes">`
+   +`<div class="lane"><span class="nm">A · Delinquency</span><div class="track axis">`
+     +seg('0','14%','C')+seg('15%','11%','D30')+seg('27%','11%','D60')+seg('39%','11%','D90')+seg('51%','48%','D120P → FCL → REO/Paid')+`</div></div>`
+   +`<div class="lane"><span class="nm">B · FCL</span><div class="track fcl">`
+     +seg('51%','48%',L({zh:'Y（止赎进行中）',en:'Y (foreclosure in progress)'}))+`</div></div>`
+   +`<div class="lane"><span class="nm">C · LM</span><div class="track lm">`
+     +seg('33%','14%',L({zh:'Y 第1轮',en:'Y round 1'}))+seg('60%','12%',L({zh:'Y 第2轮',en:'Y round 2'}))+`</div></div>`
+   +`<div class="lane"><span class="nm">D · BK</span><div class="track bk">`
+     +seg('62%','16%',L({zh:'Y（自动中止令）',en:'Y (automatic stay)'}))+`</div></div>`
+   +`</div>`;
+}
+// ↑↑↑ swimlanes ↑↑↑
+
+function setLang(l){ lang=l; document.getElementById('bzh').className=l==='zh'?'on':''; document.getElementById('ben').className=l==='en'?'on':''; render(); }
+function render(){ document.getElementById('app').innerHTML = lifecycleFlowSVG() + fourDimBlock() + swimlaneBlock(); }
+render();
+</script>
+</body>
+</html>

@@ -21,6 +21,9 @@
 | 2026-05-29 | AI Agent (Codex) | v1 | 从 doc 7 第 2 章提取 Foreclosure 业务入门内容，补充标准文档头，形成独立分享版 | doc 7 |
 | 2026-06-05 | AI Agent (Claude Opus 4.8) | v2 | §4.6 ① NOI/Demand Letter 节点：流程图区分 NOI vs Demand Letter（司法州=NOI/NOD，非司法州=Demand Letter，同字段 demandsentdate，~30天催告，FCL 启动前，按 doc 10 术语表）；核心字段 demand_date/noi_date → demand_start_date（noi_start_date 恒空）；补准确口径（该阶段在 agg-summary 通常为 0——仅 pre-referral D90/D120P）。与 doc 7 §2.4.6 / fcl_pipeline.html 同步 | doc 10 · doc 7 · fcl_pipeline.html |
 | 2026-06-08 | AI Agent (Claude Opus 4.8) | v3 | 更正状态机 §4：删除错误的 `BK →（债务清偿）→ P` 边（Ch.7 discharge 仅免除个人债务、抵押权 Lien 存续，贷款并未结清）；P 节点标签去「债务清偿」；BK→FCL 边补「/Ch.7 清偿」；§4.3 表 `BK→P` 行改为「无 P 直达」澄清——与本文 Ch.7 Lien 说明、doc 7/14/fcl_pipeline.html 一致 | doc 7 · doc 14 · fcl_pipeline.html |
+| 2026-06-08 | AI Agent (Claude Opus 4.8) | v4 | §4 状态图下**新增「四个独立维度」补充说明**（维度表 + 示例组合表 + 3 条澄清：FCL-Hold 由 BK/LM 触发、LM/BK/Hold 不改 delinq、P/REO 为 A 轴终态）。**原状态图保持不变**（仅补充文字） | fcl_pipeline.html · doc 7/14 |
+| 2026-06-08 | AI Agent (Claude Opus 4.8) | v5 | §5.4 BK 深度解析新增「Ch.7 / Ch.13 官方依据与 BK 状态转换的法律依据」：uscourts.gov Bankruptcy Basics 官方链接 + 各转换的 Title 11 法条（§ 362 / § 1322 / § 1328 / § 727 / § 524）Cornell LII 链接与原文节录；§4.3 转换表加法律依据指引；并澄清「系统透传 servicer 上报的 delinquency_status_mba、并不计算 BK→C」。URL 与原文经 WebFetch 实测核对 | doc 7 · 03_fcl_status_logic.md |
+| 2026-06-08 | AI Agent (Claude Opus 4.8) | v6 | §5.4 新增「BK → Current 与 BK → Foreclosure 的核心差异」对比表（分水岭=房贷违约是否被 cure；Ch.13 reinstate→C vs dismissal/MFR/Ch.7→FCL）；指向独立专题 doc 24 | doc 24 · doc 7 |
 
 ## 依赖文档
 
@@ -188,6 +191,26 @@ flowchart TD
     style P fill:#90EE90,stroke:#228B22
 ```
 
+> **四个独立维度（补充说明，不改上图）**：上面的线性图便于叙事，但 **FCL / LM / BK 不是逾期轴上的「下一个状态」**，而是**叠加在贷款上的并发维度**，并**不改变 `delinq`**。其中 **FCL-Hold 是 FCL 的子态**，由 BK 自动中止令 / LM 审核触发（非独立第 5 态）。
+
+| 维度 | 含义 | 取值 | 数据字段 |
+|------|------|------|---------|
+| A · Delinquency 逾期程度 | 欠款多严重？ | Current → D30 → D60 → D90 → D120P | `delinq`（同字段含 FCL/REO/P 处置值）|
+| B · FCL 止赎 | 法律程序是否启动？ | N / Y | `activefcflag` |
+| C · LM 损失缓解 | 是否有主动补救方案？ | N / Y | `lm_flag`(`activelmflag`) |
+| D · BK 破产 | 借款人是否申请破产？ | N / Y | `bankruptcy`(`activebkflag`) |
+
+**同一笔贷款可同时处于多个维度：**
+
+| 示例 | Delinquency | FCL | LM | BK | 业务含义 |
+|------|-------------|-----|----|----|---------|
+| 典型止赎 | `D120P` | Y | N | N | 严重逾期已进入法律程序 |
+| 止赎中谈判 | `FCL` | Y | Y | N | 进入止赎但同时在谈宽限 |
+| 破产保护中 | `D90` | Y | N | Y | 破产自动中止令暂停止赎 |
+| 正常贷款 | `Current` | N | N | N | 按时还款，无任何特殊状态 |
+
+> 关键澄清：① **FCL-Hold 由 BK 自动中止令 / LM 审核触发**（FCL 子态，非独立第 5 态）；② **LM/BK/Hold 生效期间 `delinq` 不变**（仍 FCL 或原逾期档；代码 `CREATE_FCL_RELATE_ATTR` 把 `Foreclosure / Perf·Non-Perf BK` 都映射为 `FCL`）；③ **P/REO 是 A 轴处置终态**，Ch.7 discharge ≠ 还清（Lien 存续），故无 `BK→P` 直达。
+
 #### 4.2 状态说明与系统 delinq 码对应
 
 | 状态 | 系统 delinq 码 | 产生方式 | 备注 |
@@ -228,6 +251,8 @@ flowchart TD
 | BK → FCL | 破产撤销 / 解除，止赎程序恢复 | BK 结案后 |
 | BK → C | Ch.13 还款计划顺利完成 | 3–5 年后 |
 | BK →（无 P 直达） | **Ch.7 discharge 仅免除借款人个人债务责任，抵押权（Mortgage Lien）存续 → 贷款并未结清**，止赎通常恢复（→ FCL → 拍卖，见下文 Ch.7 Lien 说明）；Ch.13 计划完成则计为 → C（重新计为正常），并非 P | — |
+
+> **各 BK 转换（`Dx/FCL→BK` / `BK→FCL` / `BK→C` / `Ch.7→FCL`）的法律依据与官方链接**，见 §5.4「Ch.7 / Ch.13 官方依据与 BK 状态转换的法律依据」（uscourts.gov + Title 11 § 362 / § 1322 / § 1328 / § 727 / § 524）。
 
 #### 4.4 FCL 内部子阶段
 
@@ -492,6 +517,43 @@ FCL 期间借款人申请破产，系统的表达方式：
 | `Foreclosure / Perf BK` | 止赎中 + 借款人破产且**正在按** Ch.13 还款计划执行 | `FCL` |
 
 两者 delinq 均为 `FCL`，区别在于 BK 的履约状态，影响 Hold 的预期持续时间和最终走向。
+
+##### Ch.7 / Ch.13 官方依据与 BK 状态转换的法律依据
+
+> ⚠️ **这些转换是美国破产法的法律/业务事实，而非本系统计算出来的规则。** 本 ETL **不会自动计算** `BK→C` 等转换：它逐月**透传** servicer 上报的 `delinquency_status_mba`；`Foreclosure / Perf BK`、`Foreclosure / Non-Perf BK` 都由 `CREATE_FCL_RELATE_ATTR` 映射为 `FCL`，贷款保持 `FCL` 直到 servicer 重新上报 `Current`（见 `docs/en/03_fcl_status_logic.md` §2.1 第 77–114 行——系统内无任何「Ch.13 完成 → delinq=C」的代码触发器）。
+
+**官方权威来源（美国联邦法院 U.S. Courts — Bankruptcy Basics）**
+
+- Chapter 7：<https://www.uscourts.gov/court-programs/bankruptcy/bankruptcy-basics/chapter-7-bankruptcy-basics>
+- Chapter 13：<https://www.uscourts.gov/court-programs/bankruptcy/bankruptcy-basics/chapter-13-bankruptcy-basics>
+
+**各 BK 状态转换的法条依据（美国法典第 11 编 Title 11；条文链接为 Cornell LII 官方文本）**
+
+| 转换 | 法条依据 | 官方条文链接 | 关键原文（节录） |
+|------|---------|------------|----------------|
+| `Dx/FCL → BK`（借款人申请破产，FCL 暂停） | **11 U.S.C. § 362(a)** 自动中止令（Automatic Stay） | <https://www.law.cornell.edu/uscode/text/11/362> | 申请破产即 *"operates as a stay"*，禁止 *"any act to … enforce any lien against property of the estate"* 与 *"any act to collect … a claim against the debtor"* |
+| `BK → FCL`（贷款方恢复止赎） | **11 U.S.C. § 362(d)** 解除中止令（Motion for Relief）；或破产被驳回/解除 | <https://www.law.cornell.edu/uscode/text/11/362> | 法院 *"shall grant relief from the stay … such as by terminating, annulling, modifying, or conditioning such stay"*，理由含 *"for cause, including the lack of adequate protection"* |
+| `BK → C`（Ch.13 还款计划完成 → 恢复正常） | **11 U.S.C. § 1322(b)(5)** 补缴欠款 + 维持还款；**§ 1328(a)** 计划完成后获 discharge | <https://www.law.cornell.edu/uscode/text/11/1322> · <https://www.law.cornell.edu/uscode/text/11/1328> | § 1322(b)(5)：*"provide for the curing of any default within a reasonable time and maintenance of payments while the case is pending …"*；§ 1328(a)：discharge *"as soon as practicable after completion by the debtor of all payments under the plan"* |
+| `Ch.7 → FCL`（无 `BK→P` 直达：discharge ≠ 还清，Lien 存续） | **11 U.S.C. § 727** Ch.7 免除个人债务；**§ 524(a)(2)** 免责禁令仅限「个人责任」 | <https://www.law.cornell.edu/uscode/text/11/727> · <https://www.law.cornell.edu/uscode/text/11/524> | § 524(a)(2)：discharge *"operates as an injunction against … an action … to collect … any such debt **as a personal liability of the debtor**"* → 对物抵押权（in rem lien）存续，参 *Dewsnup v. Timm*, 502 U.S. 410 |
+
+##### BK → Current 与 BK → Foreclosure 的核心差异
+
+> **一句话**：看破产有没有"治好"这笔房贷的违约——**治愈 → Current，未治愈 → Foreclosure**。
+
+| 维度 | BK → Current | BK → Foreclosure |
+|------|--------------|------------------|
+| 房贷违约是否被治愈 | **是**（arrears 补缴完成） | **否**（违约仍在） |
+| 典型章节 | **Chapter 13**（重组，可保房） | **Chapter 7**（清算，留不住房）或 **Ch.13 失败被驳回** |
+| 退出机制 | 计划完成 → discharge、贷款 reinstate | 中止令被解除：dismissal / MFR / Ch.7 后 lien 存续 |
+| 自动中止令命运 | 完成使命后正常结束 | **提前被解除/终止**，止赎恢复 |
+| 房子结局 | 保住 | 走向拍卖（→ FCL → REO / 第三方拍卖） |
+| 法条依据 | § 1322(b)(5) cure + § 1328(a) discharge | § 362(c) 终止 / § 362(d) MFR / § 727 + § 524(a)(2) |
+
+- **BK → C**（图中 "Ch.13 done"）：借款人走 Ch.13，在 3–5 年内**补缴拖欠房贷**并维持当期月供；计划完成获 discharge，贷款 reinstate → `C`。uscourts 原话：*"bring the past-due payments current over a reasonable period of time."*
+- **BK → FCL**（图中 "BK lifted/discharged → resume"）：破产结束但房贷违约**未解决**，自动中止令被解除 → 止赎恢复。uscourts 原话：*"If the stay is lifted, the creditor may then proceed … completing its foreclosure action."*
+- **易错点**：Ch.7 ≠ 一定止赎——若借款人 reaffirm 并继续还月供也可回 Current；但本系统中这些是已严重逾期 + 已进 FCL 的贷款，Ch.7 典型走向是「个人责任免除、lien 存续 → 止赎恢复」。
+
+> 完整版（逐条法律依据 + 权威来源 + 系统透传说明）见 **doc 24《BK → Current 与 BK → Foreclosure 核心差异》**。
 
 ---
 
