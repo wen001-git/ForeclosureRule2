@@ -15,11 +15,14 @@
 
 **Dependencies:** `01_source_data.md` (source fields), `03_fcl_status_logic.md` (generation logic)
 
+> **📅 Data date (unified statement)**: all counts are from **prod** (`redshift_prod`/`mysql_prod`), never dev. Per-table as-of differs: `port.portmonthbase` (delinq) = **2025-08-01** (frozen there in prod); `port.fcl_stage_info` (stages, §6) = **2026-06-07**. §6 stage counts are split into two methods (latest snapshot / cumulative), each with as-of and SQL.
+
 **Revision history:**
 
 | Date | Author | Version | Changes |
 |------|--------|---------|---------|
 | 2026-05-21 | AI Agent (Claude Sonnet 4.6) | v1 | Initial version, code reverse-engineering + DB evidence |
+| 2026-06-10 | AI Agent (Claude Opus 4.8) | v2 | §6 stage counts corrected to **two methods** (6.1 latest snapshot as-of 2026-06-07, 41 rows; 6.2 cumulative 302 snapshots, 9,587 rows) with method note + SQL; fixed the old undated "8,733" (prod-verified) |
 
 ---
 
@@ -159,25 +162,52 @@ SLS raw codes are already close to standard format — simplest transformation o
 
 ## 6. FCL Stage Codes (`port.fcl_stage_info.stage` field)
 
-**DB evidence (8,733 total records):**
+> **Counting method**: `port.fcl_stage_info` is stored as daily `fctrdt` snapshots (one row per in-FCL loan per day). Both methods are listed below — use **6.1 latest snapshot** for "loans currently in the FCL pipeline", **6.2 cumulative** for "historical data volume". Do not mix them.
+
+### 6.1 Single latest snapshot (loans currently in the FCL pipeline)
+
+- **Method**: single latest snapshot `fctrdt = MAX(fctrdt)`. **As-of 2026-06-07**, **41 rows** (all `group=FCL`).
+- **SQL**:
+
+```sql
+SELECT stage, COUNT(*) AS n FROM port.fcl_stage_info
+WHERE fctrdt=(SELECT MAX(fctrdt) FROM port.fcl_stage_info)
+GROUP BY stage ORDER BY n DESC;
+```
 
 | Stage Code | Records | Business Meaning |
 |------------|---------|-----------------|
-| `DEMAND` | 448 | Demand letter / Notice of Intent issued |
-| `REFERRAL` | 3,341 | Attorney referral |
-| `FIRST_LEGAL` | 800 | First legal action filed |
-| `SERVICE` | 1,486 | Legal document service |
-| `JUDGEMENT` | 700 | Judgment phase |
-| `SALE` | 1,958 | Foreclosure sale |
+| `REFERRAL` | 20 | Attorney referral |
+| `SALE` | 8 | Foreclosure sale |
+| `FIRST_LEGAL` | 7 | First legal action filed |
+| `SERVICE` | 4 | Legal document service |
+| `JUDGEMENT` | 2 | Judgment phase |
+| `DEMAND` | 0 | Demand letter / Notice of Intent issued |
 
-**Stage group values (`group` field):**
+Stage groups (latest snapshot): `FCL` 41 · `D120P` 0 · `D90` 0 · `REO` 0.
 
-| Group | Records | Meaning |
-|-------|---------|---------|
-| `FCL` | 8,277 | Loans formally in foreclosure |
-| `D120P` | 411 | 120+ DPD loans with stage tracking |
-| `D90` | 39 | 90-day delinquent loans with stage tracking |
-| `REO` | 6 | Loans already in REO |
+### 6.2 Cumulative across all fctrdt (historical data volume · loan-day)
+
+- **Method**: cumulative across all `fctrdt` (no date filter; one row per loan per snapshot day = loan-day), **not** the current count. **Coverage 2025-06-04 .. 2026-06-07, 302 daily snapshots, 9,587 rows**.
+- **SQL**:
+
+```sql
+SELECT stage, COUNT(*) AS n FROM port.fcl_stage_info GROUP BY stage ORDER BY n DESC;
+SELECT "group" AS grp, COUNT(*) AS n FROM port.fcl_stage_info GROUP BY "group" ORDER BY n DESC;
+```
+
+| Stage Code | Records (cumulative) | Business Meaning |
+|------------|---------|-----------------|
+| `REFERRAL` | 3,766 | Attorney referral |
+| `SALE` | 2,124 | Foreclosure sale |
+| `SERVICE` | 1,551 | Legal document service |
+| `FIRST_LEGAL` | 941 | First legal action filed |
+| `JUDGEMENT` | 744 | Judgment phase |
+| `DEMAND` | 461 | Demand letter / Notice of Intent issued |
+
+Stage groups (cumulative): `FCL` 9,114 · `D120P` 424 · `D90` 39 · `REO` 10.
+
+> ⚠️ Correction: the prior "8,733 total records" and per-stage figures (DEMAND 448 / REFERRAL 3,341 / …) were a **cumulative** snapshot at an earlier data date, unlabeled as to method/date — easily misread as "current in-FCL loan count". Now split into the two methods above with as-of dates and SQL (prod-verified 2026-06-07).
 
 ---
 

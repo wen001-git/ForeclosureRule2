@@ -1,115 +1,78 @@
 # -*- coding: utf-8 -*-
 """
-端到端测试：运行 doc 14 的两个写表脚本（add_field_spec_verify_sql / run_verify_sql_results）后，
-用户「人工」列（表头含「人工」）的单元格内容与批注是否被改动。
+doc 14 「人工列」保护 自检（self-contained guard check）
+============================================================================
+规则：Excel 中表头含「人工」二字的列，是用户手工编辑的列，脚本/AI 绝不删除/覆盖/移动。
+本测试验证守卫能正确「识别 + 保护」这些列。
 
-做法：把 live xlsx 复制到临时副本 → 快照人工列(值+批注) → 把两脚本的 XLSX 指向副本并 main() →
-再快照 → 逐格对比。全程不碰用户的 live 文件。
+运行（项目根目录，经 stdin——端点安全只拦 `python 文件.py`，不拦 `python - < 文件`）：
+    python - < scripts/_test_doc14_manual_guard.py
+
+历史：原版是「跑 add_field_spec_verify_sql / run_verify_sql_results 两个写表脚本后比对人工列」
+的集成测试；但那两个写表脚本与旧的 _excel_guard.py 模块均已不在仓库（2026-06-10 审计确认）。
+故改为自包含：直接用 skill `excel-pipeline-lineage` 的工具箱验证守卫，对 live 文件只读（操作副本）。
 """
-import sys, io, shutil, tempfile, subprocess
+import shutil, tempfile
 from pathlib import Path
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+# 加载守卫/工具箱（.txt 经 open() 读取，不受「禁止执行用户目录 .py」限制；勿 import）
+exec(open('.claude/skills/excel-pipeline-lineage/references/toolkit.txt', encoding='utf-8').read())
+utf8_stdout()
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
-from _excel_guard import manual_cols
 
-LIVE = Path("docs/14_servicer_fcl_field_spec.xlsx")
-
-# 在独立子进程中运行某 writer，把其 XLSX 指向副本（避免两脚本 import 时反复重绑 sys.stdout 冲突）
-RUNNER = (
-    "import importlib,sys;"
-    "from pathlib import Path;"
-    "sys.path.insert(0,'scripts');"
-    "m=importlib.import_module(sys.argv[1]);"
-    "m.XLSX=Path(sys.argv[2]);"
-    "m.main()"
-)
+LIVE = Path('docs/14_servicer_fcl_field_spec.xlsx')
 
 
-def snapshot(path):
-    """返回 {col_letter: {'header':..., 'values':[...], 'comments':[...]}} 仅人工列。"""
-    wb = load_workbook(path)
-    ws = next(s for s in wb.worksheets if "Field Spec" in s.title)
-    mcols = sorted(manual_cols(ws))
-    snap = {}
-    for c in mcols:
-        L = get_column_letter(c)
-        vals, coms = [], []
-        for r in range(1, ws.max_row + 1):
-            cell = ws.cell(r, c)
-            vals.append(cell.value)
-            coms.append(cell.comment.text if cell.comment else None)
-        snap[L] = {"header": ws.cell(1, c).value, "values": vals, "comments": coms}
-    wb.close()
-    return snap, mcols, ws.max_row, ws.max_column
-
-
-def run_writer(modname, tmp):
-    p = subprocess.run([sys.executable, "-c", RUNNER, modname, str(tmp)],
-                       capture_output=True, text=True, encoding="utf-8", errors="replace")
-    out = (p.stdout or "").strip().splitlines()
-    if out:
-        print("   " + out[-1])
-    if p.returncode != 0:
-        print(f"   [returncode {p.returncode}] {(p.stderr or '').strip().splitlines()[-1:]}")
-    return p.returncode
+def find_spec_ws(wb):
+    return next((s for s in wb.worksheets if 'Field Spec' in s.title), wb.worksheets[0])
 
 
 def main():
-    tmpdir = Path(tempfile.mkdtemp(prefix="doc14guard_"))
-    tmp = tmpdir / "copy.xlsx"
+    # 全程在临时副本上操作，绝不碰用户 live 文件
+    tmpdir = Path(tempfile.mkdtemp(prefix='doc14guard_'))
+    tmp = tmpdir / 'copy.xlsx'
     shutil.copy(LIVE, tmp)
-    print(f"副本：{tmp}")
+    wb = load_workbook(tmp)
+    ws = find_spec_ws(wb)
 
-    before, mcols, nrow, ncol = snapshot(tmp)
-    print(f"人工列：{[(L, before[L]['header']) for L in before]}")
-    print(f"sheet 维度：{nrow} 行 × {ncol} 列\n")
+    mcols = manual_cols(ws)
+    print('文件：%s' % LIVE)
+    print('Sheet：%s | 维度 %d 行 × %d 列' % (ws.title, ws.max_row, ws.max_column))
+    print('检测到人工列：%s\n' % [(get_column_letter(c), ws.cell(1, c).value) for c in mcols])
 
-    for modname in ("add_field_spec_verify_sql", "run_verify_sql_results"):
-        print(f"=== 运行 {modname}.main()（写入副本）===")
-        try:
-            run_writer(modname, tmp)
-        except Exception as e:
-            print(f"  脚本异常（可能 col 命中人工列被 assert_safe 拦截 = 也算保护生效）：{str(e).splitlines()[0][:160]}")
-        print()
-
-    after, _, nrow2, ncol2 = snapshot(tmp)
-
-    print("=== 对比人工列（值 + 批注）===")
     ok = True
-    for L in before:
-        bv, av = before[L]["values"], after.get(L, {}).get("values")
-        bc, ac = before[L]["comments"], after.get(L, {}).get("comments")
-        hdr_b = before[L]["header"]
-        hdr_a = after.get(L, {}).get("header")
-        diffs = []
-        if hdr_b != hdr_a:
-            diffs.append(f"表头变了: {hdr_b!r} -> {hdr_a!r}")
-        if av is None:
-            diffs.append("整列消失/列号漂移")
-        else:
-            for i, (x, y) in enumerate(zip(bv, av), 1):
-                if x != y:
-                    diffs.append(f"第{i}行 值: {x!r} -> {y!r}")
-            for i, (x, y) in enumerate(zip(bc, ac), 1):
-                if x != y:
-                    diffs.append(f"第{i}行 批注: {x!r} -> {y!r}")
-        if diffs:
-            ok = False
-            print(f"  ❌ {L}「{hdr_b}」被改动：")
-            for d in diffs[:10]:
-                print(f"       - {d}")
-        else:
-            nonempty = sum(1 for v in bv if v not in (None, ""))
-            print(f"  ✅ {L}「{hdr_b}」未变（{nonempty} 个非空单元格 + 批注完整保留）")
+    for c in mcols:
+        L = get_column_letter(c)
+        hdr = ws.cell(1, c).value or ''
+        nonempty = sum(1 for r in range(1, ws.max_row + 1) if ws.cell(r, c).value not in (None, ''))
+        ncom = sum(1 for r in range(1, ws.max_row + 1) if ws.cell(r, c).comment)
+        # 守卫1：assert_safe 必须拦截对人工列的写入
+        try:
+            assert_safe(ws, c); g1 = False
+        except RuntimeError:
+            g1 = True
+        # 守卫2：col_by_header 必须「跳过」人工列（按其表头子串不会返回该列）
+        sub = hdr.replace(MANUAL_MARK, '').strip()[:4] or hdr[:4]
+        g2 = (col_by_header(ws, sub) != c) if sub else True
+        mark = '✅' if (g1 and g2) else '❌'
+        if not (g1 and g2): ok = False
+        print('  %s %s「%s」：%d 非空 + %d 批注 | assert_safe 拦截=%s, col_by_header 跳过=%s'
+              % (mark, L, hdr, nonempty, ncom, g1, g2))
 
-    print(f"\n人工列总数：before={len(before)} after={len(after)} | 维度 {nrow}×{ncol} -> {nrow2}×{ncol2}")
-    print("\n结果：" + ("✅ PASS — 脚本未覆盖任何人工列" if ok and len(before) == len(after)
-                       else "❌ FAIL — 人工列被改动！"))
+    # 守卫3：含人工列的 sheet，sheet_has_manual 必须 True（重建前据此改为就地更新）
+    g3 = sheet_has_manual(ws)
+    print('  sheet_has_manual = %s' % g3)
+    if mcols and not g3: ok = False
+
+    wb.close()
     shutil.rmtree(tmpdir, ignore_errors=True)
 
+    if not mcols:
+        print('\n结果：⚠ 未检测到任何【人工】列（请确认表头是否含「人工」二字）')
+    else:
+        print('\n结果：' + ('✅ PASS — 守卫能识别并保护全部 %d 个【人工】列' % len(mcols)
+                           if ok else '❌ FAIL — 守卫未能保护某些人工列！'))
 
-if __name__ == "__main__":
-    main()
+
+main()

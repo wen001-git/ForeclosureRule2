@@ -24,17 +24,20 @@ md=open(MD,encoding='utf-8').read()
 md=re.sub(r'\n*<!-- META:[^\n]*? START -->.*?<!-- META:[^\n]*? END -->\n?', '\n', md, flags=re.S)
 
 def md_block(key,t):
-    # order: 所处层级 → 上游(链路+表) → 下游(链路+表) → 业务含义/何时来查/为什么/数据粒度 →（备注）
+    # order: 所处层级 → 业务说明 → 业务目的 → 在 pipeline 中的作用 → 为什么会有这张表
+    #        → 何时来查 → 上游(链路+表) → 下游(链路+表) → 数据粒度 →（备注）
     L=['<!-- META:%s START -->'%key,
        '> **📋 业务含义与全链路血缘**','>',
        '> - **所处层级**：%s'%t['layer'],
+       '> - **业务说明**：%s'%t['business_meaning'],
+       '> - **业务目的**：%s'%t['business_purpose'],
+       '> - **在 pipeline 中的作用**：%s'%t['pipeline_role'],
+       '> - **为什么会有这张表**：%s'%t['why_pipeline'],
+       '> - **何时来查这张表**：%s'%t['when_to_query'],
        '> - **上游链路**：%s'%t['upstream_chain'],
        '> - **全部上游表**：%s'%JOIN(t['upstream_tables']),
        '> - **下游链路**：%s'%t['downstream_chain'],
        '> - **全部下游表**：%s'%JOIN(t['downstream_tables']),
-       '> - **业务含义/目的**：%s %s'%(t['business_meaning'],t['business_purpose']),
-       '> - **何时来查这张表**：%s'%t['when_to_query'],
-       '> - **为什么 pipeline 这样处理**：%s'%t['why_pipeline'],
        '> - **数据粒度**：%s'%t['grain']]
     if t.get('note'): L.append('> - **备注**：%s'%t['note'])
     L.append('<!-- META:%s END -->'%key)
@@ -79,6 +82,11 @@ if '| v8 |' not in md:
     idx=md.find('### 修订历史'); sep=md.find('\n|---',idx); eol=md.find('\n',sep+1)
     v8='\n| 2026-06-08 | AI Agent (Claude Opus 4.8) | v8 | 每表「业务含义与全链路血缘」说明块**重排**：首行新增 **所处层级**（L1–L5，取自 fcl_table_meta.json），紧接 **上游链路/全部上游表** → **下游链路/全部下游表**，再业务含义/何时来查/为什么/数据粒度；MD 块 + Excel 各表块 + ⓪ 总览同步 | fcl_table_meta.json |'
     md=md[:eol]+v8+md[eol:]
+# v9 revision row (idempotent) — 4 项业务框架显式拆分/新增
+if '| v9 |' not in md:
+    idx=md.find('### 修订历史'); sep=md.find('\n|---',idx); eol=md.find('\n',sep+1)
+    v9='\n| 2026-06-10 | AI Agent (Claude Opus 4.8) | v9 | 每表说明块 + ⓪ 总览**显式拆出 4 项业务框架**：**业务说明 / 业务目的**分列、新增 **在 pipeline 中的作用**（fcl_table_meta.json 新增 pipeline_role 字段）、原「为什么这样处理」改标签为 **为什么会有这张表**；MD 块 + Excel 各表块 + ⓪ 总览同步 | fcl_table_meta.json |'
+    md=md[:eol]+v9+md[eol:]
 open(MD,'w',encoding='utf-8').write(md)
 
 # ================= XLSX =================
@@ -91,16 +99,19 @@ WRAP=Alignment(wrap_text=True,vertical='top',horizontal='left')
 START_S='📋 业务含义与全链路血缘'; END_S='▲ 以上为「业务含义与全链路血缘」说明块'
 
 def block_rows(t):
-    # order: 所处层级 → 上游(链路+表) → 下游(链路+表) → 业务含义/何时来查/为什么/数据粒度 →（备注）
+    # order: 所处层级 → 业务说明 → 业务目的 → 在 pipeline 中的作用 → 为什么会有这张表
+    #        → 何时来查 → 上游(链路+表) → 下游(链路+表) → 数据粒度 →（备注）
     r=[('S',START_S+'  〔自动生成·勿手改本块；改 outputs/fcl_table_meta.json 后重跑〕'),
        ('k','所处层级：'+t['layer']),
+       ('k','业务说明：'+t['business_meaning']),
+       ('k','业务目的：'+t['business_purpose']),
+       ('k','在 pipeline 中的作用：'+t['pipeline_role']),
+       ('k','为什么会有这张表：'+t['why_pipeline']),
+       ('k','何时来查：'+t['when_to_query']),
        ('k','上游链路：'+t['upstream_chain']),
        ('k','全部上游表：'+JOIN(t['upstream_tables'])),
        ('k','下游链路：'+t['downstream_chain']),
        ('k','全部下游表：'+JOIN(t['downstream_tables'])),
-       ('k','业务含义/目的：'+t['business_meaning']+' '+t['business_purpose']),
-       ('k','何时来查：'+t['when_to_query']),
-       ('k','为什么这样处理：'+t['why_pipeline']),
        ('k','数据粒度：'+t['grain'])]
     if t.get('note'): r.append(('k','备注：'+t['note']))
     r.append(('E',END_S+'；下方为原始数据 ────'))
@@ -152,7 +163,7 @@ for sn in list(wb.sheetnames):
 OVR='⓪ 表说明与全链路血缘'
 if OVR in wb.sheetnames: del wb[OVR]
 ws=wb.create_sheet(OVR,0)
-H=['表(num)','层','业务含义/目的','何时来查','为什么这样处理','数据粒度','上游链路','全部上游表','下游链路','全部下游表','备注']
+H=['表(num)','层','业务说明','业务目的','在pipeline中的作用','为什么会有这张表','何时来查','数据粒度','上游链路','全部上游表','下游链路','全部下游表','备注']
 ws.cell(1,1,'doc 19 · 各表「业务含义与全链路血缘」总览（自动生成自 outputs/fcl_table_meta.json）')
 ws.merge_cells(start_row=1,start_column=1,end_row=1,end_column=len(H))
 ws.cell(1,1).font=Font(name='微软雅黑',size=12,bold=True,color='FFFFFF'); ws.cell(1,1).fill=F(DARK)
@@ -163,14 +174,14 @@ for c,h in enumerate(H,1):
 r=3; n_ovr=0
 for num in ORDER:
     t=T[NUM2KEY[num]]
-    vals=[num+' '+NUM2KEY[num],t['layer'],t['business_meaning']+' '+t['business_purpose'],t['when_to_query'],
-          t['why_pipeline'],t['grain'],t['upstream_chain'],JOIN(t['upstream_tables']),
+    vals=[num+' '+NUM2KEY[num],t['layer'],t['business_meaning'],t['business_purpose'],t['pipeline_role'],
+          t['why_pipeline'],t['when_to_query'],t['grain'],t['upstream_chain'],JOIN(t['upstream_tables']),
           t['downstream_chain'],JOIN(t['downstream_tables']),t.get('note','')]
     for c,v in enumerate(vals,1):
         cc=ws.cell(r,c,v); cc.font=VFONT; cc.alignment=WRAP; cc.border=BORDER
         cc.fill=F('FFFFFF' if r%2 else GREY)
     ws.row_dimensions[r].height=96; r+=1; n_ovr+=1
-for c,w in enumerate([22,18,40,26,40,18,54,28,54,28,28],1):
+for c,w in enumerate([22,18,40,34,34,40,26,18,54,28,54,28,28],1):
     ws.column_dimensions[get_column_letter(c)].width=w
 ws.freeze_panes='C3'
 
@@ -182,6 +193,10 @@ if IDX in wb.sheetnames:
     if 'v8' not in cur:
         note='2026-06-08 v8：每表说明块重排——首行加「所处层级」(L1–L5)，紧接上游(链路+表)、下游(链路+表)，再业务含义等。'
         iw.cell(7,2).value=note+'  ||  '+cur
+    cur9=iw.cell(7,2).value or ''
+    if 'v9' not in cur9:
+        note9='2026-06-10 v9：说明块/⓪总览显式拆 4 项业务框架——业务说明·业务目的(拆分)·在 pipeline 中的作用(新增)·为什么会有这张表(改标签)。'
+        iw.cell(7,2).value=note9+'  ||  '+cur9
 wb.save(XLSX)
 
 print('MD blocks:',n_md,'| sheets enriched:',n_sheets,'| overview rows:',n_ovr,'| skipped(人工):',skipped,'| total sheets:',len(wb.sheetnames))

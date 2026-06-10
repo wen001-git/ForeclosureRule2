@@ -22,6 +22,9 @@ data engineers · analysts · validators · future AI sessions
 | 2026-06-09 | AI Agent | v5 | Added tempfc hop + L2/L3-absent note to the chain; numbered field cards | doc 02 · doc 13 · doc 14 |
 | 2026-06-09 | AI Agent | v6 | Cover every BPS sync-table column (system/audit grouped, view-computed); numbered data-flow order | doc 02 · doc 13 · doc 14 |
 | 2026-06-09 | AI Agent | v7 | Added Chinese name/business meaning to every field (Code-First from DDL comments); started maintaining the revision history | doc 02 · doc 13 · doc 14 |
+| 2026-06-09 | AI Agent | v8 | Added full logic notes + worked examples (multi-branch) to stage computed fields; Code-First-corrected the end_date/countdown hop rules from the SQL projection; fixed the wrong to_judgement/to_sale examples | doc 02 · doc 13 · doc 14 |
+| 2026-06-09 | AI Agent | v9 | Made [pool:]/[asset:] code citations clickable GitLab links (fork jli/prefectflow pinned to commit 32a750a3; exact stable line numbers); legend file paths clickable too; view stays plain text | doc 02 · doc 13 · doc 14 |
+| 2026-06-10 | AI Agent | v10 | Hub: added FCL-fact-hub vs BPS-projection note: basic_data_loan_fcl = fact hub/full history, **directly feeds foreclosure + fcl_stage_info**; _hold/_bankruptcy/_loss_mitigation/fcl_related are built in parallel from raw servicer tables (not children of fcl) | doc 02 · doc 13 · doc 14 |
 
 ## Related Documents
 
@@ -38,15 +41,15 @@ doc 02 (ETL pipeline, table-level) · doc 13/14 (field mappings) · doc 25 (line
 | # | layer | db | table | role |
 |---|---|---|---|---|
 | 1 | L0/L1 | MySQL+Redshift | `newrez.portnewrezfc` | Servicer raw |
-| 2 | L4·temp | Redshift | `tempfc.temp_basic_data_fcl` | 3-servicer rename-UNION of L1 raw / 三家 servicer 改名 UNION (CREATE_BASIC_FCL, pool:1531-1654) |
+| 2 | L4·temp | Redshift | `tempfc.temp_basic_data_fcl` | 3-servicer rename-UNION of L1 raw / 三家 servicer 改名 UNION (CREATE_BASIC_FCL, [pool:1531-1654](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1531-1654)) |
 | 3 | L4 | Redshift | `port.basic_data_loan_fcl` | canonical FCL fact |
 | 4 | L4 | Redshift→MySQL | `port.basic_data_loan_foreclosure` | timeline+summary build (GEN_FCL_DETAIL) |
 | 5 | L5 | MySQL bpms | `bpms.sync_loan_foreclosure` | BPS app table (UPDATE_FORECLOSURE upsert) |
 | 6 | L5 | MySQL bpms | `bpms.biz_data_view_loan_details_foreclosure` | display view (Actual/Var days) |
 
-> The `#` column is a sequence number, not the layer number. The FCL fact `port.basic_data_loan_fcl` is built DIRECTLY from the L1 servicer raw tables (UNIONed in `tempfc.temp_basic_data_fcl`; CREATE_BASIC_FCL pool:1531-1654), so the L2 unified-daily (`port.basic_data_daily_loan_common`) and L3 clean (`…_clean` / `…_delinq_clean`) layers are NOT part of this branch by design — they carry the common + delinquency fields and re-enter only via the `group` dimension (doc 27, `basic_data_fcl_related`) and the monthly `portmonth` path. See doc 02 for the full L0–L5 pipeline.
+> The `#` column is a sequence number, not the layer number. The FCL fact `port.basic_data_loan_fcl` is built DIRECTLY from the L1 servicer raw tables (UNIONed in `tempfc.temp_basic_data_fcl`; CREATE_BASIC_FCL [pool:1531-1654](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1531-1654)), so the L2 unified-daily (`port.basic_data_daily_loan_common`) and L3 clean (`…_clean` / `…_delinq_clean`) layers are NOT part of this branch by design — they carry the common + delinquency fields and re-enter only via the `group` dimension (doc 27, `basic_data_fcl_related`) and the monthly `portmonth` path. See doc 02 for the full L0–L5 pipeline.
 
-> code: `pool` = PrefectFlow/flow/basic_data/basic_data_config/basic_data_pool_config.py · `asset` = PrefectFlow/flow/bps/bps_config/asset_managment_config.py · `view` = bpms.biz_data_view_loan_details_foreclosure (SHOW CREATE VIEW)
+> code: `pool` = [PrefectFlow/flow/basic_data/basic_data_config/basic_data_pool_config.py](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py) · `asset` = [PrefectFlow/flow/bps/bps_config/asset_managment_config.py](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py) · `view` = bpms.biz_data_view_loan_details_foreclosure (SHOW CREATE VIEW)
 
 
 ## Identity / key columns
@@ -73,8 +76,8 @@ _Bridger deal id._
 
 **Flow:** ①portfunding → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.portfunding.dealid` — join on loanid [asset:541,604]
-- 2. `bpms.sync_loan_foreclosure.bid_id` — dealid → bid_id [asset:541]
+- 1. `port.portfunding.dealid` — join on loanid [asset:541,604](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L541)
+- 2. `bpms.sync_loan_foreclosure.bid_id` — dealid → bid_id [asset:541](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L541)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.bid_id` — passthrough [view]
 
 ### 3. funding_id  (`bpms.sync_loan_foreclosure.funding_id`)
@@ -86,8 +89,8 @@ _Bridger funding id._
 
 **Flow:** ①portfunding → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.portfunding.fundingid` — join on loanid [asset:542,604]
-- 2. `bpms.sync_loan_foreclosure.funding_id` — fundingid → funding_id [asset:542]
+- 1. `port.portfunding.fundingid` — join on loanid [asset:542,604](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L542)
+- 2. `bpms.sync_loan_foreclosure.funding_id` — fundingid → funding_id [asset:542](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L542)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.funding_id` — passthrough [view]
 
 ### 4. Investor loan id  (`bpms.sync_loan_foreclosure.loanid`)
@@ -102,7 +105,7 @@ _Investor loan id / servicer loan id._
 - 1. `newrez.portnewrezfc.loanid` — servicer raw 原始
 - 2. `port.basic_data_loan_fcl.loanid` — rename/passthrough 改名直传
 - 3. `port.basic_data_loan_foreclosure.loanid` — passthrough 直传
-- 4. `bpms.sync_loan_foreclosure.loanid` — GEN_FORECLOSURE join port.portfunding 直传 [asset:543]
+- 4. `bpms.sync_loan_foreclosure.loanid` — GEN_FORECLOSURE join port.portfunding 直传 [asset:543](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L543)
 - 5. `bpms.biz_data_view_loan_details_foreclosure.loanid` — passthrough [view]
 
 ### 5. Servicer loan id  (`bpms.sync_loan_foreclosure.svcloanid`)
@@ -117,7 +120,7 @@ _Investor loan id / servicer loan id._
 - 1. `newrez.portnewrezfc.shellpointloanid` — servicer raw 原始
 - 2. `port.basic_data_loan_fcl.svc_loanid` — rename/passthrough 改名直传
 - 3. `port.basic_data_loan_foreclosure.svcloanid` — passthrough 直传
-- 4. `bpms.sync_loan_foreclosure.svcloanid` — GEN_FORECLOSURE join port.portfunding 直传 [asset:543]
+- 4. `bpms.sync_loan_foreclosure.svcloanid` — GEN_FORECLOSURE join port.portfunding 直传 [asset:543](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L543)
 - 5. `bpms.biz_data_view_loan_details_foreclosure.svcloanid` — passthrough [view]
 
 ### 6. servicer  (`bpms.sync_loan_foreclosure.servicer`)
@@ -129,7 +132,7 @@ _Servicer name._
 
 **Flow:** ①(per → ②sync_loan_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `(per servicer)` · constant 'Newrez'/'Carrington'/'Capecodfive' — constant per UNION branch [pool:1536/1577/1618]
+- 1. `(per servicer)` · constant 'Newrez'/'Carrington'/'Capecodfive' — constant per UNION branch [pool:1536/1577/1618](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1536)
 - 2. `bpms.sync_loan_foreclosure.servicer` — sync passthrough [asset]
 
 
@@ -148,9 +151,9 @@ _NOI/Demand letter date._
 
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_fcl.noi_date` — null for Newrez（常量空） [pool:1542]
-- 2. `port.basic_data_loan_foreclosure.timeline_notice_of_intent_date` — direct copy 直传 [pool:258]
-- 3. `bpms.sync_loan_foreclosure.timeline_notice_of_intent_date` — upsert pass-through 直传 [asset:703/753]
+- 1. `port.basic_data_loan_fcl.noi_date` — null for Newrez（常量空） [pool:1542](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1542)
+- 2. `port.basic_data_loan_foreclosure.timeline_notice_of_intent_date` — direct copy 直传 [pool:258](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L258)
+- 3. `bpms.sync_loan_foreclosure.timeline_notice_of_intent_date` — upsert pass-through 直传 [asset:703/753](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L703)
 - 4. `bpms.biz_data_view_loan_details_foreclosure` · timeline_notice_of_intent_date (+actual/var) — view: actual=to_days(x)-to_days(nextduedate); var=actual-target [view]
 
 **Note:** Newrez has no NOI source → NULL; only Capecodfive populates noi_date.
@@ -166,8 +169,8 @@ _Reserved milestone; not populated by the FCL ETL._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.timeline_notice_of_intent_end_date` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305]
-- 2. `bpms.sync_loan_foreclosure.timeline_notice_of_intent_end_date` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605]
+- 1. `port.basic_data_loan_foreclosure.timeline_notice_of_intent_end_date` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L148-305)
+- 2. `bpms.sync_loan_foreclosure.timeline_notice_of_intent_end_date` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L540-605)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.timeline_notice_of_intent_end_date` — passthrough [view]
 
 ### 9. Approval for referral  (`bpms.sync_loan_foreclosure.timeline_approved_for_referral_date`)
@@ -181,8 +184,8 @@ _Reserved milestone; not populated by the FCL ETL._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.timeline_approved_for_referral_date` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305]
-- 2. `bpms.sync_loan_foreclosure.timeline_approved_for_referral_date` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605]
+- 1. `port.basic_data_loan_foreclosure.timeline_approved_for_referral_date` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L148-305)
+- 2. `bpms.sync_loan_foreclosure.timeline_approved_for_referral_date` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L540-605)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.timeline_approved_for_referral_date` — passthrough [view]
 
 ### 10. Date referred to attorney  (`bpms.sync_loan_foreclosure.timeline_referred_to_attorney_date`)
@@ -196,8 +199,8 @@ _Reserved milestone; not populated by the FCL ETL._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.timeline_referred_to_attorney_date` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305]
-- 2. `bpms.sync_loan_foreclosure.timeline_referred_to_attorney_date` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605]
+- 1. `port.basic_data_loan_foreclosure.timeline_referred_to_attorney_date` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L148-305)
+- 2. `bpms.sync_loan_foreclosure.timeline_referred_to_attorney_date` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L540-605)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.timeline_referred_to_attorney_date` — passthrough [view]
 
 ### 11. Referred to Foreclosure (Referral)  (`bpms.sync_loan_foreclosure.timeline_referred_to_foreclosure_date`)
@@ -211,9 +214,9 @@ _Formal FCL referral date; BPS ingestion filter (must be non-null)._
 
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_fcl.referral_start_date` — rename 改名 [pool:1544]
-- 2. `port.basic_data_loan_foreclosure.timeline_referred_to_foreclosure_date` — direct copy 直传 [pool:259]
-- 3. `bpms.sync_loan_foreclosure.timeline_referred_to_foreclosure_date` — upsert pass-through 直传 [asset:707/757]
+- 1. `port.basic_data_loan_fcl.referral_start_date` — rename 改名 [pool:1544](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1544)
+- 2. `port.basic_data_loan_foreclosure.timeline_referred_to_foreclosure_date` — direct copy 直传 [pool:259](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L259)
+- 3. `bpms.sync_loan_foreclosure.timeline_referred_to_foreclosure_date` — upsert pass-through 直传 [asset:707/757](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L707)
 - 4. `bpms.biz_data_view_loan_details_foreclosure` · timeline_referred_to_foreclosure_date (+actual/var) — view: actual=to_days(x)-to_days(nextduedate); var=actual-Σtarget [view]
 
 ### 12. Title Report Received  (`bpms.sync_loan_foreclosure.timeline_title_report_received_date`)
@@ -229,9 +232,9 @@ _Title report received date._
 
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_fcl.titlereceiveddate` — rename 改名 [pool:1540]
-- 2. `port.basic_data_loan_foreclosure.timeline_title_report_received_date` — direct copy 直传 [pool:260]
-- 3. `bpms.sync_loan_foreclosure.timeline_title_report_received_date` — upsert pass-through [asset:758]
+- 1. `port.basic_data_loan_fcl.titlereceiveddate` — rename 改名 [pool:1540](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1540)
+- 2. `port.basic_data_loan_foreclosure.timeline_title_report_received_date` — direct copy 直传 [pool:260](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L260)
+- 3. `bpms.sync_loan_foreclosure.timeline_title_report_received_date` — upsert pass-through [asset:758](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L758)
 - 4. `bpms.biz_data_view_loan_details_foreclosure` · timeline_title_report_received_date (+actual/var) — view actual/var [view]
 
 **Note:** Newrez does not populate titlereceiveddate (active FCL ~0%).
@@ -249,9 +252,9 @@ _Preliminary title-clear date._
 
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_fcl.titlecleardate` — rename 改名 [pool:1541]
-- 2. `port.basic_data_loan_foreclosure.timeline_preliminary_title_cleared_date` — direct copy 直传 [pool:261]
-- 3. `bpms.sync_loan_foreclosure.timeline_preliminary_title_cleared_date` — upsert pass-through [asset:759]
+- 1. `port.basic_data_loan_fcl.titlecleardate` — rename 改名 [pool:1541](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1541)
+- 2. `port.basic_data_loan_foreclosure.timeline_preliminary_title_cleared_date` — direct copy 直传 [pool:261](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L261)
+- 3. `bpms.sync_loan_foreclosure.timeline_preliminary_title_cleared_date` — upsert pass-through [asset:759](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L759)
 - 4. `bpms.biz_data_view_loan_details_foreclosure` · timeline_preliminary_title_cleared_date (+actual/var) — view actual/var [view]
 
 **Note:** Shares titlecleardate with Final Title Cleared; Newrez not populated.
@@ -267,9 +270,9 @@ _First legal action (filing) date._
 
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_fcl.legal_start_date` — rename 改名 [pool:1549]
-- 2. `port.basic_data_loan_foreclosure.timeline_first_legal_date` — direct copy 直传 [pool:262]
-- 3. `bpms.sync_loan_foreclosure.timeline_first_legal_date` — upsert pass-through [asset:760]
+- 1. `port.basic_data_loan_fcl.legal_start_date` — rename 改名 [pool:1549](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1549)
+- 2. `port.basic_data_loan_foreclosure.timeline_first_legal_date` — direct copy 直传 [pool:262](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L262)
+- 3. `bpms.sync_loan_foreclosure.timeline_first_legal_date` — upsert pass-through [asset:760](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L760)
 - 4. `bpms.biz_data_view_loan_details_foreclosure` · timeline_first_legal_date (+actual/var) — view actual/var [view]
 
 **Note:** Non-Judicial states usually empty.
@@ -285,9 +288,9 @@ _Legal document service completion date._
 
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_fcl.service_start_date` — rename 改名 [pool:1550]
-- 2. `port.basic_data_loan_foreclosure.timeline_service_date` — direct copy 直传 [pool:263]
-- 3. `bpms.sync_loan_foreclosure.timeline_service_date` — upsert pass-through [asset:761]
+- 1. `port.basic_data_loan_fcl.service_start_date` — rename 改名 [pool:1550](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1550)
+- 2. `port.basic_data_loan_foreclosure.timeline_service_date` — direct copy 直传 [pool:263](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L263)
+- 3. `bpms.sync_loan_foreclosure.timeline_service_date` — upsert pass-through [asset:761](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L761)
 - 4. `bpms.biz_data_view_loan_details_foreclosure` · timeline_service_date (+actual/var) — view actual/var [view]
 
 ### 16. Publication scheduled date  (`bpms.sync_loan_foreclosure.timeline_publication_date`)
@@ -301,8 +304,8 @@ _Reserved milestone; not populated by the FCL ETL._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.timeline_publication_date` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305]
-- 2. `bpms.sync_loan_foreclosure.timeline_publication_date` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605]
+- 1. `port.basic_data_loan_foreclosure.timeline_publication_date` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L148-305)
+- 2. `bpms.sync_loan_foreclosure.timeline_publication_date` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L540-605)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.timeline_publication_date` — passthrough [view]
 
 ### 17. Judgement Hearing Set  (`bpms.sync_loan_foreclosure.timeline_judgement_hearing_set_date`)
@@ -316,9 +319,9 @@ _Date the current scheduled-hearing value first appeared in a snapshot (ETL trac
 
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_fcl.fcjudgment_hearing_scheduled` — rename 改名 [pool:1551]
-- 2. `port.basic_data_loan_foreclosure.timeline_judgement_hearing_set_date` — ETL tracking: min(dataasof) of current value 首见日 [pool:264,295]
-- 3. `bpms.sync_loan_foreclosure.timeline_judgement_hearing_set_date` — upsert pass-through [asset:762]
+- 1. `port.basic_data_loan_fcl.fcjudgment_hearing_scheduled` — rename 改名 [pool:1551](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1551)
+- 2. `port.basic_data_loan_foreclosure.timeline_judgement_hearing_set_date` — ETL tracking: min(dataasof) of current value 首见日 [pool:264,295](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L264)
+- 3. `bpms.sync_loan_foreclosure.timeline_judgement_hearing_set_date` — upsert pass-through [asset:762](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L762)
 - 4. `bpms.biz_data_view_loan_details_foreclosure` · timeline_judgement_hearing_set_date (+actual/var) — view actual/var [view]
 
 ```sql
@@ -338,9 +341,9 @@ _Currently scheduled judgement-hearing date (current value). NOT fcjudgmententer
 
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_fcl.fcjudgment_hearing_scheduled` — rename 改名 [pool:1551]
-- 2. `port.basic_data_loan_foreclosure.timeline_judgement_date` — direct copy (current value) 直传 [pool:265]
-- 3. `bpms.sync_loan_foreclosure.timeline_judgement_date` — upsert pass-through [asset:763]
+- 1. `port.basic_data_loan_fcl.fcjudgment_hearing_scheduled` — rename 改名 [pool:1551](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1551)
+- 2. `port.basic_data_loan_foreclosure.timeline_judgement_date` — direct copy (current value) 直传 [pool:265](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L265)
+- 3. `bpms.sync_loan_foreclosure.timeline_judgement_date` — upsert pass-through [asset:763](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L763)
 - 4. `bpms.biz_data_view_loan_details_foreclosure` · timeline_judgement_date (+actual/var) — view actual/var [view]
 
 **Note:** Same raw field as Hearing Set, but this is the current value (not first-seen).
@@ -356,9 +359,9 @@ _Latest projected/scheduled auction date (dynamic)._
 
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_fcl.fcscheduled_sale_date` — rename 改名 [pool:1553]
-- 2. `port.basic_data_loan_foreclosure.timeline_sale_date_projected_date` — direct copy 直传 [pool:266]
-- 3. `bpms.sync_loan_foreclosure.timeline_sale_date_projected_date` — upsert pass-through [asset:764]
+- 1. `port.basic_data_loan_fcl.fcscheduled_sale_date` — rename 改名 [pool:1553](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1553)
+- 2. `port.basic_data_loan_foreclosure.timeline_sale_date_projected_date` — direct copy 直传 [pool:266](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L266)
+- 3. `bpms.sync_loan_foreclosure.timeline_sale_date_projected_date` — upsert pass-through [asset:764](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L764)
 - 4. `bpms.biz_data_view_loan_details_foreclosure.timeline_sale_date_projected_date` — passthrough (no actual/var) [view]
 
 ### 20. Sale Date Set  (`bpms.sync_loan_foreclosure.timeline_sale_date_set_date`)
@@ -372,9 +375,9 @@ _Date the current scheduled-sale value first appeared in a snapshot (ETL trackin
 
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_fcl.fcscheduled_sale_date` — rename 改名 [pool:1553]
-- 2. `port.basic_data_loan_foreclosure.timeline_sale_date_set_date` — ETL tracking: min(dataasof) of current value 首见日 [pool:267,300]
-- 3. `bpms.sync_loan_foreclosure.timeline_sale_date_set_date` — upsert pass-through [asset:765]
+- 1. `port.basic_data_loan_fcl.fcscheduled_sale_date` — rename 改名 [pool:1553](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1553)
+- 2. `port.basic_data_loan_foreclosure.timeline_sale_date_set_date` — ETL tracking: min(dataasof) of current value 首见日 [pool:267,300](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L267)
+- 3. `bpms.sync_loan_foreclosure.timeline_sale_date_set_date` — upsert pass-through [asset:765](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L765)
 - 4. `bpms.biz_data_view_loan_details_foreclosure` · timeline_sale_date_set_date (+actual/var) — view actual/var [view]
 
 ```sql
@@ -396,9 +399,9 @@ _Final title-clear date._
 
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_fcl.titlecleardate` — rename 改名 [pool:1541]
-- 2. `port.basic_data_loan_foreclosure.timeline_final_title_cleared_date` — direct copy 直传 [pool:268]
-- 3. `bpms.sync_loan_foreclosure.timeline_final_title_cleared_date` — upsert pass-through [asset:766]
+- 1. `port.basic_data_loan_fcl.titlecleardate` — rename 改名 [pool:1541](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1541)
+- 2. `port.basic_data_loan_foreclosure.timeline_final_title_cleared_date` — direct copy 直传 [pool:268](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L268)
+- 3. `bpms.sync_loan_foreclosure.timeline_final_title_cleared_date` — upsert pass-through [asset:766](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L766)
 - 4. `bpms.biz_data_view_loan_details_foreclosure` · timeline_final_title_cleared_date (+actual/var) — view actual/var [view]
 
 **Note:** Shares titlecleardate with Preliminary; Newrez not populated.
@@ -414,9 +417,9 @@ _Actual auction-held date._
 
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_fcl.fcsale_held_date` — rename 改名 [pool:1554]
-- 2. `port.basic_data_loan_foreclosure.timeline_sale_date_held_date` — direct copy 直传 [pool:269]
-- 3. `bpms.sync_loan_foreclosure.timeline_sale_date_held_date` — upsert pass-through [asset:767]
+- 1. `port.basic_data_loan_fcl.fcsale_held_date` — rename 改名 [pool:1554](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1554)
+- 2. `port.basic_data_loan_foreclosure.timeline_sale_date_held_date` — direct copy 直传 [pool:269](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L269)
+- 3. `bpms.sync_loan_foreclosure.timeline_sale_date_held_date` — upsert pass-through [asset:767](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L767)
 - 4. `bpms.biz_data_view_loan_details_foreclosure` · timeline_sale_date_held_date (+actual/var) — view actual/var [view]
 
 ### 23. Date foreclosure was completed  (`bpms.sync_loan_foreclosure.timeline_foreclosure_completed_date`)
@@ -430,8 +433,8 @@ _Reserved milestone; not populated by the FCL ETL._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.timeline_foreclosure_completed_date` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305]
-- 2. `bpms.sync_loan_foreclosure.timeline_foreclosure_completed_date` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605]
+- 1. `port.basic_data_loan_foreclosure.timeline_foreclosure_completed_date` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L148-305)
+- 2. `bpms.sync_loan_foreclosure.timeline_foreclosure_completed_date` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L540-605)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.timeline_foreclosure_completed_date` — passthrough [view]
 
 ### 24. 3rd Party Sold Date  (`bpms.sync_loan_foreclosure.timeline_third_party_sold_date_date`)
@@ -448,8 +451,8 @@ _Third-party buyer sold date._
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
 - 1. `port.basic_data_loan_fcl` — —
-- 2. `port.basic_data_loan_foreclosure.timeline_third_party_sold_date_date` — null 常量空 [pool:270]
-- 3. `bpms.sync_loan_foreclosure.timeline_third_party_sold_date_date` — upsert pass-through [asset:769]
+- 2. `port.basic_data_loan_foreclosure.timeline_third_party_sold_date_date` — null 常量空 [pool:270](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L270)
+- 3. `bpms.sync_loan_foreclosure.timeline_third_party_sold_date_date` — upsert pass-through [asset:769](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L769)
 - 4. `bpms.biz_data_view_loan_details_foreclosure.timeline_third_party_sold_date_date` — passthrough [view]
 
 **Note:** Hardcoded NULL in GEN_FCL_DETAIL (not mapped from raw here).
@@ -467,9 +470,9 @@ _Third-party auction proceeds received date._
 
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_fcl.fcl3rdpartyproceedsreceiveddate` — rename 改名 [pool:1558]
-- 2. `port.basic_data_loan_foreclosure.timeline_third_party_proceeds_received_date` — direct copy 直传 [pool:271]
-- 3. `bpms.sync_loan_foreclosure.timeline_third_party_proceeds_received_date` — upsert pass-through [asset:770]
+- 1. `port.basic_data_loan_fcl.fcl3rdpartyproceedsreceiveddate` — rename 改名 [pool:1558](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1558)
+- 2. `port.basic_data_loan_foreclosure.timeline_third_party_proceeds_received_date` — direct copy 直传 [pool:271](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L271)
+- 3. `bpms.sync_loan_foreclosure.timeline_third_party_proceeds_received_date` — upsert pass-through [asset:770](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L770)
 - 4. `bpms.biz_data_view_loan_details_foreclosure.timeline_third_party_proceeds_received_date` — passthrough [view]
 
 
@@ -486,8 +489,8 @@ _Target days for the milestone (config constant)._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.target_notice_of_intent_days` — NULL (not populated) [pool:174-188]
-- 2. `bpms.sync_loan_foreclosure.target_notice_of_intent_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577]
+- 1. `port.basic_data_loan_foreclosure.target_notice_of_intent_days` — NULL (not populated) [pool:174-188](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L174-188)
+- 2. `bpms.sync_loan_foreclosure.target_notice_of_intent_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L564-577)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.target_notice_of_intent_days` — ifnull(target_notice_of_intent_days, <default>) — view default constant [view]
 
 **Note:** Stored NULL in sync; the view supplies the default target (e.g. first_legal 120, service 90, judgement 30).
@@ -503,8 +506,8 @@ _Target days for the milestone (config constant)._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.target_notice_of_intent_expired_days` — NULL (not populated) [pool:174-188]
-- 2. `bpms.sync_loan_foreclosure.target_notice_of_intent_expired_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577]
+- 1. `port.basic_data_loan_foreclosure.target_notice_of_intent_expired_days` — NULL (not populated) [pool:174-188](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L174-188)
+- 2. `bpms.sync_loan_foreclosure.target_notice_of_intent_expired_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L564-577)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.target_notice_of_intent_expired_days` — ifnull(target_notice_of_intent_expired_days, <default>) — view default constant [view]
 
 **Note:** Stored NULL in sync; the view supplies the default target (e.g. first_legal 120, service 90, judgement 30).
@@ -520,8 +523,8 @@ _Target days for the milestone (config constant)._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.target_approved_for_referral_days` — NULL (not populated) [pool:174-188]
-- 2. `bpms.sync_loan_foreclosure.target_approved_for_referral_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577]
+- 1. `port.basic_data_loan_foreclosure.target_approved_for_referral_days` — NULL (not populated) [pool:174-188](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L174-188)
+- 2. `bpms.sync_loan_foreclosure.target_approved_for_referral_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L564-577)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.target_approved_for_referral_days` — ifnull(target_approved_for_referral_days, <default>) — view default constant [view]
 
 **Note:** Stored NULL in sync; the view supplies the default target (e.g. first_legal 120, service 90, judgement 30).
@@ -537,8 +540,8 @@ _Target days for the milestone (config constant)._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.target_referred_to_attorney_days` — NULL (not populated) [pool:174-188]
-- 2. `bpms.sync_loan_foreclosure.target_referred_to_attorney_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577]
+- 1. `port.basic_data_loan_foreclosure.target_referred_to_attorney_days` — NULL (not populated) [pool:174-188](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L174-188)
+- 2. `bpms.sync_loan_foreclosure.target_referred_to_attorney_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L564-577)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.target_referred_to_attorney_days` — ifnull(target_referred_to_attorney_days, <default>) — view default constant [view]
 
 **Note:** Stored NULL in sync; the view supplies the default target (e.g. first_legal 120, service 90, judgement 30).
@@ -554,8 +557,8 @@ _Target days for the milestone (config constant)._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.target_referred_to_foreclosure_days` — NULL (not populated) [pool:174-188]
-- 2. `bpms.sync_loan_foreclosure.target_referred_to_foreclosure_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577]
+- 1. `port.basic_data_loan_foreclosure.target_referred_to_foreclosure_days` — NULL (not populated) [pool:174-188](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L174-188)
+- 2. `bpms.sync_loan_foreclosure.target_referred_to_foreclosure_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L564-577)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.target_referred_to_foreclosure_days` — ifnull(target_referred_to_foreclosure_days, <default>) — view default constant [view]
 
 **Note:** Stored NULL in sync; the view supplies the default target (e.g. first_legal 120, service 90, judgement 30).
@@ -571,8 +574,8 @@ _Target days for the milestone (config constant)._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.target_title_report_received_days` — NULL (not populated) [pool:174-188]
-- 2. `bpms.sync_loan_foreclosure.target_title_report_received_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577]
+- 1. `port.basic_data_loan_foreclosure.target_title_report_received_days` — NULL (not populated) [pool:174-188](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L174-188)
+- 2. `bpms.sync_loan_foreclosure.target_title_report_received_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L564-577)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.target_title_report_received_days` — ifnull(target_title_report_received_days, <default>) — view default constant [view]
 
 **Note:** Stored NULL in sync; the view supplies the default target (e.g. first_legal 120, service 90, judgement 30).
@@ -588,8 +591,8 @@ _Target days for the milestone (config constant)._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.target_preliminary_title_cleared_days` — NULL (not populated) [pool:174-188]
-- 2. `bpms.sync_loan_foreclosure.target_preliminary_title_cleared_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577]
+- 1. `port.basic_data_loan_foreclosure.target_preliminary_title_cleared_days` — NULL (not populated) [pool:174-188](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L174-188)
+- 2. `bpms.sync_loan_foreclosure.target_preliminary_title_cleared_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L564-577)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.target_preliminary_title_cleared_days` — ifnull(target_preliminary_title_cleared_days, <default>) — view default constant [view]
 
 **Note:** Stored NULL in sync; the view supplies the default target (e.g. first_legal 120, service 90, judgement 30).
@@ -605,8 +608,8 @@ _Target days for the milestone (config constant)._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.target_first_legal_days` — NULL (not populated) [pool:174-188]
-- 2. `bpms.sync_loan_foreclosure.target_first_legal_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577]
+- 1. `port.basic_data_loan_foreclosure.target_first_legal_days` — NULL (not populated) [pool:174-188](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L174-188)
+- 2. `bpms.sync_loan_foreclosure.target_first_legal_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L564-577)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.target_first_legal_days` — ifnull(target_first_legal_days, <default>) — view default constant [view]
 
 **Note:** Stored NULL in sync; the view supplies the default target (e.g. first_legal 120, service 90, judgement 30).
@@ -622,8 +625,8 @@ _Target days for the milestone (config constant)._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.target_service_days` — NULL (not populated) [pool:174-188]
-- 2. `bpms.sync_loan_foreclosure.target_service_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577]
+- 1. `port.basic_data_loan_foreclosure.target_service_days` — NULL (not populated) [pool:174-188](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L174-188)
+- 2. `bpms.sync_loan_foreclosure.target_service_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L564-577)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.target_service_days` — ifnull(target_service_days, <default>) — view default constant [view]
 
 **Note:** Stored NULL in sync; the view supplies the default target (e.g. first_legal 120, service 90, judgement 30).
@@ -639,8 +642,8 @@ _Target days for the milestone (config constant)._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.target_publication_days` — NULL (not populated) [pool:174-188]
-- 2. `bpms.sync_loan_foreclosure.target_publication_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577]
+- 1. `port.basic_data_loan_foreclosure.target_publication_days` — NULL (not populated) [pool:174-188](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L174-188)
+- 2. `bpms.sync_loan_foreclosure.target_publication_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L564-577)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.target_publication_days` — ifnull(target_publication_days, <default>) — view default constant [view]
 
 **Note:** Stored NULL in sync; the view supplies the default target (e.g. first_legal 120, service 90, judgement 30).
@@ -656,8 +659,8 @@ _Target days for the milestone (config constant)._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.target_judgement_hearing_set_days` — NULL (not populated) [pool:174-188]
-- 2. `bpms.sync_loan_foreclosure.target_judgement_hearing_set_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577]
+- 1. `port.basic_data_loan_foreclosure.target_judgement_hearing_set_days` — NULL (not populated) [pool:174-188](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L174-188)
+- 2. `bpms.sync_loan_foreclosure.target_judgement_hearing_set_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L564-577)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.target_judgement_hearing_set_days` — ifnull(target_judgement_hearing_set_days, <default>) — view default constant [view]
 
 **Note:** Stored NULL in sync; the view supplies the default target (e.g. first_legal 120, service 90, judgement 30).
@@ -673,8 +676,8 @@ _Target days for the milestone (config constant)._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.target_judgement_days` — NULL (not populated) [pool:174-188]
-- 2. `bpms.sync_loan_foreclosure.target_judgement_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577]
+- 1. `port.basic_data_loan_foreclosure.target_judgement_days` — NULL (not populated) [pool:174-188](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L174-188)
+- 2. `bpms.sync_loan_foreclosure.target_judgement_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L564-577)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.target_judgement_days` — ifnull(target_judgement_days, <default>) — view default constant [view]
 
 **Note:** Stored NULL in sync; the view supplies the default target (e.g. first_legal 120, service 90, judgement 30).
@@ -690,8 +693,8 @@ _Target days for the milestone (config constant)._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.target_sale_date_set_days` — NULL (not populated) [pool:174-188]
-- 2. `bpms.sync_loan_foreclosure.target_sale_date_set_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577]
+- 1. `port.basic_data_loan_foreclosure.target_sale_date_set_days` — NULL (not populated) [pool:174-188](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L174-188)
+- 2. `bpms.sync_loan_foreclosure.target_sale_date_set_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L564-577)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.target_sale_date_set_days` — ifnull(target_sale_date_set_days, <default>) — view default constant [view]
 
 **Note:** Stored NULL in sync; the view supplies the default target (e.g. first_legal 120, service 90, judgement 30).
@@ -707,8 +710,8 @@ _Target days for the milestone (config constant)._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.target_final_title_cleared_days` — NULL (not populated) [pool:174-188]
-- 2. `bpms.sync_loan_foreclosure.target_final_title_cleared_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577]
+- 1. `port.basic_data_loan_foreclosure.target_final_title_cleared_days` — NULL (not populated) [pool:174-188](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L174-188)
+- 2. `bpms.sync_loan_foreclosure.target_final_title_cleared_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L564-577)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.target_final_title_cleared_days` — ifnull(target_final_title_cleared_days, <default>) — view default constant [view]
 
 **Note:** Stored NULL in sync; the view supplies the default target (e.g. first_legal 120, service 90, judgement 30).
@@ -724,8 +727,8 @@ _Target days for the milestone (config constant)._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.target_sale_date_held_days` — NULL (not populated) [pool:174-188]
-- 2. `bpms.sync_loan_foreclosure.target_sale_date_held_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577]
+- 1. `port.basic_data_loan_foreclosure.target_sale_date_held_days` — NULL (not populated) [pool:174-188](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L174-188)
+- 2. `bpms.sync_loan_foreclosure.target_sale_date_held_days` — GEN_FORECLOSURE: target_* commented out → NULL [asset:564-577](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L564-577)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.target_sale_date_held_days` — ifnull(target_sale_date_held_days, <default>) — view default constant [view]
 
 **Note:** Stored NULL in sync; the view supplies the default target (e.g. first_legal 120, service 90, judgement 30).
@@ -744,8 +747,8 @@ _Defined in schema but not populated by the FCL ETL._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.variance_active_bankruptcy` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305]
-- 2. `bpms.sync_loan_foreclosure.variance_active_bankruptcy` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605]
+- 1. `port.basic_data_loan_foreclosure.variance_active_bankruptcy` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L148-305)
+- 2. `bpms.sync_loan_foreclosure.variance_active_bankruptcy` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L540-605)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.variance_active_bankruptcy` — passthrough [view]
 
 ### 42. Flag for completed bankruptcy  (`bpms.sync_loan_foreclosure.variance_completed_bankruptcy`)
@@ -759,8 +762,8 @@ _Defined in schema but not populated by the FCL ETL._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.variance_completed_bankruptcy` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305]
-- 2. `bpms.sync_loan_foreclosure.variance_completed_bankruptcy` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605]
+- 1. `port.basic_data_loan_foreclosure.variance_completed_bankruptcy` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L148-305)
+- 2. `bpms.sync_loan_foreclosure.variance_completed_bankruptcy` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L540-605)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.variance_completed_bankruptcy` — passthrough [view]
 
 ### 43. Estimated hold days for the process  (`bpms.sync_loan_foreclosure.variance_estimated_hold_days`)
@@ -774,8 +777,8 @@ _Defined in schema but not populated by the FCL ETL._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.variance_estimated_hold_days` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305]
-- 2. `bpms.sync_loan_foreclosure.variance_estimated_hold_days` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605]
+- 1. `port.basic_data_loan_foreclosure.variance_estimated_hold_days` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L148-305)
+- 2. `bpms.sync_loan_foreclosure.variance_estimated_hold_days` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L540-605)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.variance_estimated_hold_days` — passthrough [view]
 
 ### 44. Total number of bankruptcies  (`bpms.sync_loan_foreclosure.variance_bankruptcies`)
@@ -789,8 +792,8 @@ _Defined in schema but not populated by the FCL ETL._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.variance_bankruptcies` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305]
-- 2. `bpms.sync_loan_foreclosure.variance_bankruptcies` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605]
+- 1. `port.basic_data_loan_foreclosure.variance_bankruptcies` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L148-305)
+- 2. `bpms.sync_loan_foreclosure.variance_bankruptcies` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L540-605)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.variance_bankruptcies` — passthrough [view]
 
 
@@ -807,8 +810,8 @@ _Defined in schema but not populated by the FCL ETL._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.bid_approval_status` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305]
-- 2. `bpms.sync_loan_foreclosure.bid_approval_status` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605]
+- 1. `port.basic_data_loan_foreclosure.bid_approval_status` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L148-305)
+- 2. `bpms.sync_loan_foreclosure.bid_approval_status` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L540-605)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.bid_approval_status` — passthrough [view]
 
 ### 46. Sale Date  (`bpms.sync_loan_foreclosure.bid_approval_sale_date`)
@@ -822,8 +825,8 @@ _Defined in schema but not populated by the FCL ETL._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.bid_approval_sale_date` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305]
-- 2. `bpms.sync_loan_foreclosure.bid_approval_sale_date` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605]
+- 1. `port.basic_data_loan_foreclosure.bid_approval_sale_date` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L148-305)
+- 2. `bpms.sync_loan_foreclosure.bid_approval_sale_date` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L540-605)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.bid_approval_sale_date` — passthrough [view]
 
 ### 47. Bid Amount  (`bpms.sync_loan_foreclosure.bid_approval_bid_amount`)
@@ -837,7 +840,7 @@ _Foreclosure bid amount (same raw as summary_foreclosure_bid_amount)._
 **Lineage (per hop: # column — rule [code])**
 - 1. `newrez.portnewrezfc.fcbidamount` — servicer raw
 - 2. `port.basic_data_loan_fcl.fcbidamount` — rename
-- 3. `port.basic_data_loan_foreclosure.bid_approval_bid_amount` — = fcbidamount [pool:272]
+- 3. `port.basic_data_loan_foreclosure.bid_approval_bid_amount` — = fcbidamount [pool:272](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L272)
 - 4. `bpms.sync_loan_foreclosure.bid_approval_bid_amount` — passthrough [asset]
 - 5. `bpms.biz_data_view_loan_details_foreclosure.bid_approval_bid_amount` — passthrough [view]
 
@@ -852,8 +855,8 @@ _Defined in schema but not populated by the FCL ETL._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.bid_approval_loan_resolution_holods` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305]
-- 2. `bpms.sync_loan_foreclosure.bid_approval_loan_resolution_holods` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605]
+- 1. `port.basic_data_loan_foreclosure.bid_approval_loan_resolution_holods` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L148-305)
+- 2. `bpms.sync_loan_foreclosure.bid_approval_loan_resolution_holods` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L540-605)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.bid_approval_loan_resolution_holods` — passthrough [view]
 
 
@@ -870,8 +873,8 @@ _Defined in schema but not populated by the FCL ETL._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.summary_servicer_number` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305]
-- 2. `bpms.sync_loan_foreclosure.summary_servicer_number` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605]
+- 1. `port.basic_data_loan_foreclosure.summary_servicer_number` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L148-305)
+- 2. `bpms.sync_loan_foreclosure.summary_servicer_number` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L540-605)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.summary_servicer_number` — passthrough [view]
 
 ### 50. Foreclosure Status  (`bpms.sync_loan_foreclosure.summary_foreclosure_status`)
@@ -885,12 +888,12 @@ _Active vs Closed (+reason)._
 
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_fcl` · activefcflag, fcremovaldesc — activefcflag=cast(int); fcremovaldesc rename [pool:1538,1563]
-- 2. `port.basic_data_loan_foreclosure.summary_foreclosure_status` — CASE active/closed 见 sql [pool:273]
-- 3. `bpms.sync_loan_foreclosure.summary_foreclosure_status` — upsert pass-through [asset:730/780]
+- 1. `port.basic_data_loan_fcl` · activefcflag, fcremovaldesc — activefcflag=cast(int); fcremovaldesc rename [pool:1538,1563](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1538)
+- 2. `port.basic_data_loan_foreclosure.summary_foreclosure_status` — CASE active/closed 见 sql [pool:273](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L273)
+- 3. `bpms.sync_loan_foreclosure.summary_foreclosure_status` — upsert pass-through [asset:730/780](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L730)
 - 4. `bpms.biz_data_view_loan_details_foreclosure.summary_foreclosure_status` — passthrough [view]
 
-**Rule (full):** Inputs are built per servicer, then a shared CASE produces the text. **Newrez**: `activefcflag` (0/1) and `fcremovaldesc` taken directly. **Carrington**: no `activefcflag` column → `activefcflag = CASE WHEN fcl_flag='Active' THEN 1 ELSE NULL` (pool:1579); `fcremovaldesc` is NULL. **Capecodfive**: `activefcflag = CASE WHEN foreclosure_flag='Active' THEN 1 ELSE NULL` (pool:1620). **Shared rule**: `CASE WHEN activefcflag=1 THEN 'Active Foreclosure' WHEN activefcflag=0 AND fcremovaldesc<>'' THEN CONCAT('Closed Foreclosure:',fcremovaldesc) ELSE NULL` (pool:273).
+**Rule (full):** Inputs are built per servicer, then a shared CASE produces the text. **Newrez**: `activefcflag` (0/1) and `fcremovaldesc` taken directly. **Carrington**: no `activefcflag` column → `activefcflag = CASE WHEN fcl_flag='Active' THEN 1 ELSE NULL` ([pool:1579](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1579)); `fcremovaldesc` is NULL. **Capecodfive**: `activefcflag = CASE WHEN foreclosure_flag='Active' THEN 1 ELSE NULL` ([pool:1620](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1620)). **Shared rule**: `CASE WHEN activefcflag=1 THEN 'Active Foreclosure' WHEN activefcflag=0 AND fcremovaldesc<>'' THEN CONCAT('Closed Foreclosure:',fcremovaldesc) ELSE NULL` ([pool:273](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L273)).
 
 ```sql
 CASE WHEN activefcflag=1 THEN 'Active Foreclosure' WHEN activefcflag=0 AND fcremovaldesc IS NOT NULL AND fcremovaldesc!='' THEN CONCAT('Closed Foreclosure:', fcremovaldesc) ELSE null END
@@ -909,8 +912,8 @@ _Defined in schema but not populated by the FCL ETL._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.summary_completed_foreclosure` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305]
-- 2. `bpms.sync_loan_foreclosure.summary_completed_foreclosure` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605]
+- 1. `port.basic_data_loan_foreclosure.summary_completed_foreclosure` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L148-305)
+- 2. `bpms.sync_loan_foreclosure.summary_completed_foreclosure` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L540-605)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.summary_completed_foreclosure` — passthrough [view]
 
 ### 52. Foreclosure Bid Amount  (`bpms.sync_loan_foreclosure.summary_foreclosure_bid_amount`)
@@ -924,9 +927,9 @@ _FCL bid amount._
 
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_fcl.fcbidamount` — rename 改名 [pool:1555]
-- 2. `port.basic_data_loan_foreclosure.summary_foreclosure_bid_amount` — direct copy 直传 [pool:274]
-- 3. `bpms.sync_loan_foreclosure.summary_foreclosure_bid_amount` — upsert pass-through [asset:733/782]
+- 1. `port.basic_data_loan_fcl.fcbidamount` — rename 改名 [pool:1555](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1555)
+- 2. `port.basic_data_loan_foreclosure.summary_foreclosure_bid_amount` — direct copy 直传 [pool:274](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L274)
+- 3. `bpms.sync_loan_foreclosure.summary_foreclosure_bid_amount` — upsert pass-through [asset:733/782](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L733)
 - 4. `bpms.biz_data_view_loan_details_foreclosure.summary_foreclosure_bid_amount` — passthrough [view]
 
 **Note:** Same raw fcbidamount also feeds bid_approval_bid_amount & summary_srv_fc_bid_amount.
@@ -942,7 +945,7 @@ _Foreclosure bid amount (same raw as summary_foreclosure_bid_amount)._
 **Lineage (per hop: # column — rule [code])**
 - 1. `newrez.portnewrezfc.fcbidamount` — servicer raw
 - 2. `port.basic_data_loan_fcl.fcbidamount` — rename
-- 3. `port.basic_data_loan_foreclosure.summary_srv_fc_bid_amount` — = fcbidamount [pool:275]
+- 3. `port.basic_data_loan_foreclosure.summary_srv_fc_bid_amount` — = fcbidamount [pool:275](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L275)
 - 4. `bpms.sync_loan_foreclosure.summary_srv_fc_bid_amount` — passthrough [asset]
 - 5. `bpms.biz_data_view_loan_details_foreclosure.summary_srv_fc_bid_amount` — passthrough [view]
 
@@ -957,9 +960,9 @@ _FCL sale amount._
 
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_fcl.fcsaleamount` — rename 改名 [pool:1557]
-- 2. `port.basic_data_loan_foreclosure.summary_foreclosure_sale_amount` — direct copy 直传 [pool:276]
-- 3. `bpms.sync_loan_foreclosure.summary_foreclosure_sale_amount` — upsert pass-through [asset:734/784]
+- 1. `port.basic_data_loan_fcl.fcsaleamount` — rename 改名 [pool:1557](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1557)
+- 2. `port.basic_data_loan_foreclosure.summary_foreclosure_sale_amount` — direct copy 直传 [pool:276](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L276)
+- 3. `bpms.sync_loan_foreclosure.summary_foreclosure_sale_amount` — upsert pass-through [asset:734/784](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L734)
 - 4. `bpms.biz_data_view_loan_details_foreclosure.summary_foreclosure_sale_amount` — passthrough [view]
 
 ### 55. Judicial Foreclosure (flag)  (`bpms.sync_loan_foreclosure.summary_judicial_foreclosure`)
@@ -973,9 +976,9 @@ _Numeric judicial flag._
 
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_fcl.judicial` — rename 改名 [pool:1565]
-- 2. `port.basic_data_loan_foreclosure.summary_judicial_foreclosure` — cast(empty→null else decimal) [pool:277]
-- 3. `bpms.sync_loan_foreclosure.summary_judicial_foreclosure` — upsert pass-through [asset:735/785]
+- 1. `port.basic_data_loan_fcl.judicial` — rename 改名 [pool:1565](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1565)
+- 2. `port.basic_data_loan_foreclosure.summary_judicial_foreclosure` — cast(empty→null else decimal) [pool:277](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L277)
+- 3. `bpms.sync_loan_foreclosure.summary_judicial_foreclosure` — upsert pass-through [asset:735/785](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L735)
 - 4. `bpms.biz_data_view_loan_details_foreclosure.summary_judicial_foreclosure` — passthrough [view]
 
 ### 56. Name of the foreclosure attorney  (`bpms.sync_loan_foreclosure.summary_foreclosure_attorney`)
@@ -989,8 +992,8 @@ _Defined in schema but not populated by the FCL ETL._
 
 **Flow:** ①basic_data_loan_foreclosure → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_foreclosure.summary_foreclosure_attorney` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305]
-- 2. `bpms.sync_loan_foreclosure.summary_foreclosure_attorney` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605]
+- 1. `port.basic_data_loan_foreclosure.summary_foreclosure_attorney` — not in GEN_FCL_DETAIL INSERT → NULL 未填充 [pool:148-305](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L148-305)
+- 2. `bpms.sync_loan_foreclosure.summary_foreclosure_attorney` — GEN_FORECLOSURE 直传（值=NULL） [asset:540-605](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L540-605)
 - 3. `bpms.biz_data_view_loan_details_foreclosure.summary_foreclosure_attorney` — passthrough [view]
 
 ### 57. Contested / Litigation  (`bpms.sync_loan_foreclosure.summary_contested_litigation`)
@@ -1004,9 +1007,9 @@ _Contested litigation flag._
 
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_fcl.fccontestedflag` — rename 改名 [pool:1567]
-- 2. `port.basic_data_loan_foreclosure.summary_contested_litigation` — cast(empty→null else decimal) [pool:285]
-- 3. `bpms.sync_loan_foreclosure.summary_contested_litigation` — upsert pass-through [asset:737/787]
+- 1. `port.basic_data_loan_fcl.fccontestedflag` — rename 改名 [pool:1567](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1567)
+- 2. `port.basic_data_loan_foreclosure.summary_contested_litigation` — cast(empty→null else decimal) [pool:285](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L285)
+- 3. `bpms.sync_loan_foreclosure.summary_contested_litigation` — upsert pass-through [asset:737/787](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L737)
 - 4. `bpms.biz_data_view_loan_details_foreclosure.summary_contested_litigation` — passthrough [view]
 
 ### 58. Firm  (`bpms.sync_loan_foreclosure.summary_firm`)
@@ -1020,9 +1023,9 @@ _Foreclosure firm name._
 
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_fcl.fcfirm` — rename 改名 [pool:1566]
-- 2. `port.basic_data_loan_foreclosure.summary_firm` — direct copy 直传 [pool:278]
-- 3. `bpms.sync_loan_foreclosure.summary_firm` — upsert pass-through [asset:738/789]
+- 1. `port.basic_data_loan_fcl.fcfirm` — rename 改名 [pool:1566](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1566)
+- 2. `port.basic_data_loan_foreclosure.summary_firm` — direct copy 直传 [pool:278](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L278)
+- 3. `bpms.sync_loan_foreclosure.summary_firm` — upsert pass-through [asset:738/789](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L738)
 - 4. `bpms.biz_data_view_loan_details_foreclosure.summary_firm` — passthrough [view]
 
 ### 59. Type (Judicial / Non Judicial)  (`bpms.sync_loan_foreclosure.summary_type`)
@@ -1036,9 +1039,9 @@ _Judicial vs Non Judicial text._
 
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_fcl.judicial` — rename 改名 [pool:1565]
-- 2. `port.basic_data_loan_foreclosure.summary_type` — CASE 0→Non Judicial / 1→Judicial [pool:279]
-- 3. `bpms.sync_loan_foreclosure.summary_type` — upsert pass-through [asset:739/790]
+- 1. `port.basic_data_loan_fcl.judicial` — rename 改名 [pool:1565](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1565)
+- 2. `port.basic_data_loan_foreclosure.summary_type` — CASE 0→Non Judicial / 1→Judicial [pool:279](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L279)
+- 3. `bpms.sync_loan_foreclosure.summary_type` — upsert pass-through [asset:739/790](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L739)
 - 4. `bpms.biz_data_view_loan_details_foreclosure.summary_type` — passthrough [view]
 
 ```sql
@@ -1058,9 +1061,9 @@ _Servicer-reported days in FCL (from servicer setup date)._
 
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_fcl.svc_days_infc` — rename (smsdaysinfc→svc_days_infc) [pool:1545]
-- 2. `port.basic_data_loan_foreclosure.summary_sms_days_in_fcl` — direct copy 直传 [pool:280]
-- 3. `bpms.sync_loan_foreclosure.summary_sms_days_in_fcl` — upsert pass-through [asset:740/791]
+- 1. `port.basic_data_loan_fcl.svc_days_infc` — rename (smsdaysinfc→svc_days_infc) [pool:1545](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1545)
+- 2. `port.basic_data_loan_foreclosure.summary_sms_days_in_fcl` — direct copy 直传 [pool:280](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L280)
+- 3. `bpms.sync_loan_foreclosure.summary_sms_days_in_fcl` — upsert pass-through [asset:740/791](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L740)
 - 4. `bpms.biz_data_view_loan_details_foreclosure.summary_sms_days_in_fcl` — passthrough [view]
 
 ### 61. Days in Foreclosure  (`bpms.sync_loan_foreclosure.summary_days_in_fcl`)
@@ -1074,12 +1077,12 @@ _Days in FCL from referral (investor basis)._
 
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_fcl.daysinfc` — rename (Newrez) / computed (others) [pool:1546]
-- 2. `port.basic_data_loan_foreclosure.summary_days_in_fcl` — direct copy 直传 [pool:281]
-- 3. `bpms.sync_loan_foreclosure.summary_days_in_fcl` — upsert pass-through [asset:741/792]
+- 1. `port.basic_data_loan_fcl.daysinfc` — rename (Newrez) / computed (others) [pool:1546](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1546)
+- 2. `port.basic_data_loan_foreclosure.summary_days_in_fcl` — direct copy 直传 [pool:281](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L281)
+- 3. `bpms.sync_loan_foreclosure.summary_days_in_fcl` — upsert pass-through [asset:741/792](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L741)
 - 4. `bpms.biz_data_view_loan_details_foreclosure.summary_days_in_fcl` — passthrough [view]
 
-**Rule (full):** **Newrez**: raw `daysinfc` passed through (pool:1546). **Carrington / Capecodfive**: no raw `daysinfc` → computed `CASE WHEN <active> THEN datediff(day, referral_start_date, <snapshot>)+1 ELSE NULL` (Carrington uses snap_shot_date, pool:1587; Capecodfive uses dataasof, pool:1628). Downstream the view shows the lag-corrected value; see the per-hop rule.
+**Rule (full):** **Newrez**: raw `daysinfc` passed through ([pool:1546](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1546)). **Carrington / Capecodfive**: no raw `daysinfc` → computed `CASE WHEN <active> THEN datediff(day, referral_start_date, <snapshot>)+1 ELSE NULL` (Carrington uses snap_shot_date, [pool:1587](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1587); Capecodfive uses dataasof, [pool:1628](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1628)). Downstream the view shows the lag-corrected value; see the per-hop rule.
 
 **Note:** Newrez = raw daysinfc passthrough; Carrington/Capecodfive computed.
 
@@ -1094,9 +1097,9 @@ _Current FCL stage text._
 
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_fcl.fcstage` — rename 改名 [pool:1560]
-- 2. `port.basic_data_loan_foreclosure.summary_current_step` — direct copy 直传 [pool:282]
-- 3. `bpms.sync_loan_foreclosure.summary_current_step` — upsert pass-through [asset:742/793]
+- 1. `port.basic_data_loan_fcl.fcstage` — rename 改名 [pool:1560](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1560)
+- 2. `port.basic_data_loan_foreclosure.summary_current_step` — direct copy 直传 [pool:282](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L282)
+- 3. `bpms.sync_loan_foreclosure.summary_current_step` — upsert pass-through [asset:742/793](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L742)
 - 4. `bpms.biz_data_view_loan_details_foreclosure.summary_current_step` — passthrough [view]
 
 ### 63. Last Step Completed  (`bpms.sync_loan_foreclosure.summary_last_step_completed`)
@@ -1110,9 +1113,9 @@ _Last completed FCL step._
 
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_fcl.lastfcstepcompleted` — rename 改名 [pool:1561]
-- 2. `port.basic_data_loan_foreclosure.summary_last_step_completed` — direct copy 直传 [pool:283]
-- 3. `bpms.sync_loan_foreclosure.summary_last_step_completed` — upsert pass-through [asset:743/794]
+- 1. `port.basic_data_loan_fcl.lastfcstepcompleted` — rename 改名 [pool:1561](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1561)
+- 2. `port.basic_data_loan_foreclosure.summary_last_step_completed` — direct copy 直传 [pool:283](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L283)
+- 3. `bpms.sync_loan_foreclosure.summary_last_step_completed` — upsert pass-through [asset:743/794](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L743)
 - 4. `bpms.biz_data_view_loan_details_foreclosure.summary_last_step_completed` — passthrough [view]
 
 ### 64. Last step completed date  (`bpms.sync_loan_foreclosure.summary_last_step_completed_date`)
@@ -1126,9 +1129,9 @@ _Date of last completed step._
 
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_fcl.lastfcstepcompleteddate` — rename 改名 [pool:1562]
-- 2. `port.basic_data_loan_foreclosure.summary_last_step_completed_date` — direct copy 直传 [pool:284]
-- 3. `bpms.sync_loan_foreclosure.summary_last_step_completed_date` — upsert pass-through [asset:744/795]
+- 1. `port.basic_data_loan_fcl.lastfcstepcompleteddate` — rename 改名 [pool:1562](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1562)
+- 2. `port.basic_data_loan_foreclosure.summary_last_step_completed_date` — direct copy 直传 [pool:284](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L284)
+- 3. `bpms.sync_loan_foreclosure.summary_last_step_completed_date` — upsert pass-through [asset:744/795](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L744)
 - 4. `bpms.biz_data_view_loan_details_foreclosure.summary_last_step_completed_date` — passthrough [view]
 
 
@@ -1140,7 +1143,7 @@ _App/ETL-managed columns (not servicer-sourced)._
 
 **Columns:** `create_user, create_dept, create_time, update_user, update_time, status, is_deleted, tenant_id`
 
-**Note:** Columns: create_user, create_dept, create_time, update_user, update_time, status, is_deleted, tenant_id. tenant_id ← GET_LOAN_TENANT_ID(portfunding ⋈ basic_data_trust_funding, asset:932-936); create_*/update_* set by the BPS app; is_deleted constant 0 (view); status app flag. Not servicer data.
+**Note:** Columns: create_user, create_dept, create_time, update_user, update_time, status, is_deleted, tenant_id. tenant_id ← GET_LOAN_TENANT_ID(portfunding ⋈ basic_data_trust_funding, [asset:932-936](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L932-936)); create_*/update_* set by the BPS app; is_deleted constant 0 (view); status app flag. Not servicer data.
 
 
 ## View-computed columns

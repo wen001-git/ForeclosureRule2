@@ -18,7 +18,7 @@
 
 | 日期 | 作者 | 版本 | 变更 | 关联 |
 |------|------|------|------|------|
-| 2026-06-04 | AI Agent（Claude Opus 4.8） | v3 | 改正 Foreclosure Summary 速查表 Foreclosure status 行（代码+DB）：原 `activefcflag=1 → 取 fcstage；=0 → fcresults 或 fcremovaldesc` 错误 → `activefcflag=1` 固定文本 `'Active Foreclosure'`、`=0` 且 fcremovaldesc 非空 → `'Closed Foreclosure:'+fcremovaldesc`、否则 NULL（fcstage→summary_current_step）；Type/Current Step 与截图验证行同步写全/纠正 | 代码 basic_data_pool_config.py:273 · doc 13 v35 · doc 14 v33 |
+| 2026-06-04 | AI Agent（Claude Opus 4.8） | v3 | 改正 Foreclosure Summary 速查表 Foreclosure status 行（代码+DB）：原 `activefcflag=1 → 取 fcstage；=0 → fcresults 或 fcremovaldesc` 错误 → `activefcflag=1` 固定文本 `'Active Foreclosure'`、`=0` 且 fcremovaldesc 非空 → `'Closed Foreclosure:'+fcremovaldesc`、否则 NULL（fcstage→summary_current_step）；Type/Current Step 与截图验证行同步写全/纠正 | 代码 [basic_data_pool_config.py:273](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L273) · doc 13 v35 · doc 14 v33 |
 | 2026-06-03 | AI Agent（Claude Opus 4.8） | v2 | SMS Days / Days in Foreclosure 行补起算基准（代码+DB 核实）：SMS Days 自 fcsetupdate(servicer 建案日)、Days 自 fcreferraldate(转介日)，故 SMS Days ≤ Days；同步 doc 13/14/16xlsx/fcl_pipeline.html | doc 13 v34 · doc 14 v31 |
 | 2026-05-28 | AI Agent（Claude Sonnet 4.6） | v1 | 初稿：6个面板速查表 + 截图；内容来自 doc 13 MCP 实测数据 | doc 13 |
 

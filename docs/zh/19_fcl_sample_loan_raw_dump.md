@@ -7,7 +7,7 @@
 - **文档目的**：把 5 个样例贷款在 FCL 全链路【所有表的全部字段】逐一列出（一节一张表），完整呈现 Newrez 源 → Redshift 中间层 → BPS 的「业务 ↔ 数据」对应关系。doc 16 仅含各面板用到的部分字段，本表是其原始数据底座。
 - **数据来源**：全部 **prod**（只读）——`mysql_prod`（bpms + newrez 源）+ `redshift_prod`（port 中间层）；由 `scripts/fetch_fcl_sample_raw_dump_data.py` 预取到 `outputs/fcl_sample_raw_dump_data.json`。
 - **目标读者**：数据工程师 · 业务分析师 · 验证人员 · 接入工程师 · 未来 AI 会话
-- **取数口径**：Newrez 源 / Redshift 快照表 `dataasof=MAX`(每贷款)；stage/视图 `fctrdt=MAX`；sync 基础表当前态；多行表(hold/lm/bk)取全历史。日期统一 `YYYY-MM-DD`；空值显示 `—`。业务日对齐 `2026-06-01`。
+- **取数口径**：全部 **prod**（`mysql_prod`/`redshift_prod`）。Newrez 源 / Redshift 快照表 `dataasof=MAX`(每贷款)；stage/视图 `fctrdt=MAX`；sync 基础表当前态；多行表(hold/lm/bk)取全历史。日期统一 `YYYY-MM-DD`；空值显示 `—`。**数据日期：样例捕获时各贷款 `dataasof≈2026-06-04`（每贷款 MAX）；业务日对齐目标 `2026-06-01`**（二者区别：前者为实际快照日、后者为口径对齐目标）。
 - **如何读血缘**：每张表标题下新增「业务含义与全链路血缘」块——文字链(箭头)呈现 源文件→…→本表→…→BPS 的多级链路(每跳标 PrefectFlow 转换配置 file:line)，并列全部上游/下游表；血缘汇编自 outputs/fcl_pipeline.html + doc 21/20/02。
 - **排版**：1 行/贷款的表 → 转置（字段为行 × 5 贷款列）；多行/贷款的表 → 平铺（记录为行 × 全字段列）。
 - **字段业务含义**：每张表给每个字段标注「业务含义」——转置表为 `字段` 右侧的内联列；平铺表（Hold/LM/BK）在数据网格上方提供「字段说明」legend（字段 ↔ 业务含义）。含义复用 `docs/foreclosure_data_dictionary.md`（DB 实测来源），少数未收录字段补写。㉔ datadic 解码表额外给每个编码加「业务含义」（编码 → 解码 → 业务含义）。
@@ -16,6 +16,8 @@
 
 | 日期 | 作者 | 版本 | 变更 | 关联 |
 |---|---|---|---|---|
+| 2026-06-10 | AI Agent (Claude Opus 4.7 1M) | v10 | 修正 L1→L5 全局图：补 portmonth 链（`portnewrezpmt → portmonthbase → sync_portmonth`），并改正视图 ⑳ 上游——**MCP 实证 `information_schema.views.view_definition`：视图实际只 LEFT JOIN `sync_loan_foreclosure` + `sync_portmonth` 两张**（v9 及之前 mermaid 标的「5 张 sync_* → 视图」是错的，其余 4 张 sync_* 直接喂各自 BPS 面板，与视图是兄弟关系）。L5 清单下加 ⚠️ 注释说明真实上游与公式；HTML/JSON 同步（actual_*=TO_DAYS 减法、var_*=累计减 Σ）。 | fcl_pipeline.html, fcl_lineage_source.json |
+| 2026-06-10 | AI Agent (Claude Opus 4.8) | v9 | 每表说明块 + ⓪ 总览**显式拆出 4 项业务框架**：**业务说明 / 业务目的**分列、新增 **在 pipeline 中的作用**（fcl_table_meta.json 新增 pipeline_role 字段）、原「为什么这样处理」改标签为 **为什么会有这张表**；MD 块 + Excel 各表块 + ⓪ 总览同步 | fcl_table_meta.json |
 | 2026-06-08 | AI Agent (Claude Opus 4.8) | v8 | 每表「业务含义与全链路血缘」说明块**重排**：首行新增 **所处层级**（L1–L5，取自 fcl_table_meta.json），紧接 **上游链路/全部上游表** → **下游链路/全部下游表**，再业务含义/何时来查/为什么/数据粒度；MD 块 + Excel 各表块 + ⓪ 总览同步 | fcl_table_meta.json |
 | 2026-06-08 | AI Agent (Claude Opus 4.8) | v7 | 每张表新增**「业务含义」列**逐字段描述（转置表=`字段` 右侧内联列；平铺表 Hold/LM/BK=数据网格上方「字段说明」legend 块）；**㉔ datadic 解码表新增「业务含义」列**（编码→解码→业务含义），并同步至数据字典表26；字段含义复用 `docs/foreclosure_data_dictionary.md`（DB 实测来源），缺口字段补写；MD+Excel 同步、幂等脚本注入 | 数据字典 表26 · 表18/19/20 |
 | 2026-06-07 | AI Agent (Claude Opus 4.8) | v6 | 全表按 **L1→L5 层序重排** + 圆圈号 ②–㉔ 顺序化（MD 小节/索引、Excel 各表 sheet 与 ⓪ 总览同步）；新增 **全局 L1→L5 Pipeline 图**（MD Mermaid 流程图 + Excel ⓪b 全局Pipeline图 sheet）；与 doc 02 五层模型核对一致 | doc 02 · 20 · 21 · fcl_pipeline.html |
@@ -42,6 +44,7 @@ flowchart LR
     lm["④ portnewrezlm<br/>LM 源"]
     gen["⑤ portnewrezgeneral<br/>通用/逾期源"]
     prop["⑥ portnewrezprop<br/>房产/州"]
+    pmt["portnewrezpmt<br/>还款源 · nextduedate"]
     dic["㉔ portnewrezdatadic<br/>解码字典"]
   end
   subgraph G2["L2 统一日表（Redshift+MySQL 双写）"]
@@ -60,6 +63,7 @@ flowchart LR
     hold["⑮ ..._foreclosure_hold"]
     lm4["⑯ ..._loss_mitigation"]
     bk4["⑰ ..._bankruptcy"]
+    pmbase["portmonthbase<br/>月度主表 (双写)"]
   end
   subgraph G5["L5 BPS 直接对接（MySQL bpms）"]
     s1["⑱ sync_loan_foreclosure"]
@@ -67,15 +71,17 @@ flowchart LR
     s3["㉑ sync_loan_foreclosure_hold"]
     s4["㉒ sync_..._loss_mitigation"]
     s5["㉓ sync_..._bankruptcy"]
+    pm["sync_portmonth<br/>BPS 月度账务"]
     v["⑳ biz_data_view...（视图）"]
   end
   BPS["BPS 法拍详情页<br/>5 面板"]
-  S0 --> fc & bk & lm & gen & prop & dic
+  S0 --> fc & bk & lm & gen & prop & pmt & dic
   fc --> temp --> fcl
   fcl --> fclo & rel & stg & hold & lm4 & bk4
   bk --> bk4
   lm --> lm4
   prop --> fclo
+  pmt --> pmbase --> pm
   dic -. 解码 .-> lm4 & bk4
   fund -. JOIN .-> stg & s1
   gen --> dlc --> dlcc
@@ -85,7 +91,8 @@ flowchart LR
   hold --> s3
   lm4 --> s4
   bk4 --> s5
-  s1 & s2 & s3 & s4 & s5 --> v --> BPS
+  s1 & pm --> v --> BPS
+  s2 & s3 & s4 & s5 --> BPS
 ```
 <!-- PIPE:DIAGRAM END -->
 
@@ -138,6 +145,23 @@ flowchart LR
 | ㉒ bpms.sync_loan_foreclosure_loss_mitigation | LM 周期历史 | 22 | 21 行 |
 | ㉓ bpms.sync_loan_foreclosure_bankruptcy | 破产记录 | 22 | 3 行 |
 
+> **⚠️ 关于视图 ⑳ 的真实上游（MCP 实证 2026-06-10 `information_schema.views.view_definition`）**：
+>
+> 视图 `bpms.biz_data_view_loan_details_foreclosure` 真实 FROM 只接 **2 张**表，**不是**前几版 mermaid 标的 5 张 sync_*：
+>
+> 1. `bpms.sync_portmonth monthly` （主表，提供 `nextduedate` 应付到期日锚点）；
+> 2. `bpms.sync_loan_foreclosure loan_fcl` （LEFT JOIN on loanid+tenant_id，提供 timeline_*/target_*）。
+>
+> 视图按 `actual_X_days = TO_DAYS(loan_fcl.timeline_X_date) − TO_DAYS(monthly.nextduedate)` 即时计算；`var_X_days = actual_X − Σ(target_i, i ≤ X)` 累计减。
+>
+> 其余 4 张 sync_* 表（**㉑ Hold、㉒ LM、㉓ BK、⑲ Stage**）**不喂视图**——它们各自被 BPS 详情页对应面板（Hold/LM/BK/Stage 面板）直接读取，跟视图是兄弟关系，不是上下游。
+>
+> 视图额外依赖的两张表（**不在本 dump 的 sheet 列表**）：
+> - **`bpms.sync_portmonth`**（L5 BPS 月度账务快照表）—— 由 1-PORTMONTH sync 写入；上游 `redshift_prod.port.portmonthbase`（L4 月度主表，双写：`gen_portmonth_v4.py:45-46`(Redshift) + `gen_portmonth_mysql.py:42-43`(MySQL)）。
+> - **`mysql_prod.newrez.portnewrezpmt`**（L1 Newrez 还款源）—— `nextduedate` 的最原始 Newrez 源。
+>
+> 完整 nextduedate 链：`newrez.portnewrezpmt.nextduedate` → `port.portmonthbase.nextduedate` → `bpms.sync_portmonth.nextduedate` → 视图 TO_DAYS 减法 → `actual_*_days`。
+
 ### 六、解码字典（mysql_prod.newrez）
 
 | Sheet / 表 | 用途 | 列数/字段 | 本dump行/命中 |
@@ -170,13 +194,15 @@ flowchart LR
 > **📋 业务含义与全链路血缘**
 >
 > - **所处层级**：L1 源（Newrez FCL 主源）
+> - **业务说明**：Newrez 每日推送的法拍(FCL)主源表——一笔贷款一行最新快照，含 FCL 时间线里程碑(setup/referral/firstlegal/judgment/sale)、当前阶段 fcstage、4 个 Hold 槽(fchold1..4)、拍卖金额、律师等。
+> - **业务目的**：Newrez 法拍全流程的原始事实底座；下游所有 FCL 计算的源头。
+> - **在 pipeline 中的作用**：源保真底座（L1）：Newrez 一家一张原始 FCL 落库，作为下游所有 FCL 改名/UNION/计算的共同起点。
+> - **为什么会有这张表**：各 Servicer 文件格式不同，先按‘一家一张原始表’落地保真，再到 L4 统一改名/UNION，便于回溯与对账。
+> - **何时来查这张表**：想看某贷款 Newrez 原始报的 FCL 里程碑/阶段/Hold 原值，或核对下游计算是否忠实于源时。
 > - **上游链路**：Servicer 文件(S3, L0) → newrez.portnewrezfc  〔load_daily_newrez_flow.py；落库 daily_task.py:923-942(MySQL)/960-983(Redshift)〕
 > - **全部上游表**：Servicer 文件(S3, L0)
 > - **下游链路**：portnewrezfc → tempfc.temp_basic_data_fcl(改名) → port.basic_data_loan_fcl(全 servicer UNION，FCL 事实表) → { port.basic_data_loan_foreclosure〔GEN_FCL_DETAIL basic_data_pool_config.py:253-305〕 / port.fcl_stage_info〔GEN_FCL_STAGE :1774-2440〕 / port.basic_data_loan_foreclosure_hold〔Hold 拆槽 :466-768〕 } → bpms.sync_*〔asset_managment_config.py〕 → bpms.biz_data_view_loan_details_foreclosure(视图) → BPS 法拍面板
 > - **全部下游表**：tempfc.temp_basic_data_fcl、port.basic_data_loan_fcl、port.basic_data_loan_foreclosure、port.fcl_stage_info、port.basic_data_loan_foreclosure_hold、bpms.sync_loan_foreclosure、bpms.sync_fcl_stage_info、bpms.sync_loan_foreclosure_hold、bpms.biz_data_view_loan_details_foreclosure
-> - **业务含义/目的**：Newrez 每日推送的法拍(FCL)主源表——一笔贷款一行最新快照，含 FCL 时间线里程碑(setup/referral/firstlegal/judgment/sale)、当前阶段 fcstage、4 个 Hold 槽(fchold1..4)、拍卖金额、律师等。 Newrez 法拍全流程的原始事实底座；下游所有 FCL 计算的源头。
-> - **何时来查这张表**：想看某贷款 Newrez 原始报的 FCL 里程碑/阶段/Hold 原值，或核对下游计算是否忠实于源时。
-> - **为什么 pipeline 这样处理**：各 Servicer 文件格式不同，先按‘一家一张原始表’落地保真，再到 L4 统一改名/UNION，便于回溯与对账。
 > - **数据粒度**：1 行/贷款/dataasof（每日快照）；本 dump 取 dataasof=MAX。
 <!-- META:newrez.portnewrezfc END -->
 
@@ -262,13 +288,15 @@ SELECT t.* FROM newrez.portnewrezfc t JOIN (SELECT loanid, MAX(dataasof) AS _md 
 > **📋 业务含义与全链路血缘**
 >
 > - **所处层级**：L1 源（Newrez 破产源）
+> - **业务说明**：Newrez 破产(BK)源表，按贷款×破产申请记录，含 bkstatus/bkchapter/bkfileddate 等编码字段。
+> - **业务目的**：BK 事实底座；为 FCL 提供‘是否在破产保护(暂停法拍)’的判断。
+> - **在 pipeline 中的作用**：破产支线起点（L1）：BK 原始落库，为 FCL 提供「是否在破产保护、需暂停法拍」的判断起点。
+> - **为什么会有这张表**：破产是法拍的暂停因素，需单列保真；编码值经 datadic 解码成业务文案。
+> - **何时来查这张表**：查某贷款原始破产章节/状态/申请日，或核对 BPS 破产面板。
 > - **上游链路**：Servicer 文件(S3, L0) → newrez.portnewrezbk
 > - **全部上游表**：Servicer 文件(S3, L0)
 > - **下游链路**：portnewrezbk → port.basic_data_loan_foreclosure_bankruptcy〔解码 bkstatus，basic_data_pool_config.py:331-370，JOIN newrez.portnewrezdatadic〕 → bpms.sync_loan_foreclosure_bankruptcy〔asset_managment_config.py:822-843〕 → bpms.biz_data_view_loan_details_foreclosure(视图) → BPS 破产面板
 > - **全部下游表**：port.basic_data_loan_foreclosure_bankruptcy、bpms.sync_loan_foreclosure_bankruptcy、bpms.biz_data_view_loan_details_foreclosure
-> - **业务含义/目的**：Newrez 破产(BK)源表，按贷款×破产申请记录，含 bkstatus/bkchapter/bkfileddate 等编码字段。 BK 事实底座；为 FCL 提供‘是否在破产保护(暂停法拍)’的判断。
-> - **何时来查这张表**：查某贷款原始破产章节/状态/申请日，或核对 BPS 破产面板。
-> - **为什么 pipeline 这样处理**：破产是法拍的暂停因素，需单列保真；编码值经 datadic 解码成业务文案。
 > - **数据粒度**：1 行/贷款/破产申请(bkfileddate)；多次申请多行。
 <!-- META:newrez.portnewrezbk END -->
 
@@ -351,13 +379,15 @@ SELECT t.* FROM newrez.portnewrezbk t JOIN (SELECT loanid, MAX(dataasof) AS _md 
 > **📋 业务含义与全链路血缘**
 >
 > - **所处层级**：L1 源（Newrez 损失缓解 LM 源）
+> - **业务说明**：Newrez 损失缓解(LM)源表，按贷款×LM 周期(dealstartdate)，含 lmdeal/lmprogram/lmstatus/lmdecision 等编码。
+> - **业务目的**：LM 事实底座；提供‘是否在协商还款方案(暂停/替代法拍)’。
+> - **在 pipeline 中的作用**：LM 支线起点（L1）：损失缓解原始落库，为 FCL 提供「协商还款方案、暂停/替代法拍」的判断起点。
+> - **为什么会有这张表**：LM 是法拍的替代/暂停路径，需单列保真；编码经 datadic 解码。
+> - **何时来查这张表**：查某贷款 LM 周期/项目/决定原值，或核对 BPS LM 面板。
 > - **上游链路**：Servicer 文件(S3, L0) → newrez.portnewrezlm
 > - **全部上游表**：Servicer 文件(S3, L0)
 > - **下游链路**：portnewrezlm → port.basic_data_loan_foreclosure_loss_mitigation〔basic_data_pool_config.py:799-843，JOIN newrez.portnewrezdatadic〕 → bpms.sync_loan_foreclosure_loss_mitigation〔asset_managment_config.py:799-819〕 → bpms.biz_data_view_loan_details_foreclosure(视图) → BPS LM 面板
 > - **全部下游表**：port.basic_data_loan_foreclosure_loss_mitigation、bpms.sync_loan_foreclosure_loss_mitigation、bpms.biz_data_view_loan_details_foreclosure
-> - **业务含义/目的**：Newrez 损失缓解(LM)源表，按贷款×LM 周期(dealstartdate)，含 lmdeal/lmprogram/lmstatus/lmdecision 等编码。 LM 事实底座；提供‘是否在协商还款方案(暂停/替代法拍)’。
-> - **何时来查这张表**：查某贷款 LM 周期/项目/决定原值，或核对 BPS LM 面板。
-> - **为什么 pipeline 这样处理**：LM 是法拍的替代/暂停路径，需单列保真；编码经 datadic 解码。
 > - **数据粒度**：1 行/贷款/LM 周期(dealstartdate)；多周期多行。
 <!-- META:newrez.portnewrezlm END -->
 
@@ -436,13 +466,15 @@ SELECT t.* FROM newrez.portnewrezlm t JOIN (SELECT loanid, MAX(dataasof) AS _md 
 > **📋 业务含义与全链路血缘**
 >
 > - **所处层级**：L1 源（Newrez 通用源）
+> - **业务说明**：Newrez 通用源表(125 列)，含 legalstatus、delinquency_status_mba(MBA 逾期分类)、nextduedate 等账户层属性。
+> - **业务目的**：逾期(delinquency)支线的源头；提供 delq_status 原值。
+> - **在 pipeline 中的作用**：逾期支线起点（L1）：提供 delq_status 等账户原值，喂入 L2 逾期统一日表。
+> - **为什么会有这张表**：逾期与 FCL 是两条支线——逾期来自 general 表经 days360 归一，FCL 来自 portnewrezfc 显式标志；二者在 L4 汇合。FCL 码绝不由 days360 推导。
+> - **何时来查这张表**：查某贷款原始逾期分类/法律状态/下次到期日。
 > - **上游链路**：Servicer 文件(S3, L0) → newrez.portnewrezgeneral
 > - **全部上游表**：Servicer 文件(S3, L0)
 > - **下游链路**：portnewrezgeneral.delinquency_status_mba → port.portdaily_v2〔portdaily_config.py〕 → port.basic_data_daily_loan_common.delq_status(逾期支线 L2，daily_data_loan_common_config.py) → port.basic_data_daily_loan_common_clean.delinq(L3，daily_data_loan_common_clean_config.py，CASE+days360) → { port.basic_data_fcl_related.delq_status / port.fcl_stage_info.group / port.portmonthbase } → BPS
 > - **全部下游表**：port.portdaily_v2、port.basic_data_daily_loan_common、port.basic_data_daily_loan_common_clean、port.basic_data_fcl_related、port.fcl_stage_info、port.portmonthbase、bpms.sync_fcl_stage_info
-> - **业务含义/目的**：Newrez 通用源表(125 列)，含 legalstatus、delinquency_status_mba(MBA 逾期分类)、nextduedate 等账户层属性。 逾期(delinquency)支线的源头；提供 delq_status 原值。
-> - **何时来查这张表**：查某贷款原始逾期分类/法律状态/下次到期日。
-> - **为什么 pipeline 这样处理**：逾期与 FCL 是两条支线——逾期来自 general 表经 days360 归一，FCL 来自 portnewrezfc 显式标志；二者在 L4 汇合。FCL 码绝不由 days360 推导。
 > - **数据粒度**：1 行/贷款/dataasof。
 <!-- META:newrez.portnewrezgeneral END -->
 
@@ -590,13 +622,15 @@ SELECT t.* FROM newrez.portnewrezgeneral t JOIN (SELECT loanid, MAX(dataasof) AS
 > **📋 业务含义与全链路血缘**
 >
 > - **所处层级**：L1 源（Newrez 房产源）
+> - **业务说明**：Newrez 房产源表(32 列)，含 propertystate(州，定司法/非司法)、LTV、occupancy 等。
+> - **业务目的**：提供物业/州属性；州决定 FCL 走司法(judicial)还是非司法路径。
+> - **在 pipeline 中的作用**：维度源（L1）：提供物业州等属性，决定 FCL 走司法/非司法路径与时长口径。
+> - **为什么会有这张表**：司法/非司法影响 FCL 时长与阶段口径，需物业州维度（实测 state 取自 portnewrezprop.propertystate）。
+> - **何时来查这张表**：查某贷款物业州/LTV/占用情况。
 > - **上游链路**：Servicer 文件(S3, L0) → newrez.portnewrezprop
 > - **全部上游表**：Servicer 文件(S3, L0)
 > - **下游链路**：portnewrezprop.propertystate → port.basic_data_daily_loan_common(州维度) / port.basic_data_loan_foreclosure(summary_judicial_foreclosure 司法标志) → bpms.sync_loan_foreclosure → BPS
 > - **全部下游表**：port.basic_data_daily_loan_common、port.basic_data_loan_foreclosure、bpms.sync_loan_foreclosure
-> - **业务含义/目的**：Newrez 房产源表(32 列)，含 propertystate(州，定司法/非司法)、LTV、occupancy 等。 提供物业/州属性；州决定 FCL 走司法(judicial)还是非司法路径。
-> - **何时来查这张表**：查某贷款物业州/LTV/占用情况。
-> - **为什么 pipeline 这样处理**：司法/非司法影响 FCL 时长与阶段口径，需物业州维度（实测 state 取自 portnewrezprop.propertystate）。
 > - **数据粒度**：1 行/贷款/dataasof。
 <!-- META:newrez.portnewrezprop END -->
 
@@ -651,13 +685,15 @@ SELECT t.* FROM newrez.portnewrezprop t JOIN (SELECT loanid, MAX(dataasof) AS _m
 > **📋 业务含义与全链路血缘**
 >
 > - **所处层级**：L2 逾期支线 统一日表（Redshift）
+> - **业务说明**：逾期支线 L2 统一日表(78 列)——全 servicer UNION 后的标准日表，含 delq_status、fcl_flag、lm_flag 等(asofdate)。
+> - **业务目的**：逾期/状态归一的统一入口；L3 清洗的上游。
+> - **在 pipeline 中的作用**：逾期支线归一入口（L2）：全 servicer UNION 成统一日表，承接各家差异，喂 L3 清洗。
+> - **为什么会有这张表**：各家逾期/状态字段名与取值不同，先 UNION 成统一日表；注意 fcl_flag 在此并未真正归一(Newrez/SLS 为 NULL)，真正归一在 L4 FCL 业务族。
+> - **何时来查这张表**：查‘统一后的每日逾期/状态原值’、对账各家归一。
 > - **上游链路**：Servicer 文件(L0) → newrez.portnewrezgeneral(等各家) → port.portdaily_v2〔portdaily_config.py〕 → port.basic_data_daily_loan_common〔daily_data_loan_common_config.py〕
 > - **全部上游表**：Servicer 文件(L0)、newrez.portnewrezgeneral、newrez.portnewrezfc、port.portdaily_v2
 > - **下游链路**：→ port.basic_data_daily_loan_common_clean(L3) → { port.portmonthbase / port.basic_data_fcl_related.delq_status / port.fcl_stage_info.group } → BPS
 > - **全部下游表**：port.basic_data_daily_loan_common_clean、port.basic_data_fcl_related、port.fcl_stage_info、port.portmonthbase
-> - **业务含义/目的**：逾期支线 L2 统一日表(78 列)——全 servicer UNION 后的标准日表，含 delq_status、fcl_flag、lm_flag 等(asofdate)。 逾期/状态归一的统一入口；L3 清洗的上游。
-> - **何时来查这张表**：查‘统一后的每日逾期/状态原值’、对账各家归一。
-> - **为什么 pipeline 这样处理**：各家逾期/状态字段名与取值不同，先 UNION 成统一日表；注意 fcl_flag 在此并未真正归一(Newrez/SLS 为 NULL)，真正归一在 L4 FCL 业务族。
 > - **数据粒度**：1 行/贷款/asofdate。
 > - **备注**：fcl_flag 在 L2 未归一（直传，Newrez/SLS NULL）；真正归一在 L4 FCL 业务族。
 <!-- META:port.basic_data_daily_loan_common END -->
@@ -759,13 +795,15 @@ SELECT t.* FROM port.basic_data_daily_loan_common t JOIN (SELECT loanid, MAX(aso
 > **📋 业务含义与全链路血缘**
 >
 > - **所处层级**：L3 逾期支线 清洗日表（Redshift）
+> - **业务说明**：逾期支线 L3 清洗日表(103 列)——把 delq_status 经 CASE 归一成标准 delinq 码(C/D30/D60/D90/D120P/FCL/REO/P)，并用 days360(nextduedate,fctrdt) 分桶(fctrdt)。
+> - **业务目的**：标准逾期码的单一来源；喂 portmonthbase 与 FCL 业务族(stage 分组)。
+> - **在 pipeline 中的作用**：标准逾期码单一来源（L3）：CASE+days360 把 delq_status 归一为标准 delinq 码，喂 portmonthbase 与 FCL stage 分组。
+> - **为什么会有这张表**：业务要统一的 MBA 逾期码；文本状态(Foreclosure*/REO/Paid*)直接映射，其余按 days360 天数分桶。注意：FCL 码只来自 servicer 显式法拍状态，绝不由 days360 推导。
+> - **何时来查这张表**：查‘标准化后的逾期码/天数桶口径’、核对 days360 计算。
 > - **上游链路**：… → port.basic_data_daily_loan_common → port.basic_data_daily_loan_common_clean〔daily_data_loan_common_clean_config.py，CASE + days360〕
 > - **全部上游表**：port.basic_data_daily_loan_common、port.portdaily_v2、newrez.portnewrezgeneral
 > - **下游链路**：→ { port.portmonthbase / port.basic_data_fcl_related.delq_status / port.fcl_stage_info.group } → BPS。另：旁支 port.basic_data_loan_delinq_clean(含 is_ghost_payoff 等)实测存在，但其生成代码不在 PrefectFlow 仓库(grep 0 命中，开放问题)。
 > - **全部下游表**：port.basic_data_fcl_related、port.fcl_stage_info、port.portmonthbase
-> - **业务含义/目的**：逾期支线 L3 清洗日表(103 列)——把 delq_status 经 CASE 归一成标准 delinq 码(C/D30/D60/D90/D120P/FCL/REO/P)，并用 days360(nextduedate,fctrdt) 分桶(fctrdt)。 标准逾期码的单一来源；喂 portmonthbase 与 FCL 业务族(stage 分组)。
-> - **何时来查这张表**：查‘标准化后的逾期码/天数桶口径’、核对 days360 计算。
-> - **为什么 pipeline 这样处理**：业务要统一的 MBA 逾期码；文本状态(Foreclosure*/REO/Paid*)直接映射，其余按 days360 天数分桶。注意：FCL 码只来自 servicer 显式法拍状态，绝不由 days360 推导。
 > - **数据粒度**：1 行/贷款/fctrdt。
 > - **备注**：旁支 port.basic_data_loan_delinq_clean 生成代码不在仓库（grep 0 命中，开放问题），未列为确定下游。
 <!-- META:port.basic_data_daily_loan_common_clean END -->
@@ -892,13 +930,15 @@ SELECT t.* FROM port.basic_data_daily_loan_common_clean t JOIN (SELECT loanid, M
 > **📋 业务含义与全链路血缘**
 >
 > - **所处层级**：L4 改名临时表（Redshift 运行时中间产物）
+> - **业务说明**：Redshift 运行时改名临时表(37 列)——把各 servicer 原始列(如 fcreferraldate)改成统一列(referral_start_date)的中间产物。
+> - **业务目的**：port.basic_data_loan_fcl 的直接上游；承接‘改名’这一步。
+> - **在 pipeline 中的作用**：列名统一中间产物（L4）：承接「改名」这一步，连接 L1 各家源与 L4 UNION 事实表。
+> - **为什么会有这张表**：UNION 前必须先统一列名；单列一张临时表做改名，逻辑清晰、便于调试；运行时产物。
+> - **何时来查这张表**：排查‘统一列名 ↔ 源列名’映射、定位改名是否正确。
 > - **上游链路**：newrez.portnewrezfc(各家源) → tempfc.temp_basic_data_fcl〔改名 basic_data_pool_config.py ~:1538-1565〕
 > - **全部上游表**：newrez.portnewrezfc、Servicer 文件(L0)
 > - **下游链路**：→ port.basic_data_loan_fcl(UNION) → FCL 业务族(foreclosure/stage/hold/lm/bk) → bpms.sync_* → BPS
 > - **全部下游表**：port.basic_data_loan_fcl、port.basic_data_loan_foreclosure、port.fcl_stage_info、port.basic_data_loan_foreclosure_hold、port.basic_data_loan_foreclosure_loss_mitigation、port.basic_data_loan_foreclosure_bankruptcy
-> - **业务含义/目的**：Redshift 运行时改名临时表(37 列)——把各 servicer 原始列(如 fcreferraldate)改成统一列(referral_start_date)的中间产物。 port.basic_data_loan_fcl 的直接上游；承接‘改名’这一步。
-> - **何时来查这张表**：排查‘统一列名 ↔ 源列名’映射、定位改名是否正确。
-> - **为什么 pipeline 这样处理**：UNION 前必须先统一列名；单列一张临时表做改名，逻辑清晰、便于调试；运行时产物。
 > - **数据粒度**：1 行/贷款/dataasof。
 <!-- META:tempfc.temp_basic_data_fcl END -->
 
@@ -958,13 +998,15 @@ SELECT t.* FROM tempfc.temp_basic_data_fcl t JOIN (SELECT loanid, MAX(dataasof) 
 > **📋 业务含义与全链路血缘**
 >
 > - **所处层级**：L4 FCL 事实表（Redshift 快照中间）
+> - **业务说明**：Redshift FCL 事实表——portnewrezfc 等经改名后 UNION 全 6 家 servicer 的统一列宽表(每贷款最新 dataasof)。
+> - **业务目的**：FCL 计算的统一入口；屏蔽各 servicer 列名差异。
+> - **在 pipeline 中的作用**：全 servicer UNION 事实入口（L4）：屏蔽各家列名差异，作为所有 FCL 业务子表的共同上游。
+> - **为什么会有这张表**：各家列名不同，先改名(tempfc.temp_basic_data_fcl)再 UNION 成一张统一事实表，下游只面对一套列名。
+> - **何时来查这张表**：查‘统一列名后的 FCL 字段值’，或定位某下游字段来自哪根统一列。
 > - **上游链路**：Servicer 文件(L0) → newrez.portnewrezfc(+各家对应表) → tempfc.temp_basic_data_fcl(改名) → port.basic_data_loan_fcl〔UNION，basic_data_pool_config.py〕
 > - **全部上游表**：Servicer 文件(L0)、newrez.portnewrezfc、(sls/carrington/mrc/fci/selene 对应源表)、tempfc.temp_basic_data_fcl
 > - **下游链路**：basic_data_loan_fcl → { port.basic_data_loan_foreclosure〔GEN_FCL_DETAIL :253-305〕 / port.fcl_stage_info〔GEN_FCL_STAGE :1774-2440〕 / port.basic_data_loan_foreclosure_hold〔:466-768〕 / port.basic_data_loan_foreclosure_loss_mitigation〔:799-843〕 / port.basic_data_loan_foreclosure_bankruptcy〔:331-370〕 } → bpms.sync_* → 视图 → BPS
 > - **全部下游表**：port.basic_data_loan_foreclosure、port.fcl_stage_info、port.basic_data_loan_foreclosure_hold、port.basic_data_loan_foreclosure_loss_mitigation、port.basic_data_loan_foreclosure_bankruptcy、bpms.sync_loan_foreclosure、bpms.sync_fcl_stage_info、bpms.sync_loan_foreclosure_hold、bpms.sync_loan_foreclosure_loss_mitigation、bpms.sync_loan_foreclosure_bankruptcy、bpms.biz_data_view_loan_details_foreclosure
-> - **业务含义/目的**：Redshift FCL 事实表——portnewrezfc 等经改名后 UNION 全 6 家 servicer 的统一列宽表(每贷款最新 dataasof)。 FCL 计算的统一入口；屏蔽各 servicer 列名差异。
-> - **何时来查这张表**：查‘统一列名后的 FCL 字段值’，或定位某下游字段来自哪根统一列。
-> - **为什么 pipeline 这样处理**：各家列名不同，先改名(tempfc.temp_basic_data_fcl)再 UNION 成一张统一事实表，下游只面对一套列名。
 > - **数据粒度**：1 行/贷款（每贷款最新 dataasof）。
 <!-- META:port.basic_data_loan_fcl END -->
 
@@ -1048,13 +1090,15 @@ SELECT t.* FROM port.basic_data_loan_fcl t JOIN (SELECT loanid, MAX(dataasof) AS
 > **📋 业务含义与全链路血缘**
 >
 > - **所处层级**：L4 FCL 聚合（时间线，1 行/贷款）
+> - **业务说明**：Redshift FCL 聚合表(1 行/贷款)——一笔贷款端到端法拍时间线：各里程碑日期、当前状态(summary_foreclosure_status)、司法标志、在法拍天数(summary_days_in_fcl)。
+> - **业务目的**：bpms.sync_loan_foreclosure(BPS 主表)的直接上游；法拍主视图的数据底座。
+> - **在 pipeline 中的作用**：时间线收敛点（L4）：把散落里程碑/状态收敛成 1 行/贷款的可读时间线，作 BPS 主表直接上游。
+> - **为什么会有这张表**：把事实表里散落的里程碑/状态按业务规则(GEN_FCL_DETAIL CASE)收敛成 1 行/贷款的可读时间线；退出原因直接取 servicer 的 fcremovaldesc(无解码表)。
+> - **何时来查这张表**：查某贷款法拍‘何时进入各里程碑/当前状态/在法拍多少天/为何退出’。
 > - **上游链路**：… → port.basic_data_loan_fcl → port.basic_data_loan_foreclosure〔GEN_FCL_DETAIL basic_data_pool_config.py:253-305；状态 CASE :273；司法 :277-279；在法拍天数 :1628〕
 > - **全部上游表**：port.basic_data_loan_fcl、tempfc.temp_basic_data_fcl、newrez.portnewrezfc、Servicer 文件(L0)
 > - **下游链路**：basic_data_loan_foreclosure → (Redshift→MySQL 同步 df_db_util.py:665-699 sync_to_mysql / 702-726 update_to_mysql) → bpms.sync_loan_foreclosure〔GEN_FORECLOSURE asset_managment_config.py:535-608；实时天数校正 :597-598〕 → bpms.biz_data_view_loan_details_foreclosure(视图) → BPS Summary/Timeline 面板
 > - **全部下游表**：bpms.sync_loan_foreclosure、bpms.biz_data_view_loan_details_foreclosure
-> - **业务含义/目的**：Redshift FCL 聚合表(1 行/贷款)——一笔贷款端到端法拍时间线：各里程碑日期、当前状态(summary_foreclosure_status)、司法标志、在法拍天数(summary_days_in_fcl)。 bpms.sync_loan_foreclosure(BPS 主表)的直接上游；法拍主视图的数据底座。
-> - **何时来查这张表**：查某贷款法拍‘何时进入各里程碑/当前状态/在法拍多少天/为何退出’。
-> - **为什么 pipeline 这样处理**：把事实表里散落的里程碑/状态按业务规则(GEN_FCL_DETAIL CASE)收敛成 1 行/贷款的可读时间线；退出原因直接取 servicer 的 fcremovaldesc(无解码表)。
 > - **数据粒度**：1 行/贷款（含在途 + 已结）。
 <!-- META:port.basic_data_loan_foreclosure END -->
 
@@ -1139,13 +1183,15 @@ SELECT t.* FROM port.basic_data_loan_foreclosure t JOIN (SELECT loanid, MAX(data
 > **📋 业务含义与全链路血缘**
 >
 > - **所处层级**：L4 FCL 关联/过滤中间表
+> - **业务说明**：FCL 关联属性中间表(14 列)——诉讼标志、清算类型、BK 标志、违约原因、delq_status 等。
+> - **业务目的**：给 stage 计算与过滤提供‘关联属性/分组键’(delq_status → stage group)。
+> - **在 pipeline 中的作用**：分组键提供者（L4）：合并逾期码与 FCL 属性，为 stage 计算提供分组键（delq_status→group）。
+> - **为什么会有这张表**：stage 计算需把逾期支线的 delq_status 与 FCL 属性合并；单列一张关联表承接，避免主时间线表过宽。
+> - **何时来查这张表**：查某贷款 stage 分组依据、关联诉讼/清算/违约属性。
 > - **上游链路**：{ port.basic_data_loan_fcl(FCL 属性) + port.basic_data_daily_loan_common_clean.delinq(逾期码) } → port.basic_data_fcl_related〔basic_data_pool_config.py〕
 > - **全部上游表**：port.basic_data_loan_fcl、port.basic_data_daily_loan_common_clean
 > - **下游链路**：basic_data_fcl_related.delq_status → port.fcl_stage_info.group(stage 分组) → bpms.sync_fcl_stage_info → 视图 → BPS Stage 面板
 > - **全部下游表**：port.fcl_stage_info、bpms.sync_fcl_stage_info、bpms.biz_data_view_loan_details_foreclosure
-> - **业务含义/目的**：FCL 关联属性中间表(14 列)——诉讼标志、清算类型、BK 标志、违约原因、delq_status 等。 给 stage 计算与过滤提供‘关联属性/分组键’(delq_status → stage group)。
-> - **何时来查这张表**：查某贷款 stage 分组依据、关联诉讼/清算/违约属性。
-> - **为什么 pipeline 这样处理**：stage 计算需把逾期支线的 delq_status 与 FCL 属性合并；单列一张关联表承接，避免主时间线表过宽。
 > - **数据粒度**：1 行/贷款（最新 dataasof）。
 <!-- META:port.basic_data_fcl_related END -->
 
@@ -1182,13 +1228,15 @@ SELECT t.* FROM port.basic_data_fcl_related t JOIN (SELECT loanid, MAX(dataasof)
 > **📋 业务含义与全链路血缘**
 >
 > - **所处层级**：L4 阶段表（Redshift）
+> - **业务说明**：Redshift 阶段表(48 列)——把法拍拆成 6 大阶段，每阶段 5 维(开始/天数/扣除 LM-Hold 重叠等)，每贷款最新 fctrdt。
+> - **业务目的**：bpms.sync_fcl_stage_info(BPS 聚合 Stage/Timeline)的上游；面板‘各阶段停留天数’的底座。
+> - **在 pipeline 中的作用**：阶段量化点（L4）：把法拍拆 6 阶段算停留天数（扣 LM/Hold 重叠），作 BPS Stage 面板上游。
+> - **为什么会有这张表**：业务关心‘卡在哪一步多久’；阶段口径复杂(N:N 扣 LM/Hold 重叠)，单列一张表算清，并 JOIN portfunding 取 funding 维。
+> - **何时来查这张表**：查某贷款‘在每个阶段停留多久、扣除 LM/Hold 后净时长、当前在哪个阶段组’。
 > - **上游链路**：{ port.basic_data_loan_fcl + port.basic_data_fcl_related(delq_status 分组) + port.portfunding(JOIN) } → port.fcl_stage_info〔GEN_FCL_STAGE basic_data_pool_config.py:1774-2440〕
 > - **全部上游表**：port.basic_data_loan_fcl、port.basic_data_fcl_related、port.basic_data_daily_loan_common_clean、port.portfunding
 > - **下游链路**：fcl_stage_info → bpms.sync_fcl_stage_info〔GET_FCL_STAGE_DATA asset_managment_config.py:925-929，JOIN port.portfunding〕 → 视图 → BPS Stage 面板
 > - **全部下游表**：bpms.sync_fcl_stage_info、bpms.biz_data_view_loan_details_foreclosure
-> - **业务含义/目的**：Redshift 阶段表(48 列)——把法拍拆成 6 大阶段，每阶段 5 维(开始/天数/扣除 LM-Hold 重叠等)，每贷款最新 fctrdt。 bpms.sync_fcl_stage_info(BPS 聚合 Stage/Timeline)的上游；面板‘各阶段停留天数’的底座。
-> - **何时来查这张表**：查某贷款‘在每个阶段停留多久、扣除 LM/Hold 后净时长、当前在哪个阶段组’。
-> - **为什么 pipeline 这样处理**：业务关心‘卡在哪一步多久’；阶段口径复杂(N:N 扣 LM/Hold 重叠)，单列一张表算清，并 JOIN portfunding 取 funding 维。
 > - **数据粒度**：1 行/贷款/fctrdt。
 <!-- META:port.fcl_stage_info END -->
 
@@ -1259,13 +1307,15 @@ SELECT t.* FROM port.fcl_stage_info t JOIN (SELECT loanid, MAX(fctrdt) AS _md FR
 > **📋 业务含义与全链路血缘**
 >
 > - **所处层级**：L4 维度（融资池）
+> - **业务说明**：融资池表(57 列，1 行/贷款)——funding/deal 标识(fundingid/dealid)与池属性。
+> - **业务目的**：作为 JOIN 维度为 FCL 输出补 funding_id/bid_id，并做入库过滤。
+> - **在 pipeline 中的作用**：JOIN 维度（L4）：运行时为 FCL 输出补 funding_id/bid_id，并做入库过滤（按融资池/deal）。
+> - **为什么会有这张表**：BPS 需按 funding/bid 维展示与归集；FCL 表本身不含，运行时 JOIN portfunding 补齐(dealid→bid_id, fundingid→funding_id)。
+> - **何时来查这张表**：查某贷款属于哪个融资池/deal，或为何被 sync 过滤进/出。
 > - **上游链路**：投资/融资域(非 servicer FCL 文件) → port.portfunding
 > - **全部上游表**：投资/融资域来源（非 FCL servicer 文件）
 > - **下游链路**：portfunding ⋈ { port.fcl_stage_info / GEN_FORECLOSURE(asset_managment_config.py:535-608) } → bpms.sync_fcl_stage_info / bpms.sync_loan_foreclosure → 视图 → BPS
 > - **全部下游表**：port.fcl_stage_info、bpms.sync_fcl_stage_info、bpms.sync_loan_foreclosure、bpms.biz_data_view_loan_details_foreclosure
-> - **业务含义/目的**：融资池表(57 列，1 行/贷款)——funding/deal 标识(fundingid/dealid)与池属性。 作为 JOIN 维度为 FCL 输出补 funding_id/bid_id，并做入库过滤。
-> - **何时来查这张表**：查某贷款属于哪个融资池/deal，或为何被 sync 过滤进/出。
-> - **为什么 pipeline 这样处理**：BPS 需按 funding/bid 维展示与归集；FCL 表本身不含，运行时 JOIN portfunding 补齐(dealid→bid_id, fundingid→funding_id)。
 > - **数据粒度**：1 行/贷款（当前态）。
 <!-- META:port.portfunding END -->
 
@@ -1345,13 +1395,15 @@ SELECT * FROM port.portfunding WHERE loanid IN ('7727000088','7727000672','77270
 > **📋 业务含义与全链路血缘**
 >
 > - **所处层级**：L4 Hold 历史（Redshift 长表）
+> - **业务说明**：Redshift Hold 历史(长表，1 行/Hold)——把源表 4 个 Hold 槽(fchold1..4)拆成长格式；Carrington 多 Hold 先排名压进 4 槽。
+> - **业务目的**：bpms.sync_loan_foreclosure_hold(BPS Hold 全历史)的上游；支撑‘一笔法拍多个 Hold’。
+> - **在 pipeline 中的作用**：拆槽长表（L4）：把源表 4 个 Hold 宽槽 unpivot 成 1 行/Hold 的全历史，作 BPS Hold 面板上游。
+> - **为什么会有这张表**：源表把 Hold 压成 4 个宽槽，业务要全历史，需拆槽(unpivot)成 1 行/Hold；一笔 FCL 多 Hold 是常态(非数据错误)。
+> - **何时来查这张表**：查某贷款全部 Hold 的起止/原因/历史。
 > - **上游链路**：newrez.portnewrezfc(fchold1..4) → port.basic_data_loan_fcl → port.basic_data_loan_foreclosure_hold〔拆槽 basic_data_pool_config.py:466-768；Carrington 排名 :504-629〕
 > - **全部上游表**：newrez.portnewrezfc、port.basic_data_loan_fcl
 > - **下游链路**：→ bpms.sync_loan_foreclosure_hold〔GEN_FORECLOSURE_HOLD asset_managment_config.py:847-894〕 → 视图 → BPS Hold 面板
 > - **全部下游表**：bpms.sync_loan_foreclosure_hold、bpms.biz_data_view_loan_details_foreclosure
-> - **业务含义/目的**：Redshift Hold 历史(长表，1 行/Hold)——把源表 4 个 Hold 槽(fchold1..4)拆成长格式；Carrington 多 Hold 先排名压进 4 槽。 bpms.sync_loan_foreclosure_hold(BPS Hold 全历史)的上游；支撑‘一笔法拍多个 Hold’。
-> - **何时来查这张表**：查某贷款全部 Hold 的起止/原因/历史。
-> - **为什么 pipeline 这样处理**：源表把 Hold 压成 4 个宽槽，业务要全历史，需拆槽(unpivot)成 1 行/Hold；一笔 FCL 多 Hold 是常态(非数据错误)。
 > - **数据粒度**：1 行/贷款/Hold 段。
 <!-- META:port.basic_data_loan_foreclosure_hold END -->
 
@@ -1419,13 +1471,15 @@ SELECT * FROM port.basic_data_loan_foreclosure_hold WHERE loanid IN ('7727000088
 > **📋 业务含义与全链路血缘**
 >
 > - **所处层级**：L4 LM 历史（Redshift）
+> - **业务说明**：Redshift LM 历史(1 行/LM 周期)——按 (loanid, dealstartdate)，datadic 解码 lmdeal/lmprogram/lmstatus/lmdecision。
+> - **业务目的**：bpms.sync_loan_foreclosure_loss_mitigation 的上游；支撑‘一笔贷款多 LM 周期’。
+> - **在 pipeline 中的作用**：解码历史表（L4）：按 LM 周期经 datadic 解码 lmdeal/lmprogram/lmstatus/lmdecision，作 BPS LM 面板上游。
+> - **为什么会有这张表**：LM 多周期是常态；编码需经 datadic 解码成业务文案(JOIN key 拼 code+'.0')。
+> - **何时来查这张表**：查某贷款全部 LM 周期/项目/决定(已解码)。
 > - **上游链路**：{ newrez.portnewrezlm + newrez.portnewrezdatadic } → port.basic_data_loan_fcl 体系 → port.basic_data_loan_foreclosure_loss_mitigation〔basic_data_pool_config.py:799-843〕
 > - **全部上游表**：newrez.portnewrezlm、newrez.portnewrezdatadic、port.basic_data_loan_fcl
 > - **下游链路**：→ bpms.sync_loan_foreclosure_loss_mitigation〔asset_managment_config.py:799-819〕 → 视图 → BPS LM 面板
 > - **全部下游表**：bpms.sync_loan_foreclosure_loss_mitigation、bpms.biz_data_view_loan_details_foreclosure
-> - **业务含义/目的**：Redshift LM 历史(1 行/LM 周期)——按 (loanid, dealstartdate)，datadic 解码 lmdeal/lmprogram/lmstatus/lmdecision。 bpms.sync_loan_foreclosure_loss_mitigation 的上游；支撑‘一笔贷款多 LM 周期’。
-> - **何时来查这张表**：查某贷款全部 LM 周期/项目/决定(已解码)。
-> - **为什么 pipeline 这样处理**：LM 多周期是常态；编码需经 datadic 解码成业务文案(JOIN key 拼 code+'.0')。
 > - **数据粒度**：1 行/贷款/LM 周期。
 <!-- META:port.basic_data_loan_foreclosure_loss_mitigation END -->
 
@@ -1492,13 +1546,15 @@ SELECT * FROM port.basic_data_loan_foreclosure_loss_mitigation WHERE loanid IN (
 > **📋 业务含义与全链路血缘**
 >
 > - **所处层级**：L4 破产历史（Redshift）
+> - **业务说明**：Redshift 破产历史(1 行/破产申请)——datadic 解码 bkstatus；Carrington 专有 mfr_filed_date(Newrez 为 NULL)。
+> - **业务目的**：bpms.sync_loan_foreclosure_bankruptcy 的上游。
+> - **在 pipeline 中的作用**：解码历史表（L4）：按破产申请经 datadic 解码 bkstatus，作 BPS 破产面板上游。
+> - **为什么会有这张表**：破产可多次申请；编码经 datadic 解码。
+> - **何时来查这张表**：查某贷款全部破产申请/章节/状态(已解码)。
 > - **上游链路**：{ newrez.portnewrezbk + newrez.portnewrezdatadic } → port.basic_data_loan_foreclosure_bankruptcy〔basic_data_pool_config.py:331-370〕
 > - **全部上游表**：newrez.portnewrezbk、newrez.portnewrezdatadic、port.basic_data_loan_fcl
 > - **下游链路**：→ bpms.sync_loan_foreclosure_bankruptcy〔asset_managment_config.py:822-843〕 → 视图 → BPS 破产面板
 > - **全部下游表**：bpms.sync_loan_foreclosure_bankruptcy、bpms.biz_data_view_loan_details_foreclosure
-> - **业务含义/目的**：Redshift 破产历史(1 行/破产申请)——datadic 解码 bkstatus；Carrington 专有 mfr_filed_date(Newrez 为 NULL)。 bpms.sync_loan_foreclosure_bankruptcy 的上游。
-> - **何时来查这张表**：查某贷款全部破产申请/章节/状态(已解码)。
-> - **为什么 pipeline 这样处理**：破产可多次申请；编码经 datadic 解码。
 > - **数据粒度**：1 行/贷款/破产申请。
 <!-- META:port.basic_data_loan_foreclosure_bankruptcy END -->
 
@@ -1546,13 +1602,15 @@ SELECT * FROM port.basic_data_loan_foreclosure_bankruptcy WHERE loanid IN ('7727
 > **📋 业务含义与全链路血缘**
 >
 > - **所处层级**：L5 BPS 直接对接（主表）
+> - **业务说明**：BPS 法拍主表(72 列，当前态)——Summary/Timeline/target 主面板的数据源。
+> - **业务目的**：BPS 直接对接表；法拍主面板。
+> - **在 pipeline 中的作用**：L4→MySQL 落库对接（L5）：法拍主面板数据源；覆盖更新并对天数做当日实时校正。
+> - **为什么会有这张表**：L4 算好后同步到 MySQL 供 BPS 读；采用覆盖更新(coverage upsert)，并对天数做 NY 当日实时校正(+DATEDIFF)。
+> - **何时来查这张表**：查 BPS 主面板某字段的落库值、排查面板与 Redshift 是否一致。
 > - **上游链路**：… → port.basic_data_loan_foreclosure(Redshift) → (sync_to_mysql/update_to_mysql df_db_util.py:665-726) → bpms.sync_loan_foreclosure〔GEN_FORECLOSURE asset_managment_config.py:535-608〕（JOIN port.portfunding 取 funding_id/bid_id）
 > - **全部上游表**：port.basic_data_loan_foreclosure、port.portfunding、port.basic_data_loan_fcl
 > - **下游链路**：→ bpms.biz_data_view_loan_details_foreclosure(视图) → BPS 法拍详情/主面板
 > - **全部下游表**：bpms.biz_data_view_loan_details_foreclosure
-> - **业务含义/目的**：BPS 法拍主表(72 列，当前态)——Summary/Timeline/target 主面板的数据源。 BPS 直接对接表；法拍主面板。
-> - **何时来查这张表**：查 BPS 主面板某字段的落库值、排查面板与 Redshift 是否一致。
-> - **为什么 pipeline 这样处理**：L4 算好后同步到 MySQL 供 BPS 读；采用覆盖更新(coverage upsert)，并对天数做 NY 当日实时校正(+DATEDIFF)。
 > - **数据粒度**：1 行/贷款（过滤 timeline_referred… IS NOT NULL，即已进入法拍）。
 > - **备注**：样例 Loan5(纯 Chapter 13 BK，未进法拍)不在本表，故本 dump 命中 4/5。
 <!-- META:bpms.sync_loan_foreclosure END -->
@@ -1648,13 +1706,15 @@ SELECT * FROM bpms.sync_loan_foreclosure WHERE loanid IN (7727000088,7727000672,
 > **📋 业务含义与全链路血缘**
 >
 > - **所处层级**：L5 BPS 直接对接（阶段聚合）
+> - **业务说明**：BPS 聚合 Stage/Timeline 表(57 列)——各阶段停留天数/时间线。
+> - **业务目的**：BPS Stage 面板数据源。
+> - **在 pipeline 中的作用**：L4→MySQL 落库对接（L5）：BPS Stage/Timeline 面板数据源（JOIN portfunding 带 funding 维）。
+> - **为什么会有这张表**：阶段口径在 Redshift 算清后同步；JOIN portfunding 带 funding 维。
+> - **何时来查这张表**：查 BPS 各阶段天数落库值。
 > - **上游链路**：port.fcl_stage_info(⋈ port.portfunding) → bpms.sync_fcl_stage_info〔GET_FCL_STAGE_DATA asset_managment_config.py:925-929〕
 > - **全部上游表**：port.fcl_stage_info、port.portfunding
 > - **下游链路**：→ bpms.biz_data_view_loan_details_foreclosure(视图) → BPS Stage 面板
 > - **全部下游表**：bpms.biz_data_view_loan_details_foreclosure
-> - **业务含义/目的**：BPS 聚合 Stage/Timeline 表(57 列)——各阶段停留天数/时间线。 BPS Stage 面板数据源。
-> - **何时来查这张表**：查 BPS 各阶段天数落库值。
-> - **为什么 pipeline 这样处理**：阶段口径在 Redshift 算清后同步；JOIN portfunding 带 funding 维。
 > - **数据粒度**：1 行/贷款/fctrdt（过滤 activefcflag=1 且 fcremovaldate IS NULL）。
 <!-- META:bpms.sync_fcl_stage_info END -->
 
@@ -1734,13 +1794,15 @@ SELECT t.* FROM bpms.sync_fcl_stage_info t JOIN (SELECT loanid, MAX(fctrdt) AS _
 > **📋 业务含义与全链路血缘**
 >
 > - **所处层级**：L5 BPS 详情页视图
+> - **业务说明**：BPS 法拍详情页视图(104 列)——把主表 + stage + hold + lm + bk 用 LEFT JOIN 拼成详情页；含 actual/var 天数。
+> - **业务目的**：BPS 详情页的‘一站式’读取视图。
+> - **在 pipeline 中的作用**：一站式聚合视图（L5）：LEFT JOIN 主表+stage+hold+lm+bk 共 5 张 sync 表，供详情页一次性读取。
+> - **为什么会有这张表**：详情页要跨 5 张面板表聚合，用视图免去前端多次查询。
+> - **何时来查这张表**：查详情页某列从哪几张 sync 表拼来、actual vs target 差异。
 > - **上游链路**：{ bpms.sync_loan_foreclosure + bpms.sync_fcl_stage_info + bpms.sync_loan_foreclosure_hold + bpms.sync_loan_foreclosure_loss_mitigation + bpms.sync_loan_foreclosure_bankruptcy } → 视图(LEFT JOIN，104 列)
 > - **全部上游表**：bpms.sync_loan_foreclosure、bpms.sync_fcl_stage_info、bpms.sync_loan_foreclosure_hold、bpms.sync_loan_foreclosure_loss_mitigation、bpms.sync_loan_foreclosure_bankruptcy
 > - **下游链路**：→ BPS 法拍详情页 UI（5 面板）
 > - **全部下游表**：BPS 法拍详情页 UI
-> - **业务含义/目的**：BPS 法拍详情页视图(104 列)——把主表 + stage + hold + lm + bk 用 LEFT JOIN 拼成详情页；含 actual/var 天数。 BPS 详情页的‘一站式’读取视图。
-> - **何时来查这张表**：查详情页某列从哪几张 sync 表拼来、actual vs target 差异。
-> - **为什么 pipeline 这样处理**：详情页要跨 5 张面板表聚合，用视图免去前端多次查询。
 > - **数据粒度**：1 行/贷款/fctrdt（取最新）。
 <!-- META:bpms.biz_data_view_loan_details_foreclosure END -->
 
@@ -1867,13 +1929,15 @@ SELECT t.* FROM bpms.biz_data_view_loan_details_foreclosure t JOIN (SELECT loani
 > **📋 业务含义与全链路血缘**
 >
 > - **所处层级**：L5 BPS 直接对接（Hold 历史）
+> - **业务说明**：BPS Hold 全历史(每次变更一行)。
+> - **业务目的**：BPS Hold 面板。
+> - **在 pipeline 中的作用**：L4→MySQL 落库对接（L5）：BPS Hold 面板数据源（每次 Hold 变更一行）。
+> - **为什么会有这张表**：见 ⑫；L4 拆槽后同步覆盖更新。
+> - **何时来查这张表**：查 BPS 上某贷款全部 Hold 落库记录。
 > - **上游链路**：port.basic_data_loan_foreclosure_hold → bpms.sync_loan_foreclosure_hold〔asset_managment_config.py:847-894〕
 > - **全部上游表**：port.basic_data_loan_foreclosure_hold
 > - **下游链路**：→ bpms.biz_data_view_loan_details_foreclosure(视图) → BPS Hold 面板
 > - **全部下游表**：bpms.biz_data_view_loan_details_foreclosure
-> - **业务含义/目的**：BPS Hold 全历史(每次变更一行)。 BPS Hold 面板。
-> - **何时来查这张表**：查 BPS 上某贷款全部 Hold 落库记录。
-> - **为什么 pipeline 这样处理**：见 ⑫；L4 拆槽后同步覆盖更新。
 > - **数据粒度**：1 行/Hold 段。
 <!-- META:bpms.sync_loan_foreclosure_hold END -->
 
@@ -1939,13 +2003,15 @@ SELECT * FROM bpms.sync_loan_foreclosure_hold WHERE loanid IN (7727000088,772700
 > **📋 业务含义与全链路血缘**
 >
 > - **所处层级**：L5 BPS 直接对接（LM 周期历史）
+> - **业务说明**：BPS LM 周期历史(1 行/LM 周期，已解码)。
+> - **业务目的**：BPS LM 面板。
+> - **在 pipeline 中的作用**：L4→MySQL 落库对接（L5）：BPS LM 面板数据源（1 行/LM 周期，已解码）。
+> - **为什么会有这张表**：见 ⑬；L4 解码后同步覆盖更新。
+> - **何时来查这张表**：查 BPS 上某贷款全部 LM 周期落库记录。
 > - **上游链路**：port.basic_data_loan_foreclosure_loss_mitigation → bpms.sync_loan_foreclosure_loss_mitigation〔asset_managment_config.py:799-819〕
 > - **全部上游表**：port.basic_data_loan_foreclosure_loss_mitigation
 > - **下游链路**：→ bpms.biz_data_view_loan_details_foreclosure(视图) → BPS LM 面板
 > - **全部下游表**：bpms.biz_data_view_loan_details_foreclosure
-> - **业务含义/目的**：BPS LM 周期历史(1 行/LM 周期，已解码)。 BPS LM 面板。
-> - **何时来查这张表**：查 BPS 上某贷款全部 LM 周期落库记录。
-> - **为什么 pipeline 这样处理**：见 ⑬；L4 解码后同步覆盖更新。
 > - **数据粒度**：1 行/LM 周期。
 <!-- META:bpms.sync_loan_foreclosure_loss_mitigation END -->
 
@@ -2018,13 +2084,15 @@ SELECT * FROM bpms.sync_loan_foreclosure_loss_mitigation WHERE loanid IN (772700
 > **📋 业务含义与全链路血缘**
 >
 > - **所处层级**：L5 BPS 直接对接（破产记录）
+> - **业务说明**：BPS 破产记录(1 行/破产申请，已解码)。
+> - **业务目的**：BPS 破产面板。
+> - **在 pipeline 中的作用**：L4→MySQL 落库对接（L5）：BPS 破产面板数据源（1 行/破产申请，已解码）。
+> - **为什么会有这张表**：见 ⑭；L4 解码后同步覆盖更新。
+> - **何时来查这张表**：查 BPS 上某贷款全部破产记录落库值。
 > - **上游链路**：port.basic_data_loan_foreclosure_bankruptcy → bpms.sync_loan_foreclosure_bankruptcy〔asset_managment_config.py:822-843〕
 > - **全部上游表**：port.basic_data_loan_foreclosure_bankruptcy
 > - **下游链路**：→ bpms.biz_data_view_loan_details_foreclosure(视图) → BPS 破产面板
 > - **全部下游表**：bpms.biz_data_view_loan_details_foreclosure
-> - **业务含义/目的**：BPS 破产记录(1 行/破产申请，已解码)。 BPS 破产面板。
-> - **何时来查这张表**：查 BPS 上某贷款全部破产记录落库值。
-> - **为什么 pipeline 这样处理**：见 ⑭；L4 解码后同步覆盖更新。
 > - **数据粒度**：1 行/破产申请。
 <!-- META:bpms.sync_loan_foreclosure_bankruptcy END -->
 
@@ -2073,19 +2141,21 @@ SELECT * FROM bpms.sync_loan_foreclosure_bankruptcy WHERE loanid IN (7727000088,
 
 ## ㉔ newrez.portnewrezdatadic — FCL 解码字典
 
-> 字典在 `redshift_prod.newrez.portnewrezdatadic`（列 `package/module_name/appendix/field_name/code/description`）。本节只列 **5 样例贷款实际出现的码**（其原始整数码见各 Newrez 源表）；各字段完整字典见 `docs/foreclosure_data_dictionary.md` 表26。解码 JOIN：`basic_data_pool_config.py:835-840`(LM) / `:367`(BK)。
+> 字典在 `redshift_prod.newrez.portnewrezdatadic`（列 `package/module_name/appendix/field_name/code/description`）。本节只列 **5 样例贷款实际出现的码**（其原始整数码见各 Newrez 源表）；各字段完整字典见 `docs/foreclosure_data_dictionary.md` 表26。解码 JOIN：[`basic_data_pool_config.py:835-840`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L835-840)(LM) / `:367`(BK)。
 
 <!-- META:newrez.portnewrezdatadic START -->
 > **📋 业务含义与全链路血缘**
 >
 > - **所处层级**：字典（Newrez 解码字典）
+> - **业务说明**：Newrez FCL 解码字典(8 列)——把 LM/BK 等编码(LMDeal/LMProgram/LMStatus/LMDecision/BKStatus 等)映射成业务文案。
+> - **业务目的**：给 LM/BK 等表的编码解码提供查找表。
+> - **在 pipeline 中的作用**：解码字典维度：被 LM/BK 等表 JOIN，提供编码→业务文案的查找（COALESCE 解码）。
+> - **为什么会有这张表**：源表存编码省空间，展示需文案；统一一张字典 JOIN 解码(COALESCE(dict_desc, raw_code))。
+> - **何时来查这张表**：查某编码的业务含义、核对解码是否正确。
 > - **上游链路**：Servicer(Newrez) 文件(L0) → newrez.portnewrezdatadic
 > - **全部上游表**：Servicer 文件(S3, L0)
 > - **下游链路**：⋈ basic_data_pool_config.py(LM :835-840 / BK :367) → port.basic_data_loan_foreclosure_loss_mitigation / _bankruptcy(解码列) → bpms.sync_loan_foreclosure_loss_mitigation / _bankruptcy → 视图 → BPS
 > - **全部下游表**：port.basic_data_loan_foreclosure_loss_mitigation、port.basic_data_loan_foreclosure_bankruptcy、bpms.sync_loan_foreclosure_loss_mitigation、bpms.sync_loan_foreclosure_bankruptcy
-> - **业务含义/目的**：Newrez FCL 解码字典(8 列)——把 LM/BK 等编码(LMDeal/LMProgram/LMStatus/LMDecision/BKStatus 等)映射成业务文案。 给 LM/BK 等表的编码解码提供查找表。
-> - **何时来查这张表**：查某编码的业务含义、核对解码是否正确。
-> - **为什么 pipeline 这样处理**：源表存编码省空间，展示需文案；统一一张字典 JOIN 解码(COALESCE(dict_desc, raw_code))。
 > - **数据粒度**：1 行/(field_name, code)。
 <!-- META:newrez.portnewrezdatadic END -->
 

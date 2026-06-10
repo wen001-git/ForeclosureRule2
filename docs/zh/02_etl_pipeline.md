@@ -15,6 +15,8 @@
 
 **目标读者：** 数据工程师 · 系统重写架构师 · 调试/运营工程师 · 架构师
 
+> **📅 数据日期（统一声明）**：本文所有统计**均取自 prod**（`redshift_prod` / `mysql_prod`），无 dev。各表最新快照日期**天然不同**，请按所属表解读：`port.portmonthbase`（delinq）= **2025-08-01**（该月度基表在 prod 已停更/冻结于此；累计口径覆盖 2023-02-01..2025-08-01）；`port.fcl_stage_info` / `port.basic_data_loan_foreclosure`（FCL 业务族）= **2026-06-07**；`newrez.*` 源 = **2026-06-08**。各统计块就近标注口径（最新快照 / 累计）+ as-of + SQL。
+
 **依赖文档：** `01_source_data.md`（了解各层数据来源）
 
 **相关文档：** `03_fcl_status_logic.md`（Layer 3 的逻辑细节）、`06_diagrams.md`（图表版）
@@ -23,9 +25,12 @@
 
 | 日期 | 作者 | 版本 | 变更内容 |
 |------|------|------|---------|
-| 2026-06-07 | AI Agent (Claude Opus 4.8) | v5 | 新增 **§8.1 as-of date 演变 + 为何 BPS `sync_*` 无 as-of、只有 `update_time`**（code + MCP 实证：DELETE+APPEND 覆盖刷新 `df_db_util.py:691,693`、两步 `UPDATE_FORECLOSURE`、`datediff` 实时校正吸收 as-of `asset_managment_config.py:597-598`；真实数据示例 loan 7727000088：368+2=370）；新增 **§9 各表取数验证 SQL（最新数据日期）**（as-of 列 information_schema 全量核验；同款 SQL 注入 fcl_pipeline.html 各节点抽屉）；§8.1 订正写入机制（主表 `bpms.sync_loan_foreclosure` 经 `UPDATE_FORECLOSURE` 的 `ON DUPLICATE KEY UPDATE` 写入，UPDATE 列表排除 create/update_time → NULL） | PrefectFlow 源码 + mysql_prod/redshift_prod 实测 |
+| 2026-06-10 | AI Agent (Claude Opus 4.8) | v6 | 更正 §1 图 L1→L2 / L2→L3 箭头按**表**归属配置（`port.basic_data_daily_loan_common` ← `daily_data_loan_common_config.py`，**不是** `portdaily_config.py`；后者建 `portdaily_v2`）；重写 §3.2 为 5 家 servicer 的 UNION 来源表 + 代表性字段映射表（Code-First，附可点击源码行号），并更正旧版误抄自 `portdaily_v2` 的 `fcl_flag` 映射（本表 SLS/Newrez 的 `fcl_flag` 实为 NULL） | PrefectFlow 源码实测 |
+| 2026-06-07 | AI Agent (Claude Opus 4.8) | v5 | 新增 **§8.1 as-of date 演变 + 为何 BPS `sync_*` 无 as-of、只有 `update_time`**（code + MCP 实证：DELETE+APPEND 覆盖刷新 [`df_db_util.py:691,693`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/util/df_db_util.py#L691)、两步 `UPDATE_FORECLOSURE`、`datediff` 实时校正吸收 as-of [`asset_managment_config.py:597-598`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L597-598)；真实数据示例 loan 7727000088：368+2=370）；新增 **§9 各表取数验证 SQL（最新数据日期）**（as-of 列 information_schema 全量核验；同款 SQL 注入 fcl_pipeline.html 各节点抽屉）；§8.1 订正写入机制（主表 `bpms.sync_loan_foreclosure` 经 `UPDATE_FORECLOSURE` 的 `ON DUPLICATE KEY UPDATE` 写入，UPDATE 列表排除 create/update_time → NULL） | PrefectFlow 源码 + mysql_prod/redshift_prod 实测 |
 | 2026-06-06 | AI Agent (Claude Opus 4.8) | v4 | **更正为 MySQL+Redshift 双写架构**（原"一层一平台"有误）：§1 图 + §2/§3/§4/§5 各层补"落库 DB+file:line"，**§7 重写为双写证据表** + §7.1 今天其它更正（两支线/days360/fcl_flag 非归一/Carrington 整列缺失/delinq_clean 生成代码不在仓库）；交叉链接 doc 20 §B.6 / doc 21 | PrefectFlow 源码 + mysql_prod/redshift 实测 |
 | 2026-06-08 | AI Agent (Claude Opus 4.8) | v5 | 加注：`basic_data_monthly_loan_clean_data`(含 `_delinq`) 属 portmonth/逾期线（→`sync_portmonth`），**不在 FCL/`sync_loan_foreclosure` 管道**；FCL 自有 `delq_status`（`basic_data_fcl_related`，直接取原始表），`basic_data_pool_config.py`/`flow/bps/` 对月度 clean 表 0 引用（实测）| PrefectFlow 源码实测 · doc 21 §0.1 |
+| 2026-06-10 | AI Agent (Claude Opus 4.8) | v6 | §5.1 delinq 分布、§5.3 阶段/分组计数全部**标注统计口径 + 数据日期 + 统计 SQL**，并对 delinq 与阶段**各补「单一最新快照」对照**（澄清 78,913/92.2%、8,733 等为「跨所有 fctrdt 累计 loan-month/loan-day」、非当前组合）| redshift_prod 实测 2026-06-07 |
+| 2026-06-10 | AI Agent (Claude Opus 4.8) | v7 | 头部加**「数据日期」统一声明**（全部 prod、各表 as-of 不同）；§5.4 关闭原因表补口径+as-of 2026-06-07+SQL 并更新为 prod 实测值（共 5,770 行）；§5.1 svcdelinq 补 as-of | redshift_prod 实测 2026-06-07 |
 | 2026-06-05 | AI Agent (Claude Opus 4.8) | v3 | 表名改正 `portshellpoint*`→`portnewrez*`（DB 实测 newrez 现役表，2024-07-05 改名）+ 加命名说明（DB 实测；doc 01） |
 | 2026-05-21 | AI Agent (Claude Sonnet 4.6) | v1 | 初始版本，代码分析 + DB 实证 |
 | 2026-05-28 | AI Agent (Claude Sonnet 4.6) | v2 | MCP 实证修正：(1) Layer 5 平台由 Redshift 更正为 MySQL（`port` + `bpms_dev` 两个 schema）；(2) 补充缺失的 `bpms_dev.sync_loan_foreclosure`（主 FCL BPS 表）；(3) `5-FORECLOSURE` 目标更正为 `port.basic_data_loan_foreclosure`（MySQL）；(4) Layer 3→4 补充 `basic_data_pool_config.py`；(5) 新增 `bpms_dev.biz_data_view_loan_details_foreclosure` |
@@ -48,14 +53,16 @@
 │  carrington.portcarrington                                   │
 │  mrc.portmrcforeclosure | fci.* | selene.*                  │
 └─────────────────┬───────────────────────────────────────────┘
-                  │  portdaily_config.py（UNION ALL + 标准化）
+                  │  portdaily_config.py（UNION ALL+标准化）→ port.portdaily_v2
+                  │  daily_data_loan_common_config.py（UNION ALL+标准化）→ port.basic_data_daily_loan_common
                   ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  Layer 2 — 统一 Daily 层（Redshift + MySQL 双写）            │
 │  port.portdaily_v2                                          │
 │  port.basic_data_daily_loan_common                          │
 └─────────────────┬───────────────────────────────────────────┘
-                  │  daily_data_loan_common_clean_config.py
+                  │  daily_data_loan_common_clean_config.py → basic_data_daily_loan_common_clean
+                  │  portdaily_config.py（clean 段）→ port_daily_clean
                   ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  Layer 3 — Clean Daily 层（Redshift + MySQL 双写）           │
@@ -102,7 +109,7 @@
 └─────────────────────────────────────────────────────────────┘
 ```
 
-> ⚠️ **双写架构更正（2026-06-06，code+MCP 实证）**：上图各层**不是"一层一平台"**——**L1–L4 同时写入 MySQL 与 Redshift 两套库**（同名表各一份）：plain 配置→Redshift、`mysql_` 前缀配置→MySQL，由各自 flow 分别构建。只有 **L4 的 FCL 业务族**（`basic_data_loan_foreclosure`/`fcl_stage_info`/`_hold`/`_loss_mitigation`/`_bankruptcy`）是 **Redshift 单建、再由 L5 同步进 MySQL**。逐层代码证据见 **§7**；落库证据表另见 [doc 20 §B.6](20_end_to_end_walkthrough.md)，字段级血缘见 [doc 21](21_fcl_field_lineage.md)。
+> ⚠️ **双写架构更正（2026-06-06，code+MCP 实证）**：上图各层**不是"一层一平台"**——**L1–L4 同时写入 MySQL 与 Redshift 两套库**（同名表各一份）：plain 配置→Redshift、`mysql_` 前缀配置→MySQL，由各自 flow 分别构建。只有 **L4 的 FCL 业务族**（`basic_data_loan_foreclosure`/`fcl_stage_info`/`_hold`/`_loss_mitigation`/`_bankruptcy`）是 **Redshift 单建、再由 L5 同步进 MySQL**。逐层代码证据见 **§7**；落库证据表另见 [doc 20 §B.6](20_end_to_end_walkthrough.md)，字段级血缘见 [doc 25–30](25_fcl_lineage_overview.md)。
 
 > ⚠️ **`basic_data_monthly_loan_clean_data`（含 `_delinq` 子表）不在 FCL/`sync_loan_foreclosure` 管道上**：它属**月度组合/逾期线（portmonth）**——`…_delinq → basic_data_monthly_loan_clean_data → portmonth → bpms.sync_portmonth`（喂 BPS「Delinquency」视图）。FCL 业务族自有 `delq_status`（`basic_data_fcl_related`，直接取原始 servicer 表），**不读**该月度 clean 表（`basic_data_pool_config.py`、`flow/bps/` 均 0 引用，实测）。详见 [doc 21 §0.1](21_fcl_field_lineage.md)。
 
@@ -113,7 +120,7 @@
 **触发方式：** Prefect 调度 Flow，每日自动执行  
 **代码位置：** 各服务商摄入 Flow `flow/basic_data/load_daily_data_flow/load_daily_<servicer>_flow.py`  
 **数据格式：** CSV / TXT / XLSX → 原始表（按 `dataasof` 分区存储）  
-**落库：MySQL + Redshift 双写**（code 实证）——每家有两条 flow：`update_<svc>_daily_to_mysql(save_to_new=True)`→MySQL、`_to_redshift(save_to_new=False)`→Redshift（`load_daily_shellpoint_flow.py:9-47`）；分流 `servicer_task.py:158-163`；写库 `daily_task.py:923-942`(MySQL)/`960-983`(RS)。MCP 实测 `newrez.portnewrezfc` 两库都在。
+**落库：MySQL + Redshift 双写**（code 实证）——每家有两条 flow：`update_<svc>_daily_to_mysql(save_to_new=True)`→MySQL、`_to_redshift(save_to_new=False)`→Redshift（[`load_daily_shellpoint_flow.py:9-47`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/load_daily_data_flow/load_daily_shellpoint_flow.py#L9-47)）；分流 [`servicer_task.py:158-163`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/tasks/servicer_data/servicer_task.py#L158-163)；写库 [`daily_task.py:923-942`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/tasks/servicer_data/daily_task.py#L923-942)(MySQL)/`960-983`(RS)。MCP 实测 `newrez.portnewrezfc` 两库都在。
 
 **摄入路径：**
 | 服务商 | S3 路径 | MySQL Schema | 核心止赎表 |
@@ -130,7 +137,7 @@
 ## 3. Layer 1 → Layer 2：统一 Daily 层
 
 **代码文件：** `flow/servicer_data/sericer_data_config/portdaily_config.py`（60KB）  
-**落库：Redshift + MySQL 双写**——plain `daily_data_loan_common_config.py:5,97`→Redshift `port.basic_data_daily_loan_common`；`mysql_daily_data_loan_common_config.py:5,94`→MySQL 同名表；两条 flow `gen_daily_data_loan_common_flow.py:17-48(RS)/52-84(MySQL)`。
+**落库：Redshift + MySQL 双写**——plain [`daily_data_loan_common_config.py:5,97`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/transfer_daily_data_config/daily_data_loan_common_config.py#L5)→Redshift `port.basic_data_daily_loan_common`；[`mysql_daily_data_loan_common_config.py:5,94`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/transfer_daily_data_config/mysql_daily_data_loan_common_config.py#L5)→MySQL 同名表；两条 flow [`gen_daily_data_loan_common_flow.py:17-48(RS)/52-84(MySQL)`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/transfer_daily_data_flow/gen_daily_data_loan_common_flow.py#L17-48)。
 
 ### 3.1 `port.portdaily_v2` 生成（关键：SLS/Newrez 切换处理）
 
@@ -167,35 +174,37 @@ FROM newrez.portnewrezpmt p JOIN newrez.portnewrezgeneral g ...
 
 ### 3.2 `port.basic_data_daily_loan_common` 生成
 
-**代码文件：** `flow/basic_data/transfer_daily_data_config/daily_data_loan_common_config.py`（47KB）
+**代码文件：** `daily_data_loan_common_config.py`（Redshift，86 列）/ `mysql_daily_data_loan_common_config.py`（MySQL 孪生）；编排 flow [`gen_daily_data_loan_common_flow.py:17-48`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/transfer_daily_data_flow/gen_daily_data_loan_common_flow.py#L17-48)（先建表，再依次灌入 5 家）。**注意：这张表不是 `portdaily_config.py` 生成的**——后者生成的是并行的另一张 L2 表 `port.portdaily_v2`（配置文件自带注释亦如此说明）。
 
-所有服务商（含 Carrington、MRC、FCI、Selene）的日度数据在此层 UNION 到统一 schema：
+五家 servicer 各一段 `INSERT … SELECT`，把各自 L1 原始表的列翻译/对齐成同一套标准 schema，再 UNION 进本表：
 
-```sql
-CREATE TABLE port.basic_data_daily_loan_common (
-  ...
-  delq_status VARCHAR(255),   ← 各服务商原始逾期描述
-  fcl_flag    VARCHAR(50),    ← 各服务商止赎标志
-  lm_flag     VARCHAR(1),     ← Y/N
-  bankruptcy  VARCHAR(10),    ← Y/N
-  ...
-)
-```
+| Servicer | 来源 L1 表 | INSERT 代码 |
+|---|---|---|
+| SLS | `sls.portstandarddaily` + `sls.portassetdaily` | [`daily_data_loan_common_config.py:152-248`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/transfer_daily_data_config/daily_data_loan_common_config.py#L152-248) |
+| Newrez | `newrez.portnewrezpmt` + `…general/mod/prop/lm/arm/io/mi/contact` + `newrezdatadic` | [`daily_data_loan_common_config.py:258-388`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/transfer_daily_data_config/daily_data_loan_common_config.py#L258-388) |
+| Carrington | `carrington.portcarrington` | [`daily_data_loan_common_config.py:389-472`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/transfer_daily_data_config/daily_data_loan_common_config.py#L389-472) |
+| Selene | `selene.portselenemain` | [`daily_data_loan_common_config.py:480-564`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/transfer_daily_data_config/daily_data_loan_common_config.py#L480-564) |
+| MRC | `mrc.portmrcloan` + 多张 MRC 子表 | [`daily_data_loan_common_config.py:573-660`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/transfer_daily_data_config/daily_data_loan_common_config.py#L573-660) |
 
-**各服务商 fcl_flag 映射：**
-| 服务商 | 来源字段 | fcl_flag 值 |
-|--------|---------|------------|
-| Newrez | `activefcflag` | `1`/`0` |
-| SLS | `fcl_active_flag` | `'1'`/`'0'` |
-| Carrington | `foreclosure_status_code` | 原值传入 |
-| MRC | `fc_flag` | 原值传入 |
+**代表性字段映射（各 servicer 的来源表达式，节选；完整见上面各段源码）：**
+| 标准列 | SLS | Newrez | Carrington | Selene | MRC |
+|---|---|---|---|---|---|
+| `svcloanid` | `account_number` | `p.shellpointloanid` | `c.carrington_ln` | `c.seleneloanid` | `l.nsm_loan_number` |
+| `nextduedate` | `payment_due_date_next` | `p.nextduedate` | `date_payment_due` | `c.next_due_date` | `l.nxt_due_date` |
+| `principalbalance` | `balance_principal_current` | `p.principalbalance` | `balance_principal` | `c.principal_balance` | `l.curr_upb` |
+| `interest_rate` | `interest_rate_current` | `g.currentinterestrate×100` | （原值） | `c.annual_interest_rate×100` | `l.curr_int_rate` |
+| `delq_status`（原始，不分桶） | `a.delq_status_mba` | `g.delinquency_status_mba` | `loan_status` | `c.loan_status` | `l.min_status` |
+| `fcl_flag` | **NULL** | **NULL** | `c.fcl_flag`（透传） | `c.foreclosure_status_code` | `fc.fc_flag` |
+| `lm_flag` | **NULL** | `CASE lm.activelmflag='1'→'Y' else 'N'` | `CASE lm_flag='Active'→'Y' else 'N'` | `CASE lm_setup_date 非空→'Y'` | **NULL** |
+
+> 要点：① `delq_status` 在本层只**原样搬运**各家原始逾期描述、不分桶；标准化为 `delinq`（CASE+days360）发生在 **L3**（见 §4）。② `fcl_flag` 在本表中 **SLS / Newrez 为 NULL**——它们的止赎标志走 **FCL 业务族支线 / `portdaily_v2`**，不在本表；仅 Carrington/Selene/MRC 在此填值。（旧版本此处误抄了 `portdaily_v2` 的 `activefcflag` 映射，已据源码更正。）③ SLS 仅取服务商切换日之前的数据（`where dataasofdate < '2024-07-05'`，之后由 Newrez 段供数）。④ 个别字段含时间相关 CASE，如 Newrez 递延本金在 `dataasof > '2025-07-01'` 后改为「递延本金+递延托管+递延其他费用」三项相加。
 
 ---
 
 ## 4. Layer 2 → Layer 3：Clean Daily 层
 
 **代码文件：** `flow/basic_data/transfer_daily_data_config/daily_data_loan_common_clean_config.py`（72KB）  
-**落库：Redshift + MySQL 双写**——plain config→Redshift `port.basic_data_daily_loan_common_clean`；`mysql_daily_data_loan_common_clean_config.py`→MySQL 同名；两条 flow `gen_daily_data_loan_common_clean_flow.py:78-139(RS)/186-243(MySQL)`。
+**落库：Redshift + MySQL 双写**——plain config→Redshift `port.basic_data_daily_loan_common_clean`；`mysql_daily_data_loan_common_clean_config.py`→MySQL 同名；两条 flow [`gen_daily_data_loan_common_clean_flow.py:78-139(RS)/186-243(MySQL)`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/transfer_daily_data_flow/gen_daily_data_loan_common_clean_flow.py#L78-139)。
 
 **核心变换：** 将原始 `delq_status` 映射为标准化 `delinq` 代码  
 > 实测口径（见 doc 21 §5.4）：逐家一个 CASE，`Foreclosure*→FCL`/`REO→REO`/`Payoff*→P`，**其余一律 `days360(nextduedate, fctrdt)` 分档**（<30→C…≥120→D120P）。**`FCL` 是法律状态、不由天数推导**（`days360` 永不产 `FCL`，须 servicer 显式标注）。`delinq` 实测现存值 `C/D30/D60/D90/D120P/FCL/REO/P/VASP`（无 `REPUR`/独立 `D`）。
@@ -228,7 +237,7 @@ CREATE TABLE port.basic_data_daily_loan_common (
 - `flow/basic_data/basic_data_config/basic_data_pool_config.py`（2,400+行）— **所有 FCL 业务表**（`basic_data_loan_foreclosure`、`basic_data_loan_fcl`、`fcl_stage_info` 等 7 张表）及 `GEN_FCL_STAGE` 阶段计算
 
 **落库（分两类，code 实证）：**
-- **月度通用表 / `portmonthbase` = 双写**：`monthly_data_loan_common_config.py`(RS) + `mysql_monthly_data_loan_common_config.py`(MySQL)，flow `gen_monthly_data_loan_common_flow.py:24-30/78-84`；portmonthbase 由 `gen_portmonth_v4.py:45-46`(RS) + `gen_portmonth_mysql.py:42-43`(MySQL) 分别建。
+- **月度通用表 / `portmonthbase` = 双写**：`monthly_data_loan_common_config.py`(RS) + `mysql_monthly_data_loan_common_config.py`(MySQL)，flow [`gen_monthly_data_loan_common_flow.py:24-30/78-84`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/transfer_monthly_data_flow/gen_monthly_data_loan_common_flow.py#L24-30)；portmonthbase 由 [`gen_portmonth_v4.py:45-46`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/servicer_business/gen_portmonth_v4.py#L45-46)(RS) + [`gen_portmonth_mysql.py:42-43`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/servicer_business/gen_portmonth_mysql.py#L42-43)(MySQL) 分别建。
 - **FCL 业务族 = 仅 Redshift 构建**（`basic_data_pool_config.py`，目标 `{REDSHIFT_PORT}.`，无 `mysql_` 池配置）；其 **MySQL 副本由 Layer 5 同步**产生。MCP 实测 `port.basic_data_loan_foreclosure` 两库都在（RS 建 / MySQL 经 L5）。
 
 ### 5.1 `port.portmonthbase` 生成
@@ -247,13 +256,23 @@ LEFT JOIN port.basic_data_monthly_loan_remit_clean b ON a.fctrdt=b.fctrdt AND a.
 **止赎相关字段（DB实证，11个 distinct delinq 值）：**
 | 字段 | 含义 | DB 总记录数 |
 |------|------|------------|
-| `delinq` | 标准化逾期状态 | 78,913 行 |
-| `svcdelinq` | 服务商原始描述 | 44 个不同值 |
+| `delinq` | 标准化逾期状态 | 78,913 行（跨所有 fctrdt 累计） |
+| `svcdelinq` | 服务商原始描述 | 44 个不同值（as-of 2026-06-07，跨所有 fctrdt） |
 | `fctrdt` | 报告月份截止日 | 月度快照 |
 | `lm_flag` | LM 标志 | — |
 
 **portmonthbase 中 delinq 分布（DB实证）：**
-| delinq | 记录数 | 占比 |
+
+> **统计口径**：下表为**跨所有 fctrdt 累计（loan-month）**——`port.portmonthbase` 按月度快照存储、同一笔贷款每月各计一行；**覆盖 2023-02-01 .. 2025-08-01，共 31 个月度快照、78,913 行**。`C` 占比 92.2% 偏高是因历史绝大多数 loan-month 为正常还款——**此为数据量口径、非当前组合构成**（当前组合见下方「单一最新快照对照」）。
+>
+> ```sql
+> -- 累计口径（loan-month，所有 fctrdt）
+> SELECT delinq, COUNT(*) AS n,
+>        ROUND(100.0*COUNT(*)/SUM(COUNT(*)) OVER(),1) AS pct
+> FROM port.portmonthbase GROUP BY delinq ORDER BY n DESC;
+> ```
+
+| delinq | 记录数(累计) | 占比 |
 |--------|--------|------|
 | `C` | 72,796 | 92.2% |
 | `P` | 2,288 | 2.9% |
@@ -267,6 +286,15 @@ LEFT JOIN port.basic_data_monthly_loan_remit_clean b ON a.fctrdt=b.fctrdt AND a.
 | `REO` | 12 | 0.02% |
 | `REPUR` | 1 | 0.001% |
 
+**单一最新快照对照（当前组合构成）：** `fctrdt = MAX(fctrdt) = 2025-08-01`，共 **2,197 笔**：`C` 1,255 (57.1%)、`D30` 652 (29.7%)、`P` 188 (8.6%)、`D60` 44 (2.0%)、`FCL` 24 (1.1%)、`D120P` 16 (0.7%)、`D90` 11 (0.5%)、`VASP` 5 (0.2%)、`REO` 2 (0.1%)。与累计口径相比，当前组合 `C` 仅 57.1%（累计为 92.2%）——口径不同，勿混用。
+
+```sql
+-- 单一最新快照（当前组合构成）
+SELECT delinq, COUNT(*) AS n FROM port.portmonthbase
+WHERE fctrdt=(SELECT MAX(fctrdt) FROM port.portmonthbase)
+GROUP BY delinq ORDER BY n DESC;
+```
+
 ### 5.2 FCL 相关 Layer 4 表
 
 | 表名 | 记录数(近似) | 核心内容 |
@@ -277,29 +305,57 @@ LEFT JOIN port.basic_data_monthly_loan_remit_clean b ON a.fctrdt=b.fctrdt AND a.
 | `port.basic_data_loan_foreclosure_bankruptcy` | — | FCL+BK 联合视图（BK 状态、章节、MFR、债权申请） |
 | `port.basic_data_loan_foreclosure_loss_mitigation` | — | FCL+LM 联合视图（16字段：方案、周期、最终处置） |
 | `port.basic_data_fcl_related` | — | FCL 关联属性（诉讼标志、清算类型、BK 标志、违约原因） |
-| `port.fcl_stage_info` | ~8,733 | FCL 阶段跟踪（6阶段 × 5维度：起止日期、阶段天数、LM天数、暂停天数） |
+| `port.fcl_stage_info` | ~9,587（累计/302 快照）· 41（最新快照 2026-06-07） | FCL 阶段跟踪（6阶段 × 5维度：起止日期、阶段天数、LM天数、暂停天数）。详见 §5.3 两种口径 |
 | `port.basic_data_loan_reo` | — | REO 简单记录（loanid + start_date + end_date） |
+
+> **`basic_data_loan_fcl` vs `basic_data_loan_foreclosure`——事实中枢 vs BPS 投影（易混，特此说明）**
+> 这两张名字相近、**不重复**，是「原料中枢」与「按订单打包的成品」的关系：
+> - **`basic_data_loan_fcl`＝FCL 事实/明细中枢**：三家 servicer（Newrez/Carrington/Capecodfive）原始 FCL 表 UNION 而成（经 `tempfc.temp_basic_data_fcl`，**直接由 L1 原始表构建、绕过 L2/L3**）再拼入 4 个 Hold 槽位；**保留每日快照全历史**、含**全部原始 FCL 字段**。它是 L4 的**事实中枢**：**直接派生** `basic_data_loan_foreclosure` 与 `fcl_stage_info` 两张（建表见 [`basic_data_pool_config.py:1658`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1658)）。
+> - **`basic_data_loan_foreclosure`＝BPS 对外的时间线/汇总投影**：`select fc.* from basic_data_loan_fcl`（[`basic_data_pool_config.py:287-304`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L287-304)）派生而来——只留**每家最新快照**、用历史快照算出**里程碑首次日期**、并整形成 BPS 契约列（`timeline_*`/`target_*`/`variance_*`/`bid_*`/`summary_*`）；它是 `bpms.sync_loan_foreclosure` 的**直接上游**。
+> - **关系链**：`三家原始表 → tempfc.temp_basic_data_fcl(UNION) → basic_data_loan_fcl(事实中枢) → basic_data_loan_foreclosure(BPS投影) → bpms.sync_loan_foreclosure → BPS视图`。⚠️ **只有 `basic_data_loan_foreclosure` 与 `fcl_stage_info` 直接派生自 `fcl`**；同属 FCL 业务族的 `_hold`、`_bankruptcy`(←`newrez.portnewrezbk`)、`_loss_mitigation`(←`newrez.portnewrezlm`)、`basic_data_fcl_related`(←`newrez.portnewrezgeneral`) 各自**从原始 servicer 表并行构建（非 fcl 子表、同样绕过 L2/L3）**；`basic_data_loan_reo` 在别处维护。
+> - **命名提醒**：更"原始/全"的反而叫 `_fcl`，按 BPS 塑形的叫 `_foreclosure`——所以二者像，实为父（事实）子（投影）。字段级血缘见 [doc 25–30](25_fcl_lineage_overview.md)。
 
 ### 5.3 `port.fcl_stage_info` 阶段体系（DB实证）
 
-**6个已确认阶段（按进程顺序）：**
+> **统计口径**：`port.fcl_stage_info` 按 `fctrdt` 每日快照存储（一笔在贷止赎贷款每天一行）。**两种口径分列**——「当前在贷止赎管道」用 §5.3.1 最新快照；「历史数据量」用 §5.3.2 累计。
+
+#### 5.3.1 单一最新快照（当前在贷止赎管道）— as-of 2026-06-07，共 41 行
+
+```sql
+SELECT stage, COUNT(*) AS n FROM port.fcl_stage_info
+WHERE fctrdt=(SELECT MAX(fctrdt) FROM port.fcl_stage_info) GROUP BY stage ORDER BY n DESC;
+```
 
 | 阶段（stage） | 含义 | 记录数 |
 |-------------|------|--------|
-| `DEMAND` | 催款/意向通知 | 448 |
-| `REFERRAL` | 转交律师 | 3,341 |
-| `FIRST_LEGAL` | 首次法律行动 | 800 |
-| `SERVICE` | 法律文件送达 | 1,486 |
-| `JUDGEMENT` | 判决阶段 | 700 |
-| `SALE` | 拍卖阶段 | 1,958 |
+| `REFERRAL` | 转交律师 | 20 |
+| `SALE` | 拍卖阶段 | 8 |
+| `FIRST_LEGAL` | 首次法律行动 | 7 |
+| `SERVICE` | 法律文件送达 | 4 |
+| `JUDGEMENT` | 判决阶段 | 2 |
+| `DEMAND` | 催款/意向通知 | 0 |
 
-**阶段所属组（`group` 字段）：**
-| group | 含义 | 记录数 |
-|-------|------|--------|
-| `FCL` | 已进入止赎的贷款 | 8,277 |
-| `D120P` | 严重逾期（尚未正式 FCL 但已进入阶段跟踪） | 411 |
-| `D90` | 90天逾期进入跟踪 | 39 |
-| `REO` | 已进入 REO | 6 |
+阶段所属组（最新快照）：`FCL` 41 · `D120P` 0 · `D90` 0 · `REO` 0。
+
+#### 5.3.2 跨所有 fctrdt 累计（历史数据量 · loan-day）— 覆盖 2025-06-04..2026-06-07，302 快照、9,587 行
+
+```sql
+SELECT stage, COUNT(*) AS n FROM port.fcl_stage_info GROUP BY stage ORDER BY n DESC;
+SELECT "group" AS grp, COUNT(*) AS n FROM port.fcl_stage_info GROUP BY "group" ORDER BY n DESC;
+```
+
+| 阶段（stage） | 含义 | 记录数(累计) |
+|-------------|------|--------|
+| `REFERRAL` | 转交律师 | 3,766 |
+| `SALE` | 拍卖阶段 | 2,124 |
+| `SERVICE` | 法律文件送达 | 1,551 |
+| `FIRST_LEGAL` | 首次法律行动 | 941 |
+| `JUDGEMENT` | 判决阶段 | 744 |
+| `DEMAND` | 催款/意向通知 | 461 |
+
+阶段所属组（累计）：`FCL` 9,114 · `D120P` 424 · `D90` 39 · `REO` 10。
+
+> ⚠️ 旧版「DEMAND 448/REFERRAL 3,341/…，group FCL 8,277」是**累计口径**在更早数据日期的快照值、且未标注口径/日期，易被误读为当前在贷数。现按两口径分列并补 as-of 与 SQL（prod 实测 2026-06-07）。
 
 **每个阶段跟踪的5个维度：**
 - `*_start_date` / `*_end_date`：阶段起止日期
@@ -307,17 +363,28 @@ LEFT JOIN port.basic_data_monthly_loan_remit_clean b ON a.fctrdt=b.fctrdt AND a.
 - `*_in_lm_days`：阶段中处于 LM 状态的天数（扣除）
 - `*_on_hold_days`：阶段中处于 Hold 状态的天数（扣除）
 
-### 5.4 `port.basic_data_loan_foreclosure` 7种关闭原因（DB实证）
+### 5.4 `port.basic_data_loan_foreclosure` 关闭原因（DB实证）
+
+> **统计口径**：单一最新快照 `dataasof = MAX(dataasof)`（`basic_data_loan_foreclosure` 为 1 行/贷款的 BPS 投影表）。**数据日期 as-of 2026-06-07（prod）**，共 **5,770 行**。
+>
+> ```sql
+> SELECT summary_foreclosure_status, COUNT(*) AS n
+> FROM port.basic_data_loan_foreclosure
+> WHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_loan_foreclosure)
+> GROUP BY summary_foreclosure_status ORDER BY n DESC;
+> ```
 
 | `summary_foreclosure_status` | 含义 | 记录数 |
 |------------------------------|------|--------|
-| `Active Foreclosure` | 止赎进行中 | 43 |
-| `Closed Foreclosure:Reinstated` | 关闭（已恢复还款） | 25 |
-| `Closed Foreclosure:Loss Mitigation` | 关闭（进入损失缓解） | 15 |
-| `Closed Foreclosure:Paid in Full` | 关闭（全额还清） | 10 |
-| `Closed Foreclosure:Process Complete` | 关闭（流程完成，拍卖/REO） | 7 |
+| NULL | 未填写（非在贷止赎贷款） | 5,664 |
+| `Active Foreclosure` | 止赎进行中 | 41 |
+| `Closed Foreclosure:Reinstated` | 关闭（已恢复还款） | 28 |
+| `Closed Foreclosure:Loss Mitigation` | 关闭（进入损失缓解） | 16 |
+| `Closed Foreclosure:Paid in Full` | 关闭（全额还清） | 11 |
+| `Closed Foreclosure:Process Complete` | 关闭（流程完成，拍卖/REO） | 9 |
 | `Closed Foreclosure:Deed in Lieu Cmplte` | 关闭（代物还款完成） | 1 |
-| NULL | 未填写 | 5,942 |
+
+> ⚠️ 旧版（Active 43/Reinstated 25/…/NULL 5,942、且未标日期）为更早数据日期的快照值，现更新为 prod 实测 2026-06-07 并标注口径/SQL。
 
 ---
 
@@ -345,19 +412,19 @@ LEFT JOIN port.basic_data_monthly_loan_remit_clean b ON a.fctrdt=b.fctrdt AND a.
 
 > **更正**：早期本节认为"Layer 1=MySQL、Layer 2–4=Redshift、Layer 5=MySQL"（一层一平台）。读 PrefectFlow 源码 + MCP 实测后确认：**L1–L4 是 MySQL + Redshift 双写**（同名表在两套库各存一份），由 **plain 配置→Redshift、`mysql_` 前缀配置→MySQL** 两套 config/flow 分别构建；只有 **L4 的 FCL 业务族**是 Redshift 单建、再由 L5 同步进 MySQL。
 
-**连接层判据**：`config/db_conn.py` 中 MySQL=`pymysql.connect`(:15-25)、Redshift=`redshift_connector.connect`(:26-34)；统一入口 `execute_sql(sql, DbTypeEnum.{MYSQL|REDSHIFT}.value, db)` 决定落哪库（`flow/__init__.py:19 REDSHIFT_PORT="port"`）。
+**连接层判据**：`config/db_conn.py` 中 MySQL=`pymysql.connect`(:15-25)、Redshift=`redshift_connector.connect`(:26-34)；统一入口 `execute_sql(sql, DbTypeEnum.{MYSQL|REDSHIFT}.value, db)` 决定落哪库（[`flow/__init__.py:19 REDSHIFT_PORT="port"`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/__init__.py#L19)）。
 
 | 层 | 落 MySQL? | 落 Redshift? | 代码证据（file:line） | MCP 实测 |
 |---|---|---|---|---|
-| **L1 原始落库** | ✅ | ✅ | 双 flow `load_daily_<svc>_flow.py:9-47`；分流 `servicer_task.py:158-163`；写库 `daily_task.py:923-942`(MySQL)/`960-983`(RS)；`MYSQL_DB_MAP servicer_config.py:374-387` | `newrez.portnewrezfc` 两库都在 |
-| **L2 统一日表** | ✅ | ✅ | plain→RS `daily_data_loan_common_config.py:5,97`；`mysql_…:5,94`；flow `gen_daily_data_loan_common_flow.py:17-48(RS)/52-84(MySQL)` | `port.basic_data_daily_loan_common` 两库都在 |
-| **L3 清洗日表** | ✅ | ✅ | `daily_data_loan_common_clean_config.py`(RS)/`mysql_…clean_config.py`(MySQL)；flow `gen_daily_data_loan_common_clean_flow.py:78-139/186-243` | `port.basic_data_daily_loan_common_clean` 两库都在 |
-| **L4 月度通用 / portmonthbase** | ✅ | ✅ | `monthly_data_loan_common_config.py`(RS)/`mysql_monthly_…`(MySQL)；`gen_portmonth_v4.py:45-46`(RS)+`gen_portmonth_mysql.py:42-43`(MySQL) | RS 有 `portmonthbase`；MySQL 有 `basic_data_monthly_loan_common` |
+| **L1 原始落库** | ✅ | ✅ | 双 flow `load_daily_<svc>_flow.py:9-47`；分流 [`servicer_task.py:158-163`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/tasks/servicer_data/servicer_task.py#L158-163)；写库 [`daily_task.py:923-942`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/tasks/servicer_data/daily_task.py#L923-942)(MySQL)/`960-983`(RS)；`MYSQL_DB_MAP servicer_config.py:374-387` | `newrez.portnewrezfc` 两库都在 |
+| **L2 统一日表** | ✅ | ✅ | plain→RS [`daily_data_loan_common_config.py:5,97`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/transfer_daily_data_config/daily_data_loan_common_config.py#L5)；`mysql_…:5,94`；flow [`gen_daily_data_loan_common_flow.py:17-48(RS)/52-84(MySQL)`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/transfer_daily_data_flow/gen_daily_data_loan_common_flow.py#L17-48) | `port.basic_data_daily_loan_common` 两库都在 |
+| **L3 清洗日表** | ✅ | ✅ | `daily_data_loan_common_clean_config.py`(RS)/`mysql_…clean_config.py`(MySQL)；flow [`gen_daily_data_loan_common_clean_flow.py:78-139/186-243`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/transfer_daily_data_flow/gen_daily_data_loan_common_clean_flow.py#L78-139) | `port.basic_data_daily_loan_common_clean` 两库都在 |
+| **L4 月度通用 / portmonthbase** | ✅ | ✅ | `monthly_data_loan_common_config.py`(RS)/`mysql_monthly_…`(MySQL)；[`gen_portmonth_v4.py:45-46`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/servicer_business/gen_portmonth_v4.py#L45-46)(RS)+[`gen_portmonth_mysql.py:42-43`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/servicer_business/gen_portmonth_mysql.py#L42-43)(MySQL) | RS 有 `portmonthbase`；MySQL 有 `basic_data_monthly_loan_common` |
 | **L4 FCL 业务族**（foreclosure/stage/hold/lm/bk） | ⛔（由 L5 同步） | ✅（单建） | `basic_data_pool_config.py`（仅 `{REDSHIFT_PORT}.`，无 `mysql_` 池配置） | `port.basic_data_loan_foreclosure` 两库都在（MySQL 经 L5） |
-| **L5 BPS 同步** | ✅（写） | ✅（读） | 读 RS `df_db_util.py:117-137`；写 MySQL `:665-699`/`:702-726`；`sync_asset_management.py` | `bpms.sync_*`、`port.basic_data_loan_foreclosure`(中转) |
+| **L5 BPS 同步** | ✅（写） | ✅（读） | 读 RS [`df_db_util.py:117-137`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/util/df_db_util.py#L117-137)；写 MySQL `:665-699`/`:702-726`；`sync_asset_management.py` | `bpms.sync_*`、`port.basic_data_loan_foreclosure`(中转) |
 
 **为什么双写（观察推断）**：Redshift 跑重分析 SQL（UNION ALL、窗口函数、days360）；MySQL 供 **BPS / 应用低延迟直查**。二者表名相同、各存一份。
-> 落库证据表同源见 [doc 20 §B.6](20_end_to_end_walkthrough.md)；字段级血缘 + 业务理由见 [doc 21](21_fcl_field_lineage.md)。
+> 落库证据表同源见 [doc 20 §B.6](20_end_to_end_walkthrough.md)；字段级血缘 + 业务理由见 [doc 25–30](25_fcl_lineage_overview.md)。
 
 **Layer 5 要点（保留）**：`sync_*` 数据表只在 MySQL（prod=`bpms`，dev=`bpms_dev`；及 `port` 中转）。Redshift 的 `port.sync_to_bps_status` 仅为同步执行审计日志，不是数据表。
 
@@ -399,9 +466,9 @@ LEFT JOIN port.basic_data_monthly_loan_remit_clean b ON a.fctrdt=b.fctrdt AND a.
 - `bpms.sync_fcl_stage_info`：**有 `fctrdt`** + 各阶段日期 + `create_time`(CURRENT_TIMESTAMP)/`update_time`(on update，MySQL 自动维护)。
 
 **写入机制（PrefectFlow code）——分两类：**
-- ① **多数 `sync_*` 表**：由 `sync_to_mysql` **整表 `DELETE` + `to_sql(append)` 覆盖刷新**写入 bpms（`df_db_util.py:691,693`）。
+- ① **多数 `sync_*` 表**：由 `sync_to_mysql` **整表 `DELETE` + `to_sql(append)` 覆盖刷新**写入 bpms（[`df_db_util.py:691,693`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/util/df_db_util.py#L691)）。
 - ② **主表 `bpms.sync_loan_foreclosure` 特殊（两步）**：先 `sync_to_mysql` 清空+追加 **port 中转**表 `port.basic_data_loan_foreclosure`（MySQL，`:675-676,691-693`），再由 `update_to_mysql` 跑 `UPDATE_FORECLOSURE`：`INSERT…SELECT…ON DUPLICATE KEY UPDATE` 写入 bpms（`:698,716`；SQL 在 `asset_managment_config.py`）。该 upsert 的 UPDATE 列表**不含 `create_time`/`update_time`** → 故二者保持 NULL（doc 12 §14.0）。
-- `flow/bps/bps_config/asset_managment_config.py:535-608` `GEN_FORECLOSURE`：输出列**不含 `dataasof`**；天数 = 存储值 `+ datediff(day, a.dataasof, tempfc.current_date_new_york)`（`:597-598`；`current_date_new_york` = 运行日/纽约今天，`:536-538`）；过滤 `timeline_referred_to_foreclosure_date IS NOT NULL`（`:605`）。
+- [`flow/bps/bps_config/asset_managment_config.py:535-608`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L535-608) `GEN_FORECLOSURE`：输出列**不含 `dataasof`**；天数 = 存储值 `+ datediff(day, a.dataasof, tempfc.current_date_new_york)`（`:597-598`；`current_date_new_york` = 运行日/纽约今天，`:536-538`）；过滤 `timeline_referred_to_foreclosure_date IS NOT NULL`（`:605`）。
 
 **为何主表无 as-of、只有 `update_time`：**
 1. **sync 主表是「当前态」表**：只取每贷款最新快照、再整表覆盖刷新，一行永远代表最新，单存 as-of 列冗余。

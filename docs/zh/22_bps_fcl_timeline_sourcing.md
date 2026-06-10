@@ -27,7 +27,7 @@
 | doc 02 | ETL 五层管道、as-of 演化（§8 当前态 vs 历史态） |
 | doc 12 | `sync_asset_management.py` 同步编排、SYNC_TABLE_MAP |
 | doc 13/16 | BPS 面板字段逆向映射 / 速查 |
-| doc 21 | FCL 字段级血缘（stage 系统、days 计算） |
+| doc 25–30 | FCL 字段级血缘（逐表；stage 系统、days 计算） |
 | doc 10 | 术语表（FCL/REO/LM/BK/delinq/fctrdt 等） |
 
 > 术语速查：FCL=Foreclosure 止赎 · REO=Real Estate Owned 已收回房产 · LM=Loss Mitigation 损失缓解 · BK=Bankruptcy 破产 · `fctrdt`=报告/跑批截止日（快照日）· Servicer=贷款服务商 · BPS=下游业务系统。
@@ -44,11 +44,11 @@
 
 | 终点（BPS / MySQL） | 中间（Redshift） | 生成代码 |
 |---|---|---|
-| `bpms.sync_fcl_stage_info` | `port.fcl_stage_info` | 同步：`SYNC_TABLE_MAP['12-FCL_STAGE']`（`flow/bps/bps_config/sync_to_bps_config.py:13`）；生成：`GEN_FCL_STAGE`（`flow/basic_data/basic_data_config/basic_data_pool_config.py:2344-2440`） |
+| `bpms.sync_fcl_stage_info` | `port.fcl_stage_info` | 同步：`SYNC_TABLE_MAP['12-FCL_STAGE']`（[`flow/bps/bps_config/sync_to_bps_config.py:13`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/sync_to_bps_config.py#L13)）；生成：`GEN_FCL_STAGE`（[`flow/basic_data/basic_data_config/basic_data_pool_config.py:2344-2440`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2344-2440)） |
 
-- **`group`**（C/D30/D60/D90/D120P/FCL/REO/P）由 `CREATE_FCL_RELATE_ATTR` 计算（`basic_data_pool_config.py:1695-1771`），来源 `newrez.portnewrezgeneral.delinquency_status_mba`、`carrington.portcarrington.loan_status` 等；FCL/REO/Full Payoff 直接判定，其余按 `days360(nextduedate, dataasof)` 分档。
+- **`group`**（C/D30/D60/D90/D120P/FCL/REO/P）由 `CREATE_FCL_RELATE_ATTR` 计算（[`basic_data_pool_config.py:1695-1771`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1695-1771)），来源 `newrez.portnewrezgeneral.delinquency_status_mba`、`carrington.portcarrington.loan_status` 等；FCL/REO/Full Payoff 直接判定，其余按 `days360(nextduedate, dataasof)` 分档。
 - **`judicial`**（Y/N）：先取源 `fc.judicial`（1→Y，0→N），否则回退 `port.basic_data_judicial_config`（按物业州 join）。
-- 各阶段日期来自 `tempfc.current_fcl_business_1_temp` 等临时表，最终经 `GEN_FCL_STAGE` 插入 `port.fcl_stage_info`（先 `delete ... where fctrdt = 当日`，再 `insert`，见 `basic_data_pool_config.py:2341-2344`）。
+- 各阶段日期来自 `tempfc.current_fcl_business_1_temp` 等临时表，最终经 `GEN_FCL_STAGE` 插入 `port.fcl_stage_info`（先 `delete ... where fctrdt = 当日`，再 `insert`，见 [`basic_data_pool_config.py:2341-2344`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2341-2344)）。
 
 ```
 L1 newrez.portnewrezfc / portnewrezgeneral …   (源：每日快照)
@@ -90,7 +90,7 @@ L5 bpms.sync_fcl_stage_info  ←  agg-summary 页 Stage / Time Line 取数于此
 | **Stage tab** | 各阶段 `*_stage_days` / `*_in_lm_days` / `*_on_hold_days` + `stage` | 当前停在哪个阶段、各阶段耗时（含 LM/Hold 扣减） |
 | **Overview 汇总** | `servicer` / `group` / `judicial` 聚合计数 | 各 Servicer 的 Loan Count、FC、D120P、Judicial/Non-Judicial 笔数 |
 
-- **Days in Stage** ≈ `datediff(stage_start, stage_end 或当日) + 1`；`*_in_lm_days`、`*_on_hold_days` 为该阶段内处于 LM / Hold 的天数扣减（详见 doc 21 stage 系统）。
+- **Days in Stage** ≈ `datediff(stage_start, stage_end 或当日) + 1`；`*_in_lm_days`、`*_on_hold_days` 为该阶段内处于 LM / Hold 的天数扣减（详见 doc 27 stage 系统）。
 - 三者**不是三张表**，而是对 `sync_fcl_stage_info`（最新快照）的不同投影/聚合。
 
 ---

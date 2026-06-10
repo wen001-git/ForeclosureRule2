@@ -123,7 +123,7 @@ In doc 13's Newrez/BPS context, the LM Cycle panel does not just show "whether t
 
 `Deal` indicates the overall direction of this LM round.
 
-> **Deal values follow the Newrez `lmdeal` decode** (Redshift dictionary table `newrez.portnewrezdatadic` field_name='LMDeal'; code `basic_data_pool_config.py:835`). The dictionary defines 13 codes, of which **8 are actually observed in data** (table below). Note: the deal is `Payment Plan` (not `Repayment Plan` — the latter is its `program`).
+> **Deal values follow the Newrez `lmdeal` decode** (Redshift dictionary table `newrez.portnewrezdatadic` field_name='LMDeal'; code [`basic_data_pool_config.py:835`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L835)). The dictionary defines 13 codes, of which **8 are actually observed in data** (table below). Note: the deal is `Payment Plan` (not `Repayment Plan` — the latter is its `program`).
 
 | Deal value | Business meaning | Borrower outcome |
 |---------|----------|------------|

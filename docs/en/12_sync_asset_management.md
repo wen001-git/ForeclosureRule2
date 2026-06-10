@@ -24,7 +24,7 @@ Secondary: System architects · Operations / on-call engineers · Future AI sess
 | 2026-05-26 | AI Agent (Claude Sonnet 4.6) | v3 | All MySQL target table names updated to `schema.table` format; confirmed via MCP: `sync_*` tables → `bpms` schema, `basic_data_loan_foreclosure` → MySQL `port` schema | — |
 | 2026-05-26 | AI Agent (Claude Sonnet 4.6) | v4 | Added Section 14: Complete BPS MySQL FCL table structures (bpms_dev, MCP-verified) — all 5 tables with full column names/types/defaults; first documentation of `bpms_dev.sync_loan_foreclosure` (72 cols, the primary BPS FCL application table, absent from SYNC_TABLE_MAP); Section 12 supplementary note; Section 13 summary annotation | doc 13 v2 |
 | 2026-05-28 | AI Agent (Claude Sonnet 4.6) | v5 | Added Section 15: four fields in `port.basic_data_loan_fcl` that are normalized and stored but not consumed by any downstream BPS ETL (`fcjudgment_end_date` / `titleordereddate` / `jr_sr_lien_flag` / `activejnrlienfcflag`) with design intent; based on ETL code in `basic_data_pool_config.py` lines 1539–1570 | doc 13 v21 |
-| 2026-05-28 | AI Agent (Claude Sonnet 4.6) | v6 | Section 14.0 fully corrected: two-step write mechanism (`sync_to_mysql` + `update_to_mysql(UPDATE_FORECLOSURE)`) documented; corrects prior "independent mechanisms" misdiagnosis — both tables are intermediate and final stages of the same `5-FORECLOSURE` pipeline; MCP field divergence reinterpreted as ETL staleness in dev env; `create_time`/`update_time` NULL explained by ON DUPLICATE KEY UPDATE clause omitting those columns | `df_db_util.py:675,702`, `asset_managment_config.py:647,746` |
+| 2026-05-28 | AI Agent (Claude Sonnet 4.6) | v6 | Section 14.0 fully corrected: two-step write mechanism (`sync_to_mysql` + `update_to_mysql(UPDATE_FORECLOSURE)`) documented; corrects prior "independent mechanisms" misdiagnosis — both tables are intermediate and final stages of the same `5-FORECLOSURE` pipeline; MCP field divergence reinterpreted as ETL staleness in dev env; `create_time`/`update_time` NULL explained by ON DUPLICATE KEY UPDATE clause omitting those columns | [`df_db_util.py:675,702`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/util/df_db_util.py#L675), [`asset_managment_config.py:647,746`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L647) |
 
 ## Dependencies
 
@@ -553,7 +553,7 @@ In addition, `bpms.sync_portmonth` (`1-PORTMONTH`) carries a `delinq` column tha
 
 ### Table 1 — `port.basic_data_loan_foreclosure` (47 fields)
 
-**Sync choice**: `5-FORECLOSURE` | **SQL**: `GEN_FORECLOSURE` (asset_managment_config.py:535–608)  
+**Sync choice**: `5-FORECLOSURE` | **SQL**: `GEN_FORECLOSURE` ([asset_managment_config.py:535](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L535)–608)  
 **Redshift source**: `port.basic_data_loan_foreclosure` JOIN `port.portfunding`  
 **Row filter**: `timeline_referred_to_foreclosure_date IS NOT NULL` (only loans with FCL referral)
 
@@ -614,7 +614,7 @@ In addition, `bpms.sync_portmonth` (`1-PORTMONTH`) carries a `delinq` column tha
 
 ### Table 2 — `bpms.sync_loan_foreclosure_loss_mitigation` (13 fields)
 
-**Sync choice**: `8-FORECLOSURE_LM` | **SQL**: `GEN_FORECLOSURE_LM` (asset_managment_config.py:799–819)  
+**Sync choice**: `8-FORECLOSURE_LM` | **SQL**: `GEN_FORECLOSURE_LM` ([asset_managment_config.py:799](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L799)–819)  
 **Redshift source**: `port.basic_data_loan_foreclosure_loss_mitigation` JOIN `port.portfunding`
 
 | Field | Description |
@@ -637,7 +637,7 @@ In addition, `bpms.sync_portmonth` (`1-PORTMONTH`) carries a `delinq` column tha
 
 ### Table 3 — `bpms.sync_loan_foreclosure_bankruptcy` (13 fields)
 
-**Sync choice**: `9-FORECLOSURE_BK` | **SQL**: `GEN_FORECLOSURE_BK` (asset_managment_config.py:822–843)  
+**Sync choice**: `9-FORECLOSURE_BK` | **SQL**: `GEN_FORECLOSURE_BK` ([asset_managment_config.py:822](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L822)–843)  
 **Redshift source**: `port.basic_data_loan_foreclosure_bankruptcy` JOIN `port.portfunding`
 
 | Field | Description |
@@ -660,7 +660,7 @@ In addition, `bpms.sync_portmonth` (`1-PORTMONTH`) carries a `delinq` column tha
 
 ### Table 4 — `bpms.sync_loan_foreclosure_hold` (6 fields)
 
-**Sync choice**: `10-FORECLOSURE_HOLD` | **SQL**: `GEN_FORECLOSURE_HOLD` (asset_managment_config.py:847–894)  
+**Sync choice**: `10-FORECLOSURE_HOLD` | **SQL**: `GEN_FORECLOSURE_HOLD` ([asset_managment_config.py:847](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L847)–894)  
 **Redshift source**: `port.basic_data_loan_foreclosure_hold` JOIN `port.portfunding`
 
 > **Data transformation**: The source table stores up to 3 hold records in **wide format** (columns: `description1`, `description1_start_date`, `description1_end_date`, `description2`, …, `description3_end_date`).
@@ -729,9 +729,9 @@ These are computed with CASE WHEN logic that handles `REPUR` (repurchase) based 
 | `sync_loan_foreclosure_bankruptcy` | bpms_dev | 22 | Bankruptcy | choice 9 (13 business cols) |
 | `sync_fcl_stage_info` | bpms_dev | 57 | Days in Stage / LM / Hold | choice 12 (48 business cols) |
 
-> **Write mechanism (code-verified)**: `bpms_dev.sync_loan_foreclosure` is the **final destination** of the `5-FORECLOSURE` sync, written via a two-step process (`df_db_util.py:664–726`):
+> **Write mechanism (code-verified)**: `bpms_dev.sync_loan_foreclosure` is the **final destination** of the `5-FORECLOSURE` sync, written via a two-step process ([`df_db_util.py:664–726`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/util/df_db_util.py#L664)):
 > 1. `sync_to_mysql()` — clears then appends the Redshift query result into **MySQL `port.basic_data_loan_foreclosure`** (intermediate staging; line 675 hard-codes `database='port'`)
-> 2. `update_to_mysql()` — immediately executes the `UPDATE_FORECLOSURE` SQL (`asset_managment_config.py:644`): `INSERT INTO bpms_dev.sync_loan_foreclosure ... SELECT FROM port.basic_data_loan_foreclosure ... ON DUPLICATE KEY UPDATE`
+> 2. `update_to_mysql()` — immediately executes the `UPDATE_FORECLOSURE` SQL ([`asset_managment_config.py:644`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L644)): `INSERT INTO bpms_dev.sync_loan_foreclosure ... SELECT FROM port.basic_data_loan_foreclosure ... ON DUPLICATE KEY UPDATE`
 >
 > Full chain: **Redshift `port.basic_data_loan_foreclosure` → MySQL `port.basic_data_loan_foreclosure` (staging) → `bpms_dev.sync_loan_foreclosure` (BPS final)**
 

@@ -22,6 +22,9 @@
 | 2026-06-09 | AI Agent | v5 | 跳链补 tempfc 行 + 说明 L2/L3 为何不在本分支；字段标题加序号 | doc 02 · doc 13 · doc 14 |
 | 2026-06-09 | AI Agent | v6 | 覆盖 BPS sync 表全部列（系统/审计列分组、视图计算列）；每跳加流动顺序 | doc 02 · doc 13 · doc 14 |
 | 2026-06-09 | AI Agent | v7 | 为所有字段补中文名/业务含义（DDL 注释 Code-First 提取）；新增修订历史维护 | doc 02 · doc 13 · doc 14 |
+| 2026-06-09 | AI Agent | v8 | 为 stage 计算字段补完整逻辑说明+举例（多分支多例）；按 SQL 投影 Code-First 校正 end_date/countdown 跳规则（demand_end=催告到期、referral/first_legal/service_end=下一阶段开始、judgement/sale/noi/publication=NULL）；修正 to_judgement/to_sale 错误示例 | doc 02 · doc 13 · doc 14 |
+| 2026-06-09 | AI Agent | v9 | 代码引用 [pool:]/[asset:] 做成可点击 GitLab 链接（fork jli/prefectflow，钉到提交 32a750a3，行号精确稳定）；code legend 文件路径亦可点击；view 视图保留纯文字 | doc 02 · doc 13 · doc 14 |
+| 2026-06-10 | AI Agent | v10 | hub 新增「FCL 事实中枢 vs BPS 投影」说明：basic_data_loan_fcl=事实中枢/全历史，**直接派生 foreclosure + fcl_stage_info 两张**；_hold/_bankruptcy/_loss_mitigation/fcl_related 各自从原始 servicer 表并行构建（非 fcl 子表） | doc 02 · doc 13 · doc 14 |
 
 ## 相关文档
 
@@ -34,11 +37,11 @@ doc 02（ETL 管道）· doc 13（BPS 视图字段映射）· doc 14（Servicer 
 
 每个 **BPS sync 表**一篇明细文档（doc 26–30）。每篇里 **一行 = 一个字段**，列 = 该字段在链路上每一张表的列名，最后一列给出**每一跳的转换规则 + 代码出处**（`pool`/`asset`/`view`，见下）。非平凡转换（CASE/解码/unpivot/天数）附真实 SQL。
 
-> code: `pool` = PrefectFlow/flow/basic_data/basic_data_config/basic_data_pool_config.py · `asset` = PrefectFlow/flow/bps/bps_config/asset_managment_config.py · `view` = bpms.biz_data_view_loan_details_foreclosure (SHOW CREATE VIEW)
+> code: `pool` = [PrefectFlow/flow/basic_data/basic_data_config/basic_data_pool_config.py](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py) · `asset` = [PrefectFlow/flow/bps/bps_config/asset_managment_config.py](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py) · `view` = bpms.biz_data_view_loan_details_foreclosure (SHOW CREATE VIEW)
 
 > L4 事实表 port.basic_data_loan_fcl 由 3 家 servicer UNION——Newrez(newrez.portnewrezfc)、Carrington(carrington.portcarrington)、Capecodfive。下表 raw 列为 Newrez 来源；Carrington/Capecodfive 差异见各字段 carrington 备注。SLS/MRC 等不上报 FCL 明细（仅逾期推断）。
 
-> BPS stage snapshot fctrdt=2026-06-06; Newrez raw dataasof=2026-06-07
+> **📅 数据日期**：均取自 **prod**（`redshift_prod`/`mysql_prod`），无 dev。样例快照 BPS stage `fctrdt=2026-06-06`、Newrez raw `dataasof=2026-06-07`；FCL 主表/阶段口径最新快照 as-of 2026-06-07。各表 as-of 见 doc 02 头部「数据日期」统一声明。
 
 
 ## 规范跳链骨架（4 条分支）
@@ -53,13 +56,15 @@ doc 02（ETL 管道）· doc 13（BPS 视图字段映射）· doc 14（Servicer 
 | # | layer | db | 表 table | role |
 |---|---|---|---|---|
 | 1 | L0/L1 | MySQL+Redshift | `newrez.portnewrezfc` | Servicer raw |
-| 2 | L4·temp | Redshift | `tempfc.temp_basic_data_fcl` | 3-servicer rename-UNION of L1 raw / 三家 servicer 改名 UNION (CREATE_BASIC_FCL, pool:1531-1654) |
+| 2 | L4·temp | Redshift | `tempfc.temp_basic_data_fcl` | 3-servicer rename-UNION of L1 raw / 三家 servicer 改名 UNION (CREATE_BASIC_FCL, [pool:1531-1654](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1531-1654)) |
 | 3 | L4 | Redshift | `port.basic_data_loan_fcl` | canonical FCL fact |
 | 4 | L4 | Redshift→MySQL | `port.basic_data_loan_foreclosure` | timeline+summary build (GEN_FCL_DETAIL) |
 | 5 | L5 | MySQL bpms | `bpms.sync_loan_foreclosure` | BPS app table (UPDATE_FORECLOSURE upsert) |
 | 6 | L5 | MySQL bpms | `bpms.biz_data_view_loan_details_foreclosure` | display view (Actual/Var days) |
 
 ### 阶段 / 天数
+
+> 📐 **规则速查**：见 [doc 31 — FCL 阶段窗口规则](31_fcl_stage_window_rules.md)——一表读懂每个 stage 的 `start_date` 来源、`end_date` 派生规则、`stage_days` 公式、`in_lm_days`/`on_hold_days` SQL 语义 + 4 真实 loan 工作例 + 反直觉点（`servicecompletedate` → SERVICE start 不是 end）。
 
 **规范跳链 / canonical hop chain**
 
@@ -69,7 +74,7 @@ doc 02（ETL 管道）· doc 13（BPS 视图字段映射）· doc 14（Servicer 
 | # | layer | db | 表 table | role |
 |---|---|---|---|---|
 | 1 | L0/L1 | MySQL+Redshift | `newrez.portnewrezfc` | Servicer raw |
-| 2 | L4·temp | Redshift | `tempfc.temp_basic_data_fcl` | 3-servicer rename-UNION of L1 raw / 三家 servicer 改名 UNION (CREATE_BASIC_FCL, pool:1531-1654) |
+| 2 | L4·temp | Redshift | `tempfc.temp_basic_data_fcl` | 3-servicer rename-UNION of L1 raw / 三家 servicer 改名 UNION (CREATE_BASIC_FCL, [pool:1531-1654](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1531-1654)) |
 | 3 | L4 | Redshift | `port.basic_data_loan_fcl` | canonical FCL fact |
 | 4 | L4 | Redshift | `port.fcl_stage_info` | stage classification + day-math (GEN_FCL_STAGE); group/state from port.basic_data_fcl_related |
 | 5 | L5 | MySQL bpms | `bpms.sync_fcl_stage_info` | BPS app table (12-FCL_STAGE sync, keeps fctrdt history) |
@@ -113,9 +118,14 @@ doc 02（ETL 管道）· doc 13（BPS 视图字段映射）· doc 14（Servicer 
 | 2 | L4 | Redshift | `port.basic_data_loan_foreclosure_bankruptcy` | datadic decode; dedup latest per loan+filing |
 | 3 | L5 | MySQL bpms | `bpms.sync_loan_foreclosure_bankruptcy` | BPS app table (GEN_FORECLOSURE_BK pass-through) |
 
-> `#` 列是序号，不是层号。FCL 事实表 `port.basic_data_loan_fcl` 直接由 L1 各 servicer 原始表构建（在 `tempfc.temp_basic_data_fcl` 中 UNION；CREATE_BASIC_FCL pool:1531-1654），因此 L2 统一日表（`port.basic_data_daily_loan_common`）与 L3 清洗层（`…_clean` / `…_delinq_clean`）按设计不在本分支——它们承载通用+逾期字段，仅经 `group` 维度（doc 27，`basic_data_fcl_related`）与月度 `portmonth` 路径回流。完整 L0–L5 管道见 doc 02。
+> `#` 列是序号，不是层号。FCL 事实表 `port.basic_data_loan_fcl` 直接由 L1 各 servicer 原始表构建（在 `tempfc.temp_basic_data_fcl` 中 UNION；CREATE_BASIC_FCL [pool:1531-1654](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1531-1654)），因此 L2 统一日表（`port.basic_data_daily_loan_common`）与 L3 清洗层（`…_clean` / `…_delinq_clean`）按设计不在本分支——它们承载通用+逾期字段，仅经 `group` 维度（doc 27，`basic_data_fcl_related`）与月度 `portmonth` 路径回流。完整 L0–L5 管道见 doc 02。
 
 > datadic 解码模式（LM deal/program/status/decision/denial/borrower、BK status）：COALESCE((SELECT description FROM newrez.portnewrezdatadic WHERE field_name='<X>' AND code=CONCAT(raw,'.0')), raw)——原始码存为 '5.0' 形式；字典无匹配则回退原始码。
+
+
+## FCL 事实中枢 vs BPS 投影（`basic_data_loan_fcl` vs `basic_data_loan_foreclosure`）
+
+> 二者**不重复**，是父（事实中枢）子（BPS 投影）关系。**`basic_data_loan_fcl`＝FCL 事实/明细中枢**：三家 servicer 原始 FCL 表 UNION（经 `tempfc.temp_basic_data_fcl`，**直接由 L1 原始表构建、绕过 L2/L3**）+ 4 个 Hold 槽；保留每日快照全历史、含全部原始 FCL 字段（[pool:1658](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1658)）。**它直接派生 `basic_data_loan_foreclosure` 与 `fcl_stage_info` 两张**：foreclosure 取数 [pool:287-304](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L287-304)，是 `bpms.sync_loan_foreclosure` 的直接上游、属 BPS 投影（只留每家最新快照 + 里程碑首次日 + 整形成 BPS 契约列 timeline_*/target_*/variance_*/bid_*/summary_*）。链：三家原始表 → temp_basic_data_fcl → basic_data_loan_fcl(事实中枢) → basic_data_loan_foreclosure(BPS投影) → sync → 视图。⚠️ 同属 FCL 业务族的 `_hold`、`_bankruptcy`(←portnewrezbk)、`_loss_mitigation`(←portnewrezlm)、`basic_data_fcl_related`(←portnewrezgeneral) **各自从原始 servicer 表并行构建、并非 fcl 的子表**；`basic_data_loan_reo` 在别处维护。命名提醒：更原始/全的反而叫 `_fcl`，按 BPS 塑形的叫 `_foreclosure`。
 
 
 ## 全字段主索引
@@ -318,12 +328,12 @@ doc 02（ETL 管道）· doc 13（BPS 视图字段映射）· doc 14（Servicer 
 | 服务商编号标识 | `null_in_build` |  |
 | 完成止赎标志 | `null_in_build` |  |
 | 止赎律师姓名 | `null_in_build` |  |
-| NOI 阶段开始日 | `null_in_build` |  |
-| NOI 阶段结束日(窗口) | `null_in_build` |  |
-| NOI 阶段已历天数 | `null_in_build` |  |
-| 公告 阶段开始日 | `null_in_build` |  |
-| 公告 阶段结束日(窗口) | `null_in_build` |  |
-| 公告 阶段已历天数 | `null_in_build` |  |
+| NOI 阶段开始日 | `null_in_build` | NOI 阶段在 business_1 CTE 未填充（硬编码 NULL）；NOI 活动并入 DEMAND 窗口表示。prod 全量实测为 NULL。 |
+| NOI 阶段结束日(窗口) | `null_in_build` | 硬编码 NULL（见 noi_start_date）。prod 全量实测为 NULL。 |
+| NOI 阶段已历天数 | `null_in_build` | 硬编码 NULL——不计算 NOI 窗口。prod 全量实测为 NULL。 |
+| 公告 阶段开始日 | `null_in_build` | 公告阶段在 business_1 未填充（硬编码 NULL）。prod 全量实测为 NULL。 |
+| 公告 阶段结束日(窗口) | `null_in_build` | 硬编码 NULL（见 publication_start_date）。prod 全量实测为 NULL。 |
+| 公告 阶段已历天数 | `null_in_build` | 硬编码 NULL——不计算公告窗口。prod 全量实测为 NULL。 |
 | 即将违约标志 | `newrez_null` | Newrez 硬编码 NULL。 |
 | 单一联系人(SPOC) | `newrez_null` | Newrez 硬编码 NULL。 |
 | 留置状态 | `newrez_null` |  |

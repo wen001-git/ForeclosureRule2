@@ -323,8 +323,30 @@
         "ver": "v7",
         "zh": "为所有字段补中文名/业务含义（DDL 注释 Code-First 提取）；新增修订历史维护",
         "en": "Added Chinese name/business meaning to every field (Code-First from DDL comments); started maintaining the revision history"
+      },
+      {
+        "date": "2026-06-09",
+        "ver": "v8",
+        "zh": "为 stage 计算字段补完整逻辑说明+举例（多分支多例）；按 SQL 投影 Code-First 校正 end_date/countdown 跳规则（demand_end=催告到期、referral/first_legal/service_end=下一阶段开始、judgement/sale/noi/publication=NULL）；修正 to_judgement/to_sale 错误示例",
+        "en": "Added full logic notes + worked examples (multi-branch) to stage computed fields; Code-First-corrected the end_date/countdown hop rules from the SQL projection; fixed the wrong to_judgement/to_sale examples"
+      },
+      {
+        "date": "2026-06-09",
+        "ver": "v9",
+        "zh": "代码引用 [pool:]/[asset:] 做成可点击 GitLab 链接（fork jli/prefectflow，钉到提交 32a750a3，行号精确稳定）；code legend 文件路径亦可点击；view 视图保留纯文字",
+        "en": "Made [pool:]/[asset:] code citations clickable GitLab links (fork jli/prefectflow pinned to commit 32a750a3; exact stable line numbers); legend file paths clickable too; view stays plain text"
+      },
+      {
+        "date": "2026-06-10",
+        "ver": "v10",
+        "zh": "hub 新增「FCL 事实中枢 vs BPS 投影」说明：basic_data_loan_fcl=事实中枢/全历史，**直接派生 foreclosure + fcl_stage_info 两张**；_hold/_bankruptcy/_loss_mitigation/fcl_related 各自从原始 servicer 表并行构建（非 fcl 子表）",
+        "en": "Hub: added FCL-fact-hub vs BPS-projection note: basic_data_loan_fcl = fact hub/full history, **directly feeds foreclosure + fcl_stage_info**; _hold/_bankruptcy/_loss_mitigation/fcl_related are built in parallel from raw servicer tables (not children of fcl)"
       }
-    ]
+    ],
+    "fcl_fact_note": {
+      "zh": "二者**不重复**，是父（事实中枢）子（BPS 投影）关系。**`basic_data_loan_fcl`＝FCL 事实/明细中枢**：三家 servicer 原始 FCL 表 UNION（经 `tempfc.temp_basic_data_fcl`，**直接由 L1 原始表构建、绕过 L2/L3**）+ 4 个 Hold 槽；保留每日快照全历史、含全部原始 FCL 字段（pool:1658）。**它直接派生 `basic_data_loan_foreclosure` 与 `fcl_stage_info` 两张**：foreclosure 取数 pool:287-304，是 `bpms.sync_loan_foreclosure` 的直接上游、属 BPS 投影（只留每家最新快照 + 里程碑首次日 + 整形成 BPS 契约列 timeline_*/target_*/variance_*/bid_*/summary_*）。链：三家原始表 → temp_basic_data_fcl → basic_data_loan_fcl(事实中枢) → basic_data_loan_foreclosure(BPS投影) → sync → 视图。⚠️ 同属 FCL 业务族的 `_hold`、`_bankruptcy`(←portnewrezbk)、`_loss_mitigation`(←portnewrezlm)、`basic_data_fcl_related`(←portnewrezgeneral) **各自从原始 servicer 表并行构建、并非 fcl 的子表**；`basic_data_loan_reo` 在别处维护。命名提醒：更原始/全的反而叫 `_fcl`，按 BPS 塑形的叫 `_foreclosure`。",
+      "en": "The two are **not duplicates** — a parent **fact hub** → child **BPS projection** relationship. **`basic_data_loan_fcl` = the FCL fact/detail hub**: a UNION of the 3 servicers raw FCL tables (via `tempfc.temp_basic_data_fcl`, **built directly from L1 raw, bypassing L2/L3**) + 4 hold slots; full daily-snapshot history, all raw FCL columns (pool:1658). **It directly feeds two tables: `basic_data_loan_foreclosure` and `fcl_stage_info`** — foreclosure (pool:287-304) is the direct upstream of `bpms.sync_loan_foreclosure` and is the BPS projection (latest snapshot per servicer + first-set milestone dates, shaped to the BPS contract timeline_*/target_*/variance_*/bid_*/summary_*). Chain: 3 raw tables → temp_basic_data_fcl → basic_data_loan_fcl(hub) → basic_data_loan_foreclosure(projection) → sync → view. ⚠️ The sibling FCL-family tables `_hold`, `_bankruptcy`(←portnewrezbk), `_loss_mitigation`(←portnewrezlm), `basic_data_fcl_related`(←portnewrezgeneral) are each **built in parallel from their own raw servicer tables — NOT children of fcl**; `basic_data_loan_reo` is maintained elsewhere. Naming caveat: the more raw/complete one is `_fcl`; the BPS-shaped one is `_foreclosure`."
+    }
   },
   "branches": {
     "main": {
@@ -745,7 +767,7 @@
         {
           "t": "bpms.biz_data_view_loan_details_foreclosure",
           "c": "timeline_notice_of_intent_date (+actual/var)",
-          "rule": "view: actual=to_days(x)-to_days(nextduedate); var=actual-target",
+          "rule": "view: actual=to_days(x)-to_days(nextduedate); var=actual-Σtarget",
           "code": "view"
         }
       ],
@@ -3357,6 +3379,15 @@
       "note": {
         "en": "Values: SALE / JUDGEMENT / PUBLICATION / SERVICE / FIRST_LEGAL / REFERRAL / DEMAND (7; prod snapshot currently REFERRAL/SALE/FIRST_LEGAL/SERVICE/JUDGEMENT).",
         "zh": "取值：SALE / JUDGEMENT / PUBLICATION / SERVICE / FIRST_LEGAL / REFERRAL / DEMAND（7 个；prod 快照当前为 REFERRAL/SALE/FIRST_LEGAL/SERVICE/JUDGEMENT）。"
+      },
+      "sql": "CASE: sale_start⇒SALE; elif fcjudgment_start⇒JUDGEMENT; elif publication_start⇒PUBLICATION; elif service_start⇒SERVICE; elif legal_start⇒FIRST_LEGAL; elif referral_start⇒REFERRAL; elif demand_sent_start⇒DEMAND; else NULL",
+      "sql_note": {
+        "en": "The current stage is the FURTHEST milestone the loan has reached: a 7-way CASE checked in priority order SALE → JUDGEMENT → PUBLICATION → SERVICE → FIRST_LEGAL → REFERRAL → DEMAND — the first stage whose start date is non-null wins.",
+        "zh": "当前阶段取贷款已到达的最靠后里程碑：7 分支 CASE，按 SALE → JUDGEMENT → PUBLICATION → SERVICE → FIRST_LEGAL → REFERRAL → DEMAND 的优先级判断——第一个开始日非空的阶段即为结果。"
+      },
+      "sql_eg": {
+        "en": "① 7727001179: sale_start set ⇒ stage = SALE. ② 7727000357: no sale but fcjudgment_start set ⇒ JUDGEMENT. ③ 700082880000091: only up to service_start ⇒ SERVICE. ④ 700082700000033: only referral_start ⇒ REFERRAL.",
+        "zh": "① 7727001179：sale_start 有值 ⇒ stage = SALE。② 7727000357：无 sale 但 fcjudgment_start 有值 ⇒ JUDGEMENT。③ 700082880000091：仅到 service_start ⇒ SERVICE。④ 700082700000033：仅 referral_start ⇒ REFERRAL。"
       }
     },
     {
@@ -3530,8 +3561,8 @@
         {
           "t": "port.fcl_stage_info",
           "c": "state",
-          "rule": "= r.propertystate (join)",
-          "code": "pool:2350,2401"
+          "rule": "= property state (r.propertystate), joined in",
+          "code": "pool:2401"
         },
         {
           "t": "bpms.sync_fcl_stage_info",
@@ -3544,6 +3575,10 @@
         "Newrez": "portnewrezprop.propertystate",
         "Carrington": "portcarrington.property_state",
         "Capecodfive": "—"
+      },
+      "note": {
+        "en": "The property's US state, joined from the FCL relation attributes (r.propertystate). Direct value, no transform.",
+        "zh": "房产所在美国州，由止赎关系属性 r.propertystate 关联带入。直取，无转换。"
       }
     },
     {
@@ -3630,8 +3665,8 @@
         {
           "t": "port.fcl_stage_info",
           "c": "demand_start_date",
-          "rule": "passthrough start date 见 sql",
-          "code": "pool:2354-2391"
+          "rule": "passthrough of source demandsentdate",
+          "code": "pool:2037"
         },
         {
           "t": "bpms.sync_fcl_stage_info",
@@ -3644,6 +3679,15 @@
         "Newrez": "portnewrezfc.demandsentdate",
         "Carrington": "—",
         "Capecodfive": "—"
+      },
+      "sql": "demand_start_date = passthrough of business_1.demandsentdate (no transform)",
+      "sql_note": {
+        "en": "Direct passthrough of the source milestone date `demandsentdate`; no transform. NULL if the loan never reached this stage.",
+        "zh": "直接透传来源里程碑日期 `demandsentdate`，无转换；贷款未进入该阶段则为 NULL。"
+      },
+      "sql_eg": {
+        "en": "700082880000091: demandsentdate 2025-12-29 ⇒ demand_start_date = 2025-12-29.",
+        "zh": "700082880000091：demandsentdate 2025-12-29 ⇒ demand_start_date = 2025-12-29。"
       }
     },
     {
@@ -3655,8 +3699,8 @@
         "zh": "催告/Demand 阶段结束日(窗口)"
       },
       "biz": {
-        "en": "Stage window end (= next stage start, else today).",
-        "zh": "阶段窗口结束（= 下一阶段开始日，否则今天）。"
+        "en": "Demand window end (= demand-expiration date demandexpirationdate).",
+        "zh": "催告窗口结束日（= 催告到期日 demandexpirationdate）。"
       },
       "hops": [
         {
@@ -3672,8 +3716,8 @@
         {
           "t": "port.fcl_stage_info",
           "c": "demand_end_date",
-          "rule": "stage window end = next stage start / curr_date 见 sql",
-          "code": "pool:2049-2076"
+          "rule": "= source demandexpirationdate (passthrough; NOT next-stage start)",
+          "code": "pool:2038,2355"
         },
         {
           "t": "bpms.sync_fcl_stage_info",
@@ -3681,7 +3725,16 @@
           "rule": "sync passthrough",
           "code": "asset:925"
         }
-      ]
+      ],
+      "sql": "demand_end_date = passthrough of business_1.demandexpirationdate (pool:2038)",
+      "sql_note": {
+        "en": "The demand window's end is the servicer's demand-expiration date (demandexpirationdate), passed through unchanged — it is NOT the next stage's start. Note: demand_stage_days does not use this column; it always counts from demand_start to the current date (logic = curr_date, pool:2039-2041).",
+        "zh": "催告窗口结束日取服务商的催告到期日（demandexpirationdate），原样透传——不是下一阶段开始日。注意 demand_stage_days 不用此列，而是从 demand_start 一律数到当日（logic = curr_date，pool:2039-2041）。"
+      },
+      "sql_eg": {
+        "en": "700082880000091: demand_start 2025-12-29, demandexpirationdate 2026-01-13 ⇒ demand window [2025-12-29, 2026-01-13]; whereas demand_stage_days=163 counts to today (2026-06-09).",
+        "zh": "700082880000091：demand_start 2025-12-29、demandexpirationdate 2026-01-13 ⇒ 催告窗口 [2025-12-29, 2026-01-13]；而 demand_stage_days=163 是数到当日（2026-06-09）。"
+      }
     },
     {
       "branch": "stage",
@@ -3837,8 +3890,8 @@
         {
           "t": "port.fcl_stage_info",
           "c": "noi_start_date",
-          "rule": "hardcoded NULL in business_1",
-          "code": "pool:2078-2102"
+          "rule": "NULL by design — NOI not populated in business_1",
+          "code": "pool:2043-2046"
         },
         {
           "t": "bpms.sync_fcl_stage_info",
@@ -3847,7 +3900,11 @@
           "code": "asset:925"
         }
       ],
-      "status": "null_in_build"
+      "status": "null_in_build",
+      "note": {
+        "en": "The NOI stage is not populated in the business_1 CTE (hardcoded NULL); NOI activity is represented inside the DEMAND window. Verified NULL across all prod rows.",
+        "zh": "NOI 阶段在 business_1 CTE 未填充（硬编码 NULL）；NOI 活动并入 DEMAND 窗口表示。prod 全量实测为 NULL。"
+      }
     },
     {
       "branch": "stage",
@@ -3858,8 +3915,8 @@
         "zh": "NOI 阶段结束日(窗口)"
       },
       "biz": {
-        "en": "Stage window end (= next stage start, else today).",
-        "zh": "阶段窗口结束（= 下一阶段开始日，否则今天）。"
+        "en": "NOI window end (stage not populated; always NULL).",
+        "zh": "NOI 阶段结束日（该阶段未填充，恒 NULL）。"
       },
       "hops": [
         {
@@ -3875,8 +3932,8 @@
         {
           "t": "port.fcl_stage_info",
           "c": "noi_end_date",
-          "rule": "stage window end = next stage start / curr_date 见 sql",
-          "code": "pool:2049-2076"
+          "rule": "NULL by design",
+          "code": "pool:2043-2046"
         },
         {
           "t": "bpms.sync_fcl_stage_info",
@@ -3885,7 +3942,11 @@
           "code": "asset:925"
         }
       ],
-      "status": "null_in_build"
+      "status": "null_in_build",
+      "note": {
+        "en": "Hardcoded NULL (see noi_start_date). Verified NULL across all prod rows.",
+        "zh": "硬编码 NULL（见 noi_start_date）。prod 全量实测为 NULL。"
+      }
     },
     {
       "branch": "stage",
@@ -3903,8 +3964,8 @@
         {
           "t": "port.fcl_stage_info",
           "c": "noi_stage_days",
-          "rule": "hardcoded NULL in business_1",
-          "code": "pool:2078-2102"
+          "rule": "NULL by design",
+          "code": "pool:2046"
         },
         {
           "t": "bpms.sync_fcl_stage_info",
@@ -3913,7 +3974,11 @@
           "code": "asset:925"
         }
       ],
-      "status": "null_in_build"
+      "status": "null_in_build",
+      "note": {
+        "en": "Hardcoded NULL — no NOI window is computed. Verified NULL across all prod rows.",
+        "zh": "硬编码 NULL——不计算 NOI 窗口。prod 全量实测为 NULL。"
+      }
     },
     {
       "branch": "stage",
@@ -4033,8 +4098,8 @@
         {
           "t": "port.fcl_stage_info",
           "c": "referral_start_date",
-          "rule": "passthrough start date 见 sql",
-          "code": "pool:2354-2391"
+          "rule": "passthrough of source referral_start_date",
+          "code": "pool:2048"
         },
         {
           "t": "bpms.sync_fcl_stage_info",
@@ -4047,6 +4112,15 @@
         "Newrez": "portnewrezfc.fcreferraldate",
         "Carrington": "portcarrington.fcl_referral_date",
         "Capecodfive": "portcapecodfive_monthly_collections.foreclosure_date_refrd_atty"
+      },
+      "sql": "referral_start_date = passthrough of business_1.referral_start_date (no transform)",
+      "sql_note": {
+        "en": "Direct passthrough of the source milestone date `referral_start_date`; no transform. NULL if the loan never reached this stage.",
+        "zh": "直接透传来源里程碑日期 `referral_start_date`，无转换；贷款未进入该阶段则为 NULL。"
+      },
+      "sql_eg": {
+        "en": "700082880000091: referral_start_date 2026-01-20 ⇒ 2026-01-20.",
+        "zh": "700082880000091：referral_start_date 2026-01-20 ⇒ 2026-01-20。"
       }
     },
     {
@@ -4058,8 +4132,8 @@
         "zh": "转介 阶段结束日(窗口)"
       },
       "biz": {
-        "en": "Stage window end (= next stage start, else today).",
-        "zh": "阶段窗口结束（= 下一阶段开始日，否则今天）。"
+        "en": "Referral window end (= next stage 'first legal' start; NULL if not reached).",
+        "zh": "转介窗口结束（= 下一阶段「首次法律」开始日；未到则 NULL）。"
       },
       "hops": [
         {
@@ -4075,8 +4149,8 @@
         {
           "t": "port.fcl_stage_info",
           "c": "referral_end_date",
-          "rule": "stage window end = next stage start / curr_date 见 sql",
-          "code": "pool:2049-2076"
+          "rule": "= next stage start (first_legal_start_date (legal_start_date)); NULL if not reached",
+          "code": "pool:2049,2365"
         },
         {
           "t": "bpms.sync_fcl_stage_info",
@@ -4084,7 +4158,16 @@
           "rule": "sync passthrough",
           "code": "asset:925"
         }
-      ]
+      ],
+      "sql": "referral_end_date = first_legal_start_date (legal_start_date) (the next stage's start); NULL if the next stage has not started",
+      "sql_note": {
+        "en": "The referral window ends when the next stage (first legal) starts: referral_end_date = first_legal_start_date. If first legal hasn't started, this column is NULL — and referral_stage_days then counts to the current date instead (logic_referral_end_date = coalesce(end, curr_date), pool:2050-2052).",
+        "zh": "转介窗口在下一阶段（首次法律）开始时结束：referral_end_date = first_legal_start_date。若首次法律尚未开始，则此列为 NULL——此时 referral_stage_days 改为数到当日（logic_referral_end_date = coalesce(end, curr_date)，pool:2050-2052）。"
+      },
+      "sql_eg": {
+        "en": "① next reached — 700082880000091: first_legal_start=2026-03-12 ⇒ referral_end_date=2026-03-12, referral_stage_days=52 (datediff(2026-01-20,2026-03-12)+1). ② not reached — 700082700000033 (in REFERRAL): referral_end_date=NULL, referral_stage_days=119 (counts 2026-02-11→today).",
+        "zh": "① 下一阶段已到 — 700082880000091：first_legal_start=2026-03-12 ⇒ referral_end_date=2026-03-12，referral_stage_days=52（datediff(2026-01-20,2026-03-12)+1）。② 未到 — 700082700000033（仍在 REFERRAL）：referral_end_date=NULL，referral_stage_days=119（从 2026-02-11 数到当日）。"
+      }
     },
     {
       "branch": "stage",
@@ -4250,8 +4333,8 @@
         {
           "t": "port.fcl_stage_info",
           "c": "first_legal_start_date",
-          "rule": "passthrough start date 见 sql",
-          "code": "pool:2354-2391"
+          "rule": "passthrough of source legal_start_date",
+          "code": "pool:2058"
         },
         {
           "t": "bpms.sync_fcl_stage_info",
@@ -4264,6 +4347,15 @@
         "Newrez": "portnewrezfc.firstlegaldate",
         "Carrington": "—",
         "Capecodfive": "portcapecodfive_monthly_collections.foreclosure_first_legal_date"
+      },
+      "sql": "first_legal_start_date = passthrough of business_1.legal_start_date (no transform)",
+      "sql_note": {
+        "en": "Direct passthrough of the source milestone date `legal_start_date`; no transform. NULL if the loan never reached this stage.",
+        "zh": "直接透传来源里程碑日期 `legal_start_date`，无转换；贷款未进入该阶段则为 NULL。"
+      },
+      "sql_eg": {
+        "en": "700082880000091: legal_start_date 2026-03-12 ⇒ first_legal_start_date = 2026-03-12.",
+        "zh": "700082880000091：legal_start_date 2026-03-12 ⇒ first_legal_start_date = 2026-03-12。"
       }
     },
     {
@@ -4275,8 +4367,8 @@
         "zh": "首次法律 阶段结束日(窗口)"
       },
       "biz": {
-        "en": "Stage window end (= next stage start, else today).",
-        "zh": "阶段窗口结束（= 下一阶段开始日，否则今天）。"
+        "en": "First-legal window end (= next stage 'service' start; NULL if not reached).",
+        "zh": "首次法律窗口结束（= 下一阶段「送达」开始日；未到则 NULL）。"
       },
       "hops": [
         {
@@ -4292,8 +4384,8 @@
         {
           "t": "port.fcl_stage_info",
           "c": "first_legal_end_date",
-          "rule": "stage window end = next stage start / curr_date 见 sql",
-          "code": "pool:2049-2076"
+          "rule": "= next stage start (service_start_date); NULL if not reached",
+          "code": "pool:2059,2370"
         },
         {
           "t": "bpms.sync_fcl_stage_info",
@@ -4301,7 +4393,16 @@
           "rule": "sync passthrough",
           "code": "asset:925"
         }
-      ]
+      ],
+      "sql": "first_legal_end_date = service_start_date (the next stage's start); NULL if the next stage has not started",
+      "sql_note": {
+        "en": "The first-legal window ends when the next stage (service) starts: first_legal_end_date = service_start_date; NULL if service hasn't started (first_legal_stage_days then counts to the current date, pool:2060-2062).",
+        "zh": "首次法律窗口在下一阶段（送达）开始时结束：first_legal_end_date = service_start_date；若送达尚未开始则为 NULL（此时 first_legal_stage_days 数到当日，pool:2060-2062）。"
+      },
+      "sql_eg": {
+        "en": "① next reached — 700082880000091: service_start=2026-05-13 ⇒ first_legal_end_date=2026-05-13, first_legal_stage_days=63. ② not reached — a loan still in FIRST_LEGAL ⇒ first_legal_end_date=NULL, stage_days counts to today (same pattern as referral 700082700000033).",
+        "zh": "① 下一阶段已到 — 700082880000091：service_start=2026-05-13 ⇒ first_legal_end_date=2026-05-13，first_legal_stage_days=63。② 未到 — 仍在 FIRST_LEGAL 的贷款 ⇒ first_legal_end_date=NULL，stage_days 数到当日（同 referral 700082700000033 的模式）。"
+      }
     },
     {
       "branch": "stage",
@@ -4467,8 +4568,8 @@
         {
           "t": "port.fcl_stage_info",
           "c": "first_legal_date_history",
-          "rule": "ETL tracking (first-seen) 见 sql",
-          "code": "pool:2058-2066"
+          "rule": "first-seen tracking (join L); NULL across prod",
+          "code": "pool:2374"
         },
         {
           "t": "bpms.sync_fcl_stage_info",
@@ -4476,7 +4577,11 @@
           "rule": "sync passthrough",
           "code": "asset:925"
         }
-      ]
+      ],
+      "note": {
+        "en": "An ETL first-seen tracking column joined from L.first_legal_date_history; the source is not populated, so it is NULL across all current prod rows.",
+        "zh": "ETL「首见」追踪列，来自 L.first_legal_date_history 关联；该来源未填充，故 prod 当前全量为 NULL。"
+      }
     },
     {
       "branch": "stage",
@@ -4504,8 +4609,8 @@
         {
           "t": "port.fcl_stage_info",
           "c": "service_start_date",
-          "rule": "passthrough start date 见 sql",
-          "code": "pool:2354-2391"
+          "rule": "passthrough of source service_start_date",
+          "code": "pool:2068"
         },
         {
           "t": "bpms.sync_fcl_stage_info",
@@ -4518,6 +4623,15 @@
         "Newrez": "portnewrezfc.servicecompletedate",
         "Carrington": "—",
         "Capecodfive": "portcapecodfive_monthly_collections.foreclosure_service_date"
+      },
+      "sql": "service_start_date = passthrough of business_1.service_start_date (no transform)",
+      "sql_note": {
+        "en": "Direct passthrough of the source milestone date `service_start_date`; no transform. NULL if the loan never reached this stage.",
+        "zh": "直接透传来源里程碑日期 `service_start_date`，无转换；贷款未进入该阶段则为 NULL。"
+      },
+      "sql_eg": {
+        "en": "700082880000091: service_start_date 2026-05-13 ⇒ 2026-05-13.",
+        "zh": "700082880000091：service_start_date 2026-05-13 ⇒ 2026-05-13。"
       }
     },
     {
@@ -4529,8 +4643,8 @@
         "zh": "送达 阶段结束日(窗口)"
       },
       "biz": {
-        "en": "Stage window end (= next stage start, else today).",
-        "zh": "阶段窗口结束（= 下一阶段开始日，否则今天）。"
+        "en": "Service window end (= next stage 'judgement availability'; NULL if not reached).",
+        "zh": "送达窗口结束（= 下一阶段「可判决日」；未到则 NULL）。"
       },
       "hops": [
         {
@@ -4546,8 +4660,8 @@
         {
           "t": "port.fcl_stage_info",
           "c": "service_end_date",
-          "rule": "stage window end = next stage start / curr_date 见 sql",
-          "code": "pool:2049-2076"
+          "rule": "= next stage start (judgement availability (judgment_available_date)); NULL if not reached",
+          "code": "pool:2069,2376"
         },
         {
           "t": "bpms.sync_fcl_stage_info",
@@ -4555,7 +4669,16 @@
           "rule": "sync passthrough",
           "code": "asset:925"
         }
-      ]
+      ],
+      "sql": "service_end_date = judgement availability (judgment_available_date) (the next stage's start); NULL if the next stage has not started",
+      "sql_note": {
+        "en": "The service window ends when the next stage (judgement availability) starts: service_end_date = judgment_available_date; NULL if not reached (service_stage_days then counts to the current date, pool:2070-2072).",
+        "zh": "送达窗口在下一阶段（可判决日）开始时结束：service_end_date = judgment_available_date；若未到则为 NULL（此时 service_stage_days 数到当日，pool:2070-2072）。"
+      },
+      "sql_eg": {
+        "en": "① next reached — 7727000357: service_end_date=2026-01-26 (=judgement availability), service_stage_days=166. ② not reached — 700082880000091 (current stage = SERVICE): service_end_date=NULL, service_stage_days=28 (counts 2026-05-13→today).",
+        "zh": "① 下一阶段已到 — 7727000357：service_end_date=2026-01-26（=可判决日），service_stage_days=166。② 未到 — 700082880000091（当前阶段 SERVICE）：service_end_date=NULL，service_stage_days=28（从 2026-05-13 数到当日）。"
+      }
     },
     {
       "branch": "stage",
@@ -4711,8 +4834,8 @@
         {
           "t": "port.fcl_stage_info",
           "c": "publication_start_date",
-          "rule": "hardcoded NULL in business_1",
-          "code": "pool:2078-2102"
+          "rule": "NULL by design — publication not populated",
+          "code": "pool:2078-2081"
         },
         {
           "t": "bpms.sync_fcl_stage_info",
@@ -4721,7 +4844,11 @@
           "code": "asset:925"
         }
       ],
-      "status": "null_in_build"
+      "status": "null_in_build",
+      "note": {
+        "en": "The publication stage is not populated in business_1 (hardcoded NULL). Verified NULL across all prod rows.",
+        "zh": "公告阶段在 business_1 未填充（硬编码 NULL）。prod 全量实测为 NULL。"
+      }
     },
     {
       "branch": "stage",
@@ -4732,8 +4859,8 @@
         "zh": "公告 阶段结束日(窗口)"
       },
       "biz": {
-        "en": "Stage window end (= next stage start, else today).",
-        "zh": "阶段窗口结束（= 下一阶段开始日，否则今天）。"
+        "en": "Publication window end (stage not populated; always NULL).",
+        "zh": "公告阶段结束日（该阶段未填充，恒 NULL）。"
       },
       "hops": [
         {
@@ -4749,8 +4876,8 @@
         {
           "t": "port.fcl_stage_info",
           "c": "publication_end_date",
-          "rule": "stage window end = next stage start / curr_date 见 sql",
-          "code": "pool:2049-2076"
+          "rule": "NULL by design",
+          "code": "pool:2078-2081"
         },
         {
           "t": "bpms.sync_fcl_stage_info",
@@ -4759,7 +4886,11 @@
           "code": "asset:925"
         }
       ],
-      "status": "null_in_build"
+      "status": "null_in_build",
+      "note": {
+        "en": "Hardcoded NULL (see publication_start_date). Verified NULL across all prod rows.",
+        "zh": "硬编码 NULL（见 publication_start_date）。prod 全量实测为 NULL。"
+      }
     },
     {
       "branch": "stage",
@@ -4777,8 +4908,8 @@
         {
           "t": "port.fcl_stage_info",
           "c": "publication_stage_days",
-          "rule": "hardcoded NULL in business_1",
-          "code": "pool:2078-2102"
+          "rule": "NULL by design",
+          "code": "pool:2081"
         },
         {
           "t": "bpms.sync_fcl_stage_info",
@@ -4787,7 +4918,11 @@
           "code": "asset:925"
         }
       ],
-      "status": "null_in_build"
+      "status": "null_in_build",
+      "note": {
+        "en": "Hardcoded NULL — no publication window is computed. Verified NULL across all prod rows.",
+        "zh": "硬编码 NULL——不计算公告窗口。prod 全量实测为 NULL。"
+      }
     },
     {
       "branch": "stage",
@@ -4907,8 +5042,8 @@
         {
           "t": "port.fcl_stage_info",
           "c": "judgement_start_date",
-          "rule": "passthrough start date 见 sql",
-          "code": "pool:2354-2391"
+          "rule": "passthrough of source fcjudgment_start_date",
+          "code": "pool:2084,2386"
         },
         {
           "t": "bpms.sync_fcl_stage_info",
@@ -4921,6 +5056,15 @@
         "Newrez": "portnewrezfc.fcjudgmenthearingscheduled",
         "Carrington": "—",
         "Capecodfive": "—"
+      },
+      "sql": "judgement_start_date = passthrough of business_1.fcjudgment_start_date (no transform)",
+      "sql_note": {
+        "en": "Direct passthrough of the source milestone date `fcjudgment_start_date`; no transform. NULL if the loan never reached this stage.",
+        "zh": "直接透传来源里程碑日期 `fcjudgment_start_date`，无转换；贷款未进入该阶段则为 NULL。"
+      },
+      "sql_eg": {
+        "en": "7727001179: fcjudgment_start_date 2025-11-29 ⇒ judgement_start_date = 2025-11-29.",
+        "zh": "7727001179：fcjudgment_start_date 2025-11-29 ⇒ judgement_start_date = 2025-11-29。"
       }
     },
     {
@@ -4932,8 +5076,8 @@
         "zh": "判决 阶段结束日(窗口)"
       },
       "biz": {
-        "en": "Stage window end (= next stage start, else today).",
-        "zh": "阶段窗口结束（= 下一阶段开始日，否则今天）。"
+        "en": "Judgement window end (always NULL; bucket uses to_judgement_days).",
+        "zh": "判决阶段结束日（恒 NULL；判决桶用倒计天数 to_judgement_days）。"
       },
       "hops": [
         {
@@ -4949,8 +5093,8 @@
         {
           "t": "port.fcl_stage_info",
           "c": "judgement_end_date",
-          "rule": "stage window end = next stage start / curr_date 见 sql",
-          "code": "pool:2049-2076"
+          "rule": "NULL (bucket uses to_judgement_days)",
+          "code": "pool:2387"
         },
         {
           "t": "bpms.sync_fcl_stage_info",
@@ -4958,7 +5102,11 @@
           "rule": "sync passthrough",
           "code": "asset:925"
         }
-      ]
+      ],
+      "note": {
+        "en": "Hardcoded NULL in the projection. The judgement bucket tracks judgement_start_date + the to_judgement_days countdown, not a window end. Verified NULL across all prod rows.",
+        "zh": "投影中硬编码 NULL。判决桶用 judgement_start_date + to_judgement_days 倒计天数表示，不设窗口结束日。prod 全量实测为 NULL。"
+      }
     },
     {
       "branch": "stage",
@@ -4986,8 +5134,8 @@
         {
           "t": "port.fcl_stage_info",
           "c": "to_judgement_days",
-          "rule": "countdown (no +1, floored 0) 见 sql",
-          "code": "pool:2085-2093"
+          "rule": "countdown to judgement: future⇒datediff(curr_date, date) (no +1), past⇒0, none⇒NULL",
+          "code": "pool:2085-2087,2388"
         },
         {
           "t": "bpms.sync_fcl_stage_info",
@@ -4996,14 +5144,14 @@
           "code": "asset:925"
         }
       ],
-      "sql": "CASE WHEN date IS NULL THEN null WHEN date>=curr_date THEN datediff(day,curr_date,date) ELSE 0 END  (no +1; floored at 0 once past)",
+      "sql": "case when fcjudgment_start_date is null then null when fcjudgment_start_date >= curr_date then datediff(day, curr_date, fcjudgment_start_date) else 0 end",
       "sql_note": {
-        "en": "Forward countdown to the scheduled date: NULL date→NULL; if date ≥ today → datediff(today, date) (NO +1); if already past → 0.",
-        "zh": "距排定日的倒计天数：日期为 NULL→NULL；日期 ≥ 今天 → datediff(今天, 日期)（不 +1）；已过期 → 0。"
+        "en": "Forward countdown of days from the current date (curr_date, NY) to the scheduled judgement date — NO +1. Three branches: future date ⇒ datediff(curr_date, judgement_date); past date ⇒ 0 (floored); no date ⇒ NULL.",
+        "zh": "从当日（curr_date，纽约时区）到排定判决日的倒计天数——不加 1。三分支：未来日 ⇒ datediff(curr_date, 判决日)；过去日 ⇒ 0（下限封顶）；无日期 ⇒ NULL。"
       },
       "sql_eg": {
-        "en": "7727001179: scheduled sale 2026-06-23 ⇒ to_sale_days = 15 (countdown from the snapshot date).",
-        "zh": "7727001179：排定拍卖 2026-06-23 ⇒ to_sale_days = 15（自快照日倒计）。"
+        "en": "① future — 7727004408: judgement 2026-08-21 ⇒ to_judgement_days = 73 (datediff(2026-06-09,2026-08-21)). ② past — 7727001179: judgement 2025-11-29 (already passed) ⇒ 0. ③ no date ⇒ NULL.",
+        "zh": "① 未来 — 7727004408：判决日 2026-08-21 ⇒ to_judgement_days = 73（datediff(2026-06-09,2026-08-21)）。② 过去 — 7727001179：判决日 2025-11-29（已过）⇒ 0。③ 无日期 ⇒ NULL。"
       }
     },
     {
@@ -5124,8 +5272,8 @@
         {
           "t": "port.fcl_stage_info",
           "c": "sale_start_date",
-          "rule": "passthrough start date 见 sql",
-          "code": "pool:2354-2391"
+          "rule": "passthrough of source sale_start_date",
+          "code": "pool:2090,2391"
         },
         {
           "t": "bpms.sync_fcl_stage_info",
@@ -5138,6 +5286,15 @@
         "Newrez": "portnewrezfc.fcscheduledsaledate",
         "Carrington": "portcarrington.fcl_scheduled_sale_date",
         "Capecodfive": "portcapecodfive_monthly_collections.foreclosure_date_sale_scheduled"
+      },
+      "sql": "sale_start_date = passthrough of business_1.sale_start_date (no transform)",
+      "sql_note": {
+        "en": "Direct passthrough of the source milestone date `sale_start_date`; no transform. NULL if the loan never reached this stage.",
+        "zh": "直接透传来源里程碑日期 `sale_start_date`，无转换；贷款未进入该阶段则为 NULL。"
+      },
+      "sql_eg": {
+        "en": "7727001179: sale_start_date 2026-06-23 ⇒ sale_start_date = 2026-06-23.",
+        "zh": "7727001179：sale_start_date 2026-06-23 ⇒ sale_start_date = 2026-06-23。"
       }
     },
     {
@@ -5149,8 +5306,8 @@
         "zh": "拍卖 阶段结束日(窗口)"
       },
       "biz": {
-        "en": "Stage window end (= next stage start, else today).",
-        "zh": "阶段窗口结束（= 下一阶段开始日，否则今天）。"
+        "en": "Sale window end (always NULL; bucket uses to_sale_days).",
+        "zh": "拍卖阶段结束日（恒 NULL；拍卖桶用倒计天数 to_sale_days）。"
       },
       "hops": [
         {
@@ -5166,8 +5323,8 @@
         {
           "t": "port.fcl_stage_info",
           "c": "sale_end_date",
-          "rule": "stage window end = next stage start / curr_date 见 sql",
-          "code": "pool:2049-2076"
+          "rule": "NULL (bucket uses to_sale_days)",
+          "code": "pool:2392"
         },
         {
           "t": "bpms.sync_fcl_stage_info",
@@ -5175,7 +5332,11 @@
           "rule": "sync passthrough",
           "code": "asset:925"
         }
-      ]
+      ],
+      "note": {
+        "en": "Hardcoded NULL in the projection. The sale bucket uses sale_start_date + the to_sale_days countdown. Verified NULL across all prod rows.",
+        "zh": "投影中硬编码 NULL。拍卖桶用 sale_start_date + to_sale_days 倒计天数表示。prod 全量实测为 NULL。"
+      }
     },
     {
       "branch": "stage",
@@ -5203,8 +5364,8 @@
         {
           "t": "port.fcl_stage_info",
           "c": "to_sale_days",
-          "rule": "countdown (no +1, floored 0) 见 sql",
-          "code": "pool:2085-2093"
+          "rule": "countdown to sale: future⇒datediff(curr_date, date) (no +1), past⇒0, none⇒NULL",
+          "code": "pool:2091-2093,2393"
         },
         {
           "t": "bpms.sync_fcl_stage_info",
@@ -5213,14 +5374,14 @@
           "code": "asset:925"
         }
       ],
-      "sql": "CASE WHEN date IS NULL THEN null WHEN date>=curr_date THEN datediff(day,curr_date,date) ELSE 0 END  (no +1; floored at 0 once past)",
+      "sql": "case when sale_start_date is null then null when sale_start_date >= curr_date then datediff(day, curr_date, sale_start_date) else 0 end",
       "sql_note": {
-        "en": "Forward countdown to the scheduled date: NULL date→NULL; if date ≥ today → datediff(today, date) (NO +1); if already past → 0.",
-        "zh": "距排定日的倒计天数：日期为 NULL→NULL；日期 ≥ 今天 → datediff(今天, 日期)（不 +1）；已过期 → 0。"
+        "en": "Forward countdown of days from the current date (curr_date, NY) to the scheduled sale date — NO +1. Three branches: future date ⇒ datediff(curr_date, sale_date); past date ⇒ 0; no date ⇒ NULL.",
+        "zh": "从当日（curr_date，纽约时区）到排定拍卖日的倒计天数——不加 1。三分支：未来日 ⇒ datediff(curr_date, 拍卖日)；过去日 ⇒ 0；无日期 ⇒ NULL。"
       },
       "sql_eg": {
-        "en": "7727001179: scheduled sale 2026-06-23 ⇒ to_sale_days = 15 (countdown from the snapshot date).",
-        "zh": "7727001179：排定拍卖 2026-06-23 ⇒ to_sale_days = 15（自快照日倒计）。"
+        "en": "① future — 7727001179: sale 2026-06-23 ⇒ to_sale_days = 14 (datediff(2026-06-09,2026-06-23), no +1). ② past — a sale date already passed ⇒ 0. ③ no date ⇒ NULL.",
+        "zh": "① 未来 — 7727001179：拍卖日 2026-06-23 ⇒ to_sale_days = 14（datediff(2026-06-09,2026-06-23)，不加 1）。② 过去 — 拍卖日已过 ⇒ 0。③ 无日期 ⇒ NULL。"
       }
     },
     {
@@ -6657,7 +6818,7 @@
           "code": "view"
         }
       ],
-      "sql": "actual_<stage>_days = to_days(timeline_<stage>_date) - to_days(nextduedate);\nvar_<stage>_days   = actual_<stage>_days - (cumulative target days up to that stage);\ntarget_total = Σ target_*; actual_total = Σ actual_*; var_total = Σ var_*",
+      "sql": "actual_<stage>_days = to_days(loan_fcl.timeline_<stage>_date) - to_days(monthly.nextduedate)   -- view FROM bpms.sync_portmonth monthly LEFT JOIN bpms.sync_loan_foreclosure loan_fcl;\nvar_<stage>_days   = actual_<stage>_days - (Σ target_i for i ≤ stage)   -- cumulative subtraction, not single-stage;\ntarget_total = Σ target_X over all 15 stages; actual_total = Σ actual_X over all 15 stages;\nvar_total    = Σ (actual_X - target_X) over all 15 stages = actual_total - target_total   -- NOT Σ var_X (var_X is cumulative).",
       "sql_note": {
         "en": "Per milestone the view computes actual days (from next-due date) and variance vs the cumulative target; plus row totals. Targets use ifnull(target_X, <default>).",
         "zh": "视图对每个里程碑计算 actual 天数（自 next-due 日）与相对累计 target 的偏差；并给出行合计。target 用 ifnull(target_X, <默认>)。"

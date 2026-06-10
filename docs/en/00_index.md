@@ -34,6 +34,7 @@
 | **28** | **`28_lineage_sync_loan_foreclosure_hold.md`** | `bpms.sync_loan_foreclosure_hold` per-field lineage: fchold1..4 wide slots → long-table unpivot | Hold panel reconciliation |
 | **29** | **`29_lineage_sync_loan_foreclosure_loss_mitigation.md`** | `bpms.sync_loan_foreclosure_loss_mitigation` per-field lineage: LM cycle + datadic code→text decode | LM panel reconciliation |
 | **30** | **`30_lineage_sync_loan_foreclosure_bankruptcy.md`** | `bpms.sync_loan_foreclosure_bankruptcy` per-field lineage: BK filing + status decode | BK panel reconciliation |
+| **31** | **`31_fcl_stage_window_rules.md`** | **🧮 FCL Stage Window Rules Cheat-sheet**: 8 stages × 5 column types (`start_date / end_date / stage_days / in_lm_days / on_hold_days`) in one read — start passthrough sources, end derivation, stage_days formula, in_lm/on_hold SQL semantics (Code-First from pool:2215-2330), 4 real-loan worked examples, counter-intuitive callouts (`servicecompletedate` → SERVICE start, not end) | Troubleshoot stage days / in_lm / on_hold; new-hire mental model for stage windows; horizontal summary of doc 27 |
 | 01 | `01_source_data.md` | Raw servicer table schemas, FCL-relevant field inventory | Data lineage, field definition lookup |
 | 02 | `02_etl_pipeline.md` | Full ETL pipeline: 5-layer data flow, table lineage, Redshift vs MySQL split | Pipeline understanding, debugging, rewrite planning |
 | 03 | `03_fcl_status_logic.md` | Complete foreclosure status generation logic (SQL/Python/mapping tables/override rules) | Status calculation, rewrite reference |

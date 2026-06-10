@@ -22,6 +22,9 @@ data engineers · analysts · validators · business analysts · future AI sessi
 | 2026-06-09 | AI Agent | v5 | Added tempfc hop + L2/L3-absent note to the chain; numbered field cards | doc 02 · doc 13 · doc 14 |
 | 2026-06-09 | AI Agent | v6 | Cover every BPS sync-table column (system/audit grouped, view-computed); numbered data-flow order | doc 02 · doc 13 · doc 14 |
 | 2026-06-09 | AI Agent | v7 | Added Chinese name/business meaning to every field (Code-First from DDL comments); started maintaining the revision history | doc 02 · doc 13 · doc 14 |
+| 2026-06-09 | AI Agent | v8 | Added full logic notes + worked examples (multi-branch) to stage computed fields; Code-First-corrected the end_date/countdown hop rules from the SQL projection; fixed the wrong to_judgement/to_sale examples | doc 02 · doc 13 · doc 14 |
+| 2026-06-09 | AI Agent | v9 | Made [pool:]/[asset:] code citations clickable GitLab links (fork jli/prefectflow pinned to commit 32a750a3; exact stable line numbers); legend file paths clickable too; view stays plain text | doc 02 · doc 13 · doc 14 |
+| 2026-06-10 | AI Agent | v10 | Hub: added FCL-fact-hub vs BPS-projection note: basic_data_loan_fcl = fact hub/full history, **directly feeds foreclosure + fcl_stage_info**; _hold/_bankruptcy/_loss_mitigation/fcl_related are built in parallel from raw servicer tables (not children of fcl) | doc 02 · doc 13 · doc 14 |
 
 ## Related Documents
 
@@ -34,7 +37,7 @@ doc 02 (ETL pipeline) · doc 13 (BPS view field mapping) · doc 14 (Servicer FCL
 
 One detail doc per **BPS sync table** (doc 26–30). In each, **one row = one field**; columns are the field's column name at every table along its chain; the last column gives the **per-hop transform rule + code reference** (`pool`/`asset`/`view`, see below). Non-trivial transforms (CASE / decode / unpivot / day-math) include the real SQL.
 
-> code: `pool` = PrefectFlow/flow/basic_data/basic_data_config/basic_data_pool_config.py · `asset` = PrefectFlow/flow/bps/bps_config/asset_managment_config.py · `view` = bpms.biz_data_view_loan_details_foreclosure (SHOW CREATE VIEW)
+> code: `pool` = [PrefectFlow/flow/basic_data/basic_data_config/basic_data_pool_config.py](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py) · `asset` = [PrefectFlow/flow/bps/bps_config/asset_managment_config.py](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py) · `view` = bpms.biz_data_view_loan_details_foreclosure (SHOW CREATE VIEW)
 
 > The L4 fact (port.basic_data_loan_fcl) UNIONs 3 servicers — Newrez (newrez.portnewrezfc), Carrington (carrington.portcarrington), Capecodfive (capecodfive.portcapecodfive_monthly_collections). The 'raw' column shown is the Newrez source; Carrington/Capecodfive differences are in the per-field carrington note. SLS/MRC/etc. report no FCL detail (delinquency inference only).
 
@@ -53,13 +56,15 @@ One detail doc per **BPS sync table** (doc 26–30). In each, **one row = one fi
 | # | layer | db | table | role |
 |---|---|---|---|---|
 | 1 | L0/L1 | MySQL+Redshift | `newrez.portnewrezfc` | Servicer raw |
-| 2 | L4·temp | Redshift | `tempfc.temp_basic_data_fcl` | 3-servicer rename-UNION of L1 raw / 三家 servicer 改名 UNION (CREATE_BASIC_FCL, pool:1531-1654) |
+| 2 | L4·temp | Redshift | `tempfc.temp_basic_data_fcl` | 3-servicer rename-UNION of L1 raw / 三家 servicer 改名 UNION (CREATE_BASIC_FCL, [pool:1531-1654](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1531-1654)) |
 | 3 | L4 | Redshift | `port.basic_data_loan_fcl` | canonical FCL fact |
 | 4 | L4 | Redshift→MySQL | `port.basic_data_loan_foreclosure` | timeline+summary build (GEN_FCL_DETAIL) |
 | 5 | L5 | MySQL bpms | `bpms.sync_loan_foreclosure` | BPS app table (UPDATE_FORECLOSURE upsert) |
 | 6 | L5 | MySQL bpms | `bpms.biz_data_view_loan_details_foreclosure` | display view (Actual/Var days) |
 
 ### Stage / days
+
+> 📐 **Rules cheat-sheet**: see [doc 31 — FCL stage window rules](31_fcl_stage_window_rules.md) — one read for `start_date` sources, `end_date` derivations, `stage_days` formulas, `in_lm_days`/`on_hold_days` SQL semantics + 4 real-loan worked examples + counter-intuitive callouts (`servicecompletedate` → SERVICE start, not end).
 
 **Canonical hop chain**
 
@@ -69,7 +74,7 @@ One detail doc per **BPS sync table** (doc 26–30). In each, **one row = one fi
 | # | layer | db | table | role |
 |---|---|---|---|---|
 | 1 | L0/L1 | MySQL+Redshift | `newrez.portnewrezfc` | Servicer raw |
-| 2 | L4·temp | Redshift | `tempfc.temp_basic_data_fcl` | 3-servicer rename-UNION of L1 raw / 三家 servicer 改名 UNION (CREATE_BASIC_FCL, pool:1531-1654) |
+| 2 | L4·temp | Redshift | `tempfc.temp_basic_data_fcl` | 3-servicer rename-UNION of L1 raw / 三家 servicer 改名 UNION (CREATE_BASIC_FCL, [pool:1531-1654](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1531-1654)) |
 | 3 | L4 | Redshift | `port.basic_data_loan_fcl` | canonical FCL fact |
 | 4 | L4 | Redshift | `port.fcl_stage_info` | stage classification + day-math (GEN_FCL_STAGE); group/state from port.basic_data_fcl_related |
 | 5 | L5 | MySQL bpms | `bpms.sync_fcl_stage_info` | BPS app table (12-FCL_STAGE sync, keeps fctrdt history) |
@@ -113,9 +118,14 @@ One detail doc per **BPS sync table** (doc 26–30). In each, **one row = one fi
 | 2 | L4 | Redshift | `port.basic_data_loan_foreclosure_bankruptcy` | datadic decode; dedup latest per loan+filing |
 | 3 | L5 | MySQL bpms | `bpms.sync_loan_foreclosure_bankruptcy` | BPS app table (GEN_FORECLOSURE_BK pass-through) |
 
-> The `#` column is a sequence number, not the layer number. The FCL fact `port.basic_data_loan_fcl` is built DIRECTLY from the L1 servicer raw tables (UNIONed in `tempfc.temp_basic_data_fcl`; CREATE_BASIC_FCL pool:1531-1654), so the L2 unified-daily (`port.basic_data_daily_loan_common`) and L3 clean (`…_clean` / `…_delinq_clean`) layers are NOT part of this branch by design — they carry the common + delinquency fields and re-enter only via the `group` dimension (doc 27, `basic_data_fcl_related`) and the monthly `portmonth` path. See doc 02 for the full L0–L5 pipeline.
+> The `#` column is a sequence number, not the layer number. The FCL fact `port.basic_data_loan_fcl` is built DIRECTLY from the L1 servicer raw tables (UNIONed in `tempfc.temp_basic_data_fcl`; CREATE_BASIC_FCL [pool:1531-1654](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1531-1654)), so the L2 unified-daily (`port.basic_data_daily_loan_common`) and L3 clean (`…_clean` / `…_delinq_clean`) layers are NOT part of this branch by design — they carry the common + delinquency fields and re-enter only via the `group` dimension (doc 27, `basic_data_fcl_related`) and the monthly `portmonth` path. See doc 02 for the full L0–L5 pipeline.
 
 > Datadic decode pattern (LM deal/program/status/decision/denial/borrower, BK status): COALESCE((SELECT description FROM newrez.portnewrezdatadic WHERE field_name='<X>' AND code=CONCAT(raw,'.0')), raw) — raw codes stored as '5.0'; falls back to the raw code if no dictionary row.
+
+
+## FCL fact hub vs BPS projection (`basic_data_loan_fcl` vs `basic_data_loan_foreclosure`)
+
+> The two are **not duplicates** — a parent **fact hub** → child **BPS projection** relationship. **`basic_data_loan_fcl` = the FCL fact/detail hub**: a UNION of the 3 servicers raw FCL tables (via `tempfc.temp_basic_data_fcl`, **built directly from L1 raw, bypassing L2/L3**) + 4 hold slots; full daily-snapshot history, all raw FCL columns ([pool:1658](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1658)). **It directly feeds two tables: `basic_data_loan_foreclosure` and `fcl_stage_info`** — foreclosure ([pool:287-304](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L287-304)) is the direct upstream of `bpms.sync_loan_foreclosure` and is the BPS projection (latest snapshot per servicer + first-set milestone dates, shaped to the BPS contract timeline_*/target_*/variance_*/bid_*/summary_*). Chain: 3 raw tables → temp_basic_data_fcl → basic_data_loan_fcl(hub) → basic_data_loan_foreclosure(projection) → sync → view. ⚠️ The sibling FCL-family tables `_hold`, `_bankruptcy`(←portnewrezbk), `_loss_mitigation`(←portnewrezlm), `basic_data_fcl_related`(←portnewrezgeneral) are each **built in parallel from their own raw servicer tables — NOT children of fcl**; `basic_data_loan_reo` is maintained elsewhere. Naming caveat: the more raw/complete one is `_fcl`; the BPS-shaped one is `_foreclosure`.
 
 
 ## Master field index
@@ -318,12 +328,12 @@ One detail doc per **BPS sync table** (doc 26–30). In each, **one row = one fi
 | Servicer number identifier | `null_in_build` |  |
 | Flag for completed foreclosure | `null_in_build` |  |
 | Name of the foreclosure attorney | `null_in_build` |  |
-| NOI start date | `null_in_build` |  |
-| NOI window end | `null_in_build` |  |
-| NOI days in stage | `null_in_build` |  |
-| Publication start date | `null_in_build` |  |
-| Publication window end | `null_in_build` |  |
-| Publication days in stage | `null_in_build` |  |
+| NOI start date | `null_in_build` | The NOI stage is not populated in the business_1 CTE (hardcoded NULL); NOI activity is represented inside the DEMAND window. Verified NULL across all prod rows. |
+| NOI window end | `null_in_build` | Hardcoded NULL (see noi_start_date). Verified NULL across all prod rows. |
+| NOI days in stage | `null_in_build` | Hardcoded NULL — no NOI window is computed. Verified NULL across all prod rows. |
+| Publication start date | `null_in_build` | The publication stage is not populated in business_1 (hardcoded NULL). Verified NULL across all prod rows. |
+| Publication window end | `null_in_build` | Hardcoded NULL (see publication_start_date). Verified NULL across all prod rows. |
+| Publication days in stage | `null_in_build` | Hardcoded NULL — no publication window is computed. Verified NULL across all prod rows. |
 | Imminent default flag | `newrez_null` | Hardcoded NULL for Newrez. |
 | Single point of contact | `newrez_null` | Hardcoded NULL for Newrez. |
 | Lien status | `newrez_null` |  |

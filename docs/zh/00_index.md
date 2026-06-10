@@ -35,6 +35,7 @@
 | **28** | **`28_lineage_sync_loan_foreclosure_hold.md`** | `bpms.sync_loan_foreclosure_hold` 逐字段血缘：fchold1..4 宽列 → 长表 unpivot | Hold 面板对账 |
 | **29** | **`29_lineage_sync_loan_foreclosure_loss_mitigation.md`** | `bpms.sync_loan_foreclosure_loss_mitigation` 逐字段血缘：LM 周期 + datadic 编码→文本解码 | LM 面板对账 |
 | **30** | **`30_lineage_sync_loan_foreclosure_bankruptcy.md`** | `bpms.sync_loan_foreclosure_bankruptcy` 逐字段血缘：BK 记录 + 状态解码 | BK 面板对账 |
+| **31** | **`31_fcl_stage_window_rules.md`** | **🧮 FCL 阶段窗口规则速查**：8 个 stage × 5 类列（`start_date / end_date / stage_days / in_lm_days / on_hold_days`）一表读懂——start 透传源、end 派生规则、stage_days 公式、in_lm/on_hold SQL 语义（Code-First from pool:2215-2330）、4 真实 loan 工作例、反直觉点澄清（`servicecompletedate` → SERVICE start 不是 end） | 排查 stage 天数 / in_lm / on_hold；新人理解 stage 窗口模型；横向汇总 doc 27 散落规则 |
 | 01 | `01_source_data.md` | 各服务商原始数据表结构、止赎相关字段清单 | 数据溯源、字段定义查询 |
 | 02 | `02_etl_pipeline.md` | 完整 ETL 管道：5层数据流、表谱系、Redshift vs MySQL 分层 | 管道理解、调试、重写规划 |
 | 03 | `03_fcl_status_logic.md` | 止赎状态生成的完整逻辑（SQL/Python/映射表/覆盖规则） | 状态计算原理、重写参考 |

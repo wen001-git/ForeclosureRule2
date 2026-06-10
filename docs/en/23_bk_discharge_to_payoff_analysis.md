@@ -8,7 +8,7 @@
 |-------|---------|
 | **Purpose** | Answer a common business question — "how long does a loan take to go from bankruptcy discharge to final payoff (the P — Loan ends state)?" — and lock down the prod-verified conclusion, definitions, and verification SQL for reuse and review. |
 | **Problem solved** | The state machine (`fcl_pipeline.html` / doc 17 §4 / doc 07 §2.4) draws the `BK → discharge → … → P` edge but gives **no duration**, and can mislead readers into thinking discharge quickly leads to payoff. This note corrects that intuition with prod data. |
-| **Scope** | Only the elapsed time between the "BK-ended date" and the "payoff date", its definitions and limitations; NOT the legal explanation of BK (see doc 17 §5.4 / doc 07 §2.5) nor the full FCL timeline (see doc 21). |
+| **Scope** | Only the elapsed time between the "BK-ended date" and the "payoff date", its definitions and limitations; NOT the legal explanation of BK (see doc 17 §5.4 / doc 07 §2.5) nor the full FCL timeline (see doc 25–30). |
 | **System fit** | A **data-evidence supplement** to the "BK state transitions" content in doc 17 / doc 07; all conclusions come from read-only queries against `redshift_prod` (prod Redshift). |
 
 **Target audience:** business analysts · data product managers · validation/reconciliation engineers · data engineers · risk / asset management · future AI sessions

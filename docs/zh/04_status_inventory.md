@@ -15,11 +15,14 @@
 
 **依赖文档：** `01_source_data.md`（原始字段）、`03_fcl_status_logic.md`（生成逻辑）
 
+> **📅 数据日期（统一声明）**：本文计数**均取自 prod**（`redshift_prod`/`mysql_prod`），无 dev。各表 as-of 不同：`port.portmonthbase`（delinq）= **2025-08-01**（prod 已冻结于此）；`port.fcl_stage_info`（阶段，§6）= **2026-06-07**。§6 阶段计数分「最新快照 / 累计」两口径，各带 as-of 与 SQL。
+
 **修订历史：**
 
 | 日期 | 作者 | 版本 | 变更内容 |
 |------|------|------|---------|
 | 2026-05-21 | AI Agent (Claude Sonnet 4.6) | v1 | 初始版本，代码逆向 + DB 实证 |
+| 2026-06-10 | AI Agent (Claude Opus 4.8) | v2 | §6 阶段计数订正为**两种口径分列**（6.1 最新快照 as-of 2026-06-07 共 41 行；6.2 累计 302 快照 9,587 行）并补统计口径说明 + 统计 SQL；修正旧「8,733」未标口径问题（prod 实测） |
 
 ---
 
@@ -159,25 +162,52 @@ SLS 原始代码已接近标准格式，转换最简单。
 
 ## 6. FCL 阶段代码（`port.fcl_stage_info.stage` 字段）
 
-**DB实证（共 8,733 条记录）：**
+> **统计口径说明**：`port.fcl_stage_info` 按 `fctrdt` 每日快照存储（一笔在贷止赎贷款每天一行）。下面**两种口径分别列出**——「当前在贷止赎管道」看 **6.1 最新快照**；「历史数据量」看 **6.2 累计**。请勿混用。
+
+### 6.1 单一最新快照（当前在贷止赎管道）
+
+- **统计口径**：单一最新快照 `fctrdt = MAX(fctrdt)`。**数据日期 as-of 2026-06-07**，共 **41 行**（全部 `group=FCL`）。
+- **统计 SQL**：
+
+```sql
+SELECT stage, COUNT(*) AS n FROM port.fcl_stage_info
+WHERE fctrdt=(SELECT MAX(fctrdt) FROM port.fcl_stage_info)
+GROUP BY stage ORDER BY n DESC;
+```
 
 | 阶段代码 | 记录数 | 业务含义 |
 |---------|--------|---------|
-| `DEMAND` | 448 | 催款函/意向通知发出 |
-| `REFERRAL` | 3,341 | 委托律师转介 |
-| `FIRST_LEGAL` | 800 | 首次法律行动提交 |
-| `SERVICE` | 1,486 | 法律文书送达 |
-| `JUDGEMENT` | 700 | 判决阶段 |
-| `SALE` | 1,958 | 止赎拍卖 |
+| `REFERRAL` | 20 | 委托律师转介 |
+| `SALE` | 8 | 止赎拍卖 |
+| `FIRST_LEGAL` | 7 | 首次法律行动提交 |
+| `SERVICE` | 4 | 法律文书送达 |
+| `JUDGEMENT` | 2 | 判决阶段 |
+| `DEMAND` | 0 | 催款函/意向通知发出 |
 
-**阶段分组（`group` 字段）：**
+阶段分组（最新快照）：`FCL` 41 · `D120P` 0 · `D90` 0 · `REO` 0。
 
-| 分组 | 记录数 | 含义 |
-|------|--------|------|
-| `FCL` | 8,277 | 正式进入止赎的贷款 |
-| `D120P` | 411 | 120天以上逾期的阶段跟踪 |
-| `D90` | 39 | 90天逾期的阶段跟踪 |
-| `REO` | 6 | 已进入 REO 阶段 |
+### 6.2 跨所有 fctrdt 累计（历史数据量 · loan-day）
+
+- **统计口径**：跨所有 `fctrdt` 累计（不加日期过滤；同一笔贷款在多个快照日各计一行 = loan-day），**非当前在贷数**。**覆盖 2025-06-04 .. 2026-06-07，共 302 个日快照、9,587 行**。
+- **统计 SQL**：
+
+```sql
+SELECT stage, COUNT(*) AS n FROM port.fcl_stage_info GROUP BY stage ORDER BY n DESC;
+SELECT "group" AS grp, COUNT(*) AS n FROM port.fcl_stage_info GROUP BY "group" ORDER BY n DESC;
+```
+
+| 阶段代码 | 记录数(累计) | 业务含义 |
+|---------|------------|---------|
+| `REFERRAL` | 3,766 | 委托律师转介 |
+| `SALE` | 2,124 | 止赎拍卖 |
+| `SERVICE` | 1,551 | 法律文书送达 |
+| `FIRST_LEGAL` | 941 | 首次法律行动提交 |
+| `JUDGEMENT` | 744 | 判决阶段 |
+| `DEMAND` | 461 | 催款函/意向通知发出 |
+
+阶段分组（累计）：`FCL` 9,114 · `D120P` 424 · `D90` 39 · `REO` 10。
+
+> ⚠️ 订正：旧版「共 8,733 条记录」及各阶段数（DEMAND 448/REFERRAL 3,341/…）是**累计口径**在更早数据日期的快照值、且未标注口径/日期，易被误读为「当前在贷止赎贷款数」。现按上述两口径分列并补 as-of 与 SQL（prod 实测 2026-06-07）。
 
 ---
 

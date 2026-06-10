@@ -16,6 +16,8 @@
 
 **目标读者：** 主要——需要逐字段讲解/对账的数据工程师与数据团队成员；次要——新成员、未来 AI 会话。
 
+> **📅 数据日期（统一声明）**：本文实测**均取自 prod**（`redshift_prod`/`mysql_prod`），无 dev。填充率/计数为**单一最新快照**口径：FCL 主表/阶段 as-of **2026-06-07**、Newrez 源 as-of **2026-06-08**（各表 as-of 见 doc 02 头部「数据日期」声明；统计块就近标注）。
+
 **修订历史：**
 
 | 日期 | 作者 | 版本 | 变更内容 | 关联 |
@@ -405,7 +407,7 @@ erDiagram
 
 ### 1.2 填充率 / DB 验证矩阵（prod 实测，2026-06-06）
 
-> **数据源**：`bpms.sync_loan_foreclosure`（mysql_prod，止赎主表，**仅含 `timeline_referred…` 非空的活跃/已转入贷款**——当日实测 Newrez 77 笔 + Carrington 12 笔 = 89 行，每 loan 1 行）。填充率＝该列非空行数 / 该 servicer 总行数。**所有 `表.列` 已用 `information_schema.columns` 一次性全量核验存在（Schema-Verify）**，无缺列。
+> **数据源**：`bpms.sync_loan_foreclosure`（mysql_prod，止赎主表，**仅含 `timeline_referred…` 非空的活跃/已转入贷款**——**单一最新快照实测（as-of 2026-06-07，fctrdt=MAX）** Newrez 77 笔 + Carrington 12 笔 = 89 行，每 loan 1 行）。填充率＝该列非空行数 / 该 servicer 总行数（同一最新快照口径）。**所有 `表.列` 已用 `information_schema.columns` 一次性全量核验存在（Schema-Verify）**，无缺列。
 
 | BPS 字段（`sync_loan_foreclosure`） | Newrez 填充率 | Carrington 填充率 | 说明（与代码规则印证） |
 |---|---|---|---|

@@ -26,7 +26,7 @@
 | doc 02 | ETL 5-layer pipeline, as-of evolution (§8 current vs historical) |
 | doc 12 | `sync_asset_management.py` sync orchestration, SYNC_TABLE_MAP |
 | doc 13/16 | BPS panel field reverse mapping / quickref |
-| doc 21 | FCL field-level lineage (stage system, days calculations) |
+| doc 25–30 | FCL field-level lineage (per-table; stage system, days calculations) |
 | doc 10 | Glossary (FCL/REO/LM/BK/delinq/fctrdt …) |
 
 > Glossary: FCL=Foreclosure · REO=Real Estate Owned · LM=Loss Mitigation · BK=Bankruptcy · `fctrdt`=reporting/run cut-off date (snapshot date) · Servicer=loan servicer · BPS=downstream business system.
@@ -43,11 +43,11 @@
 
 | Endpoint (BPS / MySQL) | Intermediate (Redshift) | Generating code |
 |---|---|---|
-| `bpms.sync_fcl_stage_info` | `port.fcl_stage_info` | Sync: `SYNC_TABLE_MAP['12-FCL_STAGE']` (`flow/bps/bps_config/sync_to_bps_config.py:13`); build: `GEN_FCL_STAGE` (`flow/basic_data/basic_data_config/basic_data_pool_config.py:2344-2440`) |
+| `bpms.sync_fcl_stage_info` | `port.fcl_stage_info` | Sync: `SYNC_TABLE_MAP['12-FCL_STAGE']` ([`flow/bps/bps_config/sync_to_bps_config.py:13`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/sync_to_bps_config.py#L13)); build: `GEN_FCL_STAGE` ([`flow/basic_data/basic_data_config/basic_data_pool_config.py:2344-2440`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2344-2440)) |
 
-- **`group`** (C/D30/D60/D90/D120P/FCL/REO/P) is computed by `CREATE_FCL_RELATE_ATTR` (`basic_data_pool_config.py:1695-1771`) from `newrez.portnewrezgeneral.delinquency_status_mba`, `carrington.portcarrington.loan_status`, etc.; FCL/REO/Full Payoff decided directly, the rest bucketed by `days360(nextduedate, dataasof)`.
+- **`group`** (C/D30/D60/D90/D120P/FCL/REO/P) is computed by `CREATE_FCL_RELATE_ATTR` ([`basic_data_pool_config.py:1695-1771`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1695-1771)) from `newrez.portnewrezgeneral.delinquency_status_mba`, `carrington.portcarrington.loan_status`, etc.; FCL/REO/Full Payoff decided directly, the rest bucketed by `days360(nextduedate, dataasof)`.
 - **`judicial`** (Y/N): takes source `fc.judicial` (1→Y, 0→N), else falls back to `port.basic_data_judicial_config` (joined on property state).
-- Stage dates come from `tempfc.current_fcl_business_1_temp` and sibling temp tables, finally inserted into `port.fcl_stage_info` by `GEN_FCL_STAGE` (it does `delete ... where fctrdt = today` then `insert`, see `basic_data_pool_config.py:2341-2344`).
+- Stage dates come from `tempfc.current_fcl_business_1_temp` and sibling temp tables, finally inserted into `port.fcl_stage_info` by `GEN_FCL_STAGE` (it does `delete ... where fctrdt = today` then `insert`, see [`basic_data_pool_config.py:2341-2344`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2341-2344)).
 
 ```
 L1 newrez.portnewrezfc / portnewrezgeneral …   (source: daily snapshots)
@@ -89,7 +89,7 @@ L5 bpms.sync_fcl_stage_info  ←  agg-summary Stage / Time Line read from here
 | **Stage tab** | each stage's `*_stage_days` / `*_in_lm_days` / `*_on_hold_days` + `stage` | which stage the loan currently sits in, and time spent per stage (with LM/Hold carve-outs) |
 | **Overview summary** | aggregate counts over `servicer` / `group` / `judicial` | per-servicer Loan Count, FC, D120P, Judicial/Non-Judicial counts |
 
-- **Days in Stage** ≈ `datediff(stage_start, stage_end or today) + 1`; `*_in_lm_days` / `*_on_hold_days` are day carve-outs while the loan was in LM / Hold during that stage (see doc 21 stage system).
+- **Days in Stage** ≈ `datediff(stage_start, stage_end or today) + 1`; `*_in_lm_days` / `*_on_hold_days` are day carve-outs while the loan was in LM / Hold during that stage (see doc 27 stage system).
 - These are **not three tables** — they are different projections/aggregations of `sync_fcl_stage_info` (latest snapshot).
 
 ---

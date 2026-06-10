@@ -24,7 +24,7 @@
 | 2026-05-26 | AI Agent（Claude Sonnet 4.6） | v3 | 所有 MySQL 目标表名统一改为 `schema.table` 格式；经 MCP 确认：`sync_*` 表 → `bpms` schema，`basic_data_loan_foreclosure` → MySQL `port` schema | — |
 | 2026-05-26 | AI Agent（Claude Sonnet 4.6） | v4 | 新增 Section 14：BPS MySQL FCL 表完整结构（bpms_dev，MCP 实测）——含 5 张表全部列名/类型/默认值；首次文档化 `bpms_dev.sync_loan_foreclosure`（72 列，BPS 主 FCL 应用表，不在 SYNC_TABLE_MAP 中）；Section 12 新增补充说明；Section 13 汇总补注 | doc 13 v2 |
 | 2026-05-28 | AI Agent（Claude Sonnet 4.6） | v5 | 新增 Section 15：`port.basic_data_loan_fcl` 中已归一化但未进 BPS 的 4 个字段（`fcjudgment_end_date` / `titleordereddate` / `jr_sr_lien_flag` / `activejnrlienfcflag`）及其设计意图；以 ETL 代码（`basic_data_pool_config.py` 第 1539–1570 行）为依据 | doc 13 v21 |
-| 2026-05-28 | AI Agent（Claude Sonnet 4.6） | v6 | Section 14.0 全面更正：补全两步写入机制（`sync_to_mysql` + `update_to_mysql(UPDATE_FORECLOSURE)`）；纠正"独立机制"错误推断——两张表是同一 `5-FORECLOSURE` 管道的中转层与落地层；字段级 MCP 差异原因重新解释为数据刷新延迟；`create_time`/`update_time` NULL 原因确认为 ON DUPLICATE KEY UPDATE 子句未包含这两列 | `df_db_util.py:675,702`、`asset_managment_config.py:647,746` |
+| 2026-05-28 | AI Agent（Claude Sonnet 4.6） | v6 | Section 14.0 全面更正：补全两步写入机制（`sync_to_mysql` + `update_to_mysql(UPDATE_FORECLOSURE)`）；纠正"独立机制"错误推断——两张表是同一 `5-FORECLOSURE` 管道的中转层与落地层；字段级 MCP 差异原因重新解释为数据刷新延迟；`create_time`/`update_time` NULL 原因确认为 ON DUPLICATE KEY UPDATE 子句未包含这两列 | [`df_db_util.py:675,702`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/util/df_db_util.py#L675)、[`asset_managment_config.py:647,746`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L647) |
 
 ## 依赖文件
 
@@ -558,7 +558,7 @@ def get_sync_df(sync_choice='0-ALL', ...):
 
 ### 表 1 — `port.basic_data_loan_foreclosure`（47 个字段）
 
-**同步选项**：`5-FORECLOSURE` | **SQL**：`GEN_FORECLOSURE`（asset_managment_config.py:535–608）  
+**同步选项**：`5-FORECLOSURE` | **SQL**：`GEN_FORECLOSURE`（[asset_managment_config.py:535](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L535)–608）  
 **Redshift 来源**：`port.basic_data_loan_foreclosure` JOIN `port.portfunding`  
 **行过滤**：`timeline_referred_to_foreclosure_date IS NOT NULL`（仅已进入 FCL 转介的贷款）
 
@@ -619,7 +619,7 @@ def get_sync_df(sync_choice='0-ALL', ...):
 
 ### 表 2 — `bpms.sync_loan_foreclosure_loss_mitigation`（13 个字段）
 
-**同步选项**：`8-FORECLOSURE_LM` | **SQL**：`GEN_FORECLOSURE_LM`（asset_managment_config.py:799–819）  
+**同步选项**：`8-FORECLOSURE_LM` | **SQL**：`GEN_FORECLOSURE_LM`（[asset_managment_config.py:799](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L799)–819）  
 **Redshift 来源**：`port.basic_data_loan_foreclosure_loss_mitigation` JOIN `port.portfunding`
 
 | 字段 | 说明 |
@@ -642,7 +642,7 @@ def get_sync_df(sync_choice='0-ALL', ...):
 
 ### 表 3 — `bpms.sync_loan_foreclosure_bankruptcy`（13 个字段）
 
-**同步选项**：`9-FORECLOSURE_BK` | **SQL**：`GEN_FORECLOSURE_BK`（asset_managment_config.py:822–843）  
+**同步选项**：`9-FORECLOSURE_BK` | **SQL**：`GEN_FORECLOSURE_BK`（[asset_managment_config.py:822](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L822)–843）  
 **Redshift 来源**：`port.basic_data_loan_foreclosure_bankruptcy` JOIN `port.portfunding`
 
 | 字段 | 说明 |
@@ -665,7 +665,7 @@ def get_sync_df(sync_choice='0-ALL', ...):
 
 ### 表 4 — `bpms.sync_loan_foreclosure_hold`（6 个字段）
 
-**同步选项**：`10-FORECLOSURE_HOLD` | **SQL**：`GEN_FORECLOSURE_HOLD`（asset_managment_config.py:847–894）  
+**同步选项**：`10-FORECLOSURE_HOLD` | **SQL**：`GEN_FORECLOSURE_HOLD`（[asset_managment_config.py:847](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L847)–894）  
 **Redshift 来源**：`port.basic_data_loan_foreclosure_hold` JOIN `port.portfunding`
 
 > **数据转换**：源表以**宽格式**存储最多 3 条 hold 记录（列名：`description1`、`description1_start_date`、`description1_end_date`、`description2`、…、`description3_end_date`）。
@@ -734,9 +734,9 @@ def get_sync_df(sync_choice='0-ALL', ...):
 | `sync_loan_foreclosure_bankruptcy` | bpms_dev | 22 | Bankruptcy | choice 9（13 业务列） |
 | `sync_fcl_stage_info` | bpms_dev | 57 | Days in Stage / LM / Hold | choice 12（48 业务列） |
 
-> **写入机制（代码实证）**：`bpms_dev.sync_loan_foreclosure` 是 `5-FORECLOSURE` 同步的**最终落地表**，经由两步写入（`df_db_util.py:664–726`）：
+> **写入机制（代码实证）**：`bpms_dev.sync_loan_foreclosure` 是 `5-FORECLOSURE` 同步的**最终落地表**，经由两步写入（[`df_db_util.py:664–726`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/util/df_db_util.py#L664)）：
 > 1. `sync_to_mysql()` — 将 Redshift 查询结果 clear + append 写入 **MySQL `port.basic_data_loan_foreclosure`**（中转层，line 675 强制指定 `database='port'`）
-> 2. `update_to_mysql()` — 立即执行 `UPDATE_FORECLOSURE` SQL（`asset_managment_config.py:644`）：`INSERT INTO bpms_dev.sync_loan_foreclosure ... SELECT FROM port.basic_data_loan_foreclosure ... ON DUPLICATE KEY UPDATE`
+> 2. `update_to_mysql()` — 立即执行 `UPDATE_FORECLOSURE` SQL（[`asset_managment_config.py:644`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L644)）：`INSERT INTO bpms_dev.sync_loan_foreclosure ... SELECT FROM port.basic_data_loan_foreclosure ... ON DUPLICATE KEY UPDATE`
 >
 > 因此完整链路为：**Redshift `port.basic_data_loan_foreclosure` → MySQL `port.basic_data_loan_foreclosure`（中转）→ `bpms_dev.sync_loan_foreclosure`（落地）**
 

@@ -1,5 +1,108 @@
 # Prompt & Decision Log — ForeclosureRule2
 
+## [2026-06-10 UTC] 继续开发 ForeclosureRule2 项目
+> 我要继续开发 C:\Users\jli\MyData\Copilot\ForeclosureRule2 项目
+
+## [2026-06-10 UTC] 如何触发使用 excel-pipeline-lineage skill
+> 那这个skill，我如何触发使用呢？
+
+## [2026-06-10 UTC] 让 doc 14 人工列保护测试能跑（原依赖已删，重做为自包含自检）
+> 这个是不是我之前要求的 excel中标题带有【人工】的列，就不能删除，因为这是我需要手工编辑的列，我想让它能跑
+>
+> （追加）请把这个规则也加入skill : excel中标题带有【人工】两个字的列，就不能删除，因为这是我需要手工编辑的列
+
+### Milestone: doc 14 人工列保护测试重做为自包含自检 + 规则写入 skill [2026-06-10]
+- 探明：端点安全只拦 `python 文件.py` 调用，**不拦** python `open()` 读 .py、也不拦 `python - < 文件.py`（实测 open scripts/*.py READ OK）。故测试保留 .py、经 stdin 跑。
+- 原 `scripts/_test_doc14_manual_guard.py` 三处依赖全断（`_excel_guard` 模块缺失 + 它要跑的 `add_field_spec_verify_sql`/`run_verify_sql_results` 两写表脚本均已删 + 用 __file__/subprocess/importlib 触端点安全）。**重做为自包含守卫自检**：`exec(open(skill toolkit.txt).read())` 加载守卫；对 live `docs/14_servicer_fcl_field_spec.xlsx` 只读（操作临时副本）；用 `manual_cols/assert_safe/col_by_header/sheet_has_manual` 验证人工列被识别且写入被拦/定位被跳过。
+- 工具箱新增 `manual_cols(ws)`（前 3 行任一含「人工」即人工列）。
+- **运行通过**（`python - < scripts/_test_doc14_manual_guard.py`）：检出 doc 14 三个人工列 P「人工-Newrez验证结果」/Q「人工-BPS表验证」/R「人工-BPS表验证查询结果」，三守卫全 ✅ → PASS。
+- **规则写入 skill**：SKILL.md 硬性规则 #1 改写为以用户原话打头「Excel 中表头含「人工」两字的列是用户手工编辑列，绝不删除/覆盖/移动（含批注）」，并列守卫函数 + 指向本自检；工具箱清单补 `manual_cols`。
+- 全程对 live 文件只读、未触数据库。
+
+## [2026-06-10 UTC] 只读审计 CLAUDE.md 引用的脚本/文件是否都还在，清理悬挂引用
+> 好，请执行 单独做一次「CLAUDE.md 引用的脚本是否都还在」的只读审计，把所有悬挂引用一次清干净
+
+### Milestone: CLAUDE.md 文件引用审计 + 悬挂引用清理 [2026-06-10]
+- 提取 CLAUDE.md 全部文件/脚本引用并逐一 `test -e` 核实（只读）。
+- **存在(OK)**：prompt.md、.mcp.json、docs/14_servicer_fcl_field_spec.xlsx、docs/zh|en/14_bps_driven_servicer_fcl_interface.md、outputs/enrich_doc19_table_meta.txt、outputs/fcl_table_meta.json、scripts/build_fcl_field_lineage_xlsx.py、.claude/skills/excel-pipeline-lineage/{SKILL.md,references/toolkit.txt,archetypes.md,data_model.md}。
+- **缺失(已清理)**：① `scripts/_excel_guard.py`（上一里程碑已改指向 skill toolkit）；② `scripts/sync_fieldspec_excel_to_md.py`、③ `scripts/sync_fieldspec_en_cards.py`——doc 14 MD⇄Excel 同步规则 §2/§3 原写「必须运行/重跑」这两脚本，全仓 find 确认无 .py/.txt/改名变体；已改写为「生成器已不在仓库 + 重建前手工同步 / 用 skill excel-pipeline-lineage archetype C 重做」，保留规则意图、去除死引用。
+- 规则本身（Excel=单一真源、Excel⇄zh/en MD 必须一致、先 DB 实测）保留不变。
+- **旁注（非 CLAUDE.md 引用，未改）**：`scripts/_test_doc14_manual_guard.py` 仍 `from _excel_guard import ...`，因该模块缺失会 import 失败；如需可后续单独修（改为内联守卫或指向 skill toolkit）。
+- 全程只读审计 + 仅改 CLAUDE.md 文本；未触数据库/其它文件。
+
+## [2026-06-10 UTC] 更新整理 CLAUDE.md
+> 好的，请更新整理一下 claude.md
+
+### Milestone: CLAUDE.md 按本会话学习更新（revise-claude-md skill）[2026-06-10]
+- 仅一个项目 CLAUDE.md（`./CLAUDE.md`）；无 .claude.local.md；`.mcp.json` 已 gitignore。
+- 三处编辑：① Excel 人工列规则 §3-4 修正悬挂引用——`scripts/_excel_guard.py`(实不存在) → 指向新 skill 工具箱 `.claude/skills/excel-pipeline-lineage/references/toolkit.txt`(col_by_header/assert_safe/sheet_has_manual，exec 加载勿 import)；② 新增小节「生成 Excel 优先用 skill excel-pipeline-lineage」(含黄金参考 enrich_doc19_table_meta.txt / build_fcl_field_lineage_xlsx.py + 内容JSON/排版分离/幂等)；③ Python 执行限制 section 加两条环境陷阱：Bash 默认 cwd 是父目录 Copilot 非项目根(需先 cd)、内联 python 打印中文/圈号前 utf8 reconfigure。
+- 均为团队共享(无个人/local 项)；保守范围，未改动其它 script 引用（如 doc14 sync 脚本未核实存在性，留待单独审计）。
+
+## [2026-06-10 UTC] 创建本项目专用「生成 Excel」skill（pipeline/血缘/字段mapping 展示）
+> 好的，请帮我做一个服务于本项目，适合展示pipeline, 数据血缘，字段mapping rule 的生成excel的skill
+
+### Decision: skill 形态——可 exec 加载的 toolkit.txt（非 import 模块）+ .claude/skills/ [2026-06-10]
+- **Context**: 端点安全禁止解释器读取用户目录下 .py（import 会失败，`_excel_guard.py` 正因此被各脚本内联）。skill 需可复用 openpyxl 构建块。
+- **Options**: A=做 importable `_excel_guard.py` 模块；B=做 `toolkit.txt`，生成器用 `exec(open(...).read())` 加载。
+- **Choice**: B；skill 放 Claude Code 约定的 `.claude/skills/`（非 brgdata 用的 `.github/skills`）。
+- **Reason**: .txt 经 open() 读取不受 .py 拦截；exec 加载等价于「无需复制粘贴的内联」，既复用又合规。`.github/skills` 是别的工具约定，本环境 Claude Code 发现 `.claude/skills/`。
+
+### Milestone: 新建项目级 skill `excel-pipeline-lineage` [2026-06-10]
+- 位置 `ForeclosureRule2/.claude/skills/excel-pipeline-lineage/`（项目首个 skill），4 个文件：
+  - `SKILL.md`：frontmatter(name+触发词 description) + 何时用/硬性规则(人工守卫·stdin·幂等·按表头定位·内容排版分离·DB只读)/标准工作流/工具箱/三档案/活参考/反例。
+  - `references/toolkit.txt`：**可 `exec(open().read())` 加载**的构建块——配色常量(DARK/MID/LIGHT/GREY)、字体/边框/对齐、人工守卫(sheet_has_manual/col_by_header/assert_safe)、排版助手(style_header_row/fill_data_rows/autoheight/write_block 带 START-END 幂等/strip_blocks/build_overview_sheet 含人工检查+freeze)、utf8_stdout。
+  - `references/archetypes.md`：三种可运行骨架——A pipeline/层级总览、B 数据血缘(B-1 实体血缘块 + B-2 字段级矩阵)、C 字段 mapping rule(就地更新+人工保护)。
+  - `references/data_model.md`：单一真源 JSON schema(实体级+字段级) + 规则提醒。
+- 提炼自既有黄金参考 `outputs/enrich_doc19_table_meta.txt` + `scripts/build_fcl_field_lineage_xlsx.py` + `outputs/fcl_table_meta.json`，并在 SKILL.md 直接链接它们作「活参考」。
+- **冒烟测试通过**（exec 加载 toolkit → 建 demo xlsx → 回读）：总览表头/2 数据行/freeze=C3 正确；write_block 写入含 START 标记 + pipeline-role 行；人工守卫 sheet_has_manual True/False 正确、col_by_header 跳过人工列返回 None、build_overview_sheet 对人工 sheet 抛 RuntimeError 拒绝重建。临时文件已删。
+- 未做：不建可 import 的 `_excel_guard.py`（端点安全下形同死代码）；未改任何既有生成器/文档/数据库。
+- /simplify：纯新增 skill 资产、无既有代码改动，不适用；冒烟测试即为功能验证。
+
+## [2026-06-10 UTC] 询问是否有较好的生成 Excel 的 skill
+> 你有生成excle比较好的skill吗？
+
+## [2026-06-10 UTC] doc 19 Excel：⓪总览 + 每个表 sheet 都补「业务说明/业务目的/pipeline作用/为何存在」
+> foreclosurerule2项目，doc 19 ,excel ,⓪ 表说明与全链路血缘 sheet页，和每个表 sheet页，都加上该表的 业务说明/业务目的/在pipeline中的作用，为什么会有这个张表
+>
+> （追加）md 19也要同步修改
+
+### Decision: 新增 pipeline_role 字段 + 拆分业务说明/目的（用户拍板）[2026-06-10]
+- **Context**: 用户要 doc 19 ⓪总览 + 各表 sheet 显式带 4 项：业务说明/业务目的/在pipeline中的作用/为什么会有这张表。fcl_table_meta.json 已有 business_meaning/purpose/why_pipeline/layer/上下游，但 Excel 把含义+目的合并一格、且无专门「pipeline 作用」字段。
+- **Options**: A=新增专门 pipeline_role 字段 + 拆分含义/目的；B=复用 layer+上下游当 pipeline 作用、保持合并。
+- **Choice**: A（AskUserQuestion 两问用户均选推荐项）。
+- **Reason**: 用户明确列了 4 个独立项，需做成独立标注；pipeline_role 与 business_purpose/why_pipeline 角度不同（角色 vs 业务价值 vs 设计原因），不冗余。
+
+### Milestone: doc 19 ⓪总览+各表 sheet+MD 显式补 4 项业务框架 [2026-06-10]（doc19→v9）
+- ① 单一真源 `outputs/fcl_table_meta.json`：23 张表各加 `pipeline_role`（在 pipeline 中的作用，锚定 layer+上下游位置），`_meta.version`→v3。经 round-trip（ensure_ascii=False,indent=2）写回，23 表全有该字段。
+- ② 幂等生成器 `outputs/enrich_doc19_table_meta.txt`：`block_rows`+`md_block` 重排——业务含义/目的合并行**拆成**「业务说明」「业务目的」两行、**新增**「在 pipeline 中的作用」行、「为什么这样处理」**改标签**「为什么会有这张表」；⓪ overview `H[]`/`vals[]`/列宽扩为 13 列（含上述 4 项）；加 v9 MD 修订行 + ① 索引 B7 幂等 v9 说明。保留人工守卫/START-END 幂等清理/查询SQL锚点。
+- ③ 内联运行（`python - < outputs/enrich_doc19_table_meta.txt`，stdin 不读用户目录 .py）：**连跑两次输出一致**（MD blocks 23 / sheets enriched 23 / overview rows 23 / skipped(人工) [] / total sheets 26）→ 幂等。
+- 验证：openpyxl 只读核对 ⓪ 13 列含 4 项业务框架、23 行数据各列对位正确；抽查表 sheet 块含 4 项独立标注行；MD grep 确认 4 标签各 23 次 + v9 行 + 块内「在 pipeline 中的作用」渲染正确。doc 19 无 en 镜像（zh-only），无需同步 en。全程未连数据库；无 人工 sheet（守卫在）。一次性 .bak 验证后已删。
+- /simplify：本轮为生成器小幅 reorder + 字段增列、无新增复杂度，沿用既往判断不单独跑；双跑幂等即为有效回归测试。
+
+## [2026-06-09 UTC] 给 daily_data_loan_common_config.py 加中文注释（同 portdaily_config 风格）
+> 请给左边的代码加上注释（daily_data_loan_common_config.py）
+
+### Milestone: daily_data_loan_common_config.py 加中文教学注释（仅注释，零逻辑改动）[2026-06-09]
+- 文件：`PrefectFlow\flow\basic_data\transfer_daily_data_config\daily_data_loan_common_config.py`（生成 L2 表 port.basic_data_daily_loan_common；执行器是 gen_daily_data_loan_common_flow.py）。
+- 加了：① 顶部模块 docstring（同 portdaily 风格：SQL 菜谱式 config + 4 个 Python 概念 + 本文件结构 = 1 CREATE + 5 个独立 GEN 常量；强调本层只搬运原始 delq_status、分桶在 L3 clean）；② CREATE 表块注释（列类型/ENCODE/DISTSTYLE 说明，初学者可忽略压缩项）；③ 5 段 servicer 各加 `#` 块注释（SLS/Newrez/Carrington/Selene/MRC，各自 JOIN 结构与特点）；④ 关键转换行 `--` 注释：delq_status 来源(MBA口径)、escrow 正负拆两列、Newrez 递延本金随日期变口径、编码→说明字典翻译。
+- 安全性：模块头为普通三引号（非 f-string，内含 `{REDSHIFT_PORT}` 为字面量）；`#` 注释在串外、`--` 注释在 f''' 内且不含 `{`/`}`；docstring 第 1 行开/第 41 行闭，import 第 43 行，6 个常量(CREATE+5 GEN)结构完好，未破坏 f-string、未改任何 SQL/逻辑。
+- 校验限制同上（端点安全禁解释器读用户目录 .py，无法本地 py_compile）；以人工核对 + grep 结构验证 + Pylance 无报错确认。
+- `/simplify`/测试不适用（纯注释、无逻辑改动）。
+
+## [2026-06-09 UTC] L2 表 port.basic_data_daily_loan_common 由哪个 py 生成？看字段转换规则
+> pipeline lay2的 port.basic_data_daily_loan_common 是通过哪个py程序生成的？好像不是 portdaily_config.py，我想看一下字段的生成转换规则
+
+## [2026-06-09 UTC] 给 PrefectFlow/portdaily_config.py 加中文注释（面向 PM/Python 初学者）
+> （IDE 打开了 PrefectFlow\flow\servicer_data\sericer_data_config\portdaily_config.py）请给左边的代码做注释，我是一位 产品经理，是python初学者
+> 注：被注释文件在 PrefectFlow（源系统），非本文档项目；只加注释、绝不改任何 SQL/逻辑。
+
+### Milestone: portdaily_config.py 加中文教学注释（仅注释，零逻辑改动）[2026-06-09]
+- 文件：`PrefectFlow\flow\servicer_data\sericer_data_config\portdaily_config.py`（源系统，非本 docs 项目）。
+- 加了：① 顶部模块 docstring——讲清「这是 SQL 菜谱式 config」+ 4 个 Python 概念（import / 赋值 / f-string 三引号 / 常量）+ 三段 SQL 总览 + 核心 delinq 规则预告；② 三段 SQL（GET_DAILY_DATE_TABLE / GEN_PORTDAILY_v2 / GEN_PORTDAILY_CLEAN）各加 Python `#` 块注释（作用/读法/产出）；③ 关键业务逻辑行加 `--` SQL 注释：Newrez delinq 分桶（FCL/REO/P + days360 桶 + 「天数算不出 FCL」）、bankruptcy 标记、P&I 等额本息公式、fctrdt 算法、Carrington/SLS delinq 差异、5 家 insert 段落标题、末尾去重 delete。
+- 安全性：模块头是普通三引号（非 f-string，内含 `{REDSHIFT_PORT}` 为字面量，安全）；所有 `#` 注释在字符串外、所有 `--` 注释在 f''' 内且不含 `{`/`}`，故未破坏 f-string、未改任何 SQL/逻辑。docstring 第 1 行开、第 48 行闭，import 在第 50 行，结构合法。
+- 校验限制：端点安全禁止解释器读取用户目录下 .py，无法本地 `python -m py_compile`；改以人工核对 + Pylance 诊断无报错确认。
+- `/simplify`/测试不适用（纯注释、无代码逻辑改动）。
+
 ## [2026-06-09 UTC] 把五章破产法 taxonomy + 官方 URL 同步到所有相关文档，保持一致
 > 好的，请把所有文档保持一致
 
@@ -2509,3 +2612,216 @@
 
 ## [2026-06-09 01:17 UTC] git push (HTML 系列改动)
 > OK , git push
+
+### Decision: stage 字段「只列代码」→ 补逻辑+举例，并 Code-First 校正错误跳规则 [2026-06-09]
+- **Context**: 用户指出 doc26–30 部分字段转换逻辑只列代码（如 noi_end_date 跳3「stage window end = next stage start / curr_date 见 sql」），无逻辑说明、无举例。
+- **Options considered**: (A) 仅补散文说明；(B) 补说明+真实数据举例，多分支多例，并按 SQL 投影校正不准确的跳规则。
+- **Choice**: B。
+- **Reason**: 阅读 PrefectFlow 投影（pool:2344-2396）发现旧跳规则对多列**不准确**（demand_end=催告到期日透传、referral/first_legal/service_end=下一阶段开始、judgement/sale/noi/publication=NULL），且 to_judgement/to_sale 示例为复制错误（值 15 应为 14）。Code-First 校正 + 真实 prod 举例（read-only MCP）才能写"清楚"。
+
+### Milestone: doc 27 stage 字段补完整逻辑说明+举例 + 跳规则 Code-First 校正 [2026-06-09]
+- **改动**：脚本 `scripts/_add_logic_examples.js`（幂等，node）对 sync_fcl_stage_info 的 22 个 stage 字段：① 6 个 start_date 写明"透传来源里程碑列"+真实例；② demand_end_date 改为"催告到期日 demandexpirationdate 透传（非下一阶段）"+例；③ referral/first_legal/service_end_date 写明"= 下一阶段开始日；未到则 NULL"+双分支真实例（700082880000091 已到 / 700082700000033 仍在 REFERRAL）；④ noi/publication/judgement/sale 各 end+days 标 NULL-by-design note（prod 实测 0 违例）；⑤ first_legal_date_history 标"首见追踪，prod 全 NULL"；⑥ to_judgement_days/to_sale_days 修正错误示例（共用复制文案、值 15→14）改为 3 分支（未来/过去/无）；⑦ stage 7 路 CASE 瀑布加 4 桶真实例；⑧ 8 个 end_date 的业务含义行同步校正。
+- **Code-First 依据**：business_1 CTE pool:2037-2102 + 投影 pool:2344-2396（judgement_end/sale_end 投影硬编码 null；referral_end=legal_start_date 等）。
+- **真实举例来源（MCP read-only, prod, fctrdt=今天）**：700082880000091/700082700000033/7727000357/7727001179/7727004408；NULL-by-design 经 `COUNT(*) violations=0` 实证。
+- **测试**：`scripts/test_lineage.js` 新增 2 检查（每计算字段有说明+例或 NULL note；多分支字段 ≥2 例）→ **22/22 通过**；生成器两跑 md5 一致（STABLE）；修订历史追加 v8。DB 全程只读，未推送。
+
+## [2026-06-09 00:00 UTC] 答疑：doc27 中 (CREATE_BASIC_FCL, pool:1531-1654) 是什么意思
+> 我是一个产品经理，python初学者，doc 27中的(CREATE_BASIC_FCL, pool:1531-1654)是什么意思？
+
+## [2026-06-09 00:00 UTC] 需求：把文档里的 [pool:...] 代码引用做成可点击链接
+> 这些代码引用 `[pool:...]` 能不能在文档里做成可点击的链接?
+
+> （澄清）我没有把代码提交到公司代码库的权限 → 改钉到已在远程的提交；链接到 fork jli/prefectflow
+
+### Decision: [pool:]/[asset:] 代码引用做成可点击 GitLab 链接 [2026-06-09]
+- **Context**: PM 希望文档里的代码引用可点击直达源码。
+- **Options considered**: (A) 内网 GitLab 在线代码；(B) 本地 VS Code vscode:// 链接；(C) 本地 file://。ref：固定 commit vs 默认分支。
+- **Choice**: A，链到 fork `jli/prefectflow`，钉到提交 `32a750a39c7eda989de991c47467979043e3d209`（=origin/main=upstream/main）。
+- **Reason**: 用户无权推公司库，但该提交已在远程且本地 pool/asset 两文件与之逐字节一致（`git diff` 无差异）→ 行号精确、永久稳定、无需推送。`[view]` 指数据库视图非文件，保留纯文字。令牌不入库，URL 用不含令牌的干净地址。
+
+### Milestone: 代码引用 [pool:]/[asset:] 做成可点击 GitLab 链接 [2026-06-09]
+- **改动**：生成器 `scripts/gen_fcl_lineage.py` 新增 `linkify()`（生成末尾对最终 markdown 跑一次，把 `[pool:NNN]`/`pool:NNN`、`[asset:NNN]` citation 变为 GitLab blob 链接），`_cite_url()`（取首段行号生成 `#L` 锚点，支持 `N` / `N-M` / `N-M,K` / `N/M`），`_legend_link()`（code legend 文件路径可点击）。链到 fork `jli/prefectflow`，钉提交 `32a750a3`（本地 pool/asset 两文件与之逐字节一致 → 行号精确稳定、无需推送）。`view` 为数据库视图，保留纯文字。
+- **覆盖位置**：逐跳血缘 `[pool:…]`、跳链表 role 里的 `(CREATE_BASIC_FCL, pool:1531-1654)`、sql_note 散文中的 `pool:…`、底部 code legend 文件路径——全部可点击。
+- **安全**：URL 用不含令牌的干净地址（origin remote 内嵌的 glpat 令牌未写入任何文件）。
+- **测试**：`scripts/test_lineage.js` 新增「每个 pool:/asset: citation 都是格式正确的 GitLab 链接（钉 40 位 commit + #L 锚点、无裸引用、无双重链接）」→ **23/23 通过**；12 篇文档两跑 md5 一致（STABLE）；修订历史追加 v9。已 /simplify（合并 `_anchor`→`_cite_url`、测试正则提取为常量）。DB 全程只读，未推送。
+
+## [2026-06-09 00:00 UTC] 把可点击代码链接推广到 doc 02 等手写文档 + doc21 引用更新为 doc25-30
+> （图：doc 02 里引用了已作废的 doc 21，问是否应更新成新链接 doc25~30）另外 ，把这套链接也加到 doc 02 等其它引用了 pool:/asset: 的文档
+
+### Decision: doc21 引用外科式重定向 [2026-06-09]
+- **Context**: doc 21 已被 doc 25–30 取代（顶部有弃用横幅，文件仍在）；其他文档里有指向 doc 21 的链接/引用。
+- **Choice**: 外科式——泛指"字段级血缘 → doc 21"的链接改指 doc 25（hub）/doc 25–30；§小节引用（§0.1/§5.4/§9#7 等，内容仅在 doc 21）与修订历史行保留指向 doc 21。
+- **Reason**: 25–30 是字段血缘的直接替代物；但部分 doc 21 小节内容（delinq CASE、ghost 列等）在 25–30 中不存在，全量替换会指向缺失内容。
+
+### Milestone: 手写文档代码引用可点击 + doc21 外科式重定向 [2026-06-09]
+- **代码链接**：新脚本 `scripts/linkify_pyrefs.py`（幂等，`python - < ` 运行）把手写文档里的 `<file>.py:行号` 引用做成可点击 GitLab 链接（fork jli/prefectflow，钉提交 32a750a3）。17 个被引文件名全部唯一解析到 PrefectFlow 真实路径，且与该提交逐字节一致（行号精确）。处理 18 篇文档共 **178 个引用**：含反引号代码段（整段包成 `[`...`](url)`）、带注释的多位置引用（如 `:17-48(RS)/52-84(MySQL)` 链到首位置）；跳过围栏代码块内(2)与"前缀标识符+引用"混合段(4)；幂等（二次运行 linked=0）。
+- **doc21 重定向**：泛指 `[doc 21](21_fcl_field_lineage.md)` 超链接(doc02/20 共 12 处)与 doc22 相关文档行 → doc 25–30 / doc 27；保留 §0.1 等小节引用与修订历史行(17 处)。
+- **安全/质量**：GitLab URL 不含令牌；首次脚本有幂等 bug（重包已链接段），已从 git 还原手写文档后修复并重跑；无双重链接。DB 未访问（只读规则不涉及）；未推送。
+
+## [2026-06-09 00:00 UTC] doc02 L2 port.basic_data_daily_loan_common 由哪个 py 生成 + 字段转换规则
+> doc 2 pipeline lay2的 port.basic_data_daily_loan_common 是通过哪个py程序生成的？好像不是 portdaily_config.py，我想看一下字段的生成转换规则
+
+### Decision: doc02 L1→L2 生成程序归属更正 [2026-06-10]
+- **Context**: PM 指出 doc02 §1 图把 L1→L2 只标 `portdaily_config.py`，怀疑 `basic_data_daily_loan_common` 并非它生成。
+- **Choice**: 按**表**归属——`portdaily_config.py`→`portdaily_v2`；`daily_data_loan_common_config.py`→`basic_data_daily_loan_common`（图与 §3.2 均更正）。
+- **Reason**: Code-First 实证：`daily_data_loan_common_config.py`（CREATE + 5 家 INSERT…SELECT，flow `gen_daily_data_loan_common_flow.py:17-48`）生成该表，文件 docstring 亦明示；`portdaily_config.py` 生成并行表 `portdaily_v2`。旧 §3.2 的 fcl_flag 映射误抄自 portdaily_v2（本表 SLS/Newrez fcl_flag 实为 NULL）。
+
+### Milestone: doc02 修正 L1→L2 归属 + 补 basic_data_daily_loan_common 字段转换规则 [2026-06-10]
+- **图（§1）**：zh+en L1→L2、L2→L3 箭头改为按表标注生成配置（doc20:178 已是此式，doc02 此前为唯一 outlier）。
+- **§3.2 重写**：5 家 servicer（SLS/Newrez/Carrington/Selene/MRC）来源 L1 表 + INSERT 代码行号（可点击），代表性字段映射表（svcloanid/nextduedate/principalbalance/interest_rate/delq_status/fcl_flag/lm_flag 的各家来源表达式），并列要点：delq_status 仅透传(分桶在 L3)、SLS/Newrez fcl_flag=NULL、SLS `<'2024-07-05'` 切换、Newrez 递延本金时间相关 CASE。全部 Code-First 实测自 `daily_data_loan_common_config.py`（SLS 152-248 / Newrez 258-388 / Carrington 389-472 / Selene 480-564 / MRC 573-660）。
+- **链接**：重跑 `linkify_pyrefs.py` → doc02 新增 12 个可点击引用；幂等（再跑 linked=0/already=190）。
+- doc02 修订历史 +v6（zh/en）。DB 全程只读，未推送。
+
+## [2026-06-10 00:00 UTC] 答疑：L4 basic_data_loan_foreclosure vs basic_data_loan_fcl 主题/作用/是否重复/关系
+> lay 4中 ，port.basic_data_loan_foreclosure 和 port.basic_data_loan_fcl 各自是什么主题？什么作用？他们是不是重复了？他们有什么关系？
+
+### Milestone: fcl(事实中枢) vs foreclosure(BPS投影) 澄清 + 4方案 HTML demo [2026-06-10]
+- **doc 02**：§5.2 新增「事实中枢 vs BPS 投影」说明块（zh+en）：fcl=三家UNION/全历史/喂7张表(pool:1658)、foreclosure=取最新快照+里程碑的BPS投影(pool:287-304)、关系链、命名提醒；新增引用已 linkify。doc02 §1 图 + 修订历史本轮稍早已更新（v6）。
+- **doc 25**：JSON 加 `meta.fcl_fact_note`（用 pool: 简写→生成器自动链接），`gen_hub` 渲染为「FCL 事实中枢 vs BPS 投影」小节；regenerate；修订历史 v10；test 23/23、md5 STABLE。
+- **HTML**：新建独立 demo `outputs/fcl_fact_vs_projection_demo.html`，同一关系 4 种呈现（A 抽屉数据/修正up-down · B 缩进分组 · C 顶部callout · D 抽屉内嵌小图），各标成本/效果，供用户挑选后再接入生产 `fcl_pipeline.html`（**本次未改生产 HTML**）。
+- DB 未访问（只读规则不涉及）；未推送。生成器改动仅 5 行加法、已验证输出，未单独跑 /simplify。
+
+## [2026-06-10 00:00 UTC] fcl_pipeline.html 接入方案D（抽屉关系小图）+ 修正 L4 up 误标 clean daily
+> 选择方案D，请一并把你发现的问题改准（ fcl_pipeline.html 的 L4 节点目前 up 多标成 clean daily）
+
+### Milestone: fcl_pipeline.html 接入方案D + 修正 L4 up 误标 + 更正 fcl 派生范围 [2026-06-10]
+- **方案D（生产 HTML）**：`outputs/fcl_pipeline.html` 新增 `famDiagram()`，点击任一 FCL 业务族节点 → 抽屉显示关系小图（temp→fcl(事实中枢)→{foreclosure→sync, fcl_stage_info→sync}；_hold/_bk/_lm/related 各自从原始表并行）。8 个 L4 FCL 节点加 `fam:true`。
+- **修正 up/down（Code-First 实证）**：fcl.up=temp_basic_data_fcl(三家UNION绕过L2/L3)、down=[foreclosure, fcl_stage_info]；foreclosure.up=basic_data_loan_fcl；fcl_stage_info.up=basic_data_loan_fcl(+fcl_related→group)；_hold.up=hold_detail(←portnewrezfc)；_bankruptcy.up=portnewrezbk；_loss_mitigation.up=portnewrezlm；fcl_related.up=portnewrezgeneral/liq；reo=另处维护。消除了原先一律 `up:'clean daily'` 的错误。
+- **更正过度声明**：上一轮我在 doc02 §5.2 与 doc25 误称「fcl 喂下游 7 张表」。实证（FROM 子句）只有 `basic_data_loan_foreclosure`(pool:288) 与 `fcl_stage_info`(pool:1788/2344) 派生自 fcl；_hold/_bankruptcy(portnewrezbk:365)/_loss_mitigation(portnewrezlm:833)/fcl_related(portnewrezgeneral:1697) 各自从原始 servicer 表并行构建。已更正 doc02(zh/en §5.2)、doc25(meta.fcl_fact_note + v10 文案)，重生成、test 23/23、md5 STABLE。
+- 移除已完成使命且含旧「7张」表述的对比 demo `outputs/fcl_fact_vs_projection_demo.html`。
+- HTML 的 <script> 通过 `new Function(js)` 解析校验无误；DB 未访问；未推送。
+
+## [2026-06-10 00:00 UTC] famDiagram 加到血缘图谱视图 + 答疑 BPS视图字段源为何是 BPS-internal
+> 可以，加到血缘图谱，另外，为什么血缘图谱中 BPS视图的数据源是BPS internal?
+
+### Milestone: famDiagram 加到血缘图谱视图 + 答疑 BPS-internal [2026-06-10]
+- **血缘图谱**：在 `selectField` 抽屉（点字段）也渲染 `famDiagram()`，与管道视图共用同一函数；两视图均可见 FCL 事实中枢 vs BPS 投影小图。JS `new Function` 解析通过。
+- **答疑（无需改代码）**：BPS 视图的 `actual_*`/`var_*` 列源显示「ETL / BPS-internal」是**设计如此**——它们由视图内部计算（actual=按 sync_loan_foreclosure.timeline_* 的 datediff；var=actual−target），**没有任何 servicer 原始列直接映射**，故归入合成源节点 `__DERIVE__`（与 `config/ETL const`、`no servicer source` 并列）。点该字段抽屉可见 rDerive 注「视图按 timeline_* 计算」。
+- 未改生产数据/库；未推送。
+
+## [2026-06-10 00:00 UTC] 异常退出后继续：核实 famDiagram 已加到血缘图谱 + 是否改 BPS-internal 标签
+> 你刚才异常退出了，请继续未完成的工作： 两件都好了。（用户回贴了我上一轮的总结，未对结尾"是否把 BPS-internal 标签改成『视图计算（来自 timeline_*/target）』"作答）
+
+### Milestone: __DERIVE__ 合成源节点标签从 "ETL / BPS-internal" 改为 "computed in ETL/view" [2026-06-10]
+- **改动**：`outputs/fcl_pipeline.html` 4 处：legend `GNOTE_OLAB`(L976)、tooltip `ORIGIN_TIP`(L1620)、双语 gloss `GLOSS.__DERIVE__`(L1645)、图内节点 `olab`(L1698)。新文案：节点小字 `computed in ETL/view`；tooltip `computed in ETL or BPS view (no servicer source — see the rDerive hop for the exact formula)`；双语 gloss 改成「派生计算（ETL 或视图）：由 ETL 流程或 BPS 视图按上游列计算得到（如视图按 timeline_* 做 datediff 得 actual_*_days），servicer 不直接提供；公式见该字段抽屉的 rDerive 那一跳」。
+- **范围抉择**：用户随口举的「视图计算（来自 timeline_*/target）」过窄——__DERIVE__ 不只是 view 的 actual_/var_，还覆盖 ETL 计算的 hold(L1132)、stage 天数(L1254-1260)、tl_group(L1270) 等。新标签用 "ETL/view" 双词覆盖两类。
+- **未动**：bid_approval_* 4 个字段的"BPS 内部列"散文(L1135-1138)是字段级精确描述（这些列 BPS DDL 有、FCL ETL 不写、prod 0% 实证），不是误导性伞型标签——保留。同理 hold 字段 rDerive hop 的 `BPS 内部工作流`(L1132)也是字段精确，不动。
+- **验证**：`new Function` 解析整 `<script>` 通过；4 处新文案 grep 命中。HTML 由手维护（gen 脚本已删，git status 中 D），故直接编辑成品。DB 未访问；未推送。
+
+## [2026-06-10 06:40 UTC] 统计数据标注口径+数据日期+SQL
+> doc 2 中统计记录数/占比的统计方法是什么？历史所有数据日期还是某个数据日期？请给统计数据注释统计方法&所用 SQL
+
+## [2026-06-10 06:51 UTC] 明确用 prod + 补 doc02 §5.4 数据日期 + 全套文档数据日期声明
+> html/doc2 用的是 dev 吗？请用 prod 查询，全套文档数据日期对齐，看 doc19 是哪个数据日期
+
+## [2026-06-10 00:00 UTC] lineage tab 改了什么
+> lineage tab页，你改了什么？
+
+## [2026-06-10 00:00 UTC] 视图上游建模不一致——按 prefect 代码实证
+> 有关生成视图的逻辑，我还是不明白，doc 19 excel中写视图的上层是这些表啊，有歧义的话，请通过验证prefect代码来确认：{ bpms.sync_loan_foreclosure + bpms.sync_fcl_stage_info + bpms.sync_loan_foreclosure_hold + bpms.sync_loan_foreclosure_loss_mitigation + bpms.sync_loan_foreclosure_bankruptcy } → 视图(LEFT JOIN，104 列)
+
+## [2026-06-10 00:00 UTC] 另一 session 在改 doc 19
+> 我有一个claude code session在修改 doc 19
+
+## [2026-06-10 00:00 UTC] var 累计逻辑用哪种讲法最清楚
+> 哪种方法会把逻辑说得清楚一些？你还可以使用数学公式，可以使用多种方法把逻辑说清楚，可以举例说明
+
+### Decision: lineage HTML 修 actual_/var_ 建模 Code-First 校正 [2026-06-10]
+- **Context**: 用户血缘图谱抽屉显示 actual_first_legal_days 源是 `__DERIVE__` 合成节点，与 doc 19 标的 5-sync-表说法矛盾。Code-First 通过 MCP 实证视图 DDL（information_schema.views），实际 FROM 是 sync_portmonth + sync_loan_foreclosure 两张表，actual=TO_DAYS(timeline)−TO_DAYS(nextduedate)，var=actual−Σ累计 target（非简单减）。
+- **Options**: (A) 改 HTML+JSON+doc 19；(B) 仅改 HTML（doc 19 由另 session 改）；(C) 仅修文案不修建模
+- **Choice**: B。
+- **Reason**: 用户告知另一 session 在改 doc 19，避免冲突；JSON 改动影响 doc 25-30 也涉及他人 session，本次不动。HTML 自身可独立改且对用户血缘图谱直观体验影响最大。var_ 表述按用户选「公式+举例」；sync_portmonth 按「完整溯源」建到 Newrez。
+
+### Milestone: 血缘图谱 actual_/var_*_days 建模 Code-First 重做 [2026-06-10]
+- **背景/触发**：用户在血缘图谱抽屉看到 actual_first_legal_days 源为 `computed in ETL/view`（合成节点 `__DERIVE__`），与 doc 19 mermaid「5 张 sync 表 → 视图」矛盾。MCP 直查 `information_schema.views.view_definition` 实证：`bpms.biz_data_view_loan_details_foreclosure` FROM **只 2 张** —— `bpms.sync_portmonth monthly LEFT JOIN bpms.sync_loan_foreclosure loan_fcl`，doc 19 的 5 张是错的。公式：`actual_<X>_days = TO_DAYS(loan_fcl.timeline_<X>_date) − TO_DAYS(monthly.nextduedate)`；`var_<X>_days = actual_<X> − Σ(target_i, i ≤ X)` **累计**，越后阶段累计项越多。
+- **不动**：doc 19（另一 session 在改）；JSON `outputs/fcl_lineage_source.json`（也是另一 session 的源，本次不碰，rule 文案"var=actual-target"待用户安排同步）。
+- **改动**（只动 `outputs/fcl_pipeline.html`）：
+  1. **`MILE_AV` 15 个 entry 的 calc 文案**（L1103-1118）：全部换成 `TO_DAYS(timeline_<X>_date) − TO_DAYS(nextduedate)` 真实公式，取代原 Newrez 原列名拼凑（如 `servicecompletedate − firstlegaldate`）。
+  2. **新增 `CUM` 前缀和**（L1120-1126）：预扫 MILE 顺序，为每个里程碑算「截至本阶段的累计 target cols + 数值和 + pretty 字符串」。
+  3. **`actual_<X>_days` 字段建模重写**（L1138-1149）：line[] 改成 3 个真实 hop —— view + sync_loan_foreclosure.timeline_<X>_date + sync_portmonth.nextduedate；biz 改成「从应付到期日锚点到里程碑的实际天数」；note 写明 nextduedate 链路 `bpms.sync_portmonth ← port.portmonthbase ← newrez.portnewrezpmt`。
+  4. **`var_<X>_days` 字段建模重写**（L1150-1170）：line[] = view.var + view.actual + cumulative target_X 全列；calc = Σ 公式 + 数值举例（`Σ target = 30+90+30+1+1+30+30+120=332`、`assume actual=N → var=N−332`），biz 写明累计逻辑、正/负数含义。
+  5. **新增 3 个总计字段**（L1172-1206）：`mile_actual_total`、`mile_target_total`（默认值合计 637 天）、`mile_var_total`，注明「简单求和、不是累计——与逐阶段 var_X 不同」。
+  6. **新增 `view_anchor_nextduedate` 锚点字段**（L1208-1220）：仅供图谱串联——把 sync_portmonth.nextduedate 链路一路画到 newrez.portnewrezpmt.nextduedate，让血缘图能完整看到锚点上游（否则 sync_portmonth 在图里成断头）。
+  7. **GLOSS 新增 3 表**（L1733/1735/1742）：`portnewrezpmt`（tier0 还款源）、`portmonthbase`（tier1 月度主表 双写）、`sync_portmonth`（tier2 BPS 月度快照）。
+  8. **GLOSS `__DERIVE__` 例子改正**（L1749）：原以 actual_*_days 举例，现已不走该合成节点；改用 hold/stage 天数为例并显式注明「actual_/var_ 已重新建模为视图直接计算，不再归入此节点」。
+  9. **CSS `.lin code` 加 `white-space:pre-wrap`**（L95）：让多行 calc 公式（含 \n + 缩进）渲染换行。
+- **验证**：
+  - `node -e new Function(scriptBody)` 整段解析通过 ✓
+  - 沙箱执行抽取代码，dump 关键字段：CUM[firstlegal]={count:8,sum:332,pretty:'30+90+30+1+1+30+30+120=332'} ✓；CUM[saleheld]={count:15,sum:637} ✓；7 个新字段 hop 数符合预期 ✓
+  - MCP 二次查 DDL，actual_first_legal_days 等公式与今晨实证一致 ✓
+- **DB**：全程只读，未推送。
+
+
+## [2026-06-10 00:00 UTC] 另一 session 已放手 doc 19，可以改了
+> doc 19 其他claude code没有在修改了，你可以修改了
+
+## [2026-06-10 00:00 UTC] outputs/fcl_lineage_source.json 也可改
+> 、outputs/fcl_lineage_source.json 其他session也没有在修改了
+
+### Milestone: doc 19 + fcl_lineage_source.json 修正视图上游 [2026-06-10]
+- **背景**：紧接 HTML 修复（前一 milestone）；用户告知 doc 19 与 fcl_lineage_source.json 不再被另一 session 占用，可一并修。
+- **doc 19 改动**（`docs/zh/19_fcl_sample_loan_raw_dump.md`）：
+  1. **L1→L5 全局 mermaid 图**（L38-96）：G1 新增 `portnewrezpmt`（还款源·nextduedate）、G4 新增 `portmonthbase`（月度主表双写）、G5 新增 `sync_portmonth`；加边 `S0→pmt`、`pmt→pmbase→pm`；改原错误的 `s1 & s2 & s3 & s4 & s5 → v → BPS` 为 **`s1 & pm → v → BPS`** + **`s2 & s3 & s4 & s5 → BPS`**（其余 4 张 sync_* 走各自面板，与视图是兄弟关系）。
+  2. **L5 表清单下加 ⚠️ 注释块**（L143-163）：MCP 实证视图真实 FROM 只 2 张表；公式 actual_X=TO_DAYS(timeline_X)−TO_DAYS(nextduedate)、var_X=actual_X−Σ累计 target；4 张 sync_* 不喂视图、与视图兄弟；完整 nextduedate 链 `portnewrezpmt → portmonthbase → sync_portmonth → 视图`。
+  3. **修订历史 v10**（L19）：写明修正点及依据（MCP information_schema.views）；指明本次同步至 fcl_pipeline.html、fcl_lineage_source.json。
+- **JSON 改动**（`outputs/fcl_lineage_source.json`）：
+  1. L770：`var=actual-target` → `var=actual-Σtarget`（与 L923 已修过的形式一致）。
+  2. L6821：原 `var_total = Σ var_*` 是错的（var_X 本身是累计减、再求和并不等于 view DDL 的 var_total）。改为完整双行说明：`var_<stage>_days = actual_<stage>_days − (Σ target_i for i ≤ stage)   -- cumulative subtraction`；`var_total = Σ(actual_X − target_X) = actual_total − target_total   -- NOT Σ var_X`，并在 actual_<stage> 公式上加 view FROM 注释。
+- **未动**：`outputs/fcl_table_meta.json`（另一 session 的 v9 资产，本次不破坏）；其连带的 doc 19 META 块（依 meta JSON 注入）也不改——内部 4 sync_* 表的「下游 → view → BPS 面板」措辞虽然技术上不准（BK/LM/Hold/Stage 面板不经视图），但修复需经其生成脚本统筹，不在本次最小修补范围。
+- **DB**：全程只读；未推送。
+
+
+## [2026-06-10 00:00 UTC] doc 27: service_stage_days 缺计算过程，全 stage_days 也要核
+> doc 27， section 20. 送达 阶段结束日(窗口)... ① 下一阶段已到 — 7727000357：service_end_date=2026-01-26（=可判决日），service_stage_days=166。② 未到 — 700082880000091（当前阶段 SERVICE）：service_end_date=NULL，service_stage_days=28（从 2026-05-13 数到当日）。这个例子中 service_stage_days 是如何算出来的？具体的计算公式是？业务逻辑是？文档里只是直给出了结果，没有计算过程。请核查一下其他的 stage_days的计算过程是否在文档中也清晰写清楚了，要求有计算逻辑 和 具体举例，要有计算过程
+
+### Milestone: doc 27 stage_days 公式+算式+多分支举例补完 (zh+en) [2026-06-10]
+- **背景**：用户指出 doc 27 §20 例子里 `service_stage_days=166`/`=28` 是结果直给、没有计算过程，且追问 "5月13日是什么日期、从哪里来的"。延伸要求：核查全部 *_stage_days 的计算过程是否清晰。
+- **Code-First 实证**（MCP prod，2026-06-10）：
+  - 公式：`<stage>_stage_days = datediff(<stage>_start, end) + 1`；
+    - demand 特殊：end = curr_date（**不取 demand_end_date**，pool:2039-2041）；
+    - referral/first_legal/service：end = COALESCE(下一阶段 start, curr_date)（pool:2050-2052/2060-2062/2070-2072）。
+  - curr_date = **2026-06-09**（实测：163=datediff(2025-12-29, 2026-06-09)+1；119=datediff(2026-02-11, 2026-06-09)+1；28=datediff(2026-05-13, 2026-06-09)+1）。
+  - prod 真值校验 6 个 stage_days：163/52/63/166/119/508/204/88/28 全部对得上 datediff+1。
+- **改了 14 处（zh 7 + en 7）**——`docs/zh/27_lineage_sync_fcl_stage_info.md` + `docs/en/27_lineage_sync_fcl_stage_info.md`：
+  1. §10 demand_end_date 示例：补 demand_stage_days 公式 + 实算（datediff(2025-12-29, 2026-06-09)+1=163），并明示 demand_end_date **不参与天数计算**。
+  2. §17 first_legal_end_date 示例：双分支算式（① 已结束 63；② 未结束数到当日）。
+  3. §20 service_end_date 示例：双分支算式（① 7727000357: 165+1=166；② 700082880000091: 27+1=28），并明确「2026-05-13」就是该贷款 service_start_date（即 newrez servicecompletedate），直接回答用户疑问。
+  4. §28 demand_stage_days：**替换错的"referral_stage_days=508"复制粘贴**——改为 demand 专用 SQL + 实算 + 注释 demand_end_date 未用。
+  5. §33 referral_stage_days：替换复制示例 → 双分支真实例（① 7727004408 已结束 508；② 700082700000033 仍在 119）。
+  6. §36 first_legal_stage_days：替换复制示例 → 两个真实例（7727004408 204; 700082880000091 63）。
+  7. §39 service_stage_days：替换复制示例 → 双分支真实例（7727000357 166; 700082880000091 28）。
+- **格式增强**：每个示例都改成多行的「含完整算式」块，逐项标注 `*_start_date` 透传源（newrez 原始列名）、`end` 取值来源、`datediff` 数学过程、最终值匹配 prod。
+- **范围外**：`*_in_lm_days` / `*_on_hold_days` 示例也存在同样"7727000569 service_in_lm_days=185"复制粘贴问题，但用户本轮只问 stage_days，未触及；待后续如需再修。
+- **验证**：grep `referral_stage_days = datediff+1 = 508 (matches prod)` → 0 命中；grep "含完整算式" zh=7、en=7；datediff 实算行 zh=9（每个示例 1-2 行）。
+- **DB**：全程只读；未推送。
+
+## [2026-06-10 00:00 UTC] doc 27 §20 例子里 servicecompletedate 是给 start 还是 end?
+> doc  27, section 20, service_start_date 透传自 `newrez.servicecompletedate`？ 不应该是 service_end_date 透传自 `newrez.servicecompletedate`吗？
+
+## [2026-06-10 00:00 UTC] doc 27 §19/§20 说清楚，并另开一篇统一阶段规则文档
+> 请在 doc 27中说清楚，并另外其一个文档统一 说明 每个stage 的start date 和 end date 、stage date 的规则， what is your recommendation?
+
+## [2026-06-10 UTC] 进入项目
+> 请进入 foreclosurerule2项目
+
+## [2026-06-10 UTC] 重启后仍无法用 excel skill
+> 为什么我重启了claude code, 还无法用 excle的skill
+
+## [2026-06-10 09:46 UTC] 进入项目
+> 请进入这个项目：C:\Users\jli\MyData\Copilot\ForeclosureRule2
+
+### Milestone: doc 27 stage 来源消歧 + 新建 doc 31 阶段窗口规则速查 (zh+en) [2026-06-10]
+- **背景**：用户在 doc 27 §20 发现「servicecompletedate 透传到 service_start_date」反直觉，希望集中文档说明每个 stage 的 start_date / end_date / stage_days 规则；进一步要求纳入 in_lm/on_hold 并核 prefect 代码。
+- **Code-First 实证（本轮新增）**：用户粘贴 `basic_data_pool_config.py` pool:2215-2330 hold/lm SQL；MCP 实证 6 真实 loan stage 数据（含命名反直觉验证：`newrez.servicecompletedate` = service_start_date 而非 end）。
+- **新建文件**：
+  - `docs/zh/31_fcl_stage_window_rules.md`（266 行）—— 9 节：模型直观 / start_date 总表 / end_date 总表 / stage_days 公式+4 真实 loan 工作例 / in_lm+on_hold SQL 语义详解 / 5 容易混淆点 / Code-First 引用 / Open Questions / 相关文档。
+  - `docs/en/31_fcl_stage_window_rules.md`（266 行）—— 完整镜像。
+- **修改 doc 27 zh+en**：各 8 处节顶部加 `> ℹ️ **透传/派生**` 行（§9/§10/§14/§15/§16/§17/§19/§20），核心是消除 SERVICE/REFERRAL/FIRST_LEGAL 等 end_date 误读为 Newrez 单列透传的歧义，§19 显式加 ⚠️ 命名反直觉注释。
+- **修改 doc 25 hub zh+en**：「阶段/天数」节顶部加 📐 规则速查入口指向 doc 31。
+- **修改 doc 00 索引 zh+en**：在 doc 30 后插入 doc 31 行。
+- **Open Questions（doc 31 §8）**：① 用户 7727000131 demand_in_lm_days=14 vs 公式按 demand_end_date 算 5 差 9 天，怀疑 `tempfc.current_fcl_business_2_temp.stage_end_dt` 对 DEMAND 取值 ≠ `business_1.demand_sent_end_date`（推 2025-09-28 不对应已知里程碑），需 pool:2100-2200 业务窗口构造代码再确证；② `hold_stage` 排序键的生成逻辑未在 pool:2215-2330 给出。
+- **验证**：grep 计数 zh=8/en=8 ℹ️ 行 ✓；doc 31 zh/en 各 266 行 ✓；doc 25 + doc 00 链接命中 ✓。
+- **DB**：全程只读；未推送。
+
+## [2026-06-10 10:06 UTC] git push (统计口径/数据日期 + BPS阶段抽屉 + 图谱搜索)
+> pls , git push
