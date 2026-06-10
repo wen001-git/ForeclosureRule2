@@ -97,8 +97,10 @@ Numbering is shared across `docs/en/` and `docs/zh/`.
 | 16 | `16_bps_panel_quickref.md` | Quick lookup tables for BPS panels + Newrez source fields. |
 | 18 | `18_loss_mitigation_business_primer.md` | LM business meaning, solution types, LM↔FCL relationship. |
 | 20 | `20_end_to_end_walkthrough.md` | 🌟 **Best first read** — end-to-end journey + business rationale + sample loan. |
-| 21 | `21_fcl_field_lineage.md` | 🔬 **Field-by-field L0→L5 lineage** (~30 core fields, transform rules w/ code location, MCP-verified). |
+| ~~21~~ | ~~`21_fcl_field_lineage.md`~~ | ⚠️ Superseded by doc 25–30. |
 | 22 | `22_bps_fcl_timeline_sourcing.md` | Which table/SQL feeds the BPS agg-summary Foreclosure Time Line/Stage tabs (`sync_fcl_stage_info`). |
+| 25 | `25_fcl_lineage_overview.md` | 🔬 **Field-lineage hub** — Servicer raw → BPS sync tables; hop-chain skeletons + master index + worked trace. Generated from `outputs/fcl_lineage_source.json` via `scripts/gen_fcl_lineage.py`. Supersedes doc 21. |
+| 26–30 | `26..30_lineage_sync_*.md` | Per-BPS-sync-table field lineage (sync_loan_foreclosure / sync_fcl_stage_info / _hold / _loss_mitigation / _bankruptcy): one row per field, every hop column + per-hop rule + code. |
 
 **zh-only docs:** `15_newrez_servicer_fcl_gap_analysis`, `17_foreclosure_business_primer` (FCL process fundamentals), `19_fcl_sample_loan_raw_dump` (5-loan raw dump across layers), `98_database_verification_strategy`, `99_servicer_fcl_gap_summary_and_action_plan`, `08-1Data validation Manual`.
 

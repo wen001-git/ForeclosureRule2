@@ -1,5 +1,8 @@
 # 21 · Foreclosure 核心字段级数据血缘（来源字段 → 中间表 → 转换规则 → BPS 字段）
 
+> ⚠️ **已弃用（superseded）** —— 本文档由 **doc 25（血缘总览/hub）+ doc 26–30（各 BPS sync 表逐字段血缘）** 取代。
+> 新版按「一表一文档、一字段一行、固定跳列 + 每跳规则 + 代码出处」组织，由 `outputs/fcl_lineage_source.json` 生成（`python - < scripts/gen_fcl_lineage.py`），并对 prod（redshift_prod / mysql_prod）逐列核验。请改用 doc 25–30；本文档仅作历史保留。
+
 ---
 
 ## 文档信息

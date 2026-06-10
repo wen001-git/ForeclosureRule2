@@ -1,0 +1,1236 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SPS Operations Reader</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #202124;
+      --muted: #5f6368;
+      --line: #d6d9dc;
+      --panel: #ffffff;
+      --soft: #f4f7f9;
+      --accent: #136f63;
+      --accent-2: #7a4e12;
+      --focus: #e6f2ef;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font: 15px/1.55 "Segoe UI", Arial, sans-serif;
+      color: var(--ink);
+      background: #f7f8fa;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+      min-height: 100vh;
+    }
+    nav {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+      padding: 22px 18px;
+      border-right: 1px solid var(--line);
+      background: #eef2f3;
+    }
+    nav h1 {
+      margin: 0 0 16px;
+      font-size: 20px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+    nav .meta {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    nav ol {
+      margin: 0;
+      padding-left: 21px;
+    }
+    nav li {
+      margin: 6px 0;
+    }
+    main {
+      padding: 26px clamp(18px, 3vw, 42px) 48px;
+    }
+    .doc-header, .page {
+      max-width: 1120px;
+      margin: 0 auto 20px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 22px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .doc-header h2, .page h2 {
+      margin: 0 0 12px;
+      font-size: 24px;
+      letter-spacing: 0;
+    }
+    h3 {
+      margin: 22px 0 8px;
+      font-size: 16px;
+      letter-spacing: 0;
+    }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin: 16px 0;
+    }
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px 12px;
+      background: var(--soft);
+    }
+    .metric strong {
+      display: block;
+      font-size: 20px;
+      color: var(--accent);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 16px;
+      font-size: 13px;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 7px 8px;
+      vertical-align: top;
+      text-align: left;
+    }
+    th {
+      background: #edf3f1;
+      font-weight: 600;
+    }
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin: 8px 0 14px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fbfbfc;
+      font: 13px/1.5 Consolas, "Cascadia Mono", monospace;
+    }
+    .image-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+    }
+    figure {
+      margin: 0;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fbfbfc;
+    }
+    figure img {
+      display: block;
+      max-width: 100%;
+      max-height: 260px;
+      margin: 0 auto 8px;
+      object-fit: contain;
+      background: white;
+      border: 1px solid #e6e8ea;
+    }
+    figcaption {
+      color: var(--muted);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px;
+      font: 14px/1.45 "Segoe UI", Arial, sans-serif;
+      background: #fffef8;
+    }
+    .toolbar {
+      max-width: 1120px;
+      margin: 0 auto 20px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    button {
+      border: 1px solid var(--accent);
+      background: var(--accent);
+      color: white;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font: inherit;
+      cursor: pointer;
+    }
+    button.secondary {
+      background: white;
+      color: var(--accent);
+    }
+    .status {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .small {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    @media (max-width: 820px) {
+      .layout { grid-template-columns: 1fr; }
+      nav {
+        position: static;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      main { padding: 18px 12px 32px; }
+      .doc-header, .page { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <nav>
+    <h1>SPS Operations Reader</h1>
+    <p class="meta">Generated 2026-06-09 08:35 UTC<br>
+    Source: <a href="../../SPS%20Operations.pdf">SPS Operations.pdf</a></p>
+    <ol>
+      <li><a href="#page-1">Page 1</a></li><li><a href="#page-2">Page 2</a></li><li><a href="#page-3">Page 3</a></li><li><a href="#page-4">Page 4</a></li><li><a href="#page-5">Page 5</a></li><li><a href="#page-6">Page 6</a></li><li><a href="#page-7">Page 7</a></li><li><a href="#page-8">Page 8</a></li><li><a href="#page-9">Page 9</a></li><li><a href="#page-10">Page 10</a></li><li><a href="#page-11">Page 11</a></li><li><a href="#page-12">Page 12</a></li><li><a href="#page-13">Page 13</a></li>
+    </ol>
+  </nav>
+  <main>
+    <section class="doc-header" id="top">
+      <h2>Document Purpose</h2>
+      <p><strong>Why this document exists:</strong> Extract the readable text and embedded image assets from <code>SPS Operations.pdf</code> into a format that is easier for AI analysis, manual browsing, and note-taking.</p>
+      <p><strong>What problem it solves:</strong> The original PDF is harder to search, quote, annotate, and feed into AI tools. This reader keeps the content page-by-page and adds local note areas.</p>
+      <p><strong>Scope:</strong> Covers extracted PDF text, page-level organization, extracted embedded images, and note placeholders. It does not claim OCR correction or legal/business interpretation.</p>
+      <p><strong>System fit:</strong> Supports the ForeclosureRule2 project by turning a source PDF into a durable local analysis artifact.</p>
+
+      <h3>Target Audience</h3>
+      <p>Primary readers: developers, data engineers, business analysts, validators, operations teams, reviewers, future AI sessions. Secondary readers: onboarding engineers, architects, and anyone reviewing SPS operational references.</p>
+
+      <h3>Revision History</h3>
+      <table>
+        <thead><tr><th>Date</th><th>Author</th><th>Version</th><th>Changes</th><th>Related</th></tr></thead>
+        <tbody><tr><td>2026-06-09</td><td>AI Agent</td><td>v1</td><td>Initial PDF extraction to Markdown and HTML reader</td><td><code>SPS Operations.pdf</code></td></tr></tbody>
+      </table>
+
+      <h3>Dependencies</h3>
+      <p>Source PDF: <code>../../SPS Operations.pdf</code>. Image assets: <code>assets/</code>.</p>
+
+      <h3>Known Limitations</h3>
+      <ul>
+        <li>The PDF pages are rotated; this extraction uses the standard <code>pypdf</code> text layer extraction because layout-mode extraction returned incomplete output.</li>
+        <li>Extracted image assets are embedded PDF image objects, not full-page rendered screenshots.</li>
+        <li>Some tiny extracted images may be line or layout artifacts from the PDF rather than business diagrams.</li>
+      </ul>
+
+      <h3>Extraction Summary</h3>
+      <div class="summary">
+        <div class="metric"><strong>13</strong> Pages</div>
+        <div class="metric"><strong>19317</strong> Text characters</div>
+        <div class="metric"><strong>33</strong> Image occurrences</div>
+        <div class="metric"><strong>21</strong> Unique image assets</div>
+      </div>
+    </section>
+    <div class="toolbar">
+      <button type="button" id="export-notes">Export notes as Markdown</button>
+      <button type="button" id="clear-notes" class="secondary">Clear saved notes</button>
+      <span class="status" id="status">Notes autosave in this browser for this file path.</span>
+    </div>
+<section class="page" id="page-1">
+  <h2>Page 1</h2>
+  <h3>Extracted Text</h3>
+  <pre>LOSS MITIGATION</pre>
+  <h3>Extracted Images</h3>
+  <table>
+    <thead><tr><th>#</th><th>Source object</th><th>Dimensions</th><th>Bytes</th><th>Asset</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><code>Im1.png</code></td><td>349 x 79</td><td>20972</td><td><a href="assets/p001_img01_d32eba3337.png">p001_img01_d32eba3337.png</a></td></tr>
+    </tbody>
+  </table>
+  <div class="image-grid">
+    <figure><a href="assets/p001_img01_d32eba3337.png"><img src="assets/p001_img01_d32eba3337.png" alt="Page 1 image 1"></a><figcaption>Image 1, 349 x 79, 20972 bytes</figcaption></figure>
+  </div>
+  <h3>Notes</h3>
+  <textarea data-page="1" placeholder="Page 1 notes"></textarea>
+</section>
+<section class="page" id="page-2">
+  <h2>Page 2</h2>
+  <h3>Extracted Text</h3>
+  <pre>SPS – Customer Contact Strategy
+SPS&#x27; customer contact units are aligned to assess each customer&#x27;s situation and provide effective default solutions
+2
+Loan
+Resolution
+Call Compliance and quality is monitored through Internal
+Audit and Management
+ 12 calls per associate per month through Internal
+Audit
+ 4 calls per associate per month from direct
+Supervisor
+ 15 calls per month from Management
+ 100% call recording upon approval
+ 100% screen capture for audit and training purposes
+Call center that delivers extended hours of coverage
+ 8:00 am to 8:00 pm EST Monday - Friday
+ 8:00 am to 3:00 pm EST Saturday
+ Extend Saturday hours to 4:00 pm EST based on
+monthly need
+Customer self-service capabilities offered through
+the My SPS mobile app, web access and the IVR.
+Customers can submit documents physically,
+through web access, email or fax.
+ IVR access available 24/7 (pay by phone, payoff
+requests, loan documents, account information)
+ Web access via www.spservicing.com (online
+payments, ACH set up, payoff requests, loan
+documents, obtain and update account
+information, update financial information for loss
+mitigation assistance)
+New call center associates receive extensive training:
+ 32 hours of orientation, including 12 hours of
+systems training and 9 hours compliance training
+ 2 weeks of formalized classroom training
+ 4 weeks of Coaching and Development; associates
+begin to handle calls while receiving additional
+training, coaching and supervision
+Associates throughout the call center use the same
+customized systems. All call centers operate in a
+blended call environment.
+ Outbound customer calls for newly boarded loans
+ Email and text message communications include welcome notifications and payment reminders
+ Targeted ACH campaigns on newly boarded loans
+ Imminent default loss mitigation discussions
+ ADA compliant with TTY capabilities
+ Customer surveys to gauge satisfaction and determine areas for improvement within the
+organization
+ Bilingual team and language line
+ Inbound/outbound calls
+ Email and text message communications incl ude payment reminders and notifications
+ Reminder, collections and documents request calls for loss mitigation
+ Early intervention strategies including late fee waivers, door-knocks and targeted specialty
+call campaigns
+ Client-requested outgoing call campaigns
+ Skip trace
+ ADA compliant with TTY capabilities
+ Bilingual team and language line
+ Inbound/outbound collections and loss mitigation calls, including foreclosure accounts
+ Email and text message communications incl ude payment reminders and notifications
+ Reminder, collection and documents request calls loss mitigation
+ Team for customers with extreme hardships
+ Single point of contact
+ ADA compliant with TTY capabilities
+ Bilingual team and language line
+ In-flight loss mitigation
+ Customer and collateral workout processing
+ Investor and MI approvals
+ Bilingual team support
+Customer
+Service
+Early Stage
+Collections
+Late Stage
+Collections
+Loan
+Resolution</pre>
+  <h3>Extracted Images</h3>
+  <table>
+    <thead><tr><th>#</th><th>Source object</th><th>Dimensions</th><th>Bytes</th><th>Asset</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><code>Im1.png</code></td><td>349 x 79</td><td>20972</td><td><a href="assets/p001_img01_d32eba3337.png">p001_img01_d32eba3337.png</a></td></tr>
+      <tr><td>2</td><td><code>Im10.jpg</code></td><td>168 x 168</td><td>7368</td><td><a href="assets/p002_img02_3665b6039a.jpg">p002_img02_3665b6039a.jpg</a></td></tr>
+      <tr><td>3</td><td><code>Im2.jpg</code></td><td>133 x 133</td><td>8026</td><td><a href="assets/p002_img03_fb5c807ba8.jpg">p002_img03_fb5c807ba8.jpg</a></td></tr>
+      <tr><td>4</td><td><code>Im3.jpg</code></td><td>134 x 140</td><td>6129</td><td><a href="assets/p002_img04_451c8a201b.jpg">p002_img04_451c8a201b.jpg</a></td></tr>
+      <tr><td>5</td><td><code>Im4.png</code></td><td>135 x 129</td><td>9693</td><td><a href="assets/p002_img05_1997e26ca2.png">p002_img05_1997e26ca2.png</a></td></tr>
+      <tr><td>6</td><td><code>Im5.png</code></td><td>1024 x 450</td><td>23898</td><td><a href="assets/p002_img06_9b69054e94.png">p002_img06_9b69054e94.png</a></td></tr>
+      <tr><td>7</td><td><code>Im6.png</code></td><td>1024 x 448</td><td>25416</td><td><a href="assets/p002_img07_da84164804.png">p002_img07_da84164804.png</a></td></tr>
+      <tr><td>8</td><td><code>Im7.png</code></td><td>1024 x 442</td><td>24353</td><td><a href="assets/p002_img08_0b014a0876.png">p002_img08_0b014a0876.png</a></td></tr>
+      <tr><td>9</td><td><code>Im8.png</code></td><td>1024 x 443</td><td>23385</td><td><a href="assets/p002_img09_b9ec43f281.png">p002_img09_b9ec43f281.png</a></td></tr>
+      <tr><td>10</td><td><code>Im9.jpg</code></td><td>140 x 140</td><td>5895</td><td><a href="assets/p002_img10_137cbd4bb8.jpg">p002_img10_137cbd4bb8.jpg</a></td></tr>
+    </tbody>
+  </table>
+  <div class="image-grid">
+    <figure><a href="assets/p001_img01_d32eba3337.png"><img src="assets/p001_img01_d32eba3337.png" alt="Page 2 image 1"></a><figcaption>Image 1, 349 x 79, 20972 bytes</figcaption></figure>
+    <figure><a href="assets/p002_img02_3665b6039a.jpg"><img src="assets/p002_img02_3665b6039a.jpg" alt="Page 2 image 2"></a><figcaption>Image 2, 168 x 168, 7368 bytes</figcaption></figure>
+    <figure><a href="assets/p002_img03_fb5c807ba8.jpg"><img src="assets/p002_img03_fb5c807ba8.jpg" alt="Page 2 image 3"></a><figcaption>Image 3, 133 x 133, 8026 bytes</figcaption></figure>
+    <figure><a href="assets/p002_img04_451c8a201b.jpg"><img src="assets/p002_img04_451c8a201b.jpg" alt="Page 2 image 4"></a><figcaption>Image 4, 134 x 140, 6129 bytes</figcaption></figure>
+    <figure><a href="assets/p002_img05_1997e26ca2.png"><img src="assets/p002_img05_1997e26ca2.png" alt="Page 2 image 5"></a><figcaption>Image 5, 135 x 129, 9693 bytes</figcaption></figure>
+    <figure><a href="assets/p002_img06_9b69054e94.png"><img src="assets/p002_img06_9b69054e94.png" alt="Page 2 image 6"></a><figcaption>Image 6, 1024 x 450, 23898 bytes</figcaption></figure>
+    <figure><a href="assets/p002_img07_da84164804.png"><img src="assets/p002_img07_da84164804.png" alt="Page 2 image 7"></a><figcaption>Image 7, 1024 x 448, 25416 bytes</figcaption></figure>
+    <figure><a href="assets/p002_img08_0b014a0876.png"><img src="assets/p002_img08_0b014a0876.png" alt="Page 2 image 8"></a><figcaption>Image 8, 1024 x 442, 24353 bytes</figcaption></figure>
+    <figure><a href="assets/p002_img09_b9ec43f281.png"><img src="assets/p002_img09_b9ec43f281.png" alt="Page 2 image 9"></a><figcaption>Image 9, 1024 x 443, 23385 bytes</figcaption></figure>
+    <figure><a href="assets/p002_img10_137cbd4bb8.jpg"><img src="assets/p002_img10_137cbd4bb8.jpg" alt="Page 2 image 10"></a><figcaption>Image 10, 140 x 140, 5895 bytes</figcaption></figure>
+  </div>
+  <h3>Notes</h3>
+  <textarea data-page="2" placeholder="Page 2 notes"></textarea>
+</section>
+<section class="page" id="page-3">
+  <h2>Page 3</h2>
+  <h3>Extracted Text</h3>
+  <pre>SPS – Customer Contact Strategy
+SPS’ Customer Service Department is able to effectively meet the needs of performing customers through a robust technology suite, a continuous focus on customer experience and a seasoned,
+highly trained staff
+3
+ Enhanced utilization of call center technology resulted in reduction of average
+speed of answer and abandonment rate
+ The IVR system handled 70.82% of calls in April 2026
+TechnologyTechnology
+ Customer Service is trained to handle delinquent accounts and loss mitigation
+discussions
+ Customer satisfaction surveys are sent to gauge customer experience.  Survey
+results for reporting period reflect 90% of SPS customers are extremely satisfied
+with the level of service provided.
+One Call ResolutionOne Call Resolution
+ Welcome calls made to newly transferred customers
+ Right party contact rate of 19.28% in April 2026Welcome CallsWelcome Calls
+ Pay by phone
+ Payoff request
+ Loan document requests
+ Account information
+IVR Access 24/7IVR Access 24/7
+Customer Service
+Call Statistics
+0.9%Abandonment
+Rate
+23 secondsAverage Speed of
+Answer
+ Online payments and ACH setup
+ Payoff and loan document requests
+ Account information and update
+ Loss mitigation financial information update and loss mitigation document download
+ Document upload capability
+ Loss mitigation documents
+ Proof of insurance
+ Name change/EOE documents
+Web Access
+www.spservicing.com
+Mobile App/MYSPS
+Web Access
+www.spservicing.com
+Mobile App/MYSPS
+As of 04/30/2026</pre>
+  <h3>Extracted Images</h3>
+  <table>
+    <thead><tr><th>#</th><th>Source object</th><th>Dimensions</th><th>Bytes</th><th>Asset</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><code>Im1.png</code></td><td>349 x 79</td><td>20972</td><td><a href="assets/p001_img01_d32eba3337.png">p001_img01_d32eba3337.png</a></td></tr>
+    </tbody>
+  </table>
+  <div class="image-grid">
+    <figure><a href="assets/p001_img01_d32eba3337.png"><img src="assets/p001_img01_d32eba3337.png" alt="Page 3 image 1"></a><figcaption>Image 1, 349 x 79, 20972 bytes</figcaption></figure>
+  </div>
+  <h3>Notes</h3>
+  <textarea data-page="3" placeholder="Page 3 notes"></textarea>
+</section>
+<section class="page" id="page-4">
+  <h2>Page 4</h2>
+  <h3>Extracted Text</h3>
+  <pre>SPS – Customer Contact Staffing and Compensation Overview
+SPS’ headcount models, comprehensive training programs and performance based incentive structures support achievement of compliance and portfolio performance objectives while contributing
+to low turnover rates
+4
+Loan
+Resolution
+Completed
+Completed
+Loss
+Mitigation
+Workouts
+Workout
+Package
+Timelines
+Compliance
+Adherence
+Attendance
+Occurrence
+Maximum
+Schedule
+Adherence
+Call Quality
+Score
+Based on Loss
+Mitigation
+Completion Steps
+Call Compliance
+and Quality
+Qualifiers
+Attendance and
+Productivity Qualifiers
+Top 15% as compared to peers achieve higher dollar multiplier
+&gt;= 50% to median as compared to peers bonus eligible
+&lt; 50% as compared to peers not bonus eligible
+Lowest 20% subject to coaching or disciplinary action based on
+reoccurrence
+Headcount Planning
+ Bi-monthly review of  headcount models by call center senior management
+ Models based on recent historical volumes and KPI standards
+ Monthly updates to projected volumes
+ Forecasted staffing needs based on projected loan volumes and loan
+characteristics
+Salt Lake City Jacksonville Customer Contact Strategy
+Welcome Calls
+Imminent Default
+Early Stage Collections – Non Foreclosure
+Modification Recidivism Focus
+Late Stage Collections – Foreclosure
+Single Point of Contact
+Early and Late Stage Collections Staff Overview
+APEExperienceTenureDepartment
+37811.4 years4.9 yearsEarly Stage Collections - JAX
+547.3 years3.0 yearsLate Stage Collections - SLC</pre>
+  <h3>Extracted Images</h3>
+  <table>
+    <thead><tr><th>#</th><th>Source object</th><th>Dimensions</th><th>Bytes</th><th>Asset</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><code>Im1.png</code></td><td>349 x 79</td><td>20972</td><td><a href="assets/p001_img01_d32eba3337.png">p001_img01_d32eba3337.png</a></td></tr>
+      <tr><td>2</td><td><code>Im11.png</code></td><td>1 x 802</td><td>260</td><td><a href="assets/p004_img02_4bd0bf1393.png">p004_img02_4bd0bf1393.png</a></td></tr>
+      <tr><td>3</td><td><code>Im12.png</code></td><td>1 x 802</td><td>248</td><td><a href="assets/p004_img03_fa4660dfc6.png">p004_img03_fa4660dfc6.png</a></td></tr>
+      <tr><td>4</td><td><code>Im13.png</code></td><td>1 x 802</td><td>247</td><td><a href="assets/p004_img04_8adface1b7.png">p004_img04_8adface1b7.png</a></td></tr>
+      <tr><td>5</td><td><code>Im14.png</code></td><td>1 x 802</td><td>272</td><td><a href="assets/p004_img05_ce7509ba0d.png">p004_img05_ce7509ba0d.png</a></td></tr>
+      <tr><td>6</td><td><code>Im15.png</code></td><td>1 x 802</td><td>246</td><td><a href="assets/p004_img06_789cf3cd11.png">p004_img06_789cf3cd11.png</a></td></tr>
+      <tr><td>7</td><td><code>Im16.png</code></td><td>1 x 216</td><td>141</td><td><a href="assets/p004_img07_329d784327.png">p004_img07_329d784327.png</a></td></tr>
+      <tr><td>8</td><td><code>Im17.png</code></td><td>1 x 717</td><td>140</td><td><a href="assets/p004_img08_32f659bae1.png">p004_img08_32f659bae1.png</a></td></tr>
+    </tbody>
+  </table>
+  <div class="image-grid">
+    <figure><a href="assets/p001_img01_d32eba3337.png"><img src="assets/p001_img01_d32eba3337.png" alt="Page 4 image 1"></a><figcaption>Image 1, 349 x 79, 20972 bytes</figcaption></figure>
+  </div>
+  <h3>Notes</h3>
+  <textarea data-page="4" placeholder="Page 4 notes"></textarea>
+</section>
+<section class="page" id="page-5">
+  <h2>Page 5</h2>
+  <h3>Extracted Text</h3>
+  <pre>SPS – Single Point of Contact (SPOC)
+SPS’ flexible Single Point of Contact model provides immediate customer assistance and improves completion rate of loss mitigation options
+5
+Loan
+Resolution
+SPOC Regulatory Compliance
+ Team approach utilized for loans at 45th day of delinquency in Compliance with Regulation X (unless otherwise required by the state)
+ Individual SPOC assignment at loss mitigation application initiation (excluding Business Purpose Loans)
+ Assignment letter sent within 5 business days of assignment
+ Introduction call attempts within 5 business days of assignment
+ Continuity of contact in accordance with regulatory guidelines
+SPOC Performance
+ Customers receive the SPOC’s extension and have the ability to enter in the automated telephone system
+ Customers can request a call back from their assigned SPOC
+ Workflow prioritized by trigger-based analytics and incorporates all SPOC regulatory and performance- based touch points
+SPOC Pipeline Management
+ Servicing Risk Management Department oversight of call monitoring as well as other performance and compliance metrics
+ Hours of coverage mirror call center hours of operation</pre>
+  <h3>Extracted Images</h3>
+  <table>
+    <thead><tr><th>#</th><th>Source object</th><th>Dimensions</th><th>Bytes</th><th>Asset</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><code>Im1.png</code></td><td>349 x 79</td><td>20972</td><td><a href="assets/p001_img01_d32eba3337.png">p001_img01_d32eba3337.png</a></td></tr>
+    </tbody>
+  </table>
+  <div class="image-grid">
+    <figure><a href="assets/p001_img01_d32eba3337.png"><img src="assets/p001_img01_d32eba3337.png" alt="Page 5 image 1"></a><figcaption>Image 1, 349 x 79, 20972 bytes</figcaption></figure>
+  </div>
+  <h3>Notes</h3>
+  <textarea data-page="5" placeholder="Page 5 notes"></textarea>
+</section>
+<section class="page" id="page-6">
+  <h2>Page 6</h2>
+  <h3>Extracted Text</h3>
+  <pre>SPS – Loss Mitigation Document Review
+SPS has developed a flexible and customizable document routing system that allows real-time identification, tracking, review and storage of every document received by SPS
+6
+Document
+Identification
+&amp; Classification
+Document
+Identification
+&amp; Classification
+Document
+Archiving
+Document
+Archiving
+Document
+Perfection
+Review
+Document
+Perfection
+Review
+Document
+Receipt
+Document
+Receipt
+ Correspondence is
+received via
+website, regular
+mail, email, fax or
+the Hope Loan
+Portal
+ Regardless of how
+the documents are
+received, they are
+loaded into Digimail
+the same day as
+receipt
+ Documents are
+individually
+reviewed to index
+the loan number
+and document type
+ Documents are
+filed/archived to
+the imaging
+repository
+(SelectDocs) and a
+notation of receipt
+placed in the
+system of record
+(Select CE)
+ Documents
+identified as loss
+mitigation
+document types are
+routed for review
+and update of
+application status
+within system of
+record (Select CE)
+Salt Lake City Offshore Offshore Salt Lake City &amp;
+Offshore
+Document gathering and processing activity occurs 22 hours per day through shift rotation
+24 Hours 1-2 Business Days
+ Loss Mitigation
+Document
+Acknowledgement
+Letter Sent
+ Loss Mitigation
+Document
+Acknowledgement
+Letter Sent
+ Loss Mitigation
+Missing
+Information or
+Complete Package
+Notice Sent
+ Loss Mitigation
+Missing
+Information or
+Complete Package
+Notice Sent</pre>
+  <h3>Extracted Images</h3>
+  <table>
+    <thead><tr><th>#</th><th>Source object</th><th>Dimensions</th><th>Bytes</th><th>Asset</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><code>Im1.png</code></td><td>349 x 79</td><td>20972</td><td><a href="assets/p001_img01_d32eba3337.png">p001_img01_d32eba3337.png</a></td></tr>
+      <tr><td>2</td><td><code>Im18.png</code></td><td>146 x 139</td><td>8852</td><td><a href="assets/p006_img02_f2a6621e25.png">p006_img02_f2a6621e25.png</a></td></tr>
+      <tr><td>3</td><td><code>Im19.png</code></td><td>146 x 138</td><td>7118</td><td><a href="assets/p006_img03_e495f2587a.png">p006_img03_e495f2587a.png</a></td></tr>
+      <tr><td>4</td><td><code>Im20.png</code></td><td>146 x 138</td><td>7521</td><td><a href="assets/p006_img04_247f201906.png">p006_img04_247f201906.png</a></td></tr>
+      <tr><td>5</td><td><code>Im21.png</code></td><td>146 x 138</td><td>8656</td><td><a href="assets/p006_img05_65f93a4a60.png">p006_img05_65f93a4a60.png</a></td></tr>
+    </tbody>
+  </table>
+  <div class="image-grid">
+    <figure><a href="assets/p001_img01_d32eba3337.png"><img src="assets/p001_img01_d32eba3337.png" alt="Page 6 image 1"></a><figcaption>Image 1, 349 x 79, 20972 bytes</figcaption></figure>
+    <figure><a href="assets/p006_img02_f2a6621e25.png"><img src="assets/p006_img02_f2a6621e25.png" alt="Page 6 image 2"></a><figcaption>Image 2, 146 x 139, 8852 bytes</figcaption></figure>
+    <figure><a href="assets/p006_img03_e495f2587a.png"><img src="assets/p006_img03_e495f2587a.png" alt="Page 6 image 3"></a><figcaption>Image 3, 146 x 138, 7118 bytes</figcaption></figure>
+    <figure><a href="assets/p006_img04_247f201906.png"><img src="assets/p006_img04_247f201906.png" alt="Page 6 image 4"></a><figcaption>Image 4, 146 x 138, 7521 bytes</figcaption></figure>
+    <figure><a href="assets/p006_img05_65f93a4a60.png"><img src="assets/p006_img05_65f93a4a60.png" alt="Page 6 image 5"></a><figcaption>Image 5, 146 x 138, 8656 bytes</figcaption></figure>
+  </div>
+  <h3>Notes</h3>
+  <textarea data-page="6" placeholder="Page 6 notes"></textarea>
+</section>
+<section class="page" id="page-7">
+  <h2>Page 7</h2>
+  <h3>Extracted Text</h3>
+  <pre>SPS – Loss Mitigation
+SPS&#x27; proprietary loss mitigation programs focus on improving customer engagement which will improve portfolio performance. Loss Mitigation programs can be customized to meet client
+requirements and in compliance with state and federal regulations.
+7
+1Certain conditions apply
+Reduced Timelines
+Earlier Resolution
+Customer Sustainability
+Re-performing Loan Programs
+Decreased Liquidation Delays
+Performance
+Included with Each Decision Notice1:
+ Short Sale Conditional Approval
+ Deed-in-Lieu Conditional Approval
+Unemployment Forbearance
+SPS Modification
+Deferral
+Repayment Plan</pre>
+  <h3>Extracted Images</h3>
+  <table>
+    <thead><tr><th>#</th><th>Source object</th><th>Dimensions</th><th>Bytes</th><th>Asset</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><code>Im1.png</code></td><td>349 x 79</td><td>20972</td><td><a href="assets/p001_img01_d32eba3337.png">p001_img01_d32eba3337.png</a></td></tr>
+    </tbody>
+  </table>
+  <div class="image-grid">
+    <figure><a href="assets/p001_img01_d32eba3337.png"><img src="assets/p001_img01_d32eba3337.png" alt="Page 7 image 1"></a><figcaption>Image 1, 349 x 79, 20972 bytes</figcaption></figure>
+  </div>
+  <h3>Notes</h3>
+  <textarea data-page="7" placeholder="Page 7 notes"></textarea>
+</section>
+<section class="page" id="page-8">
+  <h2>Page 8</h2>
+  <h3>Extracted Text</h3>
+  <pre>SPS – Liquidation Overview
+8
+Short Sales, Deed in Lieu, Cash for Keys, Consent Judgments
+Process Highlights:
+ Accuracy and completeness of required documentation
+ Property value obtained
+ Decisions are made within 30 days of receiving the last
+document.
+ Decisions are made within allowable Investor and MI guidelines
+ Final closing documentation (HUD and required Affidavits)
+collected and validated
+ Workflow reporting to prioritize by timeline and risk potential
+ KPI Monitoring of regulatory and client requirements
+ Exception Reporting System to identify and prevent compliance
+risks
+ Internal QA
+ Independent audit of decisions by Quality Control Department
+ Cash for Keys and Consent Judgments
+(where allowed) are offered when all
+other loss mitigation options have
+been exhausted. Incentives are offered
+for cooperation during the foreclosure
+to reduce timeline and to leave
+property in the best condition
+possible.
+Deal Submission
+Obtain documentation
+Documents are reviewed within 4 business days
+Call attempts and letters sent to obtain missing information
+Decision
+Approval
+Non-approval
+Counter Offer (Negative Savings
+over REO)
+Approval to liquidation
+Short sale closing
+Collect and validate closing documentation
+Relocation assistance paid at closing
+Short Sale TimelineShort Sale Timeline
+Last Document Received Decision Completion
+Up to 37 Days Before FC Sale 30 Days 60 Days
+Short Sale Timeline
+Title Review
+Title is ordered within 24 hours
+Title graded to determine feasibility
+30-Day Decision
+Initial Approval
+Non-Approval
+Deed in Lieu OverviewDeed in Lieu Overview
+Lien Negotiations
+Research and obtain payoff
+information
+Issue offer letters to satisfy liens
+Confirm acceptance
+Issue payment
+Final Agreement
+Attorneys draft and issue agreement
+Documents overnighted to borrower
+Recording
+Executed agreement received and sent
+for recording
+Title policy issued
+Status changed to REO
+Relocation assistance paid
+Deed in Lieu
+Deal Submission Completion</pre>
+  <h3>Extracted Images</h3>
+  <table>
+    <thead><tr><th>#</th><th>Source object</th><th>Dimensions</th><th>Bytes</th><th>Asset</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><code>Im1.png</code></td><td>349 x 79</td><td>20972</td><td><a href="assets/p001_img01_d32eba3337.png">p001_img01_d32eba3337.png</a></td></tr>
+    </tbody>
+  </table>
+  <div class="image-grid">
+    <figure><a href="assets/p001_img01_d32eba3337.png"><img src="assets/p001_img01_d32eba3337.png" alt="Page 8 image 1"></a><figcaption>Image 1, 349 x 79, 20972 bytes</figcaption></figure>
+  </div>
+  <h3>Notes</h3>
+  <textarea data-page="8" placeholder="Page 8 notes"></textarea>
+</section>
+<section class="page" id="page-9">
+  <h2>Page 9</h2>
+  <h3>Extracted Text</h3>
+  <pre>DEFAULT MANAGEMENT</pre>
+  <h3>Extracted Images</h3>
+  <table>
+    <thead><tr><th>#</th><th>Source object</th><th>Dimensions</th><th>Bytes</th><th>Asset</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><code>Im1.png</code></td><td>349 x 79</td><td>20972</td><td><a href="assets/p001_img01_d32eba3337.png">p001_img01_d32eba3337.png</a></td></tr>
+    </tbody>
+  </table>
+  <div class="image-grid">
+    <figure><a href="assets/p001_img01_d32eba3337.png"><img src="assets/p001_img01_d32eba3337.png" alt="Page 9 image 1"></a><figcaption>Image 1, 349 x 79, 20972 bytes</figcaption></figure>
+  </div>
+  <h3>Notes</h3>
+  <textarea data-page="9" placeholder="Page 9 notes"></textarea>
+</section>
+<section class="page" id="page-10">
+  <h2>Page 10</h2>
+  <h3>Extracted Text</h3>
+  <pre>SPS – Foreclosure
+SPS’ Foreclosure Department staffing levels, training, technology and compliant processes contribute to decreased timelines and reduced loss severity
+10
+ Shorten overall FC timelines by taking advantage of vacant property initiatives in various states
+ Leveraged the flexibility of BKFS Desktop to align with law change at the state level
+ Provide onsite training from law firms throughout the country to remain aligned with local challenges to avoid unnecessary delays
+ Foreclosure employees have an average of 7
+years of industry experience
+ Executive Management has a combined 51
+years of industry experience
+ Over 60 individual training hours conducted
+each year per employee
+Staffing
+ Teams are aligned to monitor steps within the
+Foreclosure process
+ Loan level review to avoid unnecessary delays
+during the service transfer process
+ Tightly controlled document review and
+execution process
+ Comprehensive pre-sale audit to ensure
+compliant sales
+Structure
+ Monitor attorney activity through BKFS
+Desktop
+ Automated bid creation tool, with flexibility
+to integrate state and investor specific bid
+requirements
+ Comprehensive document tracking
+application to monitor the document
+execution process
+ Financial Breakdown Tool
+Technology
+0%
+3%
+6%
+9%
+12%
+15%
+0
+300
+600
+900
+1,200
+1,500
+Apr-25 May-25 Jun-25 Jul-25 Aug-25 Sep-25 Oct- 25 Nov-25 Dec-25 Jan-26 Feb-26 Mar-26 Apr-26
+FC Judgments/Sales
+Judgments Sales Held Cure Rate % Completion Rate %</pre>
+  <h3>Extracted Images</h3>
+  <table>
+    <thead><tr><th>#</th><th>Source object</th><th>Dimensions</th><th>Bytes</th><th>Asset</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><code>Im1.png</code></td><td>349 x 79</td><td>20972</td><td><a href="assets/p001_img01_d32eba3337.png">p001_img01_d32eba3337.png</a></td></tr>
+    </tbody>
+  </table>
+  <div class="image-grid">
+    <figure><a href="assets/p001_img01_d32eba3337.png"><img src="assets/p001_img01_d32eba3337.png" alt="Page 10 image 1"></a><figcaption>Image 1, 349 x 79, 20972 bytes</figcaption></figure>
+  </div>
+  <h3>Notes</h3>
+  <textarea data-page="10" placeholder="Page 10 notes"></textarea>
+</section>
+<section class="page" id="page-11">
+  <h2>Page 11</h2>
+  <h3>Extracted Text</h3>
+  <pre>SPS – Foreclosure
+11
+SPS is able to maintain consistent timelines when it controls the entire pre-foreclosure process in both judicial and non-judicial states
+Responsibilities
+ Make contact with
+attorney firms on newly
+boarded loans and
+reviewing current status of
+loans
+ Ensure referrals are
+completed timely
+Benefits
+ Reduce transfer related
+risks and referral  delays
+Transfer / Referral Team
+Responsibilities
+ Complete all the pre-work
+processes prior to reaching
+the first legal step
+ Follow up with firms to
+ensure all processing
+delays are resolved
+Benefits
+ Reduce time to first legal
+by assisting attorney firms
+with obtaining appropriate
+business records
+First Legal Team
+Responsibilities
+ Work with firms to follow
+up with the courts for
+status updates
+ Maintain specialized state
+specific knowledge of
+foreclosure procedures
+Benefits
+ Ensure judgments are
+achieved timely by
+executing affidavits and
+completing pre-work steps
+for judicial proceedings
+Judgment Team
+Responsibilities
+ Manage postponement
+report and requests
+Benefits
+ Ensure compliance with all
+federal, state, local and
+client guidelines prior to
+completing a foreclosure
+sale
+Sales Team
+ Client Response Team
+ Document Prep Team
+ Quality Control Team
+ FC Ops Support
+ Title Curative Team
+Foreclosure Support
+Teams
+0
+200
+400
+600
+800
+1,000
+1,200
+1,400
+1,600
+1,800
+2,000
+0
+100
+200
+300
+400
+500
+600
+Apr-25 May-
+25
+Jun-25 Jul-25 Aug-25 Sep-25 Oct-25 Nov- 25 Dec-25 Jan-26 Feb-26 Mar-26 Apr-26
+Units
+Non Judicial States Avg Gross Foreclosure Days
+SPS Initiated Units Prior Servicer Units
+SPS Initiated Days All Up Days
+0
+200
+400
+600
+800
+1,000
+1,200
+1,400
+1,600
+1,800
+2,000
+0
+100
+200
+300
+400
+500
+600
+Apr-25
+May-25
+Jun-25
+Jul-25
+Aug-25
+Sep-25
+Oct-25
+Nov-25
+Dec-25
+Jan-26
+Feb-26
+Mar-26
+Apr-26
+Days
+Units
+Judicial States Avg Gross Foreclosure Days
+SPS Initiated Units Prior Servicer Units SPS Initiated Days All Up Days
+ Problem Resolution Specialists work with
+counsel to identify and resolve any title issues
+in anticipation of the FC action
+ Specialists monitor the movement of each
+action to ensure resolution is obtained
+quickly and efficiently
+ Specialists work closely with outside vendors
+to pursue surplus funds that are available as a
+result of senior lien sales
+Problem Resolution
+0%
+5%
+10%
+15%
+20%
+25%
+30%
+0
+500
+1,000
+1,500
+2,000
+2,500
+Apr-25
+May-25
+Jun-25
+Jul-25
+Aug-25
+Sep-25
+Oct-25
+Nov-25
+Dec-25
+Jan-26
+Feb-26
+Mar-26
+Apr-26
+Problem Resolution Performance
+Probate Surplus Funds Vesting Recording Pending
+Probate Legal Descr. Title Issue Close Rate%</pre>
+  <h3>Extracted Images</h3>
+  <table>
+    <thead><tr><th>#</th><th>Source object</th><th>Dimensions</th><th>Bytes</th><th>Asset</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><code>Im1.png</code></td><td>349 x 79</td><td>20972</td><td><a href="assets/p001_img01_d32eba3337.png">p001_img01_d32eba3337.png</a></td></tr>
+    </tbody>
+  </table>
+  <div class="image-grid">
+    <figure><a href="assets/p001_img01_d32eba3337.png"><img src="assets/p001_img01_d32eba3337.png" alt="Page 11 image 1"></a><figcaption>Image 1, 349 x 79, 20972 bytes</figcaption></figure>
+  </div>
+  <h3>Notes</h3>
+  <textarea data-page="11" placeholder="Page 11 notes"></textarea>
+</section>
+<section class="page" id="page-12">
+  <h2>Page 12</h2>
+  <h3>Extracted Text</h3>
+  <pre>SPS – REO
+REO aligns with the needs of our clients and investors to maximize liquidation proceeds and reduce loss severity.  REO eliminates unnecessary timeline delays while remaining compliant in all
+stages of the REO process by utilizing Exceleras®, a task-oriented platform, to interact with all vendors in real time.
+12
+ Agent assignments
+performed by
+management
+ Agent inspections
+ensure property
+condition, sufficient
+value and no
+hazard/liability
+Pre-Foreclosure
+ Process to contest
+disputed HOA
+charges
+ Flat fee pricing for
+resolution
+ Reservation of rights
+allows closing and
+recovers the
+disputed amount
+ Proprietary
+workstation and data
+repository
+HOA
+ Monthly dashboard
+monitors eviction
+firms
+ Cash for Keys (CFKs)
+model certifies offers
+are economical
+ SCRA validation
+ PTFA process
+notification of rights
+and  compliance with
+terms
+Eviction
+ Scorecard  monitors
+preservation
+timelines
+ Second check for
+personal
+property/trash
+decisions
+ Identification and
+mitigation of code
+violations
+Premarketing
+ Values reconciled
+outside of REO
+ All initial strategies
+approved by
+management
+ All repairs approved
+by management
+ Monitor FC 3rd party
+sales trends
+Valuation
+Strategy
+ MLS validations
+throughout REO life
+cycle
+ 25 day file
+management
+ System generated
+forms and contract
+addendums
+ Offer Management
+Portal
+Marketing Closing/Title
+ Order and grading of
+title completed
+upfront with
+expedited handling
+of title claims.
+ Daily reconciliation
+of REO wires
+ 100% QC of all deed
+packages
+30%
+35%
+40%
+45%
+50%
+55%
+60%
+65%
+70%
+75%
+80%
+85%
+90%
+95%
+100%
+105%
+110%
+115%
+120%
+0
+100
+200
+300
+400
+500
+600
+700
+800
+Apr-25 May-25 Jun-25 Jul-25 Aug-25 Sep-25 Oct- 25 Nov-25 Dec-25 Jan-26 Feb-26 Mar-26 Apr-26
+Loss Severity
+Sold Units
+Loss Severity
+CFK DIL SPS Client Initiated SPS Initiated SPS &amp; Client Initiated</pre>
+  <h3>Extracted Images</h3>
+  <table>
+    <thead><tr><th>#</th><th>Source object</th><th>Dimensions</th><th>Bytes</th><th>Asset</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><code>Im1.png</code></td><td>349 x 79</td><td>20972</td><td><a href="assets/p001_img01_d32eba3337.png">p001_img01_d32eba3337.png</a></td></tr>
+    </tbody>
+  </table>
+  <div class="image-grid">
+    <figure><a href="assets/p001_img01_d32eba3337.png"><img src="assets/p001_img01_d32eba3337.png" alt="Page 12 image 1"></a><figcaption>Image 1, 349 x 79, 20972 bytes</figcaption></figure>
+  </div>
+  <h3>Notes</h3>
+  <textarea data-page="12" placeholder="Page 12 notes"></textarea>
+</section>
+<section class="page" id="page-13">
+  <h2>Page 13</h2>
+  <h3>Extracted Text</h3>
+  <pre>Select Portfolio Servicing, Inc.
+Business Development/Sales Disclaimers
+ References in this report to Select Portfolio Servicing, In c. (SPS) include all of the subsidiaries and affiliates of SPS and it s holding company.
+ All material presented in this report, unless specifically indicated otherwise, is under copyright to SPS.  None of the materia l, nor its content, nor any copy of it, may be altered in any
+way, transmitted to, copied or distributed to any other party, wi thout the prior express written permission of SPS.  All tradem arks, service marks and logos used in this report are
+trademarks or service marks or registered trademarks or service marks of SPS or its affiliates.
+ Nothing in this report constitutes investment, legal, accounting or tax advice, or a representation that any business transaction, general business or strategy is suitable or appropriate to
+your individual circumstances, or otherwise constitutes a personal recommendation to you.  SPS does not advise on the tax conseq uences of business transactions and you are
+advised to contact an independent tax adviser.
+ Information and opinions presented in this report have been obtained or  derived from sources believed by SPS to be reliable, bu t SPS makes no representation as to their accuracy or
+completeness.  SPS accepts no liability for loss arising from the use of the material presented in this report.  This report is  not to be relied upon in substitution for the exercise of
+independent judgment.  SPS may have issued, and may in the future issue, other reports that are inconsistent with, and reach different conclusions fro m, the information presented in
+this report.  Those reports reflect the different assumptions, views and analytical methods of the analysts who prepared them an d SPS is under no obligation to ensure that such other
+reports are brought to the attention of any recipient of this report.
+ Past performance should not be taken as an indication or guarantee of future performance, and no representation or warranty, express or implied, is made regarding future
+performance.  Information, opinions and estimates contained in this  report reflect a judgment at its original date of publication by SPS and are subject to change without notice.</pre>
+  <h3>Extracted Images</h3>
+  <table>
+    <thead><tr><th>#</th><th>Source object</th><th>Dimensions</th><th>Bytes</th><th>Asset</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><code>Im1.png</code></td><td>349 x 79</td><td>20972</td><td><a href="assets/p001_img01_d32eba3337.png">p001_img01_d32eba3337.png</a></td></tr>
+    </tbody>
+  </table>
+  <div class="image-grid">
+    <figure><a href="assets/p001_img01_d32eba3337.png"><img src="assets/p001_img01_d32eba3337.png" alt="Page 13 image 1"></a><figcaption>Image 1, 349 x 79, 20972 bytes</figcaption></figure>
+  </div>
+  <h3>Notes</h3>
+  <textarea data-page="13" placeholder="Page 13 notes"></textarea>
+</section>
+
+  </main>
+</div>
+<script>
+const readerMeta = {"source": "SPS Operations.pdf", "generated": "2026-06-09 08:35 UTC", "pages": 13};
+const notePrefix = 'sps-operations-notes::' + location.pathname + '::';
+const statusEl = document.getElementById('status');
+function setStatus(text) {
+  statusEl.textContent = text;
+}
+for (const area of document.querySelectorAll('textarea[data-page]')) {
+  const key = notePrefix + area.dataset.page;
+  area.value = localStorage.getItem(key) || '';
+  area.addEventListener('input', () => {
+    localStorage.setItem(key, area.value);
+    setStatus('Saved note for page ' + area.dataset.page + '.');
+  });
+}
+document.getElementById('export-notes').addEventListener('click', () => {
+  const lines = [
+    '# SPS Operations Notes',
+    '',
+    '- Source: ' + readerMeta.source,
+    '- Exported: ' + new Date().toISOString(),
+    ''
+  ];
+  for (const area of document.querySelectorAll('textarea[data-page]')) {
+    const value = area.value.trim();
+    if (value) {
+      lines.push('## Page ' + area.dataset.page, '', value, '');
+    }
+  }
+  const blob = new Blob([lines.join('\n')], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'SPS_Operations_notes.md';
+  link.click();
+  URL.revokeObjectURL(url);
+  setStatus('Exported notes Markdown.');
+});
+document.getElementById('clear-notes').addEventListener('click', () => {
+  if (!confirm('Clear notes saved for this reader file?')) return;
+  for (const area of document.querySelectorAll('textarea[data-page]')) {
+    localStorage.removeItem(notePrefix + area.dataset.page);
+    area.value = '';
+  }
+  setStatus('Cleared saved notes.');
+});
+</script>
+</body>
+</html>

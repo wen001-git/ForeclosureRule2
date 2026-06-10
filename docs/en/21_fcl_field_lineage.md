@@ -1,5 +1,8 @@
 # 21 · Foreclosure Core Field-Level Data Lineage (source field → intermediate tables → transform rules → BPS field)
 
+> ⚠️ **Superseded** — replaced by **doc 25 (lineage hub) + doc 26–30 (per-BPS-table field lineage)**.
+> The new version is organized as one-doc-per-table, one-row-per-field, fixed hop columns + per-hop rule + code reference, generated from `outputs/fcl_lineage_source.json` (`python - < scripts/gen_fcl_lineage.py`) and schema-verified column-by-column against prod (redshift_prod / mysql_prod). Use doc 25–30; this file is kept for history only.
+
 ---
 
 ## Document Information

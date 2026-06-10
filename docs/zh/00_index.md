@@ -28,7 +28,13 @@
 |---------|--------|---------|---------|
 | 00 | `00_index.md` | 本索引 | 导航入口 |
 | **20** | **`20_end_to_end_walkthrough.md`** | **🌟【推荐第一篇】数据流总览 + 讲解稿**：把 foreclosure 数据从来源 Servicer 文件 → BPS 系统的五层全过程串成一条线，并**从业务角度解释「数据为什么这样处理」**（§A.6，如一个 FCL 为何多条 Hold）；两层（业务视角全景+讲解脚本+Q&A／按层深入 walkthrough+代码定位地图+样本 loan 走查） | 向同事讲解全流程+业务理由；新成员快速建立全局认知；其它文档总入口 |
-| **21** | **`21_fcl_field_lineage.md`** | **🔬 核心字段级血缘**：约 30 个核心 FCL 字段从 Servicer 原始列 → 中间表 → 转换规则 → BPS 列的逐字段链路；规则全部读 PrefectFlow 源码（含 file:line），所有 `表.列` 经 MCP 实测核验；含主血缘表 + 字段业务含义速查 + **业务粒度/一对多关系（如一笔贷款多条 Hold/多轮 LM/多次 BK）** + 业务理由(§0.4) + ERD(§0.5) + 6 组字段卡片（每组含「📖 业务含义」）+ 已知坑 + 自助核实模板 | 逐字段讲解/对账（pipeline 规则 + 业务含义）；新接入 Servicer 的字段对应底稿 |
+| ~~21~~ | ~~`21_fcl_field_lineage.md`~~ | ⚠️ **已弃用，被 doc 25–30 取代**（旧版字段级血缘，按主题组织、较乱）。请改用 doc 25（总览）+ 26–30（各 sync 表逐字段）。 | 历史保留 |
+| **25** | **`25_fcl_lineage_overview.md`** | **🔬【字段血缘总入口/hub】** 止赎核心字段 Servicer 原始列 → BPS sync 表的字段级血缘总览：4 条规范跳链骨架 + 全字段主索引 + 已知缺口 + 端到端样例（loan 7727004408，MCP 实测）+ 指向 26–30 的链接。规则 Code-First 取自 PrefectFlow（含 file:line），列名逐列对 prod 核验。由 `outputs/fcl_lineage_source.json` 经 `scripts/gen_fcl_lineage.py` 生成 | 字段级血缘讲解/对账总入口；取代 doc 21 |
+| **26** | **`26_lineage_sync_loan_foreclosure.md`** | `bpms.sync_loan_foreclosure` 逐字段血缘：里程碑(`timeline_*`)+汇总/状态(`summary_*`)，一字段一行、每跳列名+规则+代码，终于展示视图(Actual/Var) | 主表字段对账 |
+| **27** | **`27_lineage_sync_fcl_stage_info.md`** | `bpms.sync_fcl_stage_info` 逐字段血缘：阶段开始日/天数/to_*_days/in_lm/on_hold + group(delq_status: mba+days360)/judicial(州级回退)/state | 聚合页字段对账 |
+| **28** | **`28_lineage_sync_loan_foreclosure_hold.md`** | `bpms.sync_loan_foreclosure_hold` 逐字段血缘：fchold1..4 宽列 → 长表 unpivot | Hold 面板对账 |
+| **29** | **`29_lineage_sync_loan_foreclosure_loss_mitigation.md`** | `bpms.sync_loan_foreclosure_loss_mitigation` 逐字段血缘：LM 周期 + datadic 编码→文本解码 | LM 面板对账 |
+| **30** | **`30_lineage_sync_loan_foreclosure_bankruptcy.md`** | `bpms.sync_loan_foreclosure_bankruptcy` 逐字段血缘：BK 记录 + 状态解码 | BK 面板对账 |
 | 01 | `01_source_data.md` | 各服务商原始数据表结构、止赎相关字段清单 | 数据溯源、字段定义查询 |
 | 02 | `02_etl_pipeline.md` | 完整 ETL 管道：5层数据流、表谱系、Redshift vs MySQL 分层 | 管道理解、调试、重写规划 |
 | 03 | `03_fcl_status_logic.md` | 止赎状态生成的完整逻辑（SQL/Python/映射表/覆盖规则） | 状态计算原理、重写参考 |

@@ -33,6 +33,7 @@
 | 2026-06-08 | AI Agent (Claude Opus 4.8) | v2.2 | Corrected §2.4 state machine: removed the wrong `BK →(debt discharged)→ P` edge (Ch.7 discharge only releases personal liability; the mortgage lien survives, the loan is NOT paid off); removed "discharge" from the P node label; §2.4.3 `BK → P` row rewritten as "no direct P" — consistent with §2.5 Ch.7 lien note and doc 17/14/fcl_pipeline.html | doc 17 · doc 14 · fcl_pipeline.html |
 | 2026-06-08 | AI Agent (Claude Opus 4.8) | v2.3 | Added a "four independent dimensions" supplementary note below the §2.4 state machine (dimension table + example-combinations table + 3 clarifications). **The state diagram itself is unchanged** (text-only addition) | doc 17/14 · fcl_pipeline.html |
 | 2026-06-08 | AI Agent (Claude Opus 4.8) | v2.4 | §2.5 BK deep dive: added "Official Sources & Legal Basis for BK State Transitions" — uscourts.gov Bankruptcy Basics links + per-transition Title 11 statute links (§ 362 / § 1322 / § 1328 / § 727 / § 524, Cornell LII) with verbatim excerpts; §2.4.3 pointer; clarified the system passes through servicer status (no coded BK→C trigger, 03_fcl_status_logic.md §2.1 L77–114). URLs + quotes verified via WebFetch | doc 17 · 03_fcl_status_logic.md |
+| 2026-06-09 | AI Agent (Claude Opus 4.8) | v2.5 | §2.5 chapter table expanded from Ch.7/11/13 to **Ch.7/11/12/13/15 (five chapters)** (added Chapter 12 Family Farmer/Fisherman and Chapter 15 Cross-Border, enriched each chapter's core mechanism); added servicer-perspective summary; "Authoritative sources" uscourts.gov links expanded from 2 to **5** (all five chapters), URLs verified via WebFetch. **Kept consistent with doc 17 §5.4** | doc 17 · uscourts.gov |
 
 ---
 
@@ -814,17 +815,21 @@ These map directly to the 6 milestones tracked in `port.basic_data_loan_fcl`:
 
 ---
 
-##### What Are Chapter 7 and Chapter 13?
+##### What Are the Bankruptcy Chapters?
 
-These names come from the **US Bankruptcy Code** (formally: Title 11 of the United States Code), the federal law governing all bankruptcy proceedings. The Code is organized into **chapters**, and the chapter number indicates the type of bankruptcy procedure:
+These names come from the **US Bankruptcy Code** (formally: Title 11 of the United States Code), the federal law governing all bankruptcy proceedings. The Code is organized into **chapters**, and the chapter number indicates the type of bankruptcy filing:
 
-| Chapter | Who it applies to | Type |
-|---------|------------------|------|
-| **Chapter 7** | Individuals or businesses | **Liquidation**: assets are sold to pay debts; remaining debts discharged |
-| **Chapter 11** | Primarily businesses | **Business reorganization**: company continues operating while restructuring debt (common for large corporate bankruptcies) |
-| **Chapter 13** | Individuals with regular income | **Personal reorganization**: 3–5 year repayment plan to gradually pay debts; allows borrower to keep property |
+| Chapter | Who it applies to | Type & core mechanism |
+|---------|------------------|-----------------------|
+| **Chapter 7** | Individuals or businesses (the most common consumer bankruptcy) | **Liquidation**: a trustee sells the debtor's non-exempt assets to repay creditors; remaining eligible debts are discharged. Typically **3–6 months**. For a secured mortgage, if the debtor cannot keep paying, the bank may initiate foreclosure. |
+| **Chapter 11** | Primarily businesses (also individuals with large debts) | **Reorganization**: the debtor proposes a court-supervised reorganization plan, continuing to operate while repaying debt over time; complex and lengthy, common for large corporations. |
+| **Chapter 12** | Family farmers / fishermen | **Family Farmer / Fisherman reorganization**: a **3–5 year** repayment plan while continuing to operate; eligibility and terms are more flexible than Chapter 13. |
+| **Chapter 13** | Individuals with regular income (Wage Earner's Plan) | **Personal reorganization**: a **3–5 year** repayment plan that lets the borrower keep property while paying down arrears (including mortgage arrears). For mortgage servicers, the borrower is often still paying (a **"Performing Bankruptcy"**). |
+| **Chapter 15** | Cross-border insolvency cases | **Cross-Border Insolvency**: coordinates bankruptcy proceedings across multiple countries, usually alongside a foreign main proceeding; rare in loan portfolios (added by the 2005 BAPCPA). |
 
-In the mortgage context, only **Chapter 7** and **Chapter 13** are relevant. "Filed Chapter 7 / Chapter 13" has become standard American legal shorthand — the chapter number directly names the procedure type.
+> **From a mortgage servicer's perspective**: **Chapter 13 is the most common** — the borrower can cure arrears via a repayment plan and keep the home; **Chapter 7 often signals a possible foreclosure**. So in the mortgage context, only **Chapter 7** and **Chapter 13** are relevant. "Filed Chapter 7 / Chapter 13" has become standard American legal shorthand — the chapter number directly names the procedure type.
+>
+> Official authoritative descriptions (U.S. Courts — Bankruptcy Basics) for each chapter are linked under "Authoritative sources" below.
 
 ##### Chapter 7 vs Chapter 13
 
@@ -905,10 +910,13 @@ Both map to `delinq = 'FCL'`. The difference is the BK compliance status, which 
 
 > ⚠️ **These transitions are legal/business reality under the U.S. Bankruptcy Code — not rules this system computes.** The ETL does **not** auto-compute `BK→C` etc.: each month it **passes through** the servicer-reported `delinquency_status_mba`; `Foreclosure / Perf BK` and `Foreclosure / Non-Perf BK` are both mapped to `FCL` by `CREATE_FCL_RELATE_ATTR`, and the loan stays `FCL` until the servicer re-reports `Current` (see `docs/en/03_fcl_status_logic.md` §2.1 lines 77–114 — there is no coded "Ch.13 completed → delinq=C" trigger).
 
-**Authoritative sources (U.S. Courts — Bankruptcy Basics)**
+**Authoritative sources (U.S. Courts — Bankruptcy Basics, official per-chapter pages)**
 
-- Chapter 7: <https://www.uscourts.gov/court-programs/bankruptcy/bankruptcy-basics/chapter-7-bankruptcy-basics>
-- Chapter 13: <https://www.uscourts.gov/court-programs/bankruptcy/bankruptcy-basics/chapter-13-bankruptcy-basics>
+- Chapter 7 (Liquidation): <https://www.uscourts.gov/court-programs/bankruptcy/bankruptcy-basics/chapter-7-bankruptcy-basics>
+- Chapter 11 (Business reorganization): <https://www.uscourts.gov/court-programs/bankruptcy/bankruptcy-basics/chapter-11-bankruptcy-basics>
+- Chapter 12 (Family Farmer / Fisherman): <https://www.uscourts.gov/court-programs/bankruptcy/bankruptcy-basics/chapter-12-bankruptcy-basics>
+- Chapter 13 (Wage Earner's repayment plan): <https://www.uscourts.gov/court-programs/bankruptcy/bankruptcy-basics/chapter-13-bankruptcy-basics>
+- Chapter 15 (Cross-Border Insolvency): <https://www.uscourts.gov/court-programs/bankruptcy/bankruptcy-basics/chapter-15-bankruptcy-basics>
 
 **Per-transition statutory basis (Title 11 U.S. Code; links to Cornell LII official text)**
 

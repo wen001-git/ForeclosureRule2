@@ -1,5 +1,51 @@
 # Prompt & Decision Log — ForeclosureRule2
 
+## [2026-06-09 UTC] 把五章破产法 taxonomy + 官方 URL 同步到所有相关文档，保持一致
+> 好的，请把所有文档保持一致
+
+### Decision: 一致性范围——只同步「章节 taxonomy 表」所在文档，contextual 引用不扩 [2026-06-09]
+- **Context**: 用户要求把 doc 17 的五章 taxonomy + 5 条 uscourts URL 同步到所有文档保持一致。全仓 grep 发现 22 个文件提到 bankruptcy chapter。
+- **Options considered**: A=只改有「章节 taxonomy 表」的文档；B=所有提到 Chapter 的文档（含 doc 24/doc 10 的 contextual 引用）全部扩成五章。
+- **Choice**: A。
+- **Reason**: 真正与 doc 17 重复且会发生「分叉」的只有 **doc 07 §2.5**（doc 17 正是从 doc 07 §2 抽出，二者有逐字相同的 3 章表 + 2 URL 清单）。doc 24（BK→C vs BK→FCL 专题）与 doc 10（术语表）只在抵押语境下引用 Ch.7/13——这正是 doc 17 自己声明「房贷语境只关注 7/13」的子集，并不与五章 taxonomy 矛盾；给它们塞 Ch.11/12/15 反而离题。故只对齐 taxonomy 表（doc 07 zh+en），doc 24/doc 10 保持聚焦。
+
+### Milestone: doc 07 zh+en §2.5 章节表对齐 doc 17 五章 + 官方 URL [2026-06-09]（07 zh/en→v2.5）
+- 改 `docs/zh/07` 与 `docs/en/07`：§2.5「是什么」表 Ch.7/11/13 → **Ch.7/11/12/13/15 五章**（与 doc 17 §5.4 逐项一致，含 servicer 视角总结）；「官方权威来源」uscourts 链接 2 → **5 条**；各加 v2.5 修订行。
+- **验证**：grep `bankruptcy-basics/chapter-(7|11|12|13|15)` 确认 doc 17 / doc 07 zh / doc 07 en 各 **5 条** URL；doc 24 zh/en 维持 2 条（Ch.7/13，转换专题应有的子集）。五章 taxonomy 表现仅存于 doc 17 + doc 07 zh/en，三者完全一致。
+- Ch.11/12/15 三条 URL 已在上一里程碑 WebFetch 实测存在；本轮为复用同一组已验证字符串。
+- 未跑 `/simplify`/测试：纯文档文本同步、无代码改动，二者不适用。
+
+## [2026-06-09 UTC] 补充美国破产法各章节（Ch.7/11/12/13/15）到 doc 17，含官方 URL
+> 我又查到这些有关美国 foreclosure的法律法规：【美国破产法各章节（Bankruptcy Chapters）… Chapter 7 清算 / Chapter 11 重组 / Chapter 12 家庭农场渔业 / Chapter 13 个人重组还款 / Chapter 15 跨境破产 …总结：从房贷 servicer 角度，Ch.13 最常见、Ch.7 往往触发法拍】 这些法律法规，是否可以补充到 doc 17中？记得补充上 法律法规的官方URL
+
+### Milestone: doc 17 §5.4 章节表补全为五章 + 官方 URL [2026-06-09]（zh→v7）
+- 仅改 `docs/zh/17_foreclosure_business_primer.md`（zh-only，无 en 镜像；不涉 Excel/DB）。
+- §5.4「是什么」表：Ch.7/11/13 三章 → **Ch.7/11/12/13/15 五章**，新增 Chapter 12（家庭农场/渔业）、Chapter 15（跨境破产），并按用户资料丰富各章核心机制；表后补 servicer 视角总结（Ch.13 最常见可保房、Ch.7 往往触发法拍）。
+- §5.4「官方权威来源」uscourts.gov Bankruptcy Basics 链接由 2 条扩至 **5 条**（覆盖全部五章）。
+- **URL 验证**：Ch.11/12/15 三条新链接均经 WebFetch 实测存在（页面标题分别为 "Chapter 11/12/15 - Bankruptcy Basics"）；Ch.7/13 沿用 doc 既有已验证链接。
+- 修订历史新增 v7 行。未改 §5.4 既有 Title 11 状态转换法条表 / Lien 说明 / FCL+BK 系统表达。
+- 未跑 `/simplify` 与测试：本次为纯文档文本补充、无代码改动，二者不适用。
+
+## [2026-06-09 UTC] 诊断并修复 /doctor 报告的 1 个 MCP 配置问题
+> ⚠ 1 setup issue: MCP · /doctor------ what is this MCP? pls fix this issue , if you can not fix it , disable it
+
+## [2026-06-09 UTC] 测试数据库 MCP 连接
+> 你可以连接数据库MCP吗？
+>
+> 实测结果：mysql_prod(bpms) / redshift_prod(dev集群) / mysql_dev(bpms_dev) / mysql_bpms_dev(bpms_dev) 四个连接均只读访问成功。
+
+## [2026-06-09 UTC] 是否把数据库 MCP 做成用户级别
+> 是否可以把这个数据库MCP做成用户级别？
+
+### Decision: 数据库 MCP 作用域——维持项目级，不提用户级 [2026-06-09]
+- **Context**: 4 个 DB MCP（mysql_prod/redshift_prod/mysql_dev/mysql_bpms_dev）当前定义在项目级 `.mcp.json`（ForeclosureRule2 根 + 父 Copilot 目录各一份，均 npx stdio 服务器）。用户问是否可改为用户级（`~/.claude.json` 顶层 mcpServers，全项目通用）。
+- **Options considered**: A=全部提到用户级；B=只提 dev 库到用户级、prod 留项目级；C=维持项目级不改。
+- **Choice**: C——维持项目级，不动任何配置；项目级重复定义也保留不删。
+- **Reason**: 技术上可行（`claude mcp add --scope user` 即可），但提到用户级会让 prod 库凭据在所有项目全局激活、暴露面变大。用户权衡后选择把 prod DB 访问继续限定在本项目，暴露面最小。
+
+## [2026-06-09 UTC] 切换到 ForeclosureRule2 项目，准备开始工作
+> pls go to this project :C:\Users\jli\MyData\Copilot\ForeclosureRule2,  I am going to working on this project
+
 ## [2026-06-08 UTC] 解释 BK→Current 与 BK→Foreclosure 的核心差异（参考 doc 17 + 权威资料）
 > BK到current 和 BK 到Foreclosure的核心差异是？你可以参考 doc 17 和网上查一下权威资料
 >
@@ -2307,3 +2353,159 @@
 
 ## [2026-06-08 01:28 UTC] git push
 > pls git push
+
+## [2026-06-09 00:00 UTC] /statusline — configure status line
+> Create an Agent with subagent_type "statusline-setup" and the prompt "Configure my statusLine from my shell PS1 configuration"
+> (fields chosen) Current directory + Model name + Context usage
+
+## [2026-06-09 00:00 UTC] doc04 HTML: fix Overview aggregate fields' FETCH SQL
+> 这个查询BPS界面上的数值的SQL对吗？这个查询查的是 Newrez 的各个贷款状态的loan的数目，怎么会有 loanid=:loanid?
+> also check the doc 13
+> did you verify it via DB MCP?
+
+### Decision: Overview 聚合字段取数SQL改为 COUNT…GROUP BY servicer（在 aggF 内构建）[2026-06-09]
+- **Context**: doc04 HTML 的 Overview 面板 7 个字段是按 servicer 的聚合计数（FC=COUNT(*) WHERE group='FCL' 等），但抽屉里的 FETCH SQL 被通用自动生成循环（fcl_pipeline.html:1225-1237）统一打成单贷款 `WHERE loanid=:loanid` —— 单贷款查询无法产出分组计数。用户指出此矛盾。
+- **Options considered**: A) 在自动生成循环里按 id/flag 分支生成聚合 SQL；B) 解析 calc 字符串提取 WHERE；C) 在 aggF 内显式构建聚合 SQL 并 set f.sql（循环已有 `if(f.sql) return;` 会跳过）。
+- **Choice**: C。
+- **Reason**: 改动最局部（仅 aggF + 7 个调用点），显式传 `{a,where}`/`{count}`/`{dim}` 比解析字符串稳健（符合项目"显式/可验证"规则），且复用循环既有跳过机制，零回归风险（per-loan 字段 f.sql 仍为空，循环照旧处理）。
+
+### Milestone: 修正 doc04 HTML Overview 聚合字段 FETCH SQL [2026-06-09]
+- 改 `outputs/fcl_pipeline.html`：`aggF` 增第 6 参 `agg`，为 7 个 `ov_*` 字段生成 `SELECT servicer, COUNT(*/loanid) … [AND <pred>] GROUP BY servicer`（servicer 为 `SELECT DISTINCT servicer` 维度），替换错误的单贷款 `WHERE loanid=:loanid`。
+- DB 只读实测（mysql_prod=bpms）：① information_schema 确认 loanid/group/servicer/judicial/fctrdt/state 均在 sync_fcl_stage_info；② 生成的 ov_fc 精确 SQL 执行通过，返回 Newrez=21 / Carrington=6（prod 计数 ≠ 截图 dev 数，属 dev 滞后，预期）。
+- node 求值 aggF 逻辑核对 4 个代表字段 SQL 形态正确。doc 13（源真相）经检查不含此 bug，无需改。回归：per-loan 字段 FETCH SQL 不变（循环跳过 f.sql 已设的字段）。本地改动未推送。
+
+## [2026-06-09 00:00 UTC] doc04 HTML: update to prod schema names + prod example data
+> file:///C:/Users/jli/MyData/Copilot/ForeclosureRule2/outputs/fcl_pipeline.html 的BPS field lineage的所有示例数据和 右边抽屉的 该功能的 SQL 请都更新成 生产的DB的schema 名称.表名称（比如 bpms_dev 应该是bpms?），请用数据库MCP核实正确
+> (screenshots of BPS Prod System provided) this are the BPS Prod System, 你可以把html的页面做得跟这个界面一模一样，你通过MCP 查询的结果可以跟界面上的结果做对比
+> 131
+## [2026-06-09 08:26 UTC] PDF content and image extraction format advice
+> 我想把这个pdf的文件的内容/图全部提取出来，便于后续给AI分析，以及我浏览阅读，做笔记，我是做成什么格式的文件比较好？MD？HTML？ HTML可以做笔记吗？
+## [2026-06-09 08:29 UTC] Generate Markdown and HTML artifacts from SPS Operations PDF
+> 好的，请输出 MD + HTML 双产物
+
+### Decision: prod schema naming + prod example data for fcl_pipeline.html [2026-06-09]
+- **Context**: doc04 HTML 用 dev 名（bpms_dev / mysql_dev）且示例数据取自 UAT；用户要求改为生产库 schema.表名 + prod 示例数据，并提供 3 张 prod BPS 截图（Overview/Stage/Time Line/Loan detail 7727004408）作为真值。
+- **Options considered**: A) 仅改字段血缘 tab；B) 全文件统一改名 + 全量刷新示例数据。
+- **Choice**: B（用户确认：全文件改名、Worked example 刷新并重写叙述、刷新全部示例数据、仅数据+列保真不重做 CSS）。
+- **Reason**: 半 dev 半 prod 命名会混淆；prod 截图提供逐行真值，可与 MCP 交叉校验。命名映射经 MCP 实测：bpms_dev→bpms、mysql_bpms_dev.bpms_dev→mysql_prod.bpms、mysql_dev.newrez→mysql_prod.newrez、redshift_prod.port 不变。锚定贷款由 dev 的 7727000088 改为 prod 截图所示 7727004408。
+
+### Milestone: fcl_pipeline.html 全量改 prod 名 + prod 示例数据（对齐 BPS prod 截图）[2026-06-09]
+- **Part A 改名**：PowerShell 顺序替换（mysql_bpms_dev.bpms_dev→mysql_prod.bpms → mysql_bpms_dev→mysql_prod → bpms_dev→bpms → mysql_dev→mysql_prod），dev-token 65→0；FB/FN 常量、aggF/auto-gen 取数 SQL 硬编码字面量、面板 srcTable、Pipeline 节点名、i18n、页脚均改；页脚加“2026-06-09 自 prod 刷新, fctrdt=2026-06-06”。
+- **Part B 示例数据（MCP mysql_prod=bpms 实测，逐项对齐截图）**：Overview=Newrez 21/21/0/0/10/11、Carrington 6/6/0/0/4/2；Time Line=全 27 笔（按 referral 排序，逐行=截图）；Stage=7 组（FC Sales7/Judgement2/Publication0/Service3/First Legal5/Referral10/NOI0）含 days/inLM/onHold 与截图一致；Loan detail 锚 7727004408（Milestone 日期+Target、20 段 Hold、Summary 8 项[firm=Aldridge Pite LLP, SMS593/Days823]、5 个 LM 周期、BK 无）；Worked example 改 7727004408（prod 全 match，去 dev-lag）、3984 sale-projected 改为 match 2026-06-30、010 BK 实测仍 match、默认贷款改 4408、移除“⚠ dev 滞后”叙述（prod fctrdt=2026-06-06 与 raw dataasof=2026-06-07 同步）。
+- **校验**：dev-token=0；脚本块语法检查 0 error；每个数据集与 prod 截图 + MCP 逐行核对一致；锚贷款 7727004408 summary 经 MCP == 截图。其它 tab（Pipeline/Data-flow/Status）仍用样例贷款 7727000088（prod 真实存在，属域外，未改）。DB 全程只读。本地改动未推送。
+
+### Decision: Extract SPS Operations PDF as Markdown plus HTML using local pypdf assets [2026-06-09]
+- **Context**: User requested dual Markdown + HTML artifacts from SPS Operations.pdf for AI analysis, reading, and note-taking.
+- **Options considered**: A) Markdown only; B) HTML only; C) Markdown + HTML with extracted image assets and optional later page screenshots.
+- **Choice**: C, implemented with local pypdf for text and embedded image extraction, plus generated HTML reader from the same structured content.
+- **Reason**: Markdown is best for AI ingestion and durable notes; HTML gives a better browsing interface. Local bundled tools include pypdf but not PyMuPDF/Poppler, so embedded-image extraction is available immediately while full-page rendered screenshots remain an optional enhancement.
+
+### Milestone: SPS Operations PDF extraction to Markdown + HTML reader [2026-06-09]
+- 产物：outputs/SPS_Operations_extracted/SPS_Operations.md、outputs/SPS_Operations_extracted/SPS_Operations_reader.html、outputs/SPS_Operations_extracted/assets/。
+- 抽取结果：13 页；文字 19,317 字符；图片出现 33 次；唯一图片资产 21 个。Markdown 按页组织文字/图片/Notes；HTML 提供目录、图片网格、每页 notes 文本框和 notes Markdown 导出。
+- /simplify/清理检查：脚本保持单一职责（PDF 抽取、Markdown 输出、HTML 输出），未发现需拆分的重复逻辑；未做无关重构。
+- 校验：scripts/extract_sps_operations_pdf.py 运行成功；py_compile 通过；Markdown/HTML 均为 13 页；HTML notes 区 13 个；21 个图片资产全部可由 PIL 打开；资源引用 21 个、缺失 0；HTML 内联 JS 语法检查通过。
+- 浏览器预览：内置浏览器因 URL policy 阻止访问本地 ile:// HTML，未绕过；改用静态结构和资源校验。
+- 仓库现有测试：发现 scripts/_test_doc14_manual_guard.py，运行失败于既有缺失依赖 _excel_guard（仓库中未找到该模块），与本次 PDF 抽取产物无关。
+
+## [2026-06-09 00:00 UTC] Build proper per-field foreclosure data lineage (doc 21 too rough)
+> 我发现doc 21并不是数据血缘，比较粗糙，我是想要 把 foreclosure 核心字段从来源 Servicer 原始列一路追到 BPS 系统列，逐字段列出经过的中间表和每一跳的转换规则，但 doc 21 写得很乱
+
+## [2026-06-09 09:35 UTC] 同步 doc17 §5.4 更新到 HTML 业务科普 §7
+> DOC 17的内容有所更新，把 doc 17的更新内容更新到 outputs/fcl_pipeline.html 中，确认需要更新哪几个页面。（确认：仅业务科普 §7；全量同步；全程使用正规中性语言）
+
+### Decision: foreclosure 字段级数据血缘改为「JSON 真源 + 生成器」，新建 doc 25–30，doc 21 弃用 [2026-06-09]
+- **Context**: doc 21 字段血缘按主题/层组织、只覆盖 ~15 字段、未列中间 Redshift 表为显式跳、散文与血缘混杂，用户认为乱/粗糙；缺真正的字段级血缘（doc 02 仅表级）。
+- **Options considered**: A) 原地重写 doc 21；B) 手写新文档；C) 结构化 JSON 单一真源 + 生成器，新建 doc 25（hub）+ 26–30（每 BPS sync 表一篇）。
+- **Choice**: C（用户确认：新建 doc 25 + 弃用 21、JSON+生成器、概要规则+code ref+非平凡贴SQL、每 sync 表一文档）。
+- **Reason**: 固定「分支跳链骨架 + 一字段一行 + 每跳列/规则/代码」消除 doc 21 的乱；JSON 真源避免手写漂移、可重生成、将来可喂 HTML drawer（复用 doc 14 生成器模式）。规则 Code-First 取自 PrefectFlow，列名对 prod 逐列核验。
+- **命名/骨架（MCP 实测）**: 主线 newrez.portnewrezfc→port.basic_data_loan_fcl→port.basic_data_loan_foreclosure→bpms.sync_loan_foreclosure→bpms.biz_data_view_loan_details_foreclosure；stage→port.fcl_stage_info→bpms.sync_fcl_stage_info；hold/lm/bk 各分支；delinq→group。
+
+### Milestone: 新增 foreclosure 字段级血缘 doc 25–30（JSON 真源 + 生成器）[2026-06-09]
+- **真源**: `outputs/fcl_lineage_source.json`（52 条字段，覆盖 5 张 BPS sync 表；每字段含 raw→...→BPS 全跳列+规则+code+carrington 备注+status；含 4 条 branch 跳链、datadic 解码说明、端到端 worked_trace）。
+- **生成器**: `scripts/gen_fcl_lineage.py`（经 stdin 运行：`python - < scripts/gen_fcl_lineage.py`），生成 hub `25_fcl_lineage_overview` + 每表 `26..30_lineage_sync_*`（zh+en 共 12 篇），含标准文档头。重跑两次 md5 一致（可复现）。
+- **Code-First**: 规则取自 PrefectFlow GEN_FCL_DETAIL/GEN_FCL_STAGE/CREATE_FCL_RELATE_ATTR(basic_data_pool_config.py)、UPDATE_FORECLOSURE/GEN_FORECLOSURE_LM/BK/HOLD(asset_managment_config.py)、view DDL（MCP SHOW CREATE VIEW），均标 file:line。
+- **Schema-Verify**: 所有 `表.列`经 information_schema 核验——newrez(portnewrezfc/lm/bk/general/prop/pmt) 走 mysql_prod、port.*(basic_data_loan_fcl/_foreclosure/fcl_stage_info/_hold/_loss_mitigation/_bankruptcy/_fcl_related) 走 redshift_prod、bpms.* 已早先核验；0 幻列。缺口（noi/title/MFR 等 Newrez 空、3rd-party-sold 常量空、L3 delinq_clean 生产代码在仓外、Carrington/Capecodfive 差异）均显式标注。
+- **端到端样例**: loan 7727004408 的 referral=2024-03-08、judgement=2026-08-21 在 raw→fcl_fact→foreclosure(L4)→sync(L5) 每跳一致（MCP redshift_prod+mysql_prod 实测）。
+- **弃用与索引**: doc 21 zh/en 顶部加 superseded 横幅；docs/zh|en/00_index.md 与 PROJECT_INDEX.md 更新（21 标弃用 + 加 25–30）。DB 全程只读，改动未推送。
+
+## [2026-06-09 00:00 UTC] comprehensive test of doc 25-30 lineage
+> pls conduct a comprehensive test
+
+### Milestone: doc 25–30 lineage — comprehensive test PASS [2026-06-09]
+- **结构测试**（`scripts/test_lineage.js`，可重跑）：15/15 通过——JSON 完整性（52 字段、hops 与分支跳链等长、bps_table 一致、均达 bpms.*）、12 篇 md 渲染（表列数一致、无 undefined/占位泄漏、zh/en 字段行数对齐、hub 链接齐、code ref 充足）。首轮发现 4 个派生阶段字段（stage_days/to_*_days/in_lm/on_hold）只有 3 跳致矩阵错列——已修为 4 跳对齐，复测全过。
+- **Schema-Verify（自动生成 SQL，MCP 实测）**：266 个被引用 `表.列` 全部存在——mysql_prod 139（newrez.* + bpms.*）缺失 0；redshift_prod 127（port.*）缺失 0。
+- **Code-grounding**：抽查引用的 file:line 与 PrefectFlow 源码逐字吻合（pool:1544 referral 改名、1549/1550/1551/1553/1565/1566、LM decode 821-840 concat(code,'.0')、BK decode 354-367）。
+- **端到端取值（prod 实测）**：rename（referral 2024-03-08 / judgement 2026-08-21 每跳一致）、CASE（activefcflag=1→'Active Foreclosure'、judicial=1→'Judicial'）、datadic 解码（lmdeal=2→'Evaluation'、bkstatus=1→'Active'）全部吻合。
+- 生成器重跑两次 md5 一致（可复现）。DB 全程只读；改动未推送。新增测试脚本 `scripts/test_lineage.js`。
+
+### Decision: 字段血缘按 servicer 分列（不再混写）[2026-06-09]
+- **Context**: 用户看 doc 26 反馈——主线/阶段的来源把 Carrington/Capecodfive 塞进 Newrez 矩阵下的散文备注（"Carrington/other: …"），servicer 混在一起、乱。
+- **Choice（用户确认）**: 每个 family 用「两张表」——① 按 servicer 来源（Field | Newrez | Carrington | Capecodfive，L1 原始列，`—`=该 servicer 不提供）；② 管道（fact→BPS，三家 UNION 后共用）。多 servicer 分支（main/stage/hold）适用；LM/BK 为 Newrez-only 保留单表并标注。
+- **Reason**: servicer 彻底分开、不混；窄表可读；来源与下游管道解耦。Carrington/Capecodfive 来源列经 redshift_prod 实测存在。
+
+### Milestone: doc 26–30 按 servicer 分列重构 + 测试 PASS [2026-06-09]
+- JSON：31 个 main/stage(+hold) 字段加 `servicers`{Newrez/Carrington/Capecodfive}（取自 PrefectFlow 3-家 UNION：Newrez 1533-1572 / Carrington 1574-1613 / Capecodfive 1615-1654；group/state 仅 Newrez+Carrington 见 CREATE_FCL_RELATE_ATTR 1695-1771，Capecodfive 不入 basic_data_fcl_related→`—`）；删除散文 `carrington` 字段（脚本 `scripts/_add_servicers.js`，幂等）。
+- 生成器：family 含 servicers 时渲染两表（source-by-servicer + pipeline=hops[1:]）；否则单表（LM/BK 加 Newrez-only 注）。重生成 12 篇。
+- 测试（`scripts/test_lineage.js` 扩展 Carrington/Capecodfive 校验）：结构 15/15 通过；Schema-Verify mysql 139 + redshift 140（含 carrington/capecodfive）缺失 0；生成器两跑 md5 一致。
+- DB 只读；改动未推送。
+
+## [2026-06-09 00:00 UTC] doc 25-30: annotate SQL + worked examples
+> doc 25 ~ Doc 30, 请给文档中的sql添加注释，并举例说明计算逻辑
+
+### Milestone: doc 26–30 SQL 加注释 + 计算示例 [2026-06-09]
+- 为 18 个非平凡 SQL（main: status/type/judgement-set/sale-set；stage: group/judicial/stage_days/to_*_days/in_lm/on_hold；hold unpivot；lm 6 个 decode；bk status）各加双语 `sql_note`（逐句说明）+ `sql_eg`（输入→输出示例）；脚本 `scripts/_add_sql_docs.js`（幂等）。修正 Type CASE 漏写的 cast 表达式（`WHEN =1`→`WHEN cast(cast(judicial AS float) as int)=1`）。
+- 示例 MCP 实测取真值：activefcflag=1→'Active Foreclosure'；judicial=1→'Judicial'；referral_stage_days 2024-03-08→2025-07-28 = 508；to_sale 1179=15；service_in_lm=185 / on_hold=87（7727000569）；LM 解码 lmdeal=2→Evaluation、lmprogram=21→Evaluation、lmstatus=166→Pending Financials、lmdecision=99→Pending、denialreason=78→'Buyer walked (SS)'、borrowerintention=3→Disposition（7727004408）；bkstatus=1→Active（7727000010）。
+- 生成器在每个 SQL 块下渲染「🔎 说明 / How it works」+「▶ 示例 / Example」。重生成 12 篇。
+- 测试：`scripts/test_lineage.js` 加「每个 sql 有双语 note+example」检查 → 结构 16/16 通过；生成器两跑 md5 一致；schema-verify 引用未变（139/140，缺失 0）。DB 只读，未推送。
+
+## [2026-06-09 00:00 UTC] doc 26-30: per-field card layout + write rules in full
+> doc 26 ~ doc 30，一行内容太多时，显示不完全，是否可以换种方式展示？字段的转换规则请写清楚，不要省略
+> (doc27 Group/Judicial/State) 这些规则，都要写清楚
+
+### Milestone: doc 26–30 改为「每字段卡片」竖排 + 规则写全 [2026-06-09]
+- **缘由**：宽表（来源 4 列 + 管道多列）在 markdown 查看器横向截断（Capecodfive 列跑出屏幕），且 per-servicer 规则被缩写（"activefcflag CASE"/"(computed datediff)"/"state fallback"）。用户要求换展示方式 + 规则写清楚不省略。
+- **改动**：① JSON 清洗 `servicers` 为纯 table.col / —（脚本 `_clean_servicers.js`，清 9 格）；为 status/days_in_fcl/judicial/group 加完整双语 `servicer_rule`（含 Carrington/Capecodfive 的 CASE/计算/州级回退/days360 分桶全文 + pool 行号）。② 生成器以 `field_card()` 取代两张宽表：标题 + 来源(三家分行,全 schema.table.col) + 逐跳血缘(列—规则[代码]) + 完整规则 + SQL/说明/示例。竖排永不截断。doc 25 hub 不变。③ 重生成 12 篇。
+- **测试**：`scripts/test_lineage.js` 改为按卡片(`^### `)统计 zh/en 对齐 + 校验 26/27 渲染出 Capecodfive 行 → 17/17 通过；生成器两跑 md5 一致；schema-verify mysql 139 + redshift 142（新增 fcl_flag/foreclosure_flag）缺失 0。
+- 旧函数 servicer_source_table/field_matrix 已不再被 26-30 调用（保留未删，后续可 /simplify 清理）。DB 只读，未推送。
+
+## [2026-06-09 00:00 UTC] doc26 canonical hop chain: 为何无 L2/L3 + 加 tempfc 行
+> **规范跳链 / canonical hop chain** 写的是什么内容？ L2 和 L3 呢？本来就没有吗？还是漏写了？
+
+## [2026-06-09 00:00 UTC] doc26-30: 字段标题加序号
+> 文档的字段标题请加上序号，否则很乱，数不清有多少个字段
+
+### Milestone: doc 26–30 跳链澄清(L2/L3) + 字段卡片加序号 [2026-06-09]
+- **L2/L3 之问（Code-First 实证）**：非漏写。FCL 事实表 `port.basic_data_loan_fcl` 由 `CREATE_BASIC_FCL`(pool:1531-1654) 直接 `FROM newrez.portnewrezfc UNION carrington.portcarrington UNION capecodfive…` 构建（经 `tempfc.temp_basic_data_fcl`），FCL 专有列在原始 servicer 表中，直接进 L4，不经 L2 统一日表/L3 清洗层（那两层承载通用+逾期字段，仅经 group 维度 doc27 与月度路径回流）。`#` 是序号非层号。
+- **改动**：① JSON 给 main/stage 的 chain 插入显式 `tempfc.temp_basic_data_fcl` 行（L4·temp）；加 `meta.chain_note` 双语说明上述。② 生成器在每篇 chain 表下与 hub 骨架后渲染 chain_note。③ 字段卡片标题加运行序号「### N. 字段名」，并在文末加「本文档共 N 个字段」。
+- **测试**：放宽过时不变式（卡片按 hops 顺序渲染，不再要求 hops 数=chain 数）→ 改为「每字段 ≥2 跳 raw→…→BPS」；test 17/17 通过；生成器两跑 md5 一致；schema-verify 139/142 缺失 0（tempfc 为瞬态构建表，不纳入校验）。DB 只读，未推送。
+
+## [2026-06-09 00:00 UTC] doc 26-30: cover ALL sync-table columns + flow order (+verify prefect/MCP)
+> doc 26 ~ doc 30 ... 没有数据库中的所有字段 / 数据流动的顺序是？
+> 请查询prefect项目 和 MCP 验证
+
+### Milestone: doc 26–30 全列覆盖 + 流动顺序 + {stage} 具体化 [2026-06-09]
+- **全列覆盖**：枚举每张 BPS sync 表的全部列（sync_loan_foreclosure 72 / sync_fcl_stage_info 57 / _hold 15 / _loss_mitigation 22 / _bankruptcy 22）。脚本 `scripts/_add_all_columns.js`（幂等）：保留已编排卡片（按 sync 列匹配）、把 `{stage}_*` 模板展开为具体列、create_*/update_*/status/is_deleted/tenant_id 归并为每表一个「系统/审计列」分组卡、新增视图 actual_*/var_*/合计 的公式卡；meta.table_columns 存 MCP 实测列清单。entries=154。每篇文末「本文档共 N 个字段」。
+- **数据流动顺序**：每张卡片加「流动顺序 / Flow: ①raw→②…→⑥view」一行 + 逐跳血缘加序号。
+- **{stage} 之问**：模板占位已消除，展开为具体列（demand/noi/referral/first_legal/service/publication/judgement/sale）；并写明两个 stage 概念（`stage` 分类列 7 值 vs `{stage}` 列前缀 8 个）。
+- **Code-First 验证（prefect）**：bid_id/funding_id←portfunding.dealid/fundingid(asset:541-542,604)；tenant_id←GET_LOAN_TENANT_ID(asset:932-936)；target_* 在 GEN_FORECLOSURE 注释掉→sync 存 NULL、视图 ifnull 默认(asset:564-577)；variance_*/部分 summary/bid NULL（未入 INSERT）；days_in_fcl/sms 在 sync 处加 datediff(dataasof,today) 延迟校正(asset:597-598)；svcloanid 链 shellpointloanid→svc_loanid→svcloanid。
+- **MCP Schema-Verify**：newrez 31 refs 缺失 0；port/carrington/capecodfive/portfunding refs 全部存在（修正两处合成 bug：stage raw 列用了 fact 名、svcloanid fact 列、stage loanid 用错 port 表名）；bpms refs = table_columns（实测清单）。
+- **测试**：`scripts/test_lineage.js` 新增「每表 100% 列覆盖」检查 → 18/18 通过；生成器两跑 md5 一致。DB 全程只读，未推送。
+
+## [2026-06-09 00:00 UTC] doc 26-30: 补字段中文名/业务含义/计算逻辑
+> 请补上字段的 中文名/业务含义/计算逻辑（如有）
+
+## [2026-06-09 00:00 UTC] doc26 大类是否消失 + 文档变更记录未维护
+> 我之前看到 doc 26 字段还分了大类，这个版本改了之后，没有分大类了，我看错了吗? 另外，文档的变更记录怎么没有更新呢? 在每次变更文档之后，没有维护变更记录
+
+### Milestone: doc 26–30 补中文名/业务含义 + 修订历史机制 [2026-06-09]
+- **中文名/业务含义（93 列）**：脚本 `scripts/_add_labels.js`（幂等，node）为所有缺中文名的字段补 `label.zh`/`biz`。`sync_loan_foreclosure` 的 timeline/target/variance/bid/summary 列 **Code-First** 从 `port.basic_data_loan_foreclosure` CREATE-TABLE 的双语注释 `-- English (中文)` 提取（pool:150-213，53 列）；target_* 注释自带「默认值：N」即计算逻辑、variance_* 自带「1 表示是」编码。stage 日期/天数列、identity、hold/lm/bk 按领域手写命名。修正：注释为纯中文的 `timeline_publication_date`(pool:164) 解析会把中文塞进 en → 加「en 含中文则跳过该 DDL 条目」+ 手写该列。
+- **大类（回答用户）**：未消失。生成器 `gen_per_table` 仍按 family 输出 `##` 大类标题；doc 26 实测 8 个大类：标识/主键列·时间线里程碑·目标天数·Variance·Bid Approval·汇总/状态·系统/审计列·视图计算列（卡片 `### N.` 在大类下）。
+- **修订历史机制（真缺口）**：原 `header()` 硬编码单行「v1 初稿」，永不更新。改为：JSON 加 `meta.revisions[]`（date/ver/zh/en），`header()` 循环渲染多行；回填 v1–v7 实际变更史（初稿→servicer 分列→SQL 说明→卡片→tempfc/序号→全列覆盖→中文名+修订历史）。今后每次改文档**追加一条 revision**。
+- **测试**：`scripts/test_lineage.js` 新增两检查（每业务/stage/identity 字段有中文名；修订历史 ≥2 版本且双语）→ **20/20 通过**；生成器两跑 md5 一致（STABLE）；DB 全程只读，未推送。
+
+## [2026-06-09 00:00 UTC] doc26-30: 补"只列代码无逻辑说明"字段的逻辑+举例
+> 请检查 doc26 ~ doc30有没有 字段转换逻辑只是简短列了代码的，没有详细说明逻辑的，请补充逻辑说明，并同时配上举例说明，多条逻辑线路的，就举多条例子
+
+## [2026-06-09 01:17 UTC] git push (HTML 系列改动)
+> OK , git push

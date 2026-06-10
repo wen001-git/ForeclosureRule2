@@ -327,45 +327,35 @@ const PAGEDOC={
     who:{en:"Data engineers · reconciliation/validation · onboarding engineers learning the architecture.",
          zh:"数据工程师 · 数据核对/验证 · 了解整体架构的新成员。"},
     how:{en:"Click any node → the right drawer shows its source / target / verified row count / runnable validation SQL. The arrow between layers labels the transform.",
-         zh:"点击任意节点 → 右侧抽屉显示该表的来源 / 去向 / 实测行数 / 可运行的验证 SQL；层间箭头标注转换动作。"},
-    src:{en:"Primarily <b>doc 02 (ETL pipeline)</b> + <b>doc 20 (end-to-end walkthrough)</b> — the layer model & MySQL+Redshift dual-write; cross-referenced with <b>doc 21</b> (field lineage). Code + MCP verified (PrefectFlow, 2026-06-06).",
-         zh:"主要基于 <b>doc 02（ETL 管道）</b> + <b>doc 20（端到端走查）</b>——分层模型与 MySQL+Redshift 双写；并参照 <b>doc 21</b>（字段血缘）。经 code + MCP 实测（PrefectFlow，2026-06-06）。"}},
+         zh:"点击任意节点 → 右侧抽屉显示该表的来源 / 去向 / 实测行数 / 可运行的验证 SQL；层间箭头标注转换动作。"}},
   flow:{
     desc:{en:"Table-level data flow (every table a node, edges = real deps from doc 21): L0 files → L1 → L2 → L3 → L4 (FCL family) → L5 sync → BPS. Modes: B particles (default), C volume, D sample-loan.",
           zh:"表级数据流动（每张表一个节点，边=doc 21 的真实依赖）：L0 文件 → L1 → L2 → L3 → L4（FCL 业务族）→ L5 同步 → BPS。模式：B 流动粒子（默认）、C 体量、D 单贷款。"},
     who:{en:"Anyone wanting the big-picture data flow · onboarding · business presentation.",
          zh:"想快速理解数据流动的人 · 新成员 · 业务讲解。"},
     how:{en:"B (default): particles flow along every edge (direction). D: ▶/step one sample loan. C: edge width ≈ volume.",
-         zh:"B（默认）：粒子沿每条边连续流动（看流动方向）。D：▶/单步看一笔贷款。C：边宽≈体量。"},
-    src:{en:"Table-level dependencies from <b>doc 21 (FCL field lineage)</b>; dual-write / layer context from <b>doc 02 (ETL pipeline)</b>.",
-         zh:"表级依赖取自 <b>doc 21（FCL 字段血缘）</b>；双写 / 分层背景见 <b>doc 02（ETL 管道）</b>。"}},
+         zh:"B（默认）：粒子沿每条边连续流动（看流动方向）。D：▶/单步看一笔贷款。C：边宽≈体量。"}},
   status:{
     desc:{en:"Inventory of all delinq / FCL / REO status codes, their lifecycle (state machine), DB-measured counts, and payment-history character encoding.",
           zh:"系统全部 delinq / FCL / REO 状态码清单、生命周期（状态机）、实测计数，以及还款历史字符编码。"},
     who:{en:"Business analysts · reporting/investment · data reconciliation.",
          zh:"业务分析师 · 报表/投资 · 数据核对。"},
     how:{en:"Click a status code → its definition + doc 14 verify SQL & raw MBA→delinq mapping. Click the “payment-history char encoding” title → its sample SQL in the drawer.",
-         zh:"点击状态码 → 看定义 + doc 14 验证 SQL 与原始 MBA→delinq 映射；点击「还款历史字符编码」标题 → 抽屉看取样 SQL。"},
-    src:{en:"Primarily <b>doc 04 (status inventory)</b> + <b>doc 03 (FCL status logic)</b> — code list & generation rules; verify SQL and raw MBA→delinq mapping from <b>doc 14</b>; lifecycle state machine from <b>doc 17</b>. Counts DB-measured.",
-         zh:"主要基于 <b>doc 04（状态清单）</b> + <b>doc 03（FCL 状态逻辑）</b>——状态码清单与生成规则；验证 SQL 与原始 MBA→delinq 映射取自 <b>doc 14</b>；生命周期状态机取自 <b>doc 17</b>。计数为 DB 实测。"}},
+         zh:"点击状态码 → 看定义 + doc 14 验证 SQL 与原始 MBA→delinq 映射；点击「还款历史字符编码」标题 → 抽屉看取样 SQL。"}},
   bps:{
     desc:{en:"How each panel of the BPS Foreclosure screen maps back to its bpms source table and Newrez raw origin.",
           zh:"BPS 止赎界面每个面板如何映射回其 bpms 源表与 Newrez 原始来源。"},
     who:{en:"Business analysts · BPS users · data engineers.",
          zh:"业务分析师 · BPS 用户 · 数据工程师。"},
     how:{en:"Click a panel → details + a jump to its corresponding pipeline node.",
-         zh:"点击面板 → 查看详情并跳转到对应的管道节点。"},
-    src:{en:"Primarily <b>doc 13 (BPS display mapping)</b> + <b>doc 16 (BPS panel quick-ref)</b>; field spec from <b>doc 14 (servicer FCL field spec)</b>.",
-         zh:"主要基于 <b>doc 13（BPS 显示映射）</b> + <b>doc 16（BPS 面板速查）</b>；字段规范见 <b>doc 14（servicer FCL 字段规范）</b>。"}},
+         zh:"点击面板 → 查看详情并跳转到对应的管道节点。"}},
   fields:{
     desc:{en:"The hub for the BPS Foreclosure screens — a Panels-overview sub-tab (each panel → its bpms source table & Newrez origin), plus a faithful 1:1 reproduction where every field carries business value logic + multi-hop lineage + calc + fetch SQL. Sub-tabs: Panels overview / Loan detail / Stage / Time-Line / Worked example.",
           zh:"BPS 止赎界面的总入口——含「面板总览」子页（每个面板 → 其 bpms 源表与 Newrez 原始来源），以及 1:1 忠实还原、逐字段给出业务取值逻辑 + 多跳数据血缘 + 计算 + 取数 SQL。子页：面板总览 / 详情页 / Stage / Time-Line / 示例溯源。"},
     who:{en:"Data engineers · analysts · BPS users · validators.",
          zh:"数据工程师 · 分析师 · BPS 用户 · 验证人员。"},
     how:{en:"Switch sub-tabs above. Panels overview: click a panel → its source mapping + a jump to the pipeline node. Other sub-tabs: click any field / cell → the drawer shows its annotation, mini-lineage graph and SQL.",
-         zh:"用上方子页切换。面板总览：点面板 → 看源表映射并跳转管道节点；其它子页：点任意字段 / 单元格 → 抽屉显示注释、血缘小图与 SQL。"},
-    src:{en:"Primarily <b>doc 13 (BPS display mapping)</b> + <b>doc 14 (servicer FCL field spec)</b> + <b>doc 21 (field lineage)</b>; timeline sourcing from <b>doc 22</b>. Every field SQL DB-verified.",
-         zh:"主要基于 <b>doc 13（BPS 显示映射）</b> + <b>doc 14（servicer FCL 字段规范）</b> + <b>doc 21（字段血缘）</b>；时间线取数见 <b>doc 22</b>。每个字段 SQL 经 DB 核验。"}},
+         zh:"用上方子页切换。面板总览：点面板 → 看源表映射并跳转管道节点；其它子页：点任意字段 / 单元格 → 抽屉显示注释、血缘小图与 SQL。"}},
   graph:{
     desc:{en:"A layered DAG of every field's cross-database lineage: Newrez → Redshift → BPS table → BPS view. Scope: this graph shows the FCL business-family branch (portnewrezfc/lm/bk → business tables → sync). The separate delinquency branch (delinquency_status_mba → delq_status → delinq via days360) lives in the Pipeline (Layer 0→5) view; the two branches meet at fcl_stage_info.group.",
           zh:"把全部字段的跨库血缘画成分层 DAG：Newrez → Redshift → BPS 表 → BPS 视图。范围：本图只画 FCL 业务族支线（portnewrezfc/lm/bk → 业务表 → sync）。另一条逾期支线（delinquency_status_mba → delq_status → delinq，经 days360）见 Pipeline (Layer 0→5) 视图；两支在 fcl_stage_info.group 汇合。"},
@@ -381,9 +371,7 @@ const PAGEDOC={
     who:{en:"Onboarding · business analysts · anyone needing background knowledge.",
          zh:"新成员 · 业务分析师 · 任何需要背景知识的人。"},
     how:{en:"Read the flowcharts & tables; click a status code to jump to the Status page; BPS stages link to the Stage Tab.",
-         zh:"阅读流程图与表格；点击状态码跳到状态码页，点击 BPS 阶段联动 Stage Tab。"},
-    src:{en:"Primarily <b>doc 17 (foreclosure business primer)</b>; bankruptcy detail also from <b>doc 24</b> (BK→Current vs Foreclosure) and <b>doc 07</b> (lineage & rules); loss-mitigation from <b>doc 18</b>.",
-         zh:"主要基于 <b>doc 17（止赎业务入门）</b>；破产部分另取自 <b>doc 24</b>（BK→Current vs Foreclosure）与 <b>doc 07</b>（血缘与规则）；损失缓解见 <b>doc 18</b>。"}}
+         zh:"阅读流程图与表格；点击状态码跳到状态码页，点击 BPS 阶段联动 Stage Tab。"}}
 };
 function pageHeader(key){
   const d=PAGEDOC[key]; if(!d) return '';

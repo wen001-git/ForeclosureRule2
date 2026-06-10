@@ -33,6 +33,7 @@
 | 2026-06-08 | AI Agent (Claude Opus 4.8) | v2.2 | 更正 §2.4 状态机：删除错误的 `BK →（债务清偿）→ P` 边（Ch.7 discharge 仅免除个人债务、抵押权 Lien 存续，贷款并未结清）；P 节点标签去「债务清偿」；BK→FCL 边补「/Ch.7 清偿」；§2.4.3 表 `BK→P` 行改为「无 P 直达」澄清——与本文 §2.5 Ch.7 Lien 说明、doc 17/14/fcl_pipeline.html 一致 | doc 17 · doc 14 · fcl_pipeline.html |
 | 2026-06-08 | AI Agent (Claude Opus 4.8) | v2.3 | §2.4 状态图下**新增「四个独立维度」补充说明**（维度表 + 示例组合表 + 3 条澄清）。**原状态图保持不变**（仅补充文字） | doc 17/14 · fcl_pipeline.html |
 | 2026-06-08 | AI Agent (Claude Opus 4.8) | v2.4 | §2.5 BK 深度解析新增「Ch.7 / Ch.13 官方依据与 BK 状态转换的法律依据」：uscourts.gov 官方链接 + § 362 / § 1322 / § 1328 / § 727 / § 524（Cornell LII）链接与原文；§2.4.3 表加法律依据指引；澄清系统透传 servicer 状态、无 BK→C 代码触发器（03_fcl_status_logic.md §2.1 L77–114）。URL + 原文经 WebFetch 实测 | doc 17 · 03_fcl_status_logic.md |
+| 2026-06-09 | AI Agent (Claude Opus 4.8) | v2.5 | §2.5 章节表由 Ch.7/11/13 三章补全为 **Ch.7/11/12/13/15 五章**（新增 Chapter 12 家庭农场/渔业、Chapter 15 跨境破产，并丰富各章核心机制）；补 servicer 视角总结；「官方权威来源」uscourts.gov 链接由 2 条扩至 **5 条**（覆盖全部五章），URL 经 WebFetch 实测。**与 doc 17 §5.4 同步保持一致** | doc 17 · uscourts.gov |
 
 ---
 
@@ -822,17 +823,21 @@ BPS 7 阶段管道设计合理，体现了以下工程考量：
 
 ---
 
-##### Chapter 7 / Chapter 13 是什么？
+##### 美国破产法各章节（Bankruptcy Chapters）是什么？
 
-这两个名称来自美国联邦破产法典 **US Bankruptcy Code**（正式名称：美国法典第 11 编，Title 11 of the United States Code）。该法典按**章（Chapter）**组织不同类型的破产程序，Chapter 编号即对应章节号：
+这些名称来自美国联邦破产法典 **US Bankruptcy Code**（正式名称：美国法典第 11 编，Title 11 of the United States Code）。该法典按**章（Chapter）**组织不同类型的破产申请程序，Chapter 编号即对应章节号：
 
-| 章节 | 适用对象 | 类型 |
-|------|---------|------|
-| **Chapter 7** | 个人 / 企业均可 | **清算型**：变卖资产偿债，剩余债务豁免 |
-| **Chapter 11** | 主要是企业 | **企业重组**：继续运营并制定债务重组计划（常见于大公司破产保护） |
-| **Chapter 13** | 有固定收入的个人 | **个人重组**：制定 3–5 年还款计划逐步清偿，可保留房产 |
+| 章节 | 适用对象 | 类型与核心机制 |
+|------|---------|---------------|
+| **Chapter 7** | 个人 / 企业均可（最常见的个人破产类型） | **清算型（Liquidation）**：由破产托管人变卖债务人的非豁免资产偿还债权人，剩余合格债务予以免除；整个过程通常 **3–6 个月**。对有抵押的房贷，债务人若不能继续还款，银行可启动法拍程序。 |
+| **Chapter 11** | 主要面向企业（也可用于个人高额债务） | **重组型（Reorganization）**：债务人在法院监督下提出重组计划，继续经营同时分期偿债；程序复杂、耗时较长，常见于大型企业。 |
+| **Chapter 12** | 家庭农场主 / 渔民 | **家庭农场/渔业重组（Family Farmer / Fisherman）**：提交 **3–5 年**还款计划，边经营边偿债；门槛和条件比 Chapter 13 更灵活。 |
+| **Chapter 13** | 有稳定收入的个人（工薪族计划，Wage Earner's Plan） | **个人重组**：提交 **3–5 年**分期还款计划，可保留房产等资产，同时偿还积欠债务（含抵押贷款拖欠款）。对房贷 servicer 而言，借款人往往仍在继续还款（即 **"Performing Bankruptcy"**）。 |
+| **Chapter 15** | 跨境破产案件 | **跨境破产（Cross-Border Insolvency）**：协调多个国家之间的破产程序，通常与外国主破产程序配合使用；在贷款组合中较为少见（由 2005 年 BAPCPA 法案新增）。 |
 
-在抵押贷款语境中，我们只关注 **Chapter 7** 和 **Chapter 13**。"Filed Chapter 7 / Chapter 13" 已成为美国日常法律用语，直接用章节号代指整个破产程序类型。
+> **从房贷 servicer 的角度**：**Chapter 13 最为常见**——借款人可通过还款计划补缴拖欠款、保住房子；**Chapter 7 则往往意味着可能触发法拍程序**。因此在抵押贷款语境中，我们重点关注 **Chapter 7** 和 **Chapter 13**。"Filed Chapter 7 / Chapter 13" 已成为美国日常法律用语，直接用章节号代指整个破产程序类型。
+>
+> 各章节的官方权威说明（U.S. Courts — Bankruptcy Basics）链接见下方「官方权威来源」。
 
 ##### Chapter 7 vs Chapter 13 对比
 
@@ -909,10 +914,13 @@ FCL 期间借款人申请破产，系统的表达方式：
 
 > ⚠️ **这些转换是美国破产法的法律/业务事实，而非本系统计算出来的规则。** 本 ETL **不会自动计算** `BK→C` 等转换：它逐月**透传** servicer 上报的 `delinquency_status_mba`；`Foreclosure / Perf BK`、`Foreclosure / Non-Perf BK` 都由 `CREATE_FCL_RELATE_ATTR` 映射为 `FCL`，贷款保持 `FCL` 直到 servicer 重新上报 `Current`（见 `docs/en/03_fcl_status_logic.md` §2.1 第 77–114 行——系统内无任何「Ch.13 完成 → delinq=C」的代码触发器）。
 
-**官方权威来源（美国联邦法院 U.S. Courts — Bankruptcy Basics）**
+**官方权威来源（美国联邦法院 U.S. Courts — Bankruptcy Basics，各章节官方说明页）**
 
-- Chapter 7：<https://www.uscourts.gov/court-programs/bankruptcy/bankruptcy-basics/chapter-7-bankruptcy-basics>
-- Chapter 13：<https://www.uscourts.gov/court-programs/bankruptcy/bankruptcy-basics/chapter-13-bankruptcy-basics>
+- Chapter 7（清算）：<https://www.uscourts.gov/court-programs/bankruptcy/bankruptcy-basics/chapter-7-bankruptcy-basics>
+- Chapter 11（企业重组）：<https://www.uscourts.gov/court-programs/bankruptcy/bankruptcy-basics/chapter-11-bankruptcy-basics>
+- Chapter 12（家庭农场/渔业）：<https://www.uscourts.gov/court-programs/bankruptcy/bankruptcy-basics/chapter-12-bankruptcy-basics>
+- Chapter 13（个人重组还款计划）：<https://www.uscourts.gov/court-programs/bankruptcy/bankruptcy-basics/chapter-13-bankruptcy-basics>
+- Chapter 15（跨境破产）：<https://www.uscourts.gov/court-programs/bankruptcy/bankruptcy-basics/chapter-15-bankruptcy-basics>
 
 **各 BK 状态转换的法条依据（美国法典第 11 编 Title 11；条文链接为 Cornell LII 官方文本）**
 
