@@ -1,6 +1,6 @@
 # Doc 25 · 止赎字段血缘 · 总览（hub）
 
-> **自动生成** —— 改动请编辑 `outputs/fcl_lineage_source.json` 后重跑 `python - < scripts/gen_fcl_lineage.py`，勿手改本文件。
+> **自动生成** —— 改动请编辑真源 `outputs/fcl_lineage_source.json`，然后依次重跑：①`python - < scripts/verify_lineage_columns.txt`（生成列核验 SQL，经 `redshift_prod`/`mysql_prod` 跑须 0 行）②`python - < scripts/build_rule_glossary.txt`（刷新规则词典 + 本文附录）③`python - < scripts/inject_glin.txt`（刷新 `outputs/fcl_pipeline.html` 内嵌血缘）。勿手改本文件。（旧生成器 `scripts/gen_fcl_lineage.py` 已废弃删除。）
 
 
 ## 文档目的
@@ -34,6 +34,9 @@ doc 02（ETL 管道）· doc 13（BPS 视图字段映射）· doc 14（Servicer 
 ---
 
 ## 怎么读这套血缘
+
+> 🧬 **表关系入口**：先看 [doc 33 — FCL 表实体关系图](33_fcl_table_erd.md)（PK / 粒度键 / 1:N / N:N 一图看 22 张表布局），再回本文逐字段看跳链。
+> 📐 **阶段窗口规则速查**：见 [doc 31](31_fcl_stage_window_rules.md)（start/end/stage_days/in_lm/on_hold 公式 + 4 真实 loan 工作例）。
 
 每个 **BPS sync 表**一篇明细文档（doc 26–30）。每篇里 **一行 = 一个字段**，列 = 该字段在链路上每一张表的列名，最后一列给出**每一跳的转换规则 + 代码出处**（`pool`/`asset`/`view`，见下）。非平凡转换（CASE/解码/unpivot/天数）附真实 SQL。
 
@@ -118,7 +121,7 @@ doc 02（ETL 管道）· doc 13（BPS 视图字段映射）· doc 14（Servicer 
 | 2 | L4 | Redshift | `port.basic_data_loan_foreclosure_bankruptcy` | datadic decode; dedup latest per loan+filing |
 | 3 | L5 | MySQL bpms | `bpms.sync_loan_foreclosure_bankruptcy` | BPS app table (GEN_FORECLOSURE_BK pass-through) |
 
-> `#` 列是序号，不是层号。FCL 事实表 `port.basic_data_loan_fcl` 直接由 L1 各 servicer 原始表构建（在 `tempfc.temp_basic_data_fcl` 中 UNION；CREATE_BASIC_FCL [pool:1531-1654](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1531-1654)），因此 L2 统一日表（`port.basic_data_daily_loan_common`）与 L3 清洗层（`…_clean` / `…_delinq_clean`）按设计不在本分支——它们承载通用+逾期字段，仅经 `group` 维度（doc 27，`basic_data_fcl_related`）与月度 `portmonth` 路径回流。完整 L0–L5 管道见 doc 02。
+> `#` 列是序号，不是层号。FCL 事实表 `port.basic_data_loan_fcl` 直接由 L1 各 servicer 原始表构建（在 `tempfc.temp_basic_data_fcl` 中 UNION；CREATE_BASIC_FCL [pool:1531-1654](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1531-1654)），因此 L2 统一日表（`port.basic_data_daily_loan_common`）与 L3 清洗层（`basic_data_daily_loan_common_clean` / `basic_data_loan_delinq_clean`）按设计不在本分支——它们承载通用+逾期字段，仅经 `group` 维度（doc 27，`basic_data_fcl_related`）与月度 `portmonth` 路径回流。完整 L0–L5 管道见 doc 02。
 
 > datadic 解码模式（LM deal/program/status/decision/denial/borrower、BK status）：COALESCE((SELECT description FROM newrez.portnewrezdatadic WHERE field_name='<X>' AND code=CONCAT(raw,'.0')), raw)——原始码存为 '5.0' 形式；字典无匹配则回退原始码。
 
@@ -201,7 +204,7 @@ doc 02（ETL 管道）· doc 13（BPS 视图字段映射）· doc 14（Servicer 
 | stage 当前阶段分类 | `(stage dates)` | `sync_fcl_stage_info` | `stage` (→ doc 27) |
 | fctrdt 报告快照日 | `dataasof` | `sync_fcl_stage_info` | `fctrdt` (→ doc 27) |
 | 投资人贷款 ID | `loanid` | `sync_fcl_stage_info` | `loanid` (→ doc 27) |
-| Group 分组（FCL/D120P/D90/REO/P…） | `delinquency_status_mba (+ portnewrezpmt.nextduedate)` | `sync_fcl_stage_info` | `group` (→ doc 27) |
+| Group 分组（FCL/D120P/D90/REO/P） | `delinquency_status_mba (+ portnewrezpmt.nextduedate)` | `sync_fcl_stage_info` | `group` (→ doc 27) |
 | servicer 服务商 | `constant 'Newrez'/'Carrington'/'Capecodfive'` | `sync_fcl_stage_info` | `servicer` (→ doc 27) |
 | State 州 | `propertystate` | `sync_fcl_stage_info` | `state` (→ doc 27) |
 | Judicial 司法(Y/N) | `judicial (+ propertystate)` | `sync_fcl_stage_info` | `judicial` (→ doc 27) |
@@ -374,3 +377,31 @@ doc 02（ETL 管道）· doc 13（BPS 视图字段映射）· doc 14（Servicer 
 - **doc 28** — `bpms.sync_loan_foreclosure_hold` (Hold（宽表→长表 unpivot）)
 - **doc 29** — `bpms.sync_loan_foreclosure_loss_mitigation` (损失缓释（编码→文本解码）)
 - **doc 30** — `bpms.sync_loan_foreclosure_bankruptcy` (破产（编码→文本解码）)
+
+---
+
+<!-- RULE_GLOSSARY START -->
+## 附录：逐跳转换规则速查（技术语句 → 易懂解释 + 公式）
+
+> 血缘表里 `rule` 列的技术语句，对应的易懂解释与数学公式如下（HTML 血缘图谱抽屉里每条规则下方也会显示）。
+
+| 技术语句（rule） | 易懂解释 | 数学公式 |
+|---|---|---|
+| `decode / datadic` | 编码翻译：上游存的是数字/代码，ETL 查字典表(datadic)翻成业务文字。例：lmstatus=112 → "Workout Denial"。 | — |
+| `interval overlap (lm / in_lm` | 与 LM（损失缓解）区间的重叠天数——从该阶段耗时里扣除这些天。 | 重叠天数 = min(阶段结束, LM结束) − max(阶段开始, LM开始) + 1 |
+| `interval overlap (hold / on_hold` | 与 Hold（止赎暂停）区间的重叠天数——从该阶段耗时里扣除这些天。 | 重叠天数 = min(阶段结束, Hold结束) − max(阶段开始, Hold开始) + 1 |
+| `view: actual / view actual` | 界面视图实时计算（不落库）：实际天数 = 里程碑日 − 应还款日；偏差 = 实际 − 累计目标天数。 | actual = 里程碑日 − 应还款日(nextduedate)；var = actual − Σtarget |
+| `unpivot / wide→long` | 宽表转长表：原来一行里的 Hold1/2/3/4 等多列，拆成多行（一行一个 Hold）。 | — |
+| `datediff+1 / +1 (inclusive)` | 阶段已历天数（含首尾两天）。 | 天数 = 结束日 − 开始日 + 1 |
+| `countdown / 倒计` | 距目标日的倒计天数（已过则 0，无日期则空）。 | 天数 = 目标日 − 当日 |
+| `min(dataasof / first-seen` | 首见日：取该值在历史每日快照中第一次出现的日期。 | 日期 = MIN(dataasof) WHERE 该值非空 |
+| `dataasof → fctrdt / dataasof->fctrdt` | 数据日期改名：上游每日快照日 dataasof 改名为 fctrdt（含义不变）。 | — |
+| `case when / case ` | 分情况取值：按条件 / CASE 规则得到——具体逻辑见本字段「规则说明」与 SQL（各字段不同）。 | — |
+| `coalesce` | 取首个非空：从多个候选列里取第一个有值的。 | — |
+| `auto-increment / 自增` | 自增主键：由 BPS 应用自动生成的行号，无业务来源。 | — |
+| `bps app / etl managed` | 系统/审计列：由 BPS 应用或 ETL 维护（创建/更新时间等），非 servicer 上报数据。 | — |
+| `null / 未填充` | 恒空：ETL 未写入该列（设计上留空 / 被注释掉），故值为 NULL。 | — |
+| `rename / 改名` | 仅改列名：值不变，只是换了字段名。 | 下游 = 上游（改名） |
+| `servicer raw / 原始` | 服务商原始列：数据最初来自 servicer 上报的这一列。 | — |
+| `passthrough / pass-through` | 原样透传：上游列的值直接搬到下游，不做任何改动。 | 下游 = 上游 |
+<!-- RULE_GLOSSARY END -->

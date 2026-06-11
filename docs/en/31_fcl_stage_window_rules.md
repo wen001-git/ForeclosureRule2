@@ -1,5 +1,7 @@
 # doc 31 — FCL Stage Window Rules Cheat-sheet (start / end / days / in_lm / on_hold)
 
+> <!-- RULEGLOSS_PTR -->📖 **Rule terms**: plain-language + formula for the technical phrases in the `rule` column — see [doc 25 · transform-rule glossary (appendix)](25_fcl_lineage_overview.md).
+
 ## Document Purpose
 
 - **Why it exists**: `bpms.sync_fcl_stage_info` has 5 time-related columns per FCL stage (DEMAND / NOI / REFERRAL / FIRST_LEGAL / SERVICE / PUBLICATION / JUDGEMENT / SALE) — `<X>_start_date / <X>_end_date / <X>_stage_days / <X>_in_lm_days / <X>_on_hold_days`. Their rules are **scattered across 25+ sections of doc 27** (§9–§13 / §14–§23 / §28–§41), and the **column naming is counter-intuitive** (e.g. `servicecompletedate` actually feeds the SERVICE stage's **start**, not its end). New readers struggle to form a global picture.

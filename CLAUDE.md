@@ -84,6 +84,24 @@ When analyzing any ETL pipeline, data flow, table write mechanism, or data linea
 
 3. **If code and MCP data conflict, code has priority for design intent**: MCP/database results show a point-in-time state snapshot. Source code shows intended processing logic and write paths. Treat MCP findings as validation evidence or anomaly evidence, then reconcile them against code before documenting conclusions.
 
+### PrefectFlow 本地代码路径（Code-First 取证用）
+
+**本地 PrefectFlow 仓库路径**：`C:\Users\jli\MyData\Copilot\PrefectFlow`
+
+需要 Code-First 取证 `pool:XXX`（`basic_data_pool_config.py`）/ `asset:XXX`（`asset_managment_config.py`）等代码引用时，**直接用 Read 工具读本地文件**，不要尝试 WebFetch 内网 GitLab（gitlab.bridgerinvestment.com 需要登录认证，WebFetch 必败）。
+
+关键文件路径：
+- `flow/basic_data/basic_data_config/basic_data_pool_config.py` —— Redshift SQL 模板（GEN_FCL_DETAIL / GEN_FCL_STAGE / CREATE_BASIC_FCL 等，~2400+ 行）
+- `flow/bps/bps_config/asset_managment_config.py` —— BPS 同步 SQL（UPDATE_FORECLOSURE / GEN_FORECLOSURE_* / GET_FCL_STAGE_DATA 等）
+- `flow/basic_data/portmonth/gen_portmonth_v4.py`、`gen_portmonth_mysql.py` —— portmonthbase 双写
+- `flow/basic_data/portmonth/daily_data_loan_common_config.py` —— L2 统一日表
+- `flow/portfolio_daily/portdaily_config.py` —— L2 portdaily_v2 派生
+
+文档中保留 `gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a3/...#LXXX-XXX` 链接给读者点击（钉到提交 32a750a3，本地与该提交逐字节一致），AI 自己取证用本地 Read。
+
+### Why this rule exists
+2026-06-11：在 doc 33 §2.5.1 取证 `timeline_sale_date_set_date` 的 min(dataasof) 算法时，尝试 WebFetch GitLab 内网失败，本应直接读本地 PrefectFlow 仓库（用户存在 `C:\Users\jli\MyData\Copilot\PrefectFlow`），但因为没有这条规则导致绕弯。
+
 ---
 
 ## Schema-Verify Rule for Generated DB Artifacts (Mandatory)
@@ -103,8 +121,37 @@ When generating any artifact that references database `table.column` names — v
 
 4. **A generated SQL is not "verified" until it executes.** Run representative queries of each *type/source-table* (not just any 2), or validate the full column set programmatically. "It looks runnable" ≠ verified.
 
+5. **血缘 hop 列必须 DB 核验；派生/无源必须显式占位、不得伪装成真列。** 适用于 `outputs/fcl_lineage_source.json` 及任何派生 artifact（`outputs/fcl_pipeline.html` 内嵌 GLIN、doc 25-31 血缘表）：
+   - **每个 `hop.t.c`（真实列）必须是 `information_schema` 实测存在的列**。新增/修改血缘后，跑 `python - < scripts/verify_lineage_columns.txt` 生成 `outputs/_chk_rs.sql`（port.\* → `redshift_prod`）与 `outputs/_chk_mysql.sql`（newrez.\*+bpms.\* → `mysql_prod`）两份 NOT-IN 检查，经对应 MCP 执行，**两边都须返回 0 行**才算通过；任何返回的 `(tbl, c)` 即「血缘写了一个该表不存在的列」，必须修真源 JSON。
+   - **某跳无独立源列（派生 / 计算 / 该表不提供该列）时，必须用明确占位**（`(derived)` / `(stage end)` / `(none)` / `—`），且 HTML/doc **渲染为「派生 / 无独立列」样式**（`db.schema.table` + 灰显占位标签），**绝不可拼成 `table.占位` 让它看起来像一个真字段**。
+   - 改完真源 JSON 后必须重跑 `scripts/inject_glin.txt` 刷新 HTML 内嵌 GLIN，并同步对应 doc 25-31 单元格——三处（JSON / HTML / doc）保持一致。
+
 ### Why this rule exists
 On 2026-06-02, 5 fields in `14_servicer_fcl_field_spec.xlsx` had wrong source tables in the `Newrez原始字段` column (e.g. `delinquency_status_mba` listed under `portnewrezfc` but actually in `portnewrezgeneral`; `state` under `portnewrezfc` but actually `portnewrezprop.propertystate`; `fcl_flag` which exists in no table). The generated verification SQL inherited all 5 errors because it was built from the unverified col4 path and only 2 of 92 SQLs were spot-checked — both happened to be correct. The true locations had already been discovered earlier in the same session but were not applied. A single `information_schema` cross-check of all 92 pairs would have caught every error up front.
+
+On 2026-06-11, the FCL lineage (`fcl_lineage_source.json`, behind doc 25-31 + the pipeline HTML graph) carried three lineage-column errors that a full `information_schema` NOT-IN sweep caught at once: (1) `demand_end_date` had its real source column `demandexpirationdate` (DB-verified to exist in BOTH `newrez.portnewrezfc` and `port.basic_data_loan_fcl`) replaced by placeholders `—` / `(stage end)`, so the lineage graph rendered a fake/empty column and falsely implied "newrez has no demand-end source"; (2)+(3) `bid_id` and `funding_id` had a final hop into `bpms.biz_data_view_loan_details_foreclosure` claiming columns `bid_id` / `funding_id`, but the view exposes neither (only `id`/`loanid`/`svcloanid`/`tenant_id`) — these IDs live only in `bpms.sync_loan_foreclosure`, so the chain had to terminate one hop earlier. All three were invisible to spot-checking but fell out of one generated NOT-IN check run against `mysql_prod` + `redshift_prod` (389 simple-column pairs across 19 tables → 0 rows after fix).
+
+---
+
+## 修复传播规则：改一处必须同步依赖链上下游 (Mandatory)
+
+发现并修复任何文档 / artifact 的一处错误（事实、字段、来源表、血缘、结论、数值、命名等）时，**不得只改命中的那一处**——必须把修复传播到它在依赖链上的**上游（它所依赖/派生自的来源）与下游（依赖/派生/引用它的所有副本）**，使整条链在同一次改动内保持一致、无矛盾、无残留旧值。
+
+### 必做步骤
+1. **先定位真源（single source of truth），从根修起。** 若错误出现在派生件（HTML / MD / Excel / SQL）而真源另有其物（如 `outputs/fcl_lineage_source.json`、DB schema、某 config），**先改真源**，再向下游重生成/同步——绝不只 patch 派生件留真源带病。
+2. **画出该文档的依赖图，逐个落实：**
+   - **上游**：本文结论来自哪里？来源若也错，连同上游一并修（否则下次重生成又退回旧值）。
+   - **下游**：哪些文件由本文派生或引用本文？全部同步。本项目已知主链：
+     - 血缘：`outputs/fcl_lineage_source.json` → `scripts/inject_glin.txt` 刷新 `outputs/fcl_pipeline.html` 内嵌 GLIN → doc 25-31（zh+en）。三处必须一致。
+     - 字段规范：`docs/14_servicer_fcl_field_spec.xlsx`（DB 实测真源）⇄ `docs/zh|en/14_*.md` 字段卡片（见「doc 14 MD ⇄ Excel 同步规则」）。
+     - 文档头部「自动生成…重跑 X」语句必须指向**现行**脚本/链路（旧生成器删除后要改掉，否则误导）。
+   - 跨语言镜像（`docs/zh/**` ⇄ `docs/en/**`）视为彼此的下游，必须同步。
+3. **改完用 grep 全仓搜「旧的错误值 / 旧字段名 / 旧来源表 / 旧结论关键词」确认 0 残留**——任何残留即一处未传播到的下游副本。
+4. **若依赖链由脚本生成，** 改真源后重跑对应生成脚本（而非手改派生件），并按各自规则做后置校验（如血缘的 `verify_lineage_columns.txt` 列核验须 0 行）。
+5. **传播范围不确定时**，宁可多搜一轮（grep 关键词 + 列出引用本文的文件）也不要漏改；漏改下游会留下「一处对、一处旧」的自相矛盾。
+
+### Why this rule exists
+2026-06-11：修 `demand_end_date` / `bid_id` / `funding_id` 三处血缘错误时，真源 `fcl_lineage_source.json` 改完、HTML 内嵌 GLIN 经 `inject_glin.txt` 重生成后，**doc 26（zh+en）仍残留**指向 `biz_data_view_loan_details_foreclosure.bid_id/funding_id` 的错误视图跳——若不向下游传播并 grep 复查，下游文档会与真源/HTML 自相矛盾。更早（2026-06-02、历史多次）也反复出现「只改了 Excel/MD 其一、另一处留旧结论」「文档头部仍写已删除的 `gen_fcl_lineage.py`」等漏传播问题。本规则把「改一处 = 改整条依赖链」固化为强制动作。
 
 ---
 
@@ -175,6 +222,22 @@ doc 14 有两份载体：`docs/14_servicer_fcl_field_spec.xlsx`（📋 字段规
 
 ### Why this rule exists
 2026-06-07：多次会话误判"python 不可用"而中断、或改让用户本地重跑；实测内联完全可用（openpyxl 3.1.5 在），仅"读取用户目录下 .py 文件"被端点安全拦截。
+
+---
+
+## Deprecated Docs — DO NOT READ (Mandatory for AI coding tools)
+
+以下文档已**归档**，**AI 编码工具（Claude Code / Cursor / Copilot 等）请勿读取作为信息源**——内容多处已被新文档校正，继续参考会引入过时/错误信息：
+
+- `docs/archive/**/*.DEPRECATED.md` —— 全部归档文档（迁离主 `docs/` 路径，文件名含 `DEPRECATED`）
+- 当前归档清单：
+  - `docs/archive/zh/21_fcl_field_lineage.DEPRECATED.md`（2026-06-11 归档；ER 部分迁入 doc 33、字段血缘迁入 doc 25-30、业务理由见 doc 20 §A.6、MCP 自查见 doc 98）
+  - `docs/archive/en/21_fcl_field_lineage.DEPRECATED.md`（同上 en 镜像）
+
+**例外**：如果用户**显式问到**这些归档文档的历史内容，可以读取并明确告知"该信息来自归档文档 `docs/archive/...`，已被 doc X 取代"。
+
+### Why this rule exists
+2026-06-11：doc 21 旧字段血缘被 doc 25-30 取代后，AI 工具仍可能从文件树扫到 `docs/zh/21_*.md` 并把过时信息（如 doc 02/19 中已校正的 sync_portmonth 上游、demand_end_date 与 stage_days 关系、view 是否经 5 张 sync 表汇入等）当成事实。物理迁至 `docs/archive/` 目录 + 文件名加 `DEPRECATED` + 本节硬指令三重防护。
 
 ---
 

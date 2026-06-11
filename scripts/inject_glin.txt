@@ -1,0 +1,16 @@
+# Inject outputs/fcl_lineage_source.json into outputs/fcl_pipeline.html as the GLIN const.
+# Run from project root:  python - < scripts/inject_glin.txt
+# Idempotent: replaces the text between /*GLIN_START*/ and /*GLIN_END*/ (re-run after editing the JSON).
+import json, re
+HTML='outputs/fcl_pipeline.html'
+SRC='outputs/fcl_lineage_source.json'
+data=json.load(open(SRC, encoding='utf-8'))
+payload=json.dumps(data, ensure_ascii=False, separators=(',',':'))
+# guard against breaking the inline <script> (premature </script>) — escape </ to <\/ (valid JSON.parse)
+payload=payload.replace('</','<\\/')
+html=open(HTML, encoding='utf-8').read()
+repl='/*GLIN_START*/'+payload+'/*GLIN_END*/'
+new,n=re.subn(r'/\*GLIN_START\*/.*?/\*GLIN_END\*/', lambda m: repl, html, count=1, flags=re.S)  # lambda repl: do NOT process \n/\g backslash escapes
+assert n==1, 'GLIN markers not found (expected exactly 1)'
+open(HTML,'w', encoding='utf-8').write(new)
+print('injected GLIN: %d bytes, %d fields' % (len(payload), len(data['fields'])))

@@ -61,12 +61,12 @@
 | Type | `judicial` | 如果 `judicial=1`，则 = `'Judicial'`；如果 `judicial=0`，则 = `'Non Judicial'`；如果为 `NULL`/空，则 = `NULL` |
 | SMS Days in Foreclosure | `smsdaysinfc`(=svc_days_infc) + `dataasof` | Servicer(SMS=Shellpoint)口径，自**建案日 fcsetupdate** 起算（Newrez 原生透传）；**实时重算**：`smsdaysinfc + DATEDIFF(今日NY, dataasof)`；≤ Days in Foreclosure |
 | Days in Foreclosure | `daysinfc` + `dataasof` | 投资人/全程口径，自**转介日 fcreferraldate** 起算；**实时重算**：`daysinfc + DATEDIFF(今日NY, dataasof)`；≥ SMS Days |
-| Current Step | `currentmilestone` / `fcstage` | 如果 `currentmilestone` 非空，则 = `currentmilestone`；否则 = `fcstage`（Newrez 阶段文本的去处） |
+| Current Step | `fcstage` | **= `fcstage` 直传**（`basic_data_pool_config.py:282`）。`currentmilestone` 虽存在但 **ETL 全仓 0 引用、未使用**（更正 2026-06-10，见 doc 13 Q13） |
 | Last Step Completed | `lastfcstepcompleted` | 直接取值（99.5% 填充） |
 | Last Step Completed Date | `lastfcstepcompleteddate` | 直接取值 |
 
 > **截图验证（loanid=7727000088）**：  
-> "Active Foreclosure" ← 固定文本（`activefcflag=1`，非 `fcstage`）；"Kelley Kronenberg, P.A." ← `fcfirm`；"Judicial" ← `judicial=1`；"298" ← `smsdaysinfc + DATEDIFF(截图日, dataasof)`；"Judgment Entered" ← `currentmilestone`（优先于 fcstage）；"Motion for Judgment Sent to Court" ← `lastfcstepcompleted`
+> "Active Foreclosure" ← 固定文本（`activefcflag=1`，非 `fcstage`）；"Kelley Kronenberg, P.A." ← `fcfirm`；"Judicial" ← `judicial=1`；"298" ← `smsdaysinfc + DATEDIFF(截图日, dataasof)`；"Judgment Entered" ← `fcstage`（summary_current_step 直传 fcstage；`currentmilestone` ETL 未使用）；"Motion for Judgment Sent to Court" ← `lastfcstepcompleted`
 
 ---
 

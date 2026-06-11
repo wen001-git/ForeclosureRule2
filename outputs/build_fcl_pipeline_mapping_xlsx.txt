@@ -1,0 +1,378 @@
+# build_fcl_pipeline_mapping_xlsx.txt
+# doc 32 · 全 pipeline 逐字段 mapping + 生产数据举例（Phase 1 pilot：主链 sync_loan_foreclosure）
+# 运行：python - < outputs/build_fcl_pipeline_mapping_xlsx.txt   （项目根目录、stdin）
+# 真源：fcl_lineage_source.json（逐字段 hops/规则）+ fcl_table_meta.json（表元数据）
+#       + fcl_field_meanings.json（逐表字段含义）+ fcl_pipeline_examples.json（prod 实测举例）
+# 全新建工作簿（本项目自建、无人工列）→ 重跑即整体重建、天然幂等。
+import json
+exec(open('.claude/skills/excel-pipeline-lineage/references/toolkit.txt', encoding='utf-8').read())
+utf8_stdout()
+from openpyxl.drawing.image import Image as XLImage
+
+OUT = 'docs/32_fcl_pipeline_field_mapping.xlsx'
+B = 'outputs/'
+L  = json.load(open(B+'fcl_lineage_source.json', encoding='utf-8'))
+TM = json.load(open(B+'fcl_table_meta.json', encoding='utf-8'))['tables']
+FM = json.load(open(B+'fcl_field_meanings.json', encoding='utf-8'))
+EX = json.load(open(B+'fcl_pipeline_examples.json', encoding='utf-8'))
+CV = json.load(open(B+'fcl_logic_coverage.json', encoding='utf-8'))
+JOIN = lambda xs: '、'.join(xs) if xs else ''
+
+# ---- 转换类型分类（按规则文本关键词，优先级从特殊到一般）+ 色卡 ----
+TYPE_COLORS = {'首见日':'FCE4D6','天数重算':'FFF2CC','decode解码':'E4DFEC',
+               'CASE派生':'DDEBF7','常量NULL':'F2F2F2','改名':'E2EFDA','直传':'D6E4F0','其他':'FFFFFF'}
+TYPE_DEFS = {
+ '直传':'值不变、列名也基本不变，sync 那跳纯透传（passthrough），不做任何计算。',
+ '改名':'值原封不动，但中途列名改过（rename）；端到端日期/值完全一致，只是各层叫法不同。',
+ '首见日':'不是当前值，而是 min(dataasof)——「当前这个值第一次出现在哪天的快照」；必须跨多天历史才能算出（如拍卖排定日 set_date）。',
+ '天数重算':'输出 = 存储天数 + datediff(dataasof → 运行日)，实时数到今天（如 Days in FCL）。',
+ 'decode解码':'用 datadic 字典把编码译成文本（如 LMStatus=166 → 文本），不是直传原码。',
+ 'CASE派生':'按条件分支/拼接派生（如 activefcflag=1→\'Active Foreclosure\'；judicial=1→\'Judicial\'）。',
+ '常量NULL':'投影里硬编码常量或 NULL（Newrez 不提供该字段，或目标列填默认值）。',
+ '其他':'主键 / 审计列 / 视图计算列等，无单一源字段映射。',
+}
+def classify(rule_text):
+    t = (rule_text or '').lower()
+    if 'min(dataasof' in t or '首见' in t or 'first-seen' in t or 'etl track' in t: return '首见日'
+    if 'datediff' in t or '天数' in t or '+ datediff' in t: return '天数重算'
+    if 'datadic' in t or 'decode' in t or '解码' in t: return 'decode解码'
+    if 'case when' in t or 'concat' in t or ' case ' in t or '取反' in t: return 'CASE派生'
+    if 'null' in t and ('常量' in t or 'constant' in t or 'hardcod' in t): return '常量NULL'
+    if 'rename' in t or '改名' in t: return '改名'
+    if 'passthrough' in t or '直传' in t or 'direct copy' in t or 'direct' in t or 'upsert pass' in t or 'pass-through' in t: return '直传'
+    return '其他'
+
+# ---- 主链 hops → 分层列 ----
+def src_of(hops, prefixes):
+    out = []
+    for h in hops:
+        t = str(h.get('t','')); c = str(h.get('c','')); rule = h.get('rule',''); code = h.get('code','')
+        if any(t.startswith(p) or t == p for p in prefixes):
+            seg = (c if c else '') + (' ('+rule+')' if rule else '')
+            if code: seg += ' ['+code+']'
+            out.append(seg.strip())
+    return ' ; '.join([x for x in out if x])
+
+mainf = [f for f in L['fields'] if f.get('bps_table') == 'sync_loan_foreclosure']
+
+# 取代表样本贷款 7727004408（worked_trace loan）的主表值，按 sync 列名映射
+EX_COLS = EX['main_columns']
+ex_row = next((r for r in EX['sample_loans_main'] if r[0] == '7727004408'), None)
+EX_VAL = dict(zip(EX_COLS, ex_row)) if ex_row else {}
+
+wb = openpyxl.Workbook()
+wb.remove(wb.active)
+T = TM   # alias（doc 19 builders 用 T）
+
+# ---- 层级标签（src/mid/bps/dic）+ 各表列数（来自 fcl_field_meanings.json）----
+FM_BY_ST = {v.get('schema_table'): k for k, v in FM.items() if isinstance(v, dict)}
+def fcount(meta_key):
+    fk = FM_BY_ST.get(meta_key)
+    return len(FM.get(fk, {}).get('fields', {})) if fk else ''
+def layer_tag(meta_key):
+    if meta_key.startswith('newrez.') and 'datadic' in meta_key: return 'dic'
+    if meta_key.startswith('newrez.'): return 'src'
+    if meta_key.startswith('bpms.'): return 'bps'
+    return 'mid'   # port.* / tempfc.*
+NUM = {k: T[k]['num'] for k in T}
+
+# ============================================================ ⓪ 表说明与全链路血缘（仿 doc 19 ⓪；全 23 表）
+ws = wb.create_sheet('⓪ 表说明与全链路血缘')
+H0=['表(num)','层','业务说明','业务目的','在pipeline中的作用','为什么会有这张表','何时来查','数据粒度','上游链路','全部上游表','下游链路','全部下游表','备注']
+t0=ws.cell(1,1,'doc 32 · 各表「业务含义与全链路血缘」总览（全 23 表；自动生成自 outputs/fcl_table_meta.json）')
+ws.merge_cells(start_row=1,start_column=1,end_row=1,end_column=len(H0)); t0.font=TITLEFONT; t0.fill=F(DARK); t0.alignment=CENTER
+style_header_row(ws,2,H0)
+rr=3
+for k,t in T.items():
+    vals=[NUM[k]+' '+k, t.get('layer',''), t.get('business_meaning',''), t.get('business_purpose',''),
+          t.get('pipeline_role',''), t.get('why_pipeline',''), t.get('when_to_query',''), t.get('grain',''),
+          t.get('upstream_chain',''), JOIN(t.get('upstream_tables',[])), t.get('downstream_chain',''),
+          JOIN(t.get('downstream_tables',[])), t.get('note','')]
+    for c,v in enumerate(vals,1):
+        cc=ws.cell(rr,c,v); cc.font=VFONT; cc.alignment=WRAP; cc.border=BORDER; cc.fill=F(WHITE if rr%2 else GREY)
+    ws.row_dimensions[rr].height=92; rr+=1
+set_widths(ws,[24,18,40,34,34,40,26,18,54,28,54,28,28]); ws.freeze_panes='C3'
+
+# ============================================================ ⓪b 全局Pipeline图（仿 doc 19 ⓪b 网格）
+ws = wb.create_sheet('⓪b 全局Pipeline图')
+PAL={'L1':'C9A86A','L2':'7FB069','L3':'5BA3A3','L4':'2E75B6','L5':'B05A8C','DI':'8C8C8C'}
+def _lyr(k):
+    p=T[k].get('layer','')[:2]; return p if p in ('L1','L2','L3','L4','L5') else 'DI'
+order=list(T.keys())
+COLS=[('L1','L1 源\n(MySQL+RS 双写)'),('L2','L2 统一日表\n(RS+MySQL 双写)'),('L3','L3 清洗日表\n(RS+MySQL 双写)'),
+      ('L4','L4 FCL 业务族\n(RS 建·MySQL 副本经 L5)'),('L5','L5 BPS 对接\n(MySQL bpms)'),('DI','解码字典 / 输出')]
+colkeys={c:[k for k in order if _lyr(k)==c] for c,_ in COLS}; colkeys['DI']=colkeys['DI']+['__BPS__']
+t0=ws.cell(1,1,'doc 32 · 全局 L1→L5 Pipeline 图（自动生成自 outputs/fcl_table_meta.json）')
+ws.merge_cells(start_row=1,start_column=1,end_row=1,end_column=len(COLS)); t0.font=TITLEFONT; t0.fill=F(DARK); t0.alignment=CENTER
+for c,(lk,title) in enumerate(COLS,1):
+    cc=ws.cell(2,c,('►  ' if c>1 else '')+title); cc.font=HFONT; cc.fill=F(PAL[lk]); cc.alignment=CENTER; cc.border=BORDER
+maxrows=max(len(colkeys[lk]) for lk,_ in COLS)
+for c,(lk,_) in enumerate(COLS,1):
+    keys=colkeys[lk]
+    for r in range(maxrows):
+        cell=ws.cell(3+r,c)
+        if r<len(keys):
+            k=keys[r]
+            if k=='__BPS__': cell.value='BPS 法拍详情页\n（5 面板 UI）'; cell.fill=F('5B2C6F'); cell.font=Font(name='微软雅黑',size=9,bold=True,color='FFFFFF')
+            else: cell.value='%s %s'%(NUM[k], k.split('.')[-1]); cell.fill=F(LIGHT); cell.font=VFONT
+        else: cell.fill=F(WHITE)
+        cell.alignment=WRAP; cell.border=BORDER; ws.row_dimensions[3+r].height=30
+base=3+maxrows
+notes=[('主线（FCL 业务族）：L0 文件 → ② portnewrezfc → ⑨ 改名 → ⑩ 事实表 → {⑪ 时间线 / ⑬ 阶段 / ⑮ Hold / ⑯ LM / ⑰ BK} → ⑱/⑲/㉑/㉒/㉓ sync → ⑳ 视图 → BPS','D6E4F0'),
+       ('逾期支线：⑤ portnewrezgeneral → ⑦ 统一日表 → ⑧ 清洗日表(delinq, days360) → ⑫ related / ⑬ stage.group；两支线在 ⑬ fcl_stage_info.group 汇合','E8F0D9'),
+       ('维度/字典：⑭ portfunding 运行时 JOIN（funding_id/bid_id）；㉔ portnewrezdatadic 解码 LM/BK 编码（COALESCE(dict,raw)）','F2E6EF'),
+       ('图例：列＝层(L1→L5)；箭头＝跨层转换。落库：L1–L4 MySQL+Redshift 双写；唯 FCL 业务族 L4 仅 Redshift 构建、MySQL 副本经 L5 同步（详见 doc 02 §7）。本 pilot 仅 ②⑨⑩⑪⑱⑳ 有逐表详情 sheet，余表 Phase 2 补','F2F2F2')]
+for i,(txt,bg) in enumerate(notes):
+    r=base+i; cc=ws.cell(r,1,txt); ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=len(COLS))
+    cc.font=VFONT; cc.fill=F(bg); cc.alignment=WRAP; cc.border=BORDER; ws.row_dimensions[r].height=34
+set_widths(ws,[30]*len(COLS)); ws.freeze_panes='A3'
+
+# ============================================================ A 总览/导读
+ws = wb.create_sheet('A 导读·色卡·样本')
+r = 1
+t = ws.cell(r,1,'doc 32 · 全 FCL pipeline 逐字段 Mapping + 生产数据举例（Phase 1：主链 sync_loan_foreclosure）')
+ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=6); t.font=TITLEFONT; t.fill=F(DARK); t.alignment=WRAP
+ws.row_dimensions[r].height=30; r+=2
+def line(txt, kind='k'):
+    global r
+    c=ws.cell(r,1,txt); ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=6)
+    if kind=='S': c.font=HFONT; c.fill=F(MID)
+    else: c.font=VFONT; c.fill=F(LIGHT if kind=='k' else WHITE)
+    c.alignment=WRAP; c.border=BORDER; ws.row_dimensions[r].height=autoheight(txt,per_line=70); r+=1
+line('一、5 条血缘主链（servicer raw → 各层 → BPS sync）', 'S')
+for bk in ['main','stage','hold','lm','bk']:
+    br = L['branches'][bk]; chain = ' → '.join(h['table'] for h in br['chain'])
+    line('【%s】%s' % (bk, chain))
+line('二、本工作簿读法（逻辑清晰）—— 首张「① 表清单 索引」分层列出全部页并可一键跳转', 'S')
+line('全局/导航：① 表清单 索引（分层分组+跳转）｜⓪ 表说明与全链路血缘（全 23 表总览）｜⓪b 全局Pipeline图（L1→L5 网格）。仿 doc 19。')
+line('分析视图（字母页）：A 导读·色卡·样本 / B 主表逐字段 mapping（每字段一行：L1源→L4→L5 每跳规则+转换类型+样本，可筛选）/ C 20笔生产矩阵 / D 多as-of改期演示 / E BPS截图三方对账。')
+line('逐表页（圈号·层级标签）：②src·portnewrezfc、⑨mid·temp、⑩mid·fcl、⑪mid·foreclosure、⑱bps·sync主表、⑳bps·视图。⚠️ 圈号=全 pipeline 23 表全局编号（同 doc 19/25）；缺号是尚未纳入本 pilot 的表，Phase 2 补齐——不是排序错误。')
+line('三、as-of / 多天数据说明（已核代码+prod）', 'S')
+line(EX['multiday']['rule'])
+line('projected=当前(最新)值；set_date=该当前值首次出现的 dataasof。直传/decode 字段多天恒等、取最新快照即可；仅 set/首见/天数字段需多天历史（见 D 页）。')
+line('basic_data_loan_fcl 保留全部每日快照（实测 943 个 dataasof）；basic_data_loan_foreclosure=MAX(dataasof) 每贷款最新；sync 主表当前态（无 as-of 列）。')
+_pf=CV['pipeline_coverage_finding']
+line('六、⚠️ 管道覆盖发现（取数前必读）', 'S')
+line('%s：bpms.sync_loan_foreclosure 仅 %d 笔（%s），而 Redshift basic_data_loan_fcl 有 %d 笔（%s）。' % (_pf['title'], _pf['bpms_main_loans'], _pf['bpms_main_breakdown'], _pf['redshift_fcl_loans'], _pf['redshift_breakdown']))
+line(_pf['note'])
+line('取数含义：端到端(→bpms)演示只能用这 ~91 笔（Newrez/Carrington）；Capecodfive 与多数中间层逻辑只能在 Redshift 层演示。见「F 逻辑覆盖矩阵」的「演示层」列。')
+# 转换类型色卡 + 一行定义（B 页同色）
+hh=ws.cell(r,1,'四、转换类型色卡 + 定义（B 主表逐字段页「转换类型」列同色）'); ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=6); hh.font=HFONT; hh.fill=F(MID); hh.alignment=WRAP; r+=1
+for _k,_color in TYPE_COLORS.items():
+    c1=ws.cell(r,1,_k); c1.fill=F(_color); c1.font=VFONT; c1.border=BORDER; c1.alignment=CENTER
+    c2=ws.cell(r,2,TYPE_DEFS.get(_k,'')); ws.merge_cells(start_row=r,start_column=2,end_row=r,end_column=6); c2.font=VFONT; c2.fill=F(_color); c2.border=BORDER; c2.alignment=WRAP
+    ws.row_dimensions[r].height=autoheight(TYPE_DEFS.get(_k,''),per_line=88); r+=1
+line('五、样本贷款（20 笔，最新快照；均 Newrez——主表以 Newrez 为主，Carrington/Capecodfive 见 Phase 2）', 'S')
+line('、'.join(row[0] for row in EX['sample_loans_main']))
+line(EX['note_servicer_number'])
+set_widths(ws, [40,22,22,22,22,22]); ws.freeze_panes='A3'
+add_back_link(ws, ws.cell(r+1,1)); print('overview rows:', r)
+
+# ============================================================ B 主表逐字段 mapping
+ws = wb.create_sheet('B 主表逐字段 Mapping')
+H=['#','目标字段 (sync_loan_foreclosure)','业务含义','L1 servicer 源','L4 fcl 族 (temp/fcl)','L4 foreclosure 投影 (+代码)','L5 upsert/视图规则','转换类型','代表样本 7727004408']
+style_header_row(ws,1,H)
+rows=[]
+for i,f in enumerate(mainf,1):
+    hops=f.get('hops',[])
+    bps_hop=next((h for h in hops if str(h.get('t','')).startswith('bpms.sync_loan_foreclosure')), None)
+    tgt = bps_hop.get('c') if bps_hop else (f.get('label',{}).get('zh',''))
+    l1 = src_of(hops, ['newrez.portnewrezfc','(per servicer)'])
+    l4f = src_of(hops, ['tempfc.temp_basic_data_fcl','port.basic_data_loan_fcl'])
+    l4o = src_of(hops, ['port.basic_data_loan_foreclosure'])
+    l5 = ''
+    if bps_hop:
+        l5 = (bps_hop.get('rule','') or '') + (' ['+bps_hop.get('code','')+']' if bps_hop.get('code') else '')
+    allrule = ' '.join([h.get('rule','') for h in hops])
+    xtype = classify(l5 + ' ' + l4o + ' ' + allrule)
+    samp = EX_VAL.get(tgt, '')
+    if samp is None: samp='∅NULL'
+    rows.append([i, f.get('label',{}).get('zh',tgt), f.get('biz',{}).get('zh',''), l1, l4f, l4o, l5, xtype, samp])
+fill_data_rows(ws,2,rows)
+set_widths(ws,[4,30,34,30,32,40,40,12,20])
+c_type = 8
+color_by_type(ws, c_type, TYPE_COLORS)
+ws.freeze_panes='C2'; add_autofilter(ws, header_row=1)
+print('main field rows:', len(rows))
+
+# ============================================================ C 生产数据矩阵
+ws = wb.create_sheet('C 生产数据矩阵 20 笔')
+H = EX['main_col_labels']
+style_header_row(ws,1,H)
+disp=[]
+for row in EX['sample_loans_main']:
+    disp.append(['∅NULL' if v is None else v for v in row])
+nextr=fill_data_rows(ws,2,disp)
+# 追加 Carrington 广度行（映射到 16 列；演示其 NULL 列 + 计算 days）
+def _v(x): return '∅NULL' if x in (None,'','∅') else x
+carr=[]
+for cr in CV.get('carrington_breadth',[]):
+    lid,s_status,cur,days,referred,sset,sproj,firm,note = cr
+    carr.append([lid,'Carrington','∅NULL',_v(s_status),_v(cur),_v(days),'∅NULL',_v(referred),'∅NULL','∅NULL','∅NULL','∅NULL',_v(sset),_v(sproj),_v(firm),'∅NULL'])
+nextr=fill_data_rows(ws,nextr,carr)
+# CC5 说明行（CC5 不进 bpms 主表）
+cc=ws.cell(nextr,1,'Capecodfive：'+CV.get('cc5_finding','')); ws.merge_cells(start_row=nextr,start_column=1,end_row=nextr,end_column=16)
+cc.font=VFONT; cc.fill=F('FCE4D6'); cc.alignment=WRAP; cc.border=BORDER; ws.row_dimensions[nextr].height=autoheight(CV.get('cc5_finding',''),per_line=120)
+set_widths(ws,[16,9,11,26,30,9,9,12,12,12,14,16,14,14,30,12]); ws.freeze_panes='C2'; add_autofilter(ws,header_row=1,last_row=nextr-1)
+print('matrix rows: Newrez',len(disp),'+ Carrington',len(carr))
+
+# ============================================================ D 多 as-of 演示
+ws = wb.create_sheet('D 多as-of 改期演示')
+r=1
+t=ws.cell(r,1,'D 跨天「改期/首见」演示 —— 为什么 set_date 与 projected 不同（只有多天历史可见）')
+ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=3); t.font=TITLEFONT; t.fill=F(DARK); t.alignment=WRAP; r+=1
+c=ws.cell(r,1,EX['multiday']['rule']); ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=3); c.font=VFONT; c.fill=F(LIGHT); c.alignment=WRAP; ws.row_dimensions[r].height=autoheight(EX['multiday']['rule'],per_line=60); r+=2
+for lid,info in EX['multiday']['loans'].items():
+    c=ws.cell(r,1,'loan %s —— %s' % (lid, info['title'])); ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=3); c.font=HFONT; c.fill=F(MID); c.alignment=WRAP; r+=1
+    style_header_row(ws,r,['变化发生日 (dataasof)','新的 fcscheduled_sale_date','说明']); r+=1
+    n=len(info['changes'])
+    for j,(d,val) in enumerate(info['changes']):
+        note=''
+        if j==0: note='首次出现'
+        if j==n-1: note='当前值 → projected'
+        ww=[d,val,note]
+        for k,v in enumerate(ww):
+            cc=ws.cell(r,k+1,v); cc.font=VFONT; cc.border=BORDER; cc.alignment=WRAP; cc.fill=F(WHITE if r%2 else GREY)
+        r+=1
+    res='结论：projected = %s（当前值）；set_date = %s（当前值首见日）。%s' % (info['projected'], info['set_date'], info['explain'])
+    c=ws.cell(r,1,res); ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=3); c.font=VFONT; c.fill=F('FFF2CC'); c.alignment=WRAP; c.border=BORDER; ws.row_dimensions[r].height=autoheight(res,per_line=55); r+=2
+# —— 深度历史样板（其它历史依赖逻辑）——
+DH=CV.get('deep_history',{})
+DH_TITLES={'7727000454_legal_listagg':'loan 7727000454 — 首次法律日历史 LISTAGG（逻辑 10）',
+           '7727004408_hold':'loan 7727004408 — Hold 拆槽 unpivot + 去重（逻辑 11，端到端 bpms）',
+           'bk_dedup':'BK 按 filed_date 去重 + 状态解码（逻辑 12）'}
+for key,info in DH.items():
+    c=ws.cell(r,1,DH_TITLES.get(key,key)+' —— '+info.get('logic','')); ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=5)
+    c.font=HFONT; c.fill=F(MID); c.alignment=WRAP; c.border=BORDER; ws.row_dimensions[r].height=autoheight(info.get('logic',''),per_line=90); r+=1
+    for rowvals in info.get('rows',[]):
+        for k,v in enumerate(rowvals):
+            cc=ws.cell(r,k+1,v); cc.font=VFONT; cc.border=BORDER; cc.alignment=WRAP; cc.fill=F(WHITE if r%2 else GREY)
+        r+=1
+    res=info.get('result','')
+    if res:
+        c=ws.cell(r,1,'结论：'+res); ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=5)
+        c.font=VFONT; c.fill=F('FFF2CC'); c.alignment=WRAP; c.border=BORDER; ws.row_dimensions[r].height=autoheight(res,per_line=95); r+=2
+set_widths(ws,[22,28,20,12,20]); ws.freeze_panes='A2'
+print('multiday loans:', len(EX['multiday']['loans']), '| deep_history blocks:', len(DH))
+
+# ============================================================ E BPS 截图证据
+ws = wb.create_sheet('E BPS 截图证据')
+r=1
+t=ws.cell(r,1,'E BPS UI 截图证据 —— 代码 ⇄ Redshift ⇄ BPS UI 三方对账'); ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=4); t.font=TITLEFONT; t.fill=F(DARK); t.alignment=WRAP; r+=1
+c=ws.cell(r,1,EX['reconcile_note']); ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=4); c.font=VFONT; c.fill=F(LIGHT); c.alignment=WRAP; ws.row_dimensions[r].height=autoheight(EX['reconcile_note'],per_line=80); r+=2
+import os
+for sc in EX['bps_screenshots']:
+    c=ws.cell(r,1,'loan %s' % sc['loanid']); ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=4); c.font=HFONT; c.fill=F(MID); r+=1
+    style_header_row(ws,r,['BPS UI 字段','BPS UI 值（截图）','字段/规则','一致性']); r+=1
+    keymap={'Sale Date Projected':'timeline_sale_date_projected_date = fcscheduledsaledate 当前值 (pool:266)',
+            'Sale Date Set':'timeline_sale_date_set_date = min(dataasof of 当前值) (pool:300-303)',
+            'Days in Foreclosure':'summary_days_in_fcl = 存储值 + datediff(dataasof→运行日)',
+            'Current Step':'summary_current_step = fcstage 直传 (pool:282)'}
+    for k,v in sc['anchors'].items():
+        rule=keymap.get(k,'—'); ok='✓ 三方一致' if k in keymap else ''
+        for j,val in enumerate([k,v,rule,ok]):
+            cc=ws.cell(r,j+1,val); cc.font=VFONT; cc.border=BORDER; cc.alignment=WRAP; cc.fill=F(WHITE if r%2 else GREY)
+        r+=1
+    img_path=sc['img']
+    if os.path.exists(img_path):
+        im=XLImage(img_path); ratio=im.height/im.width; im.width=940; im.height=int(940*ratio)
+        ws.add_image(im, 'A%d' % (r)); r += int(im.height/15)+2
+    else:
+        c=ws.cell(r,1,'⚠️ 图片缺失：%s' % img_path); c.font=ENDFONT; r+=2
+set_widths(ws,[30,30,46,14])
+print('screenshots embedded')
+
+# ============================================================ F 逻辑覆盖矩阵
+ws = wb.create_sheet('F 逻辑覆盖矩阵')
+t=ws.cell(1,1,'F 逻辑覆盖矩阵 —— PrefectFlow FCL 16 条处理逻辑，每条 ≥1 示例 loan；「历史依赖」标是否需全历史，「演示层」标端到端(bpms)还是 Redshift 层')
+ws.merge_cells(start_row=1,start_column=1,end_row=1,end_column=8); t.font=TITLEFONT; t.fill=F(DARK); t.alignment=WRAP; ws.row_dimensions[1].height=30
+style_header_row(ws,2,CV['logic_matrix_headers'])
+fill_data_rows(ws,3,CV['logic_matrix'])
+HIST_COLORS={'全历史':'FCE4D6','每日重算':'FCE4D6','去重':'E4DFEC','最新':'D6E4F0'}
+color_by_type(ws,5,HIST_COLORS,start_row=3)
+set_widths(ws,[4,18,30,40,16,18,22,18]); ws.freeze_panes='C3'; add_autofilter(ws,header_row=2)
+print('logic matrix rows:', len(CV['logic_matrix']))
+
+# ============================================================ B 组：主链逐表 sheet
+B_TABLES = [
+ ('newrez.portnewrezfc','portnewrezfc','② src·portnewrezfc'),
+ ('tempfc.temp_basic_data_fcl','temp_basic_data_fcl','⑨ mid·temp_basic_data_fcl'),
+ ('port.basic_data_loan_fcl','basic_data_loan_fcl','⑩ mid·basic_data_loan_fcl'),
+ ('port.basic_data_loan_foreclosure','basic_data_loan_foreclosure','⑪ mid·basic_data_loan_forecl'),
+ ('bpms.sync_loan_foreclosure','sync_loan_foreclosure','⑱ bps·sync_loan_foreclosure'),
+ ('bpms.biz_data_view_loan_details_foreclosure','biz_data_view_loan_details_foreclosure','⑳ bps·view_loan_details'),
+]
+for meta_key, fm_key, sheetname in B_TABLES:
+    ws = wb.create_sheet(sheetname)
+    t = TM.get(meta_key, {})
+    r=1
+    ti=ws.cell(r,1,'%s %s · %s' % (t.get('num',''), meta_key, t.get('layer',''))); ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=3); ti.font=TITLEFONT; ti.fill=F(DARK); ti.alignment=WRAP; ws.row_dimensions[r].height=26; r+=1
+    kvs=[('所处层级',t.get('layer','')),('业务说明',t.get('business_meaning','')),('业务目的',t.get('business_purpose','')),
+         ('在 pipeline 中的作用',t.get('pipeline_role','')),('为什么有这张表',t.get('why_pipeline','')),
+         ('上游链路',t.get('upstream_chain','')),('全部上游表',JOIN(t.get('upstream_tables',[]))),
+         ('下游链路',t.get('downstream_chain','')),('全部下游表',JOIN(t.get('downstream_tables',[]))),
+         ('数据粒度',t.get('grain',''))]
+    for kk,vv in kvs:
+        if not vv: continue
+        c=ws.cell(r,1,'%s：%s'%(kk,vv)); ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=3); c.font=VFONT; c.fill=F(LIGHT); c.alignment=WRAP; c.border=BORDER; ws.row_dimensions[r].height=autoheight('%s：%s'%(kk,vv),per_line=70); r+=1
+    r+=1
+    flds = FM.get(fm_key,{}).get('fields',{})
+    style_header_row(ws,r,['字段','业务含义','来源/类型']); hdr_row=r; r+=1
+    for fn,info in flds.items():
+        m = info.get('m','') if isinstance(info,dict) else str(info)
+        src = info.get('src','') if isinstance(info,dict) else ''
+        for j,v in enumerate([fn,m,src]):
+            cc=ws.cell(r,j+1,v); cc.font=VFONT; cc.border=BORDER; cc.alignment=WRAP; cc.fill=F(WHITE if r%2 else GREY)
+        r+=1
+    set_widths(ws,[30,60,16]); ws.freeze_panes='A%d'%(hdr_row+1); add_autofilter(ws,header_row=hdr_row,last_row=r-1)
+    print('B-table %s fields:' % meta_key, len(flds))
+
+# ============================================================ ① 表清单 索引（仿 doc 19；分层分组 + 跳转链）置首位
+SHEET_OF = {mk: sn for mk, _, sn in B_TABLES}
+iw = wb.create_sheet('① 表清单 索引', 0)
+NC=5
+t=iw.cell(1,1,'doc 32 · 表清单 索引 —— 点「➤ 打开」跳到对应 sheet（字母页=分析视图；圈号页=pipeline 各表，编号同 doc 19/25）')
+iw.merge_cells(start_row=1,start_column=1,end_row=1,end_column=NC); t.font=TITLEFONT; t.fill=F(DARK); t.alignment=CENTER
+style_header_row(iw,2,['Sheet 页','表/视图（完整路径）','用途','列数','跳转'])
+ridx=3
+def grp(banner, color='2E75B6'):
+    global ridx
+    c=iw.cell(ridx,1,banner); iw.merge_cells(start_row=ridx,start_column=1,end_row=ridx,end_column=NC)
+    c.font=HFONT; c.fill=F(color); c.alignment=WRAP; c.border=BORDER; ridx+=1
+def row(sheet_label, tv, purpose, ncol_val, target):
+    global ridx
+    vals=[sheet_label, tv, purpose, ncol_val]
+    for j,v in enumerate(vals):
+        cc=iw.cell(ridx,j+1,v); cc.font=VFONT; cc.alignment=WRAP; cc.border=BORDER; cc.fill=F(WHITE if ridx%2 else GREY)
+    if target and target in wb.sheetnames:
+        link_to(iw, iw.cell(ridx,5), target, '➤ 打开')
+    else:
+        cc=iw.cell(ridx,5, target or '—'); cc.font=ENDFONT; cc.alignment=CENTER; cc.border=BORDER
+    iw.cell(ridx,5).border=BORDER; iw.row_dimensions[ridx].height=30; ridx+=1
+# —— 分析视图区（doc 32 特有）——
+grp('分析视图（字母页 + ⓪/⓪b 全局图）', '1F3864')
+row('⓪ 表说明与全链路血缘','全 23 表','业务含义 + 全链路血缘一表看清','23 表','⓪ 表说明与全链路血缘')
+row('⓪b 全局Pipeline图','L1→L5 网格','端到端数据流 + 两支线 + 图例','—','⓪b 全局Pipeline图')
+row('A 导读·色卡·样本','—','读法 + 转换类型色卡/定义 + as-of 说明 + 20 样本清单','—','A 导读·色卡·样本')
+row('B 主表逐字段 Mapping','bpms.sync_loan_foreclosure','每字段每跳规则 + 转换类型 + 代表样本（可筛选）','66 字段','B 主表逐字段 Mapping')
+row('C 生产数据矩阵 20 笔','—','20 笔贷款 × 主表关键字段最新值（实测）','—','C 生产数据矩阵 20 笔')
+row('D 多as-of 改期演示','—','set vs projected：改期/首见跨天演示','—','D 多as-of 改期演示')
+row('E BPS 截图证据','BPS UI','BPS 截图 + 代码⇄Redshift⇄UI 三方对账','—','E BPS 截图证据')
+row('F 逻辑覆盖矩阵','16 逻辑','每条 FCL 逻辑 ≥1 示例 + 历史依赖 + 演示层（端到端/Redshift）','16 行','F 逻辑覆盖矩阵')
+# —— 逐表区：按层分组（全 23 表；有详情 sheet 的可跳，余 Phase 2）——
+GRP_TITLE={'src':'一、Newrez 源数据表（src·，mysql_prod.newrez）','mid':'二、Redshift 中间层（mid·，redshift_prod.port / tempfc）',
+           'bps':'三、BPS 直接对接表（bps·，mysql_prod.bpms）','dic':'四、解码字典（dic·）'}
+GRP_COLOR={'src':'C9A86A','mid':'2E75B6','bps':'70AD47','dic':'8C8C8C'}
+for tag in ['src','mid','bps','dic']:
+    grp(GRP_TITLE[tag], GRP_COLOR[tag])
+    for k,t in T.items():
+        if layer_tag(k)!=tag: continue
+        short=k.split('.')[-1]
+        label='%s %s·%s' % (NUM[k], tag, short)
+        target=SHEET_OF.get(k)  # only 6 pilot tables have detail sheets
+        row(label, k, (t.get('business_meaning','') or '')[:60], fcount(k), target if target else 'Phase 2 待补')
+set_widths(iw,[30,40,58,10,12]); iw.freeze_panes='A3'; add_autofilter(iw, header_row=2, last_row=ridx-1)
+
+wb.save(OUT)
+print('SAVED', OUT, '| sheets:', len(wb.sheetnames))
+print(' | '.join(wb.sheetnames))

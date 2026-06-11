@@ -1,5 +1,7 @@
 # doc 31 — FCL 阶段窗口规则速查（start / end / days / in_lm / on_hold）
 
+> <!-- RULEGLOSS_PTR -->📖 **术语解释**：本文 `rule` 列的技术语句 → 易懂中文 + 数学公式，见 [doc 25 · 逐跳转换规则速查（附录）](25_fcl_lineage_overview.md)。
+
 ## 文档目的（Document Purpose）
 
 - **为什么存在**：`bpms.sync_fcl_stage_info` 每个 FCL 阶段（DEMAND / NOI / REFERRAL / FIRST_LEGAL / SERVICE / PUBLICATION / JUDGEMENT / SALE）有 5 类时间列——`<X>_start_date / <X>_end_date / <X>_stage_days / <X>_in_lm_days / <X>_on_hold_days`——它们的取值规则**散落在 doc 27 的 25+ 个 §**（§9-§13/§14-§23/§28-§41），且**命名反直觉**（如 `servicecompletedate` 实际喂 SERVICE 阶段的 start，不是 end），新人/审核人很难快速建立全局认知。

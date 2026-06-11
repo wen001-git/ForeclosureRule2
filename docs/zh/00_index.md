@@ -28,7 +28,7 @@
 |---------|--------|---------|---------|
 | 00 | `00_index.md` | 本索引 | 导航入口 |
 | **20** | **`20_end_to_end_walkthrough.md`** | **🌟【推荐第一篇】数据流总览 + 讲解稿**：把 foreclosure 数据从来源 Servicer 文件 → BPS 系统的五层全过程串成一条线，并**从业务角度解释「数据为什么这样处理」**（§A.6，如一个 FCL 为何多条 Hold）；两层（业务视角全景+讲解脚本+Q&A／按层深入 walkthrough+代码定位地图+样本 loan 走查） | 向同事讲解全流程+业务理由；新成员快速建立全局认知；其它文档总入口 |
-| ~~21~~ | ~~`21_fcl_field_lineage.md`~~ | ⚠️ **已弃用，被 doc 25–30 取代**（旧版字段级血缘，按主题组织、较乱）。请改用 doc 25（总览）+ 26–30（各 sync 表逐字段）。 | 历史保留 |
+| ~~21~~ | ⛔ **已归档**（无超链接） · `docs/archive/zh/21_fcl_field_lineage.DEPRECATED.md` | **2026-06-11 归档**：迁至 `docs/archive/zh/`；AI 编码工具请勿读；ER 部分迁入 doc 33，字段血缘迁入 doc 25-30，业务理由见 doc 20 §A.6。 | 不再使用；仅历史保留 |
 | **25** | **`25_fcl_lineage_overview.md`** | **🔬【字段血缘总入口/hub】** 止赎核心字段 Servicer 原始列 → BPS sync 表的字段级血缘总览：4 条规范跳链骨架 + 全字段主索引 + 已知缺口 + 端到端样例（loan 7727004408，MCP 实测）+ 指向 26–30 的链接。规则 Code-First 取自 PrefectFlow（含 file:line），列名逐列对 prod 核验。由 `outputs/fcl_lineage_source.json` 经 `scripts/gen_fcl_lineage.py` 生成 | 字段级血缘讲解/对账总入口；取代 doc 21 |
 | **26** | **`26_lineage_sync_loan_foreclosure.md`** | `bpms.sync_loan_foreclosure` 逐字段血缘：里程碑(`timeline_*`)+汇总/状态(`summary_*`)，一字段一行、每跳列名+规则+代码，终于展示视图(Actual/Var) | 主表字段对账 |
 | **27** | **`27_lineage_sync_fcl_stage_info.md`** | `bpms.sync_fcl_stage_info` 逐字段血缘：阶段开始日/天数/to_*_days/in_lm/on_hold + group(delq_status: mba+days360)/judicial(州级回退)/state | 聚合页字段对账 |
@@ -36,6 +36,8 @@
 | **29** | **`29_lineage_sync_loan_foreclosure_loss_mitigation.md`** | `bpms.sync_loan_foreclosure_loss_mitigation` 逐字段血缘：LM 周期 + datadic 编码→文本解码 | LM 面板对账 |
 | **30** | **`30_lineage_sync_loan_foreclosure_bankruptcy.md`** | `bpms.sync_loan_foreclosure_bankruptcy` 逐字段血缘：BK 记录 + 状态解码 | BK 面板对账 |
 | **31** | **`31_fcl_stage_window_rules.md`** | **🧮 FCL 阶段窗口规则速查**：8 个 stage × 5 类列（`start_date / end_date / stage_days / in_lm_days / on_hold_days`）一表读懂——start 透传源、end 派生规则、stage_days 公式、in_lm/on_hold SQL 语义（Code-First from pool:2215-2330）、4 真实 loan 工作例、反直觉点澄清（`servicecompletedate` → SERVICE start 不是 end） | 排查 stage 天数 / in_lm / on_hold；新人理解 stage 窗口模型；横向汇总 doc 27 散落规则 |
+| **32** | **`32_fcl_pipeline_field_mapping.md`** + **`docs/32_fcl_pipeline_field_mapping.xlsx`** | **🟦 全 pipeline 逐字段 mapping 工作簿**：每字段 × 每层转换规则 + 20 笔生产实测举例 + 多 as-of（改期/首见）演示 + BPS 截图三方对账；交互式（导航索引/超链接/自动筛选/转换类型色卡）。Phase 1=主链 `sync_loan_foreclosure`。JSON 驱动、skill `excel-pipeline-lineage` 生成 | 逐字段对账、看整条管道每层怎么变、生产举例 |
+| **33** | **`33_fcl_table_erd.md`** | **🧬 FCL 表实体关系图（ERD）**：~22 张 FCL 相关表（L1 源 5 + Newrez 还款 1 + L4 Redshift 8 + portmonth 1 + L5 BPS sync 6 + 视图 1）的 PK / 粒度键 / 1:N / N:N（区间相交）关系——1 张总图 + 5 张分支图（FCL 主线/portmonth 锚点/Hold/LM/BK）+ PK 速查表 + 常见 JOIN 速查（6 类）+ 粒度业务原因 + Code-First 引用。**校正**：视图实际只接 sync_loan_foreclosure + sync_portmonth 两张（不是 5 张），MCP 实证 | 排查表关系（"为什么一笔 loan 多 Hold"）、新人理解表布局、对账时 join 模板速查 |
 | 01 | `01_source_data.md` | 各服务商原始数据表结构、止赎相关字段清单 | 数据溯源、字段定义查询 |
 | 02 | `02_etl_pipeline.md` | 完整 ETL 管道：5层数据流、表谱系、Redshift vs MySQL 分层 | 管道理解、调试、重写规划 |
 | 03 | `03_fcl_status_logic.md` | 止赎状态生成的完整逻辑（SQL/Python/映射表/覆盖规则） | 状态计算原理、重写参考 |

@@ -919,12 +919,12 @@ FROM   bpms.sync_loan_foreclosure;
 |---|---|
 | Newrez 原始字段 | newrez.portnewrezfc.fcstage |
 | 数据类型 | VARCHAR |
-| 业务含义 | Newrez内部当前工作流步骤文本（如'Pre-Sale Review'）；summary_current_step的备用显示字段 |
+| 业务含义 | Newrez内部当前工作流步骤文本（如'Pre-Sale Review'）；**summary_current_step 的唯一来源（直传）** |
 | 格式/计算规则 | Newrez内部阶段描述文本 |
 | 标准接口取值范围 | 自由文本 |
 | 典型取值（标准） | Service Complete |
-| BPS 面板/功能 | FCL Summary > summary_current_step（备用，currentmilestone为空时使用） |
-| Newrez → BPS 规则 | 阶段瀑布判定（按里程碑优先级），存于 sync_fcl_stage_info.stage |
+| BPS 面板/功能 | FCL Summary > summary_current_step（**唯一来源，直传**）；另经阶段瀑布判定 → sync_fcl_stage_info.stage |
+| Newrez → BPS 规则 | ① → `summary_current_step`：**直传 fcstage**（`basic_data_pool_config.py:282`；currentmilestone 不参与）；② → `sync_fcl_stage_info.stage`：阶段瀑布判定（按里程碑优先级，REFERRAL/SALE/SERVICE/FIRST_LEGAL/JUDGEMENT/DEMAND） |
 | Newrez 现状 | ✅ 99.5% |
 | Newrez验证结果（数据日 2026-06-01｜实测 2026-06-02） | [data_date 2026-06-01] Pre-Sale Review 1 (SCRA and PACER Check):16 \| Service Complete:12 \| Post Sale Review (SCRA and PACER Check):9 \| Sale Scheduled For:9 \| Title Report Received:7 \| NOS Sent for Recording:6 \| Complaint Sent for Filing:5 \| Preliminary Title Clear:4 \| Presale Redemption Will Expire On:3 \| Pre-Sale Review 2 (SCRA and PACER Check):3 \| Order Of Reference Sent:3 \| Complaint Prepared and Sent for Filing:2 \| Service Sent:2 \| Judgment Hearing Scheduled For:2 \| NOD Prepared and Sent for Filing :2 \| NOD Mailed and Posted:1 \| First Publication:1 \| Order Of Reference Received:1 \| Acceleration Letter Sent:1 \| Hearing Complete:1 \| TSG Report Received:1 \| Dockets Prepared and Sent for Filing:1 \| Is Home Equity/Judicial Rail Needed :1 \| Return of Service Filed:1 \| Answer Period Will Expire On:1 \| Final Title Clear:1 \| Complaint Submitted for Service:1 \| Submitted for Service:1 \| Notice … |
 | BPS验证结果（数据日 2026-06-01｜实测 2026-06-04） | [BPS prod·数据日 fctrdt=2026-06-01·ETL载入 2026-06-03] REFERRAL:2738 \| SALE:2068 \| SERVICE:1528 \| FIRST_LEGAL:775 \| JUDGEMENT:732 \| DEMAND:422 |
@@ -957,13 +957,13 @@ GROUP  BY `stage` ORDER BY cnt DESC;
 |---|---|
 | Newrez 原始字段 | newrez.portnewrezfc.currentmilestone |
 | 数据类型 | VARCHAR |
-| 业务含义 | BPS里程碑标签；summary_current_step的最高优先级显示字段 |
+| 业务含义 | Newrez 原始里程碑标签列；**当前 ETL 未消费**（summary_current_step 实取 `fcstage`，见规则） |
 | 格式/计算规则 | BPS里程碑标签文本 |
 | 标准接口取值范围 | Closed<br>First Legal<br>Judgment Entered<br>Sale Held<br>Sold<br>Service Complete<br>Sale Scheduled |
 | 典型取值（标准） | First Legal |
-| BPS 面板/功能 | FCL Summary > summary_current_step（最高优先级） |
-| Newrez → BPS 规则 | currentmilestone 非空则取之，否则取 fcstage（→ summary_current_step） |
-| Newrez 现状 | ⚠️ 62.7% (低于可接受水平，建议提升至90%+) |
+| BPS 面板/功能 | （原以为喂 summary_current_step；**实测 ETL 不使用**——见规则） |
+| Newrez → BPS 规则 | ⛔ **ETL 不读取 `currentmilestone`**：`summary_current_step` = `fcstage` 直传（`basic_data_pool_config.py:282`；`currentmilestone` 全 PrefectFlow 仓库 0 引用，prod 实测 summary_current_step 值均为 fcstage 自由文本）。本字段保留为标准接口候选，**当前管道未用**（更正于 2026-06-10，原"currentmilestone 优先"有误，见 doc 13 §8 Q13） |
+| Newrez 现状 | ⚠️ 62.7%（原始列存在但 ETL 未消费——**提升填充率不影响 summary_current_step**） |
 | Newrez验证结果（数据日 2026-06-01｜实测 2026-06-02） | [data_date 2026-06-01] Closed:54 \| First Legal:16 \| Sold:9 \| Sale Held:7 \| Service Complete:6 \| Judgment Entered:4 \| Sale Scheduled:3 |
 | BPS验证结果（数据日 2026-06-01｜实测 2026-06-04） | [BPS prod·数据日 2026-06-01(主表无嵌入,同 ETL 周期 Newrez 源日)·ETL载入 2026-06-03] Pre-Sale Review 1 (SCRA and PACER Check):13 \| Post Sale Review (SCRA and PACER Check):9 \| NOS Sent for Recording:7 \| Sale Scheduled For:7 \| Service Complete:6 \| Preliminary Title Clear:5 \| ∅NULL:4 \| Complaint Sent for Filing:3 \| Order Of Reference Sent:3 \| Pre-Sale Review 2 (SCRA and PACER Check):3 \| First Legal Action Filed:2 \| Title Summary:2 \| Presale Redemption Will Expire On:2 \| Pending First Legal:2 \| Judgment Hearing Scheduled For:2 \| NOD Prepared and Sent for Filing :2 \| Title Report Received:2 \| Return of Service Filed:1 \| Acceleration Letter Sent:1 \| Is Home Equity/Judicial Rail Needed :1 \| Order Of Reference Received:1 \| Hearing Complete:1 \| TSG Report Received:1 \| Complaint Submitted for Service:1 \| Contested / Litigation Start:1 \| Sale Deed Recorded:1 \| Dockets Prepared and Sent for Filing:1 \| Answer Period … |
 
@@ -981,7 +981,7 @@ GROUP  BY dataasof, currentmilestone ORDER BY cnt DESC LIMIT 30;
 
 BPS 验证 SQL（prod 只读）：
 ```sql
--- 验证 BPS summary_current_step 取值（dist）— currentmilestone 否则 fcstage
+-- 验证 BPS summary_current_step 取值（dist）— 实测 = fcstage 直传（currentmilestone 未参与）
 -- 表: bpms.sync_loan_foreclosure | 运行于: mysql_prod（只读）
 -- as-of: 主表无 dataasof/fctrdt（upsert，update_time 实测全 NULL）；ETL 载入≈2026-06-03（取自 sync_fcl_stage_info.update_time）
 SELECT '2026-06-01' AS data_date, `summary_current_step` AS val, COUNT(*) AS cnt
@@ -3723,7 +3723,7 @@ FROM   bpms.sync_loan_foreclosure_bankruptcy;
 
 | 字段 | 问题描述 | 填充率 | 优先级 |
 |---|---|---|---|
-| `currentmilestone` | 填充率仅 62.7%，BPS `summary_current_step` 需降级到 `fcstage` | 62.7% | P1 ⚠️ |
+| `currentmilestone` | **ETL 不消费此列**：`summary_current_step` 恒取 `fcstage` 直传（pool:282；currentmilestone 全仓 0 引用）。62.7% 填充率与 BPS 无关 | 62.7% | — （已降级：非 BPS 来源） |
 | `fcsaleamount` | 填充率(4.7%) > `fcsalehelddate`(2.1%)，疑有数据时序问题（金额先于 held date 到达） | 4.7% | P1 ⚠️ |
 | `firstlegaldate` | 填充率 57.6%，部分非司法州贷款可能无此日期（合理） | 57.6% | P1 ⚠️ |
 | `servicecompletedate` | 填充率 28.9%，仅完成 Service 阶段的贷款有值（合理） | 28.9% | P1 |
@@ -3800,7 +3800,7 @@ lmprogram,10,Deed-in-Lieu
 
 | 字段 | 问题 | 优先级 |
 |---|---|---|
-| `currentmilestone` | 填充率 62.7%（偏低） | P1 ⚠️ 建议补全至 90%+ |
+| `currentmilestone` | ETL 未消费（summary_current_step 取 fcstage 直传）；补全填充率不影响 BPS | — （非 BPS 来源） |
 | `fcsaleamount` | 4.7% vs `fcsalehelddate` 2.1%（数据时序异常，见 Q9） | P1 ⚠️ 建议核查 |
 | `firstlegaldate` | 57.6%（部分合理，但需区分"未到阶段"与"漏报"） | P1 |
 | `servicecompletedate` | 28.9%（部分合理，仍在 Service 前阶段贷款为空） | P1 |
@@ -3832,7 +3832,7 @@ lmprogram,10,Deed-in-Lieu
 | | Judgement Date | `fcjudgmenthearingscheduled` | P1 |
 | | Sale Date | `fcscheduledsaledate` | P1 |
 | | Foreclosure Completed | `dtdeedrecorded` / `fcremovaldate` | P1/P2 |
-| **FCL Summary 面板** | Current Step | `currentmilestone`（优先）/ `fcstage`（兜底） | P1 |
+| **FCL Summary 面板** | Current Step | `fcstage`（直传；`currentmilestone` ETL 未使用） | P1 |
 | | Attorney | `fcfirm` | P1 |
 | | SMS Days / Days in FCL | `smsdaysinfc` + `dataasof` / `daysinfc` + `dataasof` | P1 |
 | | Sale Amount | `fcsaleamount` | P1 |

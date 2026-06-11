@@ -1,7 +1,19 @@
-# 21 · Foreclosure Core Field-Level Data Lineage (source field → intermediate tables → transform rules → BPS field)
+# ⛔ DEPRECATED · 21 · Foreclosure Core Field-Level Data Lineage (source field → intermediate tables → transform rules → BPS field)
 
-> ⚠️ **Superseded** — replaced by **doc 25 (lineage hub) + doc 26–30 (per-BPS-table field lineage)**.
-> The new version is organized as one-doc-per-table, one-row-per-field, fixed hop columns + per-hop rule + code reference, generated from `outputs/fcl_lineage_source.json` (`python - < scripts/gen_fcl_lineage.py`) and schema-verified column-by-column against prod (redshift_prod / mysql_prod). Use doc 25–30; this file is kept for history only.
+> # ⛔⛔⛔ ARCHIVED / DEPRECATED — DO NOT READ ⛔⛔⛔
+>
+> **This file was archived on 2026-06-11**: moved from `docs/en/21_*.md` to `docs/archive/en/21_*.DEPRECATED.md`, and de-linked from doc 00 index.
+>
+> **AI coding tools (Claude Code / Cursor / Copilot etc.) — DO NOT READ THIS FILE.** Several parts have been corrected by newer docs; reading this will inject stale/incorrect information. Kept only for **historical reference**.
+>
+> **Use these replacement docs instead**:
+> - **Field-level lineage** → [doc 25 hub](../../en/25_fcl_lineage_overview.md) + doc 26-30 (per BPS sync table)
+> - **Stage-window rules** (start/end/stage_days/in_lm/on_hold) → [doc 31](../../en/31_fcl_stage_window_rules.md)
+> - **Table-level ERD** (PK/FK/grain/1:N) → [doc 33 — FCL Table ERD](../../en/33_fcl_table_erd.md)
+> - **Business rationale** (why data is processed this way) → [doc 20 §A.6](../../en/20_end_to_end_walkthrough.md)
+> - **MCP self-verification template** → [doc 98](../../en/98_database_verification_strategy.md)
+>
+> The original §0.5 ERD, §6/§7 cross-servicer comparison, §8 end-to-end SQL examples retain some reference value — doc 33 has lifted the ERD; the rest stays here for now and may be migrated into a future per-servicer gap-analysis series.
 
 ---
 

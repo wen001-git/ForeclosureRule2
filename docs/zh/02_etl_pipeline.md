@@ -25,6 +25,7 @@
 
 | 日期 | 作者 | 版本 | 变更内容 |
 |------|------|------|---------|
+| 2026-06-11 | AI Agent (Claude Opus 4.7 1M) | v8 | §1 五层管道图新增 **FCL 业务族 L1→L4 直通（绕过 L2/L3）的可视化体现**：L1 后箭头分叉为 ① 逾期/月度支线（走 L2/L3）+ ② FCL 业务族（直通 L4）；L2/L3 标题加 "仅逾期/月度支线 ①"；L3→L4 箭头说明两条来源汇合；L4 框表按 ◎①② 分组（来自 L3 派生 vs 来自 L1 直通），与 §5.2 文字说明完全对齐 | basic_data_pool_config.py L1531-1654 |
 | 2026-06-10 | AI Agent (Claude Opus 4.8) | v6 | 更正 §1 图 L1→L2 / L2→L3 箭头按**表**归属配置（`port.basic_data_daily_loan_common` ← `daily_data_loan_common_config.py`，**不是** `portdaily_config.py`；后者建 `portdaily_v2`）；重写 §3.2 为 5 家 servicer 的 UNION 来源表 + 代表性字段映射表（Code-First，附可点击源码行号），并更正旧版误抄自 `portdaily_v2` 的 `fcl_flag` 映射（本表 SLS/Newrez 的 `fcl_flag` 实为 NULL） | PrefectFlow 源码实测 |
 | 2026-06-07 | AI Agent (Claude Opus 4.8) | v5 | 新增 **§8.1 as-of date 演变 + 为何 BPS `sync_*` 无 as-of、只有 `update_time`**（code + MCP 实证：DELETE+APPEND 覆盖刷新 [`df_db_util.py:691,693`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/util/df_db_util.py#L691)、两步 `UPDATE_FORECLOSURE`、`datediff` 实时校正吸收 as-of [`asset_managment_config.py:597-598`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L597-598)；真实数据示例 loan 7727000088：368+2=370）；新增 **§9 各表取数验证 SQL（最新数据日期）**（as-of 列 information_schema 全量核验；同款 SQL 注入 fcl_pipeline.html 各节点抽屉）；§8.1 订正写入机制（主表 `bpms.sync_loan_foreclosure` 经 `UPDATE_FORECLOSURE` 的 `ON DUPLICATE KEY UPDATE` 写入，UPDATE 列表排除 create/update_time → NULL） | PrefectFlow 源码 + mysql_prod/redshift_prod 实测 |
 | 2026-06-06 | AI Agent (Claude Opus 4.8) | v4 | **更正为 MySQL+Redshift 双写架构**（原"一层一平台"有误）：§1 图 + §2/§3/§4/§5 各层补"落库 DB+file:line"，**§7 重写为双写证据表** + §7.1 今天其它更正（两支线/days360/fcl_flag 非归一/Carrington 整列缺失/delinq_clean 生成代码不在仓库）；交叉链接 doc 20 §B.6 / doc 21 | PrefectFlow 源码 + mysql_prod/redshift 实测 |
@@ -53,11 +54,13 @@
 │  carrington.portcarrington                                   │
 │  mrc.portmrcforeclosure | fci.* | selene.*                  │
 └─────────────────┬───────────────────────────────────────────┘
-                  │  portdaily_config.py（UNION ALL+标准化）→ port.portdaily_v2
-                  │  daily_data_loan_common_config.py（UNION ALL+标准化）→ port.basic_data_daily_loan_common
-                  ▼
+                  │  ① 逾期/月度支线 ▶  portdaily_config.py → port.portdaily_v2
+                  │                       daily_data_loan_common_config.py → port.basic_data_daily_loan_common
+                  │  ② FCL 业务族 ▶▶  basic_data_pool_config.py（CREATE_BASIC_FCL，三家 servicer 原始 FCL 表 UNION）
+                  │                       —— 由 L1 原始表**直通 L4**，**绕过 L2/L3**（§5.2）
+                  ▼ (仅 ① 走下面 L2/L3；FCL 族 ② 跳过下面两层直接落 L4)
 ┌─────────────────────────────────────────────────────────────┐
-│  Layer 2 — 统一 Daily 层（Redshift + MySQL 双写）            │
+│  Layer 2 — 统一 Daily 层（**仅逾期/月度支线 ①**）            │
 │  port.portdaily_v2                                          │
 │  port.basic_data_daily_loan_common                          │
 └─────────────────┬───────────────────────────────────────────┘
@@ -65,26 +68,30 @@
                   │  portdaily_config.py（clean 段）→ port_daily_clean
                   ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  Layer 3 — Clean Daily 层（Redshift + MySQL 双写）           │
+│  Layer 3 — Clean Daily 层（**仅逾期/月度支线 ①**）           │
 │  port.basic_data_daily_loan_common_clean                    │
 │  port.port_daily_clean                                      │
 │  port.basic_data_loan_delinq_clean  ← 新增精细逾期表        │
 └─────────────────┬───────────────────────────────────────────┘
-                  │  gen_portmonth_config.py（月度聚合 + 业务规则）
-                  │  basic_data_pool_config.py（FCL 业务表构建）
+                  │  ① 经 L2/L3 汇入 L4 ▶  gen_portmonth_config.py（月度聚合 + 业务规则）
+                  │  ② FCL 业务族在此与 ① 合流 —— ②实际由 L1 直通 L4（绕过 L2/L3，参见上方 L1 箭头分叉）
                   ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  Layer 4 — 月度业务层（月度双写; FCL业务族 RS建→L5同步）     │
-│  port.portmonthbase          ← 主分析表                     │
-│  port.basic_data_loan_foreclosure   ← FCL 时间线           │
-│  port.basic_data_loan_foreclosure_hold                      │
-│  port.basic_data_loan_foreclosure_bankruptcy                │
-│  port.basic_data_loan_foreclosure_loss_mitigation           │
-│  port.basic_data_loan_fcl    ← FCL 详情（含 hold）         │
-│  port.basic_data_fcl_related ← FCL 关联属性                │
-│  port.fcl_stage_info         ← FCL 阶段跟踪                │
-│  port.basic_data_loan_reo    ← REO 记录                    │
-│  port.basic_data_monthly_loan_clean_data ← 月度 clean 数据 │
+│                                                             │
+│  ◎ 来自 ① 逾期/月度支线（经 L2/L3）：                       │
+│    port.portmonthbase                ← 主分析表             │
+│    port.basic_data_monthly_loan_clean_data ← 月度 clean    │
+│                                                             │
+│  ◎ 来自 ② FCL 业务族（**L1 直通，绕过 L2/L3** · §5.2）：    │
+│    port.basic_data_loan_fcl          ← FCL 事实/明细中枢   │
+│    port.basic_data_loan_foreclosure  ← FCL 时间线（fcl 派生）│
+│    port.fcl_stage_info               ← FCL 阶段（fcl 派生）│
+│    port.basic_data_loan_foreclosure_hold         (← raw)   │
+│    port.basic_data_loan_foreclosure_bankruptcy   (← raw)   │
+│    port.basic_data_loan_foreclosure_loss_mitigation (← raw)│
+│    port.basic_data_fcl_related       ← FCL 关联属性        │
+│    port.basic_data_loan_reo          ← REO 记录            │
 └─────────────────┬───────────────────────────────────────────┘
                   │  sync_to_bps_config.py（BPS 同步）
                   ▼
@@ -131,6 +138,8 @@
 | MRC | `s3://brigaws/mrc_new/` | `mrc` | `portmrcforeclosure` |
 | FCI | `s3://brigaws/fci_new/` | `fci` | 按分类文件表 |
 | Selene | `s3://brigaws/selene_new/` | `selene` | 按分类文件表 |
+
+> ⚠️ **「核心止赎表」仅指各家 L1 原始 staging 表（按文件命名），不等于「进入 FCL 业务族」**：L4 FCL 事实表 `port.basic_data_loan_fcl` 只 UNION **3 家**——Newrez(`portnewrezfc`)、Carrington(`portcarrington`)、Capecodfive(`portcapecodfive_monthly_collections`)（代码 `basic_data_pool_config.py:1533-1654`）。**SLS/MRC/FCI/Selene 不进该 UNION**：其 FCL 状态**仅由逾期分档推断**，无 FCL 里程碑/阶段明细（见 doc 25）。故上表 SLS 的 `portfcldaily` 等虽以 “fcl/bk/lm” 命名，但只是 L1 落地，未参与 FCL 时间线构建。
 
 ---
 
@@ -207,7 +216,7 @@ FROM newrez.portnewrezpmt p JOIN newrez.portnewrezgeneral g ...
 **落库：Redshift + MySQL 双写**——plain config→Redshift `port.basic_data_daily_loan_common_clean`；`mysql_daily_data_loan_common_clean_config.py`→MySQL 同名；两条 flow [`gen_daily_data_loan_common_clean_flow.py:78-139(RS)/186-243(MySQL)`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/transfer_daily_data_flow/gen_daily_data_loan_common_clean_flow.py#L78-139)。
 
 **核心变换：** 将原始 `delq_status` 映射为标准化 `delinq` 代码  
-> 实测口径（见 doc 21 §5.4）：逐家一个 CASE，`Foreclosure*→FCL`/`REO→REO`/`Payoff*→P`，**其余一律 `days360(nextduedate, fctrdt)` 分档**（<30→C…≥120→D120P）。**`FCL` 是法律状态、不由天数推导**（`days360` 永不产 `FCL`，须 servicer 显式标注）。`delinq` 实测现存值 `C/D30/D60/D90/D120P/FCL/REO/P/VASP`（无 `REPUR`/独立 `D`）。
+> 实测口径（见 doc 03 状态逻辑 / doc 25 血缘）：逐家一个 CASE，`Foreclosure*→FCL`/`REO→REO`/`Payoff*→P`，**其余一律 `days360(nextduedate, fctrdt)` 分档**（<30→C…≥120→D120P）。**`FCL` 是法律状态、不由天数推导**（`days360` 永不产 `FCL`，须 servicer 显式标注）。`delinq` 实测现存值 `C/D30/D60/D90/D120P/FCL/REO/P/VASP`（无 `REPUR`/独立 `D`）。
 
 关键产出：
 - `port.basic_data_daily_loan_common_clean`：标准化后的日度全量数据
@@ -432,9 +441,9 @@ SELECT "group" AS grp, COUNT(*) AS n FROM port.fcl_stage_info GROUP BY "group" O
 
 1. **两条支线**：止赎里程碑/状态走 **FCL 业务族支线**（直取 `portnewrezfc`/`portcarrington` → `basic_data_loan_fcl` → `basic_data_loan_foreclosure`/`fcl_stage_info`）；`delinq` 走**逾期支线**（`portnewrezgeneral.delinquency_status_mba` → `basic_data_daily_loan_common` → `_clean`）。两者在 `fcl_stage_info`（`group=delq_status`）汇合。
 2. **L2 `fcl_flag` 非跨家归一**：该列在统一日表是**直传**（Newrez/SLS 恒 NULL），FCL 口径实际在 **L3 `delinq` CASE** 判定；真正跨家归一 `activefcflag` 的是 FCL 业务族支线（`basic_data_pool_config.py`），不在统一日表。
-3. **`FCL` 是法律状态、不由天数推导**：`days360` 永不产 `FCL`（详见 §4 注与 doc 21 §5.4/§6）。
-4. **Carrington 整列缺失（prod 实测）**：`timeline_first_legal_date`、`timeline_judgement_date`、`summary_judicial_foreclosure` 对 Carrington **全 NULL**（`portcarrington` 无对应源列）；跨 Servicer 差异见 doc 21 §6/§7。
-5. **`basic_data_loan_delinq_clean`（含 `is_ghost_payoff/ghost_reason/delinq_source`）**：prod 实测列存在且有数据，但**生成代码在 PrefectFlow 版本库 grep 全仓 0 命中**（可能由另一 repo/手工流程维护）——被问到时如实说明，不臆断（doc 21 §9#7）。
+3. **`FCL` 是法律状态、不由天数推导**：`days360` 永不产 `FCL`（详见 §4 注与 doc 03 / doc 25）。
+4. **Carrington 整列缺失（prod 实测）**：`timeline_first_legal_date`、`timeline_judgement_date`、`summary_judicial_foreclosure` 对 Carrington **全 NULL**（`portcarrington` 无对应源列）；跨 Servicer 差异见 doc 25–30（逐字段逐 servicer 血缘）。
+5. **`basic_data_loan_delinq_clean`（含 `is_ghost_payoff/ghost_reason/delinq_source`）**：prod 实测列存在且有数据，但**生成代码在 PrefectFlow 版本库 grep 全仓 0 命中**（可能由另一 repo/手工流程维护）——被问到时如实说明，不臆断（背景见 doc 25–30；原 doc 21 §9#7 已并入）。
 
 ---
 
@@ -456,7 +465,8 @@ SELECT "group" AS grp, COUNT(*) AS n FROM port.fcl_stage_info GROUP BY "group" O
 | L1 源 `newrez.portnewrez*` | `dataasof` | 每日快照日（原始表按此分区） | loanid+dataasof（1 行/贷款/天） |
 | L2 `basic_data_daily_loan_common` | `asofdate` | 统一后的每日日期 | loanid+asofdate |
 | L3 `basic_data_daily_loan_common_clean` | `fctrdt` | 报告截止日 | loanid+fctrdt |
-| L4 `basic_data_loan_fcl` / `_foreclosure` | 取 `MAX(dataasof)` | 只保留每贷款最新快照 | 1 行/贷款（最新） |
+| L4 `basic_data_loan_fcl` | `dataasof`（**保留每日全历史**） | FCL 事实/明细中枢，留全部每日快照 | loanid+dataasof（多行/贷款；prod 实测 1,934,555 行 / 6,294 贷款 / **943 个 dataasof**） |
+| L4 `basic_data_loan_foreclosure` | 取 `MAX(dataasof)`/servicer | 由 `basic_data_loan_fcl` 投影，只留每贷款最新快照 | 1 行/贷款（最新；prod 实测 6,171 行 / **2 个 dataasof**） |
 | L4 `fcl_stage_info` | `fctrdt` | 月度阶段快照 | loanid+fctrdt |
 | **L5 主表 `bpms.sync_loan_foreclosure`** | **无** | 当前态，只有审计列 | 1 行/贷款 |
 | L5 `bpms.sync_fcl_stage_info` | **`fctrdt`（保留）** | 保留 as-of 历史 | loanid+fctrdt（多行/贷款） |
@@ -536,7 +546,7 @@ SELECT loanid, fctrdt, update_time FROM bpms.sync_fcl_stage_info WHERE loanid='7
 | `port.basic_data_loan_foreclosure_hold`（一贷款多行） | `SELECT * FROM port.basic_data_loan_foreclosure_hold WHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_loan_foreclosure_hold) LIMIT 50;` |
 | `port.basic_data_loan_foreclosure_loss_mitigation` | `SELECT * FROM port.basic_data_loan_foreclosure_loss_mitigation WHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_loan_foreclosure_loss_mitigation) LIMIT 50;` |
 | `port.basic_data_loan_foreclosure_bankruptcy` | `SELECT * FROM port.basic_data_loan_foreclosure_bankruptcy WHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_loan_foreclosure_bankruptcy) LIMIT 50;` |
-| `port.portfunding`（**无数据日期列**，维度） | `SELECT * FROM port.portfunding WHERE loanid='7727000088';` |
+| `port.portfunding`（**无数据日期列**，维度；**来源=外部 Excel** `Financials_study.xlsx` 经 [`flow/load_data/load_portfunding.py`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/load_data/load_portfunding.py) 加载，再用 `portinternal`/`actddcost`/`basic_data_semi` 富化，**非 servicer / 非 ETL 派生**；L5 同步时按 `loanid` JOIN 它给 `sync_loan_foreclosure` 补 `bid_id`/`funding_id`） | `SELECT * FROM port.portfunding WHERE loanid='7727000088';` |
 | `port.basic_data_loan_reo`（**无数据日期列**） | `SELECT * FROM port.basic_data_loan_reo WHERE loanid='7727000088';` |
 
 ### L5 BPS 直接对接（mysql_prod.bpms）

@@ -25,6 +25,7 @@
 
 | Date | Author | Version | Changes |
 |------|--------|---------|---------|
+| 2026-06-11 | AI Agent (Claude Opus 4.7 1M) | v8 | §1 five-layer pipeline diagram: added **visual representation of FCL family L1→L4 direct path (bypassing L2/L3)** — L1's downstream arrow splits into ① delinq/monthly line (through L2/L3) + ② FCL business family (direct to L4); L2/L3 titles tagged "delinq/monthly line only · ①"; L3→L4 arrow notes both source paths converge here; L4 box tables grouped by ◎①② source (from L3 derivation vs from L1 direct), exactly aligning with §5.2 narrative | basic_data_pool_config.py L1531-1654 |
 | 2026-06-10 | AI Agent (Claude Opus 4.8) | v6 | Corrected §1 diagram L1→L2 / L2→L3 arrows to attribute each **table** to its real config (`port.basic_data_daily_loan_common` ← `daily_data_loan_common_config.py`, **not** `portdaily_config.py`, which builds `portdaily_v2`); rewrote §3.2 with the 5-servicer UNION source tables + a representative field-mapping table (Code-First, clickable source line refs), and corrected the old `fcl_flag` mapping that was mistakenly copied from `portdaily_v2` (SLS/Newrez `fcl_flag` is actually NULL in this table) | PrefectFlow source-verified |
 | 2026-06-07 | AI Agent (Claude Opus 4.8) | v5 | Added **§8.1 how the as-of date evolves + why BPS `sync_*` has no as-of, only `update_time`** (code + MCP-proven: DELETE+APPEND overwrite refresh [`df_db_util.py:691,693`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/util/df_db_util.py#L691), two-step `UPDATE_FORECLOSURE`, `datediff` real-time correction absorbing the as-of [`asset_managment_config.py:597-598`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L597-598); real-data example loan 7727000088: 368+2=370); added **§9 per-table data-inspection SQL (latest data-date)** (as-of column verified across all tables via information_schema; same SQL injected into every node drawer of fcl_pipeline.html); §8.1 corrected the write mechanism (main `bpms.sync_loan_foreclosure` written via `UPDATE_FORECLOSURE`'s `ON DUPLICATE KEY UPDATE`, whose UPDATE list excludes create/update_time → NULL) | PrefectFlow source + mysql_prod/redshift_prod |
 | 2026-06-06 | AI Agent (Claude Opus 4.8) | v4 | **Corrected to MySQL+Redshift dual-write architecture** (the old "one platform per layer" was wrong): §1 diagram + §2/§3/§4/§5 per-layer "storage DB + file:line"; **§7 rewritten as the dual-write evidence table** + §7.1 other corrections (two branches / days360 / fcl_flag not normalized / Carrington whole-column gaps / delinq_clean producing code not in repo); cross-links doc 20 §B.6 / doc 21 | PrefectFlow source + mysql_prod/redshift |
@@ -51,11 +52,13 @@
 │  carrington.portcarrington                                   │
 │  mrc.portmrcforeclosure  |  fci.*  |  selene.*              │
 └─────────────────┬────────────────────────────────────────────┘
-                  │  portdaily_config.py (UNION ALL+normalize) → port.portdaily_v2
-                  │  daily_data_loan_common_config.py (UNION ALL+normalize) → port.basic_data_daily_loan_common
-                  ▼
+                  │  ① Delinq/monthly line ▶  portdaily_config.py → port.portdaily_v2
+                  │                             daily_data_loan_common_config.py → port.basic_data_daily_loan_common
+                  │  ② FCL business family ▶▶  basic_data_pool_config.py (CREATE_BASIC_FCL, 3-servicer UNION of raw FCL tables)
+                  │                             — built **directly from L1 to L4**, **bypassing L2/L3** (§5.2)
+                  ▼ (only ① goes through L2/L3 below; FCL family ② skips the next two layers, lands in L4 directly)
 ┌──────────────────────────────────────────────────────────────┐
-│  Layer 2 — Unified Daily Layer (Redshift + MySQL dual-write)│
+│  Layer 2 — Unified Daily Layer (**delinq/monthly line only · ①**)│
 │  port.portdaily_v2                                          │
 │  port.basic_data_daily_loan_common                          │
 └─────────────────┬────────────────────────────────────────────┘
@@ -63,26 +66,30 @@
                   │  portdaily_config.py (clean section) → port_daily_clean
                   ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  Layer 3 — Clean Daily Layer (Redshift + MySQL dual-write)  │
+│  Layer 3 — Clean Daily Layer (**delinq/monthly line only · ①**)│
 │  port.basic_data_daily_loan_common_clean                    │
 │  port.port_daily_clean                                      │
 │  port.basic_data_loan_delinq_clean  ← refined delinq table │
 └─────────────────┬────────────────────────────────────────────┘
-                  │  gen_portmonth_config.py (monthly + biz rules)
-                  │  basic_data_pool_config.py (FCL business tables)
+                  │  ① Via L2/L3 into L4 ▶  gen_portmonth_config.py (monthly aggregate + biz rules)
+                  │  ② FCL family merges into L4 here — ② actually goes L1 → L4 directly (bypassing L2/L3; see L1 arrow split above)
                   ▼
 ┌──────────────────────────────────────────────────────────────┐
 │  Layer 4 — Monthly Business (monthly dual-write; FCL fam RS→L5)│
-│  port.portmonthbase             ← primary analytical table  │
-│  port.basic_data_loan_foreclosure  ← FCL timeline          │
-│  port.basic_data_loan_foreclosure_hold                      │
-│  port.basic_data_loan_foreclosure_bankruptcy                │
-│  port.basic_data_loan_foreclosure_loss_mitigation           │
-│  port.basic_data_loan_fcl       ← FCL detail (w/ holds)   │
-│  port.basic_data_fcl_related    ← FCL related attributes   │
-│  port.fcl_stage_info            ← FCL stage tracking       │
-│  port.basic_data_loan_reo       ← REO records              │
-│  port.basic_data_monthly_loan_clean_data ← monthly clean   │
+│                                                              │
+│  ◎ From ① delinq/monthly line (via L2/L3):                  │
+│    port.portmonthbase                ← primary analytical    │
+│    port.basic_data_monthly_loan_clean_data ← monthly clean  │
+│                                                              │
+│  ◎ From ② FCL business family (**L1-direct, bypass L2/L3** · §5.2):│
+│    port.basic_data_loan_fcl          ← FCL fact/detail hub  │
+│    port.basic_data_loan_foreclosure  ← FCL timeline (fcl-derived)│
+│    port.fcl_stage_info               ← FCL stages (fcl-derived)│
+│    port.basic_data_loan_foreclosure_hold         (← raw)    │
+│    port.basic_data_loan_foreclosure_bankruptcy   (← raw)    │
+│    port.basic_data_loan_foreclosure_loss_mitigation (← raw) │
+│    port.basic_data_fcl_related       ← FCL related attrs    │
+│    port.basic_data_loan_reo          ← REO records          │
 └─────────────────┬────────────────────────────────────────────┘
                   │  sync_to_bps_config.py (BPS sync)
                   ▼
@@ -128,6 +135,8 @@
 | MRC | `s3://brigaws/mrc_new/` | `mrc` | `portmrcforeclosure` |
 | FCI | `s3://brigaws/fci_new/` | `fci` | per-category file tables |
 | Selene | `s3://brigaws/selene_new/` | `selene` | per-category file tables |
+
+> ⚠️ **"Core foreclosure tables" here means each servicer's L1 raw staging tables (named after the files) — NOT "enters the FCL business family"**: the L4 FCL fact table `port.basic_data_loan_fcl` UNIONs only **3 servicers** — Newrez (`portnewrezfc`), Carrington (`portcarrington`), Capecodfive (`portcapecodfive_monthly_collections`) (code `basic_data_pool_config.py:1533-1654`). **SLS/MRC/FCI/Selene are NOT in that UNION**: their FCL status is **inferred from the delinquency bucket only**, with no FCL milestone/stage detail (see doc 25). So SLS's `portfcldaily` etc., though named "fcl/bk/lm", are only L1 landing tables and do not participate in FCL timeline construction.
 
 ---
 
@@ -203,7 +212,7 @@ Each of the 5 servicers has its own `INSERT … SELECT` that translates/aligns i
 **Storage: Redshift + MySQL dual-write** — plain config→Redshift `port.basic_data_daily_loan_common_clean`; `mysql_daily_data_loan_common_clean_config.py`→MySQL same name; two flows [`gen_daily_data_loan_common_clean_flow.py:78-139(RS)/186-243(MySQL)`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/transfer_daily_data_flow/gen_daily_data_loan_common_clean_flow.py#L78-139).
 
 **Core transformation:** Maps raw `delq_status` to standardized `delinq` codes  
-> Verified rule (doc 21 §5.4): one CASE per servicer — `Foreclosure*→FCL` / `REO→REO` / `Payoff*→P`, **everything else bucketed by `days360(nextduedate, fctrdt)`** (<30→C…≥120→D120P). **`FCL` is a legal status, NOT derived from days** (`days360` never outputs `FCL`; it must be explicitly flagged by the servicer). DB-observed `delinq` values: `C/D30/D60/D90/D120P/FCL/REO/P/VASP` (no `REPUR`/standalone `D`).
+> Verified rule (doc 03 status logic / doc 25 lineage): one CASE per servicer — `Foreclosure*→FCL` / `REO→REO` / `Payoff*→P`, **everything else bucketed by `days360(nextduedate, fctrdt)`** (<30→C…≥120→D120P). **`FCL` is a legal status, NOT derived from days** (`days360` never outputs `FCL`; it must be explicitly flagged by the servicer). DB-observed `delinq` values: `C/D30/D60/D90/D120P/FCL/REO/P/VASP` (no `REPUR`/standalone `D`).
 
 Key outputs:
 - `port.basic_data_daily_loan_common_clean` — standardized daily full data
@@ -420,9 +429,9 @@ Stage groups (cumulative): `FCL` 9,114 · `D120P` 424 · `D90` 39 · `REO` 10.
 
 1. **Two branches**: foreclosure milestones/status take the **FCL business-family branch** (read `portnewrezfc`/`portcarrington` directly → `basic_data_loan_fcl` → `basic_data_loan_foreclosure`/`fcl_stage_info`); `delinq` takes the **delinquency branch** (`portnewrezgeneral.delinquency_status_mba` → `basic_data_daily_loan_common` → `_clean`). They meet at `fcl_stage_info` (`group=delq_status`).
 2. **L2 `fcl_flag` not cross-servicer normalized**: it is **pass-through** in the unified daily table (NULL for Newrez/SLS); the FCL determination actually happens in the **L3 `delinq` CASE**; cross-servicer `activefcflag` unification lives on the FCL business-family branch (`basic_data_pool_config.py`), not the unified daily table.
-3. **`FCL` is a legal status, not derived from days** (`days360` never outputs `FCL`; see §4 note and doc 21 §5.4/§6).
-4. **Carrington whole-column gaps (prod-tested)**: `timeline_first_legal_date`, `timeline_judgement_date`, `summary_judicial_foreclosure` are **all NULL for Carrington** (`portcarrington` has no source columns); cross-servicer differences in doc 21 §6/§7.
-5. **`basic_data_loan_delinq_clean` (with `is_ghost_payoff/ghost_reason/delinq_source`)**: prod-tested the columns exist and hold data, but its **producing code has 0 hits in a full PrefectFlow grep** (likely another repo/manual process) — state this honestly when asked; don't assume (doc 21 §9#7).
+3. **`FCL` is a legal status, not derived from days** (`days360` never outputs `FCL`; see §4 note and doc 03 / doc 25).
+4. **Carrington whole-column gaps (prod-tested)**: `timeline_first_legal_date`, `timeline_judgement_date`, `summary_judicial_foreclosure` are **all NULL for Carrington** (`portcarrington` has no source columns); cross-servicer differences in doc 25–30 (per-field, per-servicer lineage).
+5. **`basic_data_loan_delinq_clean` (with `is_ghost_payoff/ghost_reason/delinq_source`)**: prod-tested the columns exist and hold data, but its **producing code has 0 hits in a full PrefectFlow grep** (likely another repo/manual process) — state this honestly when asked; don't assume (background in doc 25–30; former doc 21 §9#7 merged in).
 
 ---
 
@@ -444,7 +453,8 @@ Stage groups (cumulative): `FCL` 9,114 · `D120P` 424 · `D90` 39 · `REO` 10.
 | L1 source `newrez.portnewrez*` | `dataasof` | daily snapshot date (raw tables partitioned by it) | loanid+dataasof (1 row/loan/day) |
 | L2 `basic_data_daily_loan_common` | `asofdate` | unified daily date | loanid+asofdate |
 | L3 `basic_data_daily_loan_common_clean` | `fctrdt` | report cutoff date | loanid+fctrdt |
-| L4 `basic_data_loan_fcl` / `_foreclosure` | takes `MAX(dataasof)` | keeps only each loan's latest snapshot | 1 row/loan (latest) |
+| L4 `basic_data_loan_fcl` | `dataasof` (**keeps full daily history**) | FCL fact/detail hub — retains all daily snapshots | loanid+dataasof (many rows/loan; prod-verified 1,934,555 rows / 6,294 loans / **943 distinct dataasof**) |
+| L4 `basic_data_loan_foreclosure` | takes `MAX(dataasof)`/servicer | projected from `basic_data_loan_fcl`, keeps only each loan's latest snapshot | 1 row/loan (latest; prod-verified 6,171 rows / **2 distinct dataasof**) |
 | L4 `fcl_stage_info` | `fctrdt` | monthly stage snapshot | loanid+fctrdt |
 | **L5 main `bpms.sync_loan_foreclosure`** | **none** | current-state, audit cols only | 1 row/loan |
 | L5 `bpms.sync_fcl_stage_info` | **`fctrdt` (kept)** | retains as-of history | loanid+fctrdt (many rows/loan) |
@@ -524,7 +534,7 @@ SELECT loanid, fctrdt, update_time FROM bpms.sync_fcl_stage_info WHERE loanid='7
 | `port.basic_data_loan_foreclosure_hold` (many rows/loan) | `SELECT * FROM port.basic_data_loan_foreclosure_hold WHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_loan_foreclosure_hold) LIMIT 50;` |
 | `port.basic_data_loan_foreclosure_loss_mitigation` | `SELECT * FROM port.basic_data_loan_foreclosure_loss_mitigation WHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_loan_foreclosure_loss_mitigation) LIMIT 50;` |
 | `port.basic_data_loan_foreclosure_bankruptcy` | `SELECT * FROM port.basic_data_loan_foreclosure_bankruptcy WHERE dataasof=(SELECT MAX(dataasof) FROM port.basic_data_loan_foreclosure_bankruptcy) LIMIT 50;` |
-| `port.portfunding` (**no data-date column**, dimension) | `SELECT * FROM port.portfunding WHERE loanid='7727000088';` |
+| `port.portfunding` (**no data-date column**, dimension; **source = external Excel** `Financials_study.xlsx` loaded by [`flow/load_data/load_portfunding.py`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/load_data/load_portfunding.py), then enriched via `portinternal`/`actddcost`/`basic_data_semi`, **not servicer- / ETL-derived**; JOINed on `loanid` at L5 to add `bid_id`/`funding_id` to `sync_loan_foreclosure`) | `SELECT * FROM port.portfunding WHERE loanid='7727000088';` |
 | `port.basic_data_loan_reo` (**no data-date column**) | `SELECT * FROM port.basic_data_loan_reo WHERE loanid='7727000088';` |
 
 ### L5 BPS sync (mysql_prod.bpms)

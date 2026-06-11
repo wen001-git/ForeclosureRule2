@@ -1,0 +1,64 @@
+{
+  "_meta": {
+    "purpose": "doc 32 逻辑覆盖矩阵 + servicer 广度补充 + 深度历史样板 + 关键管道发现。配合 fcl_pipeline_examples.json。prod 只读实证。",
+    "version": "v1 2026-06-11"
+  },
+  "pipeline_coverage_finding": {
+    "title": "重要：BPS 主表只同步极少数 loan",
+    "bpms_main_loans": 91,
+    "bpms_main_breakdown": "Newrez 79 + Carrington 12 + Capecodfive 0",
+    "redshift_fcl_loans": 6171,
+    "redshift_breakdown": "Newrez 5071 + Carrington 718 + Capecodfive 382",
+    "note": "GEN_FORECLOSURE 过滤 timeline_referred_to_foreclosure_date IS NOT NULL + portfunding(已融资在投组) join（asset:605）→ 仅 ~91 笔进 bpms.sync_loan_foreclosure。Capecodfive 0 笔进 bpms，且其 basic_data_loan_foreclosure 投影列实测全 NULL（仅 raw 进 basic_data_loan_fcl）。Hold/LM/BK 明细表同步更宽（hold 91 / lm 245 / bk 65 loan）。→ 端到端(→bpms)演示只能用这 ~91 笔；CC5 与多数中间逻辑只能在 Redshift 层演示。"
+  },
+  "logic_matrix_headers": ["#","逻辑","输出字段","转换类型","历史依赖","servicer","示例 loan","演示层"],
+  "logic_matrix": [
+    ["1","判决听证首见","timeline_judgement_hearing_set_date","首见日 min(dataasof) [pool:295]","全历史","Newrez","7727004408","端到端(bpms)"],
+    ["2","拍卖首见","timeline_sale_date_set_date","首见日 min(dataasof) [pool:300]","全历史","Newrez/Carr/CC5","7727003984(改期12次)","端到端(bpms)"],
+    ["3","Days 实时重算","summary_days_in_fcl / sms","天数重算 存储+datediff→运行日 [asset:597]","最新+运行日","Newrez","7727004408(825/595)","端到端"],
+    ["4","Judicial 类型","summary_type","CASE 0/1→文本 [pool:279]","最新快照","Newrez(Carr/CC5 NULL)","7727000088(Judicial)","端到端"],
+    ["5","止赎状态","summary_foreclosure_status","CASE activefcflag+fcremovaldesc [pool:273]","最新快照","Newrez","7727000367(Closed:LM)","端到端"],
+    ["6","当前步骤","summary_current_step","fcstage 直传 [pool:282]","最新快照","Newrez","7727000088","端到端"],
+    ["7","逾期分桶","delq_status(group)","CASE days360(nextduedate,asof) [pool:1706]","全历史(每日重算)","Newrez+Carr","C/D30/D60/D90/D120P/FCL 各样本","Redshift(fcl_related/stage)"],
+    ["8","逾期切换日","chg_date(demand 阈值)","首见/状态切换 rank [pool:1825/1864]","全历史","Newrez+Carr","7727000243(D90)","Redshift(stage)"],
+    ["9","阶段天数","*_stage_days / to_*_days","datediff(start,end或curr)+1 [pool:2053]","最新(边界已定)","All3","7727004408","端到端(stage)"],
+    ["10","首次法律日历史","first_legal_date_history","LISTAGG 累积 distinct [pool:1900]","全历史","Newrez","7727000454(2 个 legal 日)","Redshift(stage)"],
+    ["11","Hold 拆槽+去重","description/start/end","unpivot 4 槽 + ROW_NUMBER 去重 [pool:622/765,asset:848]","全历史(去重)","Newrez 4槽/Carr flag","7727004408(20 holds)","端到端(hold)"],
+    ["12","BK 去重+解码","bankruptcy_status/legal_status/chapter","ROW_NUMBER per filed_date + datadic 解码 [pool:354/364]","去重(每 filed_date)","All3","7727000010(2 BK)/7727000065","端到端(bk)"],
+    ["13","Newrez LM 去重+解码","deal/program/lmc_status/final_disposition","ROW_NUMBER per dealstartdate + datadic ×6 [pool:832]","去重","Newrez","7727000761(Closed:LM)","端到端(lm)"],
+    ["14","Carr/CC5 LM 周期","cycle_opened_date/cycle_closed_date","flag 跨天 Active/Completed 切换 + FULL OUTER JOIN [pool:851/895]","全历史","Carrington/CC5","7727000803(Carr)","Redshift(lm)"],
+    ["15","del_group 关联","del_group(in stage)","coalesce 日级 delq 重算 join [pool:2429]","全历史","Newrez+Carr","700082700000033(FCL)","Redshift(stage)"],
+    ["16","三家 UNION 列差异","各列(改名/计算/NULL)","UNION 改名+计算(activefcflag/daysinfc)+NULL [pool:1533-1654]","最新快照","Newrez/Carrington/Capecodfive","各家广度行(C 页)","raw(basic_data_loan_fcl)"]
+  ],
+  "carrington_breadth_cols": ["loanid","s_status","cur_step","days_fcl","referred","sale_set","sale_proj","firm","note"],
+  "carrington_breadth": [
+    ["7727000804","2. First Legal Filed","∅","∅","2024-05-17","∅","∅","∅","status 是 fcl_sub_status 原值;judicial/days 全空"],
+    ["7727000881","∅","Sale Deed Recorded","∅","2024-01-11","2025-11-26","2026-01-16","Feiwell & Hannoy","有 sale set/proj;firm 来自 fcl_attorney_name"],
+    ["7727000883","5. Sales Held","∅","∅","2024-10-18","2025-01-23","2025-01-23","∅","noi=referred 同日"],
+    ["7727000806","Active Foreclosure","Contested / Litigation Start","478","2025-02-19","∅","∅","Lender Legal PLLC","days_fcl 由 datediff(referral,snap)+1 算得"],
+    ["7727000955","Active Foreclosure","First Legal Action Filed","95","2026-03-09","∅","∅","Hill Wallack LLP","无 judicial/judgment/first_legal/service 列"]
+  ],
+  "cc5_finding": "Capecodfive：382 笔进 Redshift basic_data_loan_fcl(raw UNION，唯一带真 noi_date)，但 basic_data_loan_foreclosure 投影列实测全 NULL、且 0 笔进 bpms 主表 → CC5 只能在 raw(basic_data_loan_fcl)层演示其 UNION 列映射(noi_date/legal/service/sale)，无端到端 BPS 示例。样本 loanid 7727004824/4825/4827。",
+  "deep_history": {
+    "7727000454_legal_listagg": {
+      "logic": "first_legal_date_history = LISTAGG(distinct legal_start_date)",
+      "rows": [["2025-02-12","首见 2025-02-14，持续 370 天"],["2026-05-18","首见 2026-05-19，持续 22 天"]],
+      "result": "first_legal_date_history = '2025-02-12,2026-05-18'（两次不同首次法律日，只有全历史可见）"
+    },
+    "7727004408_hold": {
+      "logic": "Hold 宽列(fchold1..4)→长表 unpivot + 按 (loanid,description,start) 去重",
+      "rows": [["Original Note","2024-10-30","2024-11-22"],["Loss Mitigation Workout","2024-11-21","2025-05-12"],["Original Note","2025-05-14","2025-06-27"],["Service Delay","2025-08-01","2025-08-27"],["Service Delay","2025-08-28","2025-09-11"],["Service Delay","2025-09-12","2025-09-26"]],
+      "result": "20 条 Hold 长表行（端到端 bpms）；演示多 Hold + unpivot + 跨天 start/end"
+    },
+    "bk_dedup": {
+      "logic": "BK 按 (loanid,bk_filed_date) ROW_NUMBER 去重 + bkstatus datadic 解码",
+      "rows": [["7727000010","Active","BK13","13","2023-08-23"],["7727000010","Active","BK13","13","2024-02-06"],["7727000065","Discharged","REO","7","2025-04-30"]],
+      "result": "7727000010 两个 BK 事件(各取最新 dataasof)；status 1→Active 解码；legal_status 来自 portnewrezgeneral"
+    }
+  },
+  "delq_buckets": [
+    ["C","4851","0699785994"],["P","766","700082660000010"],["D30","70","700082700000072"],
+    ["FCL","42","700082700000033"],["D120P","24","0694953688"],["D60","21","700082870000074"],
+    ["D90","10","7727000243"],["REO","5","7727000065"]
+  ]
+}

@@ -1,0 +1,34 @@
+# Schema-Verify the lineage hop columns in outputs/fcl_lineage_source.json against the live DB.
+# Run from project root:  python - < scripts/verify_lineage_columns.txt
+# It writes two check-SQL files; run them via MCP and a 0-row result = all columns exist:
+#   mcp redshift_prod  ← outputs/_chk_rs.sql      (port.* tables)
+#   mcp mysql_prod     ← outputs/_chk_mysql.sql   (newrez.* + bpms.* tables)
+# Any returned (tbl, c) row = a lineage hop column that does NOT exist in prod → fix the JSON.
+import json, re
+SRC='outputs/fcl_lineage_source.json'
+d=json.load(open(SRC, encoding='utf-8'))
+def simple(c):  # a real single column (not a placeholder / multi-col / combined)
+    c=(c or '').strip()
+    if not c or c=='—' or c[0]=='(': return False
+    if any(ch in c for ch in [' ', ',', '+', '..', '(', ')', '—']): return False
+    return bool(re.match(r'^[A-Za-z0-9_]+$', c))
+pairs={}
+for f in d['fields']:
+    for h in f.get('hops',[]):
+        t=(h.get('t') or ''); c=(h.get('c') or '')
+        if '.' in t and simple(c): pairs.setdefault(t,set()).add(c)
+def db_of(t):  # schema -> prod db
+    s=t.split('.')[0]; return 'redshift' if s in ('port','tempfc') else 'mysql'
+def q(prefix_pred):
+    parts=[]
+    for t in sorted(pairs):
+        if not prefix_pred(t): continue
+        sch,tbl=t.split('.',1)
+        vals=' UNION ALL '.join("SELECT '%s' c"%c for c in sorted(pairs[t]))
+        parts.append("SELECT '%s' tbl, c FROM (%s) x WHERE c NOT IN (SELECT column_name FROM information_schema.columns WHERE table_schema='%s' AND table_name='%s')"%(t,vals,sch,tbl))
+    return ' UNION ALL '.join(parts) if parts else 'SELECT NULL tbl, NULL c WHERE 1=0'
+open('outputs/_chk_rs.sql','w',encoding='utf-8').write(q(lambda t: db_of(t)=='redshift'))
+open('outputs/_chk_mysql.sql','w',encoding='utf-8').write(q(lambda t: db_of(t)=='mysql'))
+print('wrote outputs/_chk_rs.sql + outputs/_chk_mysql.sql  ·  tables:', len(pairs),
+      '· simple-col pairs:', sum(len(v) for v in pairs.values()))
+print('Run each via the matching MCP (redshift_prod / mysql_prod); 0 rows = PASS.')

@@ -1,6 +1,6 @@
 # Doc 25 · Foreclosure field lineage · overview (hub)
 
-> **Auto-generated** — to change, edit `outputs/fcl_lineage_source.json` and re-run `python - < scripts/gen_fcl_lineage.py`; do not hand-edit this file.
+> **Auto-generated** — to change, edit the source of truth `outputs/fcl_lineage_source.json`, then re-run in order: (1) `python - < scripts/verify_lineage_columns.txt` (emits column-check SQL — must return 0 rows on `redshift_prod`/`mysql_prod`), (2) `python - < scripts/build_rule_glossary.txt` (refreshes the rule glossary + this doc's appendix), (3) `python - < scripts/inject_glin.txt` (refreshes the embedded lineage in `outputs/fcl_pipeline.html`). Do not hand-edit this file. (The old generator `scripts/gen_fcl_lineage.py` has been retired/removed.)
 
 
 ## Document Purpose
@@ -34,6 +34,9 @@ doc 02 (ETL pipeline) · doc 13 (BPS view field mapping) · doc 14 (Servicer FCL
 ---
 
 ## How to read this lineage
+
+> 🧬 **Table relationships entry-point**: start with [doc 33 — FCL Table ERD](33_fcl_table_erd.md) (PK / grain key / 1:N / N:N — see the 22-table layout in one diagram), then come back here for per-field hops.
+> 📐 **Stage window rules cheat-sheet**: see [doc 31](31_fcl_stage_window_rules.md) (start/end/stage_days/in_lm/on_hold formulas + 4 real-loan worked examples).
 
 One detail doc per **BPS sync table** (doc 26–30). In each, **one row = one field**; columns are the field's column name at every table along its chain; the last column gives the **per-hop transform rule + code reference** (`pool`/`asset`/`view`, see below). Non-trivial transforms (CASE / decode / unpivot / day-math) include the real SQL.
 
@@ -118,7 +121,7 @@ One detail doc per **BPS sync table** (doc 26–30). In each, **one row = one fi
 | 2 | L4 | Redshift | `port.basic_data_loan_foreclosure_bankruptcy` | datadic decode; dedup latest per loan+filing |
 | 3 | L5 | MySQL bpms | `bpms.sync_loan_foreclosure_bankruptcy` | BPS app table (GEN_FORECLOSURE_BK pass-through) |
 
-> The `#` column is a sequence number, not the layer number. The FCL fact `port.basic_data_loan_fcl` is built DIRECTLY from the L1 servicer raw tables (UNIONed in `tempfc.temp_basic_data_fcl`; CREATE_BASIC_FCL [pool:1531-1654](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1531-1654)), so the L2 unified-daily (`port.basic_data_daily_loan_common`) and L3 clean (`…_clean` / `…_delinq_clean`) layers are NOT part of this branch by design — they carry the common + delinquency fields and re-enter only via the `group` dimension (doc 27, `basic_data_fcl_related`) and the monthly `portmonth` path. See doc 02 for the full L0–L5 pipeline.
+> The `#` column is a sequence number, not the layer number. The FCL fact `port.basic_data_loan_fcl` is built DIRECTLY from the L1 servicer raw tables (UNIONed in `tempfc.temp_basic_data_fcl`; CREATE_BASIC_FCL [pool:1531-1654](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1531-1654)), so the L2 unified-daily (`port.basic_data_daily_loan_common`) and L3 clean (`basic_data_daily_loan_common_clean` / `basic_data_loan_delinq_clean`) layers are NOT part of this branch by design — they carry the common + delinquency fields and re-enter only via the `group` dimension (doc 27, `basic_data_fcl_related`) and the monthly `portmonth` path. See doc 02 for the full L0–L5 pipeline.
 
 > Datadic decode pattern (LM deal/program/status/decision/denial/borrower, BK status): COALESCE((SELECT description FROM newrez.portnewrezdatadic WHERE field_name='<X>' AND code=CONCAT(raw,'.0')), raw) — raw codes stored as '5.0'; falls back to the raw code if no dictionary row.
 
@@ -201,7 +204,7 @@ One detail doc per **BPS sync table** (doc 26–30). In each, **one row = one fi
 | stage (current bucket) | `(stage dates)` | `sync_fcl_stage_info` | `stage` (→ doc 27) |
 | fctrdt | `dataasof` | `sync_fcl_stage_info` | `fctrdt` (→ doc 27) |
 | Investor loan id | `loanid` | `sync_fcl_stage_info` | `loanid` (→ doc 27) |
-| Group (FCL/D120P/D90/REO/P…) | `delinquency_status_mba (+ portnewrezpmt.nextduedate)` | `sync_fcl_stage_info` | `group` (→ doc 27) |
+| Group (FCL/D120P/D90/REO/P) | `delinquency_status_mba (+ portnewrezpmt.nextduedate)` | `sync_fcl_stage_info` | `group` (→ doc 27) |
 | servicer | `constant 'Newrez'/'Carrington'/'Capecodfive'` | `sync_fcl_stage_info` | `servicer` (→ doc 27) |
 | State | `propertystate` | `sync_fcl_stage_info` | `state` (→ doc 27) |
 | Judicial (Y/N) | `judicial (+ propertystate)` | `sync_fcl_stage_info` | `judicial` (→ doc 27) |

@@ -1,5 +1,7 @@
 # Doc 26 · Main (milestones / summary / status) — `bpms.sync_loan_foreclosure` field lineage
 
+> <!-- RULEGLOSS_PTR -->📖 **Rule terms**: plain-language + formula for the technical phrases in the `rule` column — see [doc 25 · transform-rule glossary (appendix)](25_fcl_lineage_overview.md).
+
 > **Auto-generated** — to change, edit `outputs/fcl_lineage_source.json` and re-run `python - < scripts/gen_fcl_lineage.py`; do not hand-edit this file.
 
 
@@ -47,7 +49,7 @@ doc 02 (ETL pipeline, table-level) · doc 13/14 (field mappings) · doc 25 (line
 | 5 | L5 | MySQL bpms | `bpms.sync_loan_foreclosure` | BPS app table (UPDATE_FORECLOSURE upsert) |
 | 6 | L5 | MySQL bpms | `bpms.biz_data_view_loan_details_foreclosure` | display view (Actual/Var days) |
 
-> The `#` column is a sequence number, not the layer number. The FCL fact `port.basic_data_loan_fcl` is built DIRECTLY from the L1 servicer raw tables (UNIONed in `tempfc.temp_basic_data_fcl`; CREATE_BASIC_FCL [pool:1531-1654](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1531-1654)), so the L2 unified-daily (`port.basic_data_daily_loan_common`) and L3 clean (`…_clean` / `…_delinq_clean`) layers are NOT part of this branch by design — they carry the common + delinquency fields and re-enter only via the `group` dimension (doc 27, `basic_data_fcl_related`) and the monthly `portmonth` path. See doc 02 for the full L0–L5 pipeline.
+> The `#` column is a sequence number, not the layer number. The FCL fact `port.basic_data_loan_fcl` is built DIRECTLY from the L1 servicer raw tables (UNIONed in `tempfc.temp_basic_data_fcl`; CREATE_BASIC_FCL [pool:1531-1654](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1531-1654)), so the L2 unified-daily (`port.basic_data_daily_loan_common`) and L3 clean (`basic_data_daily_loan_common_clean` / `basic_data_loan_delinq_clean`) layers are NOT part of this branch by design — they carry the common + delinquency fields and re-enter only via the `group` dimension (doc 27, `basic_data_fcl_related`) and the monthly `portmonth` path. See doc 02 for the full L0–L5 pipeline.
 
 > code: `pool` = [PrefectFlow/flow/basic_data/basic_data_config/basic_data_pool_config.py](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py) · `asset` = [PrefectFlow/flow/bps/bps_config/asset_managment_config.py](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py) · `view` = bpms.biz_data_view_loan_details_foreclosure (SHOW CREATE VIEW)
 
@@ -74,11 +76,10 @@ _Bridger deal id._
 **Source (L1)**
 - Newrez: `port.portfunding.dealid`  (Newrez-only detail)
 
-**Flow:** ①portfunding → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
+**Flow:** ①portfunding → ②sync_loan_foreclosure  (the view `biz_data_view_loan_details_foreclosure` does not expose this column, so the chain terminates at the sync table)
 **Lineage (per hop: # column — rule [code])**
 - 1. `port.portfunding.dealid` — join on loanid [asset:541,604](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L541)
 - 2. `bpms.sync_loan_foreclosure.bid_id` — dealid → bid_id [asset:541](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L541)
-- 3. `bpms.biz_data_view_loan_details_foreclosure.bid_id` — passthrough [view]
 
 ### 3. funding_id  (`bpms.sync_loan_foreclosure.funding_id`)
 
@@ -87,11 +88,10 @@ _Bridger funding id._
 **Source (L1)**
 - Newrez: `port.portfunding.fundingid`  (Newrez-only detail)
 
-**Flow:** ①portfunding → ②sync_loan_foreclosure → ③biz_data_view_loan_details_foreclosure
+**Flow:** ①portfunding → ②sync_loan_foreclosure  (the view `biz_data_view_loan_details_foreclosure` does not expose this column, so the chain terminates at the sync table)
 **Lineage (per hop: # column — rule [code])**
 - 1. `port.portfunding.fundingid` — join on loanid [asset:542,604](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L542)
 - 2. `bpms.sync_loan_foreclosure.funding_id` — fundingid → funding_id [asset:542](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L542)
-- 3. `bpms.biz_data_view_loan_details_foreclosure.funding_id` — passthrough [view]
 
 ### 4. Investor loan id  (`bpms.sync_loan_foreclosure.loanid`)
 

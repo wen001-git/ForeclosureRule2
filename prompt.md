@@ -2825,3 +2825,280 @@
 
 ## [2026-06-10 10:06 UTC] git push (统计口径/数据日期 + BPS阶段抽屉 + 图谱搜索)
 > pls , git push
+
+## [2026-06-10 09:46 UTC] 统一 doc 2/13/14/25-30 逻辑并查不一致
+> 请把 doc 2 ,doc 13（BPS 视图字段）、doc 14（servicer FCL 字段规范） 、 02_etl_pipeline.md、doc 25 ~ Doc 30 文档内容的逻辑统一，检查一下有没有不统一的地方，如果出现不确定的地方，通过 "C:\Users\jli\MyData\Copilot\PrefectFlow" 和 DB MCP验证，不要猜测。
+
+## Decisions
+### Decision: 统一 doc 2/13/14/15/16/25-30 — 两处重大事实更正 [2026-06-10]
+- **Context**: 跨文档一致性审计发现 doc 13/14（及溢出 doc 15/16）与 doc 26/代码/prod DB 矛盾。
+- **更正 1 — summary_current_step**: doc 13/14/15/16 写"currentmilestone 优先, fcstage 兜底"是**错误**。三重证据：① 代码 `basic_data_pool_config.py:282` `fc.fcstage as summary_current_step`（直传，无 currentmilestone）；② `currentmilestone` 全 PrefectFlow 仓库 **0 引用**（ETL 不读）；③ prod `bpms.sync_loan_foreclosure.summary_current_step` 实测值为 fcstage 自由文本，非 currentmilestone 7 值枚举。doc 26 (L1089-1103) 已正确。→ 改 13/14/15/16：summary_current_step = fcstage 直传；currentmilestone 原始表存在但 ETL 未使用（关闭旧"待核实 Q13"）。
+- **更正 2 — basic_data_loan_fcl 粒度**: doc 02 L459 把 fcl 与 foreclosure 并为"MAX(dataasof)/1 行/贷款"是**错误**。证据：代码（fcl 由 raw UNION 直建无收敛，MAX 收敛在下游 foreclosure；min(dataasof) 子查询需全历史）+ prod DB（fcl=1,934,555 行/943 dataasof 全历史；foreclosure=6,171 行/2 dataasof 最新）。doc 25 已正确。→ 拆为两行。
+- **次要**: doc 02 更新已废弃 doc 21 引用→doc 25/26-30；加 SLS "仅逾期推断、不进 FCL 族 UNION" 澄清注。
+- **范围**: zh + en MD + doc 14 Excel Field Spec 全同步（parity + MD⇄Excel 规则）。
+- **验证**: PrefectFlow 源码 + redshift_prod + mysql_prod 实测，未猜测。全程 DB 只读。
+
+## Milestones
+### Milestone: doc 2/13/14/15/16 一致性统一完成 [2026-06-10]
+- 两处重大事实更正（summary_current_step=fcstage 直传、currentmilestone 未用；basic_data_loan_fcl 保留全历史 vs foreclosure 最新），均经 PrefectFlow 代码 + redshift_prod/mysql_prod 实测验证。
+- 改动载体（全部 zh+en 同步 + Excel）：doc 02（粒度行拆分 + doc21 引用重定向 + SLS 澄清注）、doc 13（§3.7 规则/Q4/Q13/截图注）、doc 14（fcl_stage 卡/current_milestone 卡/3 张汇总表）、doc 15（gap 表/缺口/请求/开放问题）、doc 16（quickref/截图注）、docs/14_servicer_fcl_field_spec.xlsx（Field Spec r24/r25、Display Map r92）。
+- /simplify：本轮为文档内容更正、无代码，不适用。Tests：无自动化测试（文档项目）；以 grep 残留校验替代——无遗留错误规则。DB 全程只读，未推送。
+- 待用户决策的新发现（未改）：doc 14 Excel Display Map r14 `timeline_judgement_date` 源列写 `fcjudgmententered`，与同表 col6 注 + doc 13/26 + 代码（=`fcjudgmenthearingscheduled`）矛盾。
+
+## [2026-06-10 09:46 UTC] 修改 doc 14（timeline_judgement_date 源列矛盾）
+> 好的，修改 doc 14
+
+## [2026-06-10 09:46 UTC] 规划：全 pipeline 逐字段 mapping rule + 生产数据举例 Excel
+> 请根据 doc 2/13/14/02/25-31，模仿 doc 19 形式，但写出 pipeline 每层/每表/每字段的 mapping rule，用 excel 演示整个 pipeline 数据处理过程，详细到每个字段从 servicer raw 到 BPS sync，每层转换逻辑 + 充分生产数据举例。用户问：先做 MD 再生成 Excel 再导 raw 数据再逐字段推演？这是复杂任务，请先做计划再逐步实现，你的建议？
+
+### Decision: doc 32 全 pipeline 逐字段 mapping Excel — 计划已批准 [2026-06-10]
+- **范围**: 全 FCL pipeline ~23 表（含中间表），A 组跨表逐字段矩阵（5 链）+ B 组逐表 sheet（仿 doc 19）。Phase 1 pilot=主链（sync_loan_foreclosure + 主链中间表）。
+- **真源**: JSON 驱动（扩展 outputs/fcl_lineage_source.json + fcl_table_meta.json）；用 skill excel-pipeline-lineage 生成；zh。
+- **举例**: 混合——20 笔×最新快照（广度 Sheet②）+ 2-3 笔真改期 loan×多天历史（深度 Sheet③，如 7727003984 改期12次）。Sheet④ 嵌 BPS 截图（7727000367/7727003984）作三方对账锚点。
+- **多 as-of 结论（已核代码+prod）**: projected=当前值；set_date=min(dataasof for 当前值)；改期链只有多天可见。直传/decode 字段最新快照即可。
+- **UX**: 完整交互（导航索引+超链接+返回链+autofilter+冻结+转换类型色卡+自适应）；新 helper 回写 skill toolkit。
+- **验证**: 幂等跑两遍 + Schema-Verify 全量 + 抽 5 字段三方对账 + 对齐 doc 26。全程 DB 只读。
+
+## Milestones
+### Milestone: doc 32 Phase 1 pilot 完成（全 pipeline 逐字段 mapping Excel — 主链）[2026-06-10]
+- **产出**：`docs/32_fcl_pipeline_field_mapping.xlsx`（12 sheet：🧭导航 + ⓪总览 + ①主表逐字段mapping(66字段,色卡+autofilter) + ②20笔生产矩阵 + ③多as-of改期演示 + ④BPS截图证据(2图嵌入) + B组主链6张表逐表sheet）；导读 `docs/zh/32_fcl_pipeline_field_mapping.md`；生成器 `outputs/build_fcl_pipeline_mapping_xlsx.txt`；真源 `outputs/fcl_pipeline_examples.json`。
+- **skill 增强**：toolkit.txt 新增 link_to/add_back_link/add_autofilter/color_by_type/legend_rows/add_index_sheet（回写复用）。
+- **索引**：PROJECT_INDEX §5 + docs/zh/00_index 增 doc 31/32 行。
+- **/simplify**：生成器遵循 skill 范式、无冗余，未单独跑（无复杂代码可简化）。
+- **测试/验证**：① 幂等——连跑两遍 sheet 结构/计数一致；② Schema-Verify——主链 6 表全部 table.column 命中 information_schema（redshift_prod+mysql_prod）；③ 回读——12 sheet、11 导航超链接、autofilter、6 类转换色卡、2 张嵌图均确认；④ 对账——Sheet① loan 7727004408 样本值=Sheet② prod 实测；与 doc 26/代码（summary_current_step=fcstage、basic_data_loan_fcl 全历史）一致。
+- **DB 全程只读；未 git 提交**。
+- **后续 Phase 2**：其余 4 链 + 剩余中间表，补齐全部 ~23 表。
+
+### Milestone 增补: doc 32 仿 doc 19 重构导航/总览/Pipeline图 [2026-06-10]
+- 新增 **① 表清单 索引**（分层分组 src/mid/bps/dic + 列数 + 13 跳转链，仿 doc 19 ① 表清单）、**⓪ 表说明与全链路血缘**（全 23 表，复用 enrich_doc19 archetype A）、**⓪b 全局Pipeline图**（L1→L5 网格，复用 build_doc19_pipeline_diagram 逻辑）。
+- 逐表 tab 名加 **src·/mid·/bps·** 层级标签（② src·portnewrezfc … ⑱ bps·sync_loan_foreclosure … ⑳ bps·view_loan_details）；分析视图保留字母 A–E。
+- 编号一律以 **fcl_table_meta.json 为准**（②-㉔ on-disk 顺序）；未纳入 pilot 的表在索引里列出并标「Phase 2 待补」。注：用户当前 doc 19 excel 的 mid 层编号与该 JSON 不一致（疑 doc 19 excel 被另行重排），doc 32 不追随 excel、与 JSON 真源保持一致。
+- 共 14 sheet；幂等跑两遍一致；DB 未触（纯排版）；未提交。
+
+## [2026-06-11 00:00 UTC] doc 21 全套作废：移归档+新建 ER 图 doc 33+ doc 25 扩充+核 doc 20
+> 我选 a, 全做
+
+### Milestone: doc 21 归档 + 新建 doc 33 FCL 表 ERD + doc 25/00 交叉引用 [2026-06-11]
+- **背景**：用户在 doc 27 §20 等多处发现旧 doc 21 已被 doc 25-30 取代但仍可能被 AI 工具读到；同时 §0.5 ERD 信息只在 doc 21 里，散落不便排查。用户选 a "全做"。
+- **Step ① 物理归档 doc 21**：
+  - `git mv docs/zh/21_*.md → docs/archive/zh/21_fcl_field_lineage.DEPRECATED.md`（en 同步）
+  - 归档文件顶部加 ⛔ banner（含归档日期、AI 工具勿读警示、替代文档列表：doc 25-30 / doc 31 / doc 33 / doc 20 §A.6 / doc 98）
+  - doc 00 zh+en 索引：原 strike-through 改为 "⛔ **已归档**（无超链接）"，指向 archive 路径 + 说明
+  - CLAUDE.md 新增 `## Deprecated Docs — DO NOT READ (Mandatory for AI coding tools)` 节，列入归档清单 + Why this rule exists（旧 doc 21 含已校正前的 sync_portmonth 上游、demand_end_date 关系、view 5 表入等错误信息，需防 AI 误读）
+- **Step ② 新建 doc 33** zh+en（zh 612 行 / en 613 行）：
+  - 9 节结构：文档头 / §1 总览（4 支线+1锚点 ASCII 图） / §2 总图（mermaid erDiagram，~22 张表 + 关系标签）/ §3 5 张分支图（FCL 主线 / portmonth 锚点 / Hold / LM / BK）/ §4 PK 速查表 / §5 6 类常见 JOIN 速查 / §6 粒度业务原因 / §7 Code-First 引用 / §8 Open Questions / §9 相关文档
+  - 关键修正（vs 旧 doc 21 §0.5）：(a) 显式画 BPS 视图节点 + 标"只接 sync_loan_foreclosure + sync_portmonth 两张" Code-First MCP 实证；(b) 补 portmonth 锚点链（newrez.portnewrezpmt → port.portmonthbase → bpms.sync_portmonth）；(c) Code-First 链接钉到 fork commit 32a750a3
+- **Step ③ doc 25 hub + doc 00 索引交叉引用**：
+  - doc 25 zh+en "怎么读这套血缘" 段顶部加 2 行入口（doc 33 表 ER + doc 31 阶段规则）
+  - doc 00 zh+en 在 doc 32 后插 doc 33 行
+- **Step ④ doc 21 §0.4 业务理由 vs doc 20 §A.6 核对**：doc 21 §0.4 自己已标"与 doc 20 §A.6 同源"，确认 doc 20 §A.6 是 canonical source、已完整覆盖——本轮无需补 doc 20。
+- **验证**：
+  - docs/zh|en/21_*.md 已删（mv 走）；archive 下两文件 68KB+69KB 各含 3 处 DEPRECATED 标记 ✓
+  - CLAUDE.md 6 处含 "DO NOT READ" 关键字 ✓
+  - doc 00 zh+en 各 2 处含归档说明 + doc 33 入口 ✓
+  - doc 33 zh 612 / en 613 行 ✓
+  - doc 25 zh+en 各 1 处 doc 33 入口 ✓
+- **未迁出（暂留 archive）**：doc 21 §6 Carrington 专线、§7 跨 Servicer 对比、§8 端到端 SQL 实例、§9 已知坑、§10 MCP 模板——内容质量高但范围窄，将来按需迁入 per-servicer 缺口分析系列（doc 15 = Newrez 已存在，未来 doc 35+ Carrington/Capecodfive）。doc 21 §0.4 已被 doc 20 §A.6 取代。
+- **DB**：全程只读；未推送。
+
+## [2026-06-11 00:00 UTC] doc 33 fcl→foreclosure 看起来 2 条边的疑问
+> basic_data_loan_foreclosure 和 basic_data_loan_fcl 之间为什么有2条边？不应该只有1条边吗？...你是想表达 除了 foreclosure hold 是1对多的 数据之外，其他的都是1对1的关系吗？
+
+### Milestone: doc 33 cardinality 校准 + mermaid 排版伪影说明 [2026-06-11]
+- **诊断**：用户看到的"2 条边"是 mermaid 自动排版副作用——`portfunding → basic_data_loan_foreclosure` 边从 fcl/foreclosure 之间空间路过，视觉上像两表之间多了一条。源码里 fcl↔foreclosure 只有 1 个关系声明。
+- **顺带 nit-fix**：`basic_data_loan_fcl ||--|| basic_data_loan_foreclosure` 标的 1:1 不准确——fcl 粒度键含 dataasof（多快照），foreclosure 取最新（1 行/loan），实际是 **N:1**。改为 `}o--||`，label 注 "N快照→取最新→1行/loan"。
+- **改动**（zh+en doc 33 各 4 处）：① §2 总图边 cardinality 改 `}o--||`（L271/L272）；② §3.1 分支图边同改（L308/L309）；③ §2 顶部图例段加 ⚠️ "mermaid 排版伪影"说明，举 fcl↔foreclosure ↔ portfunding 的具体例子。
+- **澄清给用户**：图里 1:N 关系并不只 Hold——LM 多 cycle、BK 多次申请、Hold 多槽、fcl→stage_info 多 fctrdt、datadic→LM/BK 解码等都是 1:N；2 处 N:N（stage_info × LM、stage_info × Hold 区间相交）。
+- **DB**：未访问；未推送。
+
+## [2026-06-11 00:00 UTC] doc 33 加 §2.5 数据流彩色图
+> 好的，原图不修改，就加一张 doc 33 2.5 数据流彩色图
+
+### Milestone: doc 33 §2.5 数据流彩色图（zh + en）[2026-06-11]
+- **背景**：mermaid `erDiagram` 不支持每条边自定义颜色，§2 多边交叉时难以区分语义；用户保留 §2 原图，追加 §2.5 配色版（同 22 表 + 23 边，flowchart + linkStyle）。
+- **改动**：
+  - **`docs/zh/33_fcl_table_erd.md`** §2 后插入完整 §2.5：目的段 + 9 类配色图例表 + mermaid `flowchart LR`（22 nodes / 23 edges / 10 linkStyle 行覆盖 indices 0-22）+ "怎么读这张图" 总结段。
+  - **`docs/en/33_fcl_table_erd.md`** 同位置 en 镜像。
+  - 两文件修订历史各 +v2 行。
+- **9 类颜色 / 线型**：🟢 UNION（#52c41a 绿实）· 🔵 透传（#1677ff 蓝实）· 🟠 取最新（#fa8c16 橙实）· 🔴 1:N 6 条（#fa541c 红虚）· 🟣 JOIN 3 条（#722ed1 紫实）· 🟡 decode 2 条（#d4b106 暗黄粗）· 🩷 N:N 2 条（#eb2f96 粉虚）· ⬛ BPS sync 5 条（#595959 灰实）· 🟪 view FROM 2 条（#c41d7f 深粉粗）。
+- **验证**：边数 23 ✓（zh+en 各）；linkStyle 10 行覆盖 23 索引 ✓；§2/§2.5/§3 标题位置完好；mermaid 代码围栏成对。
+- **不动**：§2 erDiagram（含上一轮 `}o--||` 修正和 layout artifact 提示）；§3 五张分支图；其它小节与文档。
+- **DB**：未访问；未推送。
+- **后续可选**：5 张分支图本身稀疏不交叉，暂不加彩色版；如发现 9 类色过多再合并（如 decode 并入 JOIN、unpivot 并入 1:N）减到 6 类。
+
+## [2026-06-11 00:00 UTC] doc 33 §2.5 mermaid 渲染语法错
+> syntax error - Expecting ... got 'SPACE' on edge label "3 家 UNION 改名"
+
+### Milestone: doc 33 §2.5 mermaid 语法修复 [2026-06-11]
+- **诊断**：mermaid 11.13.0 解析器对 **pipe-form `|"..."|` 中带空格的 CJK+ASCII 混排标签**不耐受——首个错就在第一条边 `|"3 家 UNION 改名"|`，期望 NODE_STRING/UNICODE_TEXT/MINUS 等却拿到 SPACE 令牌。
+- **修复**（zh+en 各一处 mermaid 块）：
+  - **去掉边标签的引号**：`|"label"|` → `|label|`
+  - **压紧标签内空格**：`"3 家 UNION 改名"` → `改名UNION`、`"JOIN 日清洗+汇款"` → `JOIN日清洗汇款` 等
+  - **节点标签去 `()` 改为 `-`**：`"通用 (delinq)"` → `通用delinq`、`"Hold (宽表 4 槽)"` → `Hold-宽表4槽` 等
+  - **去掉所有装饰性 emoji 和空格**：`"⭐ 事实中枢"` → `事实中枢`、`"📺 104 列视图"` → `104列视图`
+  - 保留：CJK、ASCII letters/digits、`_`、`-`、`<br/>`（节点换行）
+- **未变**：23 条边总数、9 类配色 / linkStyle 索引（0-22）、§2 erDiagram / §3 分支图 / 文档其他章节。
+- **验证**：
+  - zh+en `|"` / `"|` grep = 0 ✓（无残留引号）
+  - 边数 23 ✓（两份）
+  - linkStyle 10 行 ✓（两份）
+- **如果还报错**：可能是 dashed arrow `-.->|label|` 在 11.x 有变化，或 emoji `⚠`、unicode arrow `→` 触发；下一步可改用 `-- label -->` inline 形式。
+- **DB 未访问；未推送。**
+
+## [2026-06-11 00:00 UTC] doc 33 §2.5 配色图取数规则要展开讲清"首见追踪"逻辑
+> 你在 doc 33 配色版数据流图中，表达了 每个loan 的 basic_data_loan_foreclosure 从 basic_data_loan_fcl 中取数 是取 最新一行的数据，那如下是我之前跟你探索讨论的结果笔记，对于一些日期字段的首见日的取值，该如何理解？逻辑是什么？请举例说明
+> [笔记：Loan 7727003984 改期 12 次，timeline_sale_date_projected_date=2026-06-30(取最新)、timeline_sale_date_set_date=2026-05-22(min(dataasof WHERE value=current))，BPS UI Sale Date Projected vs Sale Date Set 对应这两套规则]
+
+### Milestone: doc 33 §2.5.1 「取最新 vs 首见追踪」详解 + MCP 实证 [2026-06-11]
+- **触发**：用户指出 §2.5 把 fcl→foreclosure 标"取最新一行"过于简化，问 `*_set_date` 类首见追踪字段（如 timeline_sale_date_set_date）的取数逻辑。要求 Code-First + MCP 验证。
+- **实证（MCP 跑 prod, Loan 7727003984, 2026-06-11）**：
+  - `port.basic_data_loan_fcl` 按 distinct `fcscheduled_sale_date` + min(dataasof) 聚合，**实拉到 12 个 distinct 值**（不是估计的）：首次 2025-08-13（dataasof=2025-07-16 始），一路顺延到 **2026-06-30（dataasof=2026-05-22 始，当前持有 18 天）**。
+  - `port.basic_data_loan_foreclosure` 实查：`timeline_sale_date_projected_date=2026-06-30` / `timeline_sale_date_set_date=2026-05-22` ✓
+  - `bpms.sync_loan_foreclosure` 实查：同上 + `summary_last_step_completed_date=2025-07-16`（**第三个语义不同的日期**，最初首次排定日，与上面 2 个都不同）✓
+- **代码引用**：pool:266 (sale_date_projected 取最新)、pool:300-303 (sale_date_set 首见)、pool:295-298 (judgement_hearing_set 首见) —— **WebFetch 进不了内网 GitLab**，引用沿用用户先前笔记 + MCP 行为实证组合背书。
+- **改动**（zh+en doc 33）：
+  - **§2.5.1 新建** 整节：两类规则对比表（取最新默认 95% 字段 vs 首见追踪 2 个字段）；
+  - 12 行真改期清单表（dataasof / 新拍卖日 / 持有天数）；
+  - **三日期对比表**：projected 2026-06-30、set 2026-05-22、last_step_completed 2025-07-16——同一笔 loan 3 个语义不同的日期字段；
+  - 关键洞察 4 点（set ≠ 最初排定日、set ≠ projected、单天快照算不出 set、business 侧关心的 2 个不同问题）；
+  - 与 §2 erDiagram 的关系说明（同 N:1 cardinality 但 2 套算法）；
+  - 字段一览（含 first_legal_date_history 同机制）。
+- **修订历史**：zh+en 各 +v3 行。
+- **验证**：
+  - MCP 真实数据 12 行清单全部录入 ✓
+  - 3 个日期值 prod 实测对上 ✓
+  - zh+en mermaid §2.5 上次的语法修复未受本轮影响（未碰 mermaid 块）
+- **DB**：全程只读；未推送。
+
+## [2026-06-11 00:00 UTC] PrefectFlow 在本地，直接读
+> 你需要代码取证的话，不用取gitlab，用我本地的代码：C:\Users\jli\MyData\Copilot\PrefectFlow
+
+## [2026-06-11 00:00 UTC] PrefectFlow 本地路径记入 CLAUDE.md
+> 请把这个代码路径记录到 本项目的 rule中
+
+### Milestone: CLAUDE.md 加 PrefectFlow 本地路径 + doc 33 §2.5.1 Code-First 校正 [2026-06-11]
+- **CLAUDE.md 新规则**：在 "Code-First ETL / Data Lineage Analysis Rule" 节下加 `### PrefectFlow 本地代码路径` 子节，显式声明 `C:\Users\jli\MyData\Copilot\PrefectFlow`，列 4 类关键文件路径（basic_data_pool_config.py / asset_managment_config.py / portmonth 双写 / daily 配置），并附 "Why this rule exists" 说明（2026-06-11 取证 sale_date_set 时 WebFetch GitLab 失败应直接 Read 本地）。
+- **doc 33 §2.5.1 Code-First 校正**（zh+en）：
+  - **校正错误**：v3 误把 `summary_last_step_completed_date` 描述为"首次事件追踪"机制；本地代码 pool:284 实证显示是 `fc.lastfcstepcompleteddate AS summary_last_step_completed_date` **纯直接透传**，无任何聚合/转换。改期不算 servicer 的"步骤完成"，故字段不更新——本例值 = 首次排定日 2025-07-16 仅是巧合的当前 Newrez 值，非 ETL 推算。
+  - **新增 Code-First SQL 实证块**：§2.5.1 末尾贴 4 条真 SQL（pool:266 pick-latest / pool:267+300-303 sale_date_set / pool:264+295-298 judgement_hearing_set / pool:284 last_step_completed_date），含子查询完整结构（min(dataasof) GROUP BY 值 + LEFT JOIN 取回当前值对应的首见日）。
+  - 三日期对比表第 3 行说明改为符合代码：表述从"最初首次排定那天（用首事件追踪机制）"改成"servicer 上报的最后完成 FCL 步骤日期（pool:284 直接透传）"。
+- **修订历史 +v4** zh+en。
+- **DB**：未访问；未推送。
+
+## [2026-06-11 00:00 UTC] doc 02 §1 五层管道图巧妙体现 FCL 族 L1→L4 直通
+> doc 2 section 5.2，basic_data_loan_fcl 三家 UNION 直接由 L1 原始表构建、绕过 L2/L3——这句话能在【1. 总体架构：五层管道】中巧妙的体现吗？
+
+### Milestone: doc 02 §1 五层管道图巧妙体现 FCL 业务族 L1→L4 直通 [2026-06-11]
+- **触发**：用户问 §5.2 "basic_data_loan_fcl 三家 UNION，直接由 L1 原始表构建、绕过 L2/L3"——这个绕过关系能否在 §1 总体管道图中巧妙体现。
+- **设计原则**：保留原 ASCII 框流的结构和顺序，最小侵入；通过 4 处微小标记把 ① 逾期/月度支线（走 L2/L3）和 ② FCL 业务族（L1 直通绕过 L2/L3）两条独立路径明确出来。
+- **改动（zh+en doc 02 §1）**：
+  1. **L1 后箭头分叉**：原 1 条混合描述拆为 ① portdaily_config.py（逾期/月度走 L2/L3）+ ② basic_data_pool_config.py（FCL 族 L1→L4 **直通**，绕过 L2/L3 · §5.2），含 ▶/▶▶ 符号区分；
+  2. **L2/L3 标题加 `(仅逾期/月度支线 ①)`** —— 让读者一眼看出 FCL 族不经过这两层；
+  3. **L3→L4 箭头说明两路汇合**：① 经 L2/L3 + ② FCL 族在此与 ① 合流（②实际由 L1 直通，参见上方 L1 箭头分叉）；
+  4. **L4 框内表按来源分两组（◎①/◎②）**：◎① 来自 L3（portmonthbase / monthly_clean_data 2 张）、◎② 来自 L1 直通的 FCL 业务族 8 张（含 fcl 事实中枢 + 派生 + 4 张原始 servicer 并行构建）。
+- **Code-First 实证**（读本地 `basic_data_pool_config.py` L1531-1660）：CREATE_BASIC_FCL 三家分支 FROM `newrez.portnewrezfc` / `carrington.portcarrington` / `capecodfive.portcapecodfive_monthly_collections`——**全文 0 引用 L2/L3 表**（port.portdaily_v2 / basic_data_daily_loan_common / *_clean）。完全证实图改正确。
+- **修订历史 +v8**（zh+en doc 02）。
+- **DB**：未访问；未推送。
+
+## [2026-06-11 00:00 UTC] doc 33 §2.5.1 last_step_completed_date 含义不清 + 例子不够
+> doc 33 2.5.1 section, summary_last_step_completed_date 是什么意思？不是特指某个阶段的完成时间吧？你的举例好像就是 FC Sales 的上一个步骤的完成日期，这是prefect代码的Bug吗？不是还有 NOI/demand,Referral,First Legal,Servcie,Publication/Judgement等stage吗？如果例子不够充分，请再多举例说明（可以查询数据库）
+
+### Milestone: doc 33 §2.5.1 last_step_completed_date 二次校正 + 多 loan 实测分布 [2026-06-11]
+- **触发**：用户指出 v4 doc 把 7727003984 的 last_step 说成"首次排定拍卖那天"含糊，并质疑：是 bug 吗？不是特指某个 stage 完成时间吧？例子不够多，能查 DB 再举例吗？
+- **MCP 调查（2026-06-11, prod, 7 笔 loan + 21+ distinct 值）**：
+  - 7727003984 实测：`lastfcstepcompleted = "NOS Sent for Recording"` / date = 2025-07-16 / fcstage = "Pre-Sale Review 1 (SCRA and PACER Check)"——所以"last step"是 **NOS 拍卖通告递交日**，不是"首次排定拍卖日"（**碰巧同日因为 servicer 当日两件事一起做**）。
+  - 其他 6 笔 loan 不同 stage 都有不同的 `lastfcstepcompleted` 值：Post Sale Review / NOS Recorded / Presale Redemption Will Expire On / Answer Period Will Expire On / Sale Scheduled For / Motion for Judgment Sent to Court——证明字段不是 bug、确实反映 servicer 当前处置进度。
+  - distinct 全表：~21 种 sub-step 值（NOS Recorded、NOS Sent for Recording、Complaint Sent for Filing/Service、Motion for Judgment Sent、First Publication、NOD Filed、Praecipe Filed、NOTS Recorded、10 Day Letter Sent 等）——**粒度远细于 BPS 6 stage**（DEMAND/REFERRAL/FIRST_LEGAL/SERVICE/JUDGEMENT/SALE）。
+- **改动**（zh+en doc 33 §2.5.1，3 处）：
+  1. 三日期对比表第 3 行**含义列改正**：从"首次排定拍卖那天"改成「servicer 上报的最后完成 FCL **子步骤**事件日，本例 `lastfcstepcompleted = "NOS Sent for Recording"`，与拍卖排定日独立碰巧同日；非'首次排定拍卖'语义」
+  2. "关键洞察"中 last_step bullet **改正**：明示 sub-step 名（"NOS Sent for Recording"）+ 语义独立
+  3. **新增「多 loan 实测分布（澄清非 bug · 用户疑问回应）」子节**：① Q&A 3 条直接回应用户疑问；② 7 笔 loan 实测分布表（含 fcstage/lastfcstepcompleted/date）；③ 21+ distinct sub-step 值清单；④ 粒度对比表（6 stage vs 21+ sub-step，正交维度）；⑤ FIRST_LEGAL 阶段内子步骤演化举例；⑥ 业务用法 3 点（细粒度时间点 / 配合 fcstage 判断深度 / 跨 servicer 不可比）。
+- **修订历史 +v5**（zh+en）。
+- **不是 bug 的根因**：pool:284 直接透传 Newrez 自定义文书级子步骤事件文本；ETL 不参与判定。Carrington / Capecodfive 走另一路（pool:1602-1644 设 null 或 most_recent_foreclosure_stage）。
+- **DB**：全程只读；未推送。
+
+## [2026-06-11] 把「血缘列必须 DB 核验」写入 project rule + 修依赖文件
+> 所以，你要如何修改?请把你依赖的文件也一起修正，把这条规则写入到 project rule中，你觉得呢？ / pls reply by chinese
+
+### Decision: 血缘 hop 列必须 DB 核验、派生/无源显式占位 [2026-06-11]
+- **Context**: demand_end_date 把真实列 demandexpirationdate 误写成占位 —/(stage end)；全量核验又发现 bid_id/funding_id 的视图跳指向 view 不存在的列。
+- **Options considered**: A 仅 patch HTML；B 修真源 JSON + 重生成 + 写规则；C 不写规则只修数据
+- **Choice**: B
+- **Reason**: 真源（fcl_lineage_source.json）是 HTML/doc 的唯一来源，须从根修；并把"血缘列 DB 核验 + 占位诚实"固化为 Schema-Verify Rule 第 5 条，防复发。
+
+## Milestones
+- [2026-06-11] 血缘列 Schema-Verify 收尾：①真源修 demand_end_date(2跳)+bid_id/funding_id(删错误视图跳) ②新增可复用核验脚本 scripts/verify_lineage_columns.txt（389 简单列对/19 表）③redshift_prod+mysql_prod NOT-IN 检查均 0 行 PASS ④重注入 GLIN(154 字段) ⑤doc 26 zh+en 同步删错误视图跳 ⑥doc 25 zh+en 头部生成说明改现行 3 脚本 ⑦CLAUDE.md Schema-Verify Rule 加第 5 条 + demand_end_date/bid_id Why。
+
+## [2026-06-11] 把「文档修复需同步上游+下游」写入 project rule
+> 我是说当我们发现一个文档有问题并进行修复时，也需要同时修改该文档依赖的文档以及下游文档，把这条规则写入到 project rule中, what do you think?
+
+### Decision: 新增「修复传播规则：改一处必须同步依赖链上下游」[2026-06-11]
+- **Context**: 修血缘错误时真源+HTML 已改，但下游 doc 26 残留错误视图跳；历史也多次出现 Excel/MD 只改其一、文档头部仍指向已删脚本等漏传播问题。
+- **Options considered**: A 只在各专项规则里零散提同步；B 新增一条通用总纲规则（真源优先 + 上下游依赖图 + grep 零残留 + 重跑生成脚本）
+- **Choice**: B
+- **Reason**: 缺一条总纲；专项规则无法覆盖所有文档对。总纲把「改一处=改整条依赖链」固化为强制动作，含已知主链清单 + grep 复查 + zh/en 镜像同步。
+
+## Milestones
+- [2026-06-11] CLAUDE.md 新增「修复传播规则 (Mandatory)」：真源优先从根修→依赖图上游+下游逐个落实（含血缘 JSON→HTML→doc25-31、Excel⇄MD、zh⇄en 镜像、文档头部生成说明）→grep 全仓 0 残留→重跑生成脚本+后置校验。
+
+## [2026-06-11] 数据流动图：3 表上游可见 + 表名零省略号 + 清理 doc21 引用
+> 1 数据流动页面，basic_data_loan_fcl、basic_data_loan_forecl、portfunding 的上游表是谁？请参考 doc 2，不确定处查本地 prefect 代码验证。2 这个页面好多表名显示不全（basic_data_loan_forecl...）。
+
+## [2026-06-11 UTC] doc 32 取数方案（覆盖全 FCL 逻辑）+ doc 19 编号对齐
+> 分析需要从 servicer raw 取多少 loan 才能说明 FCL pipeline 每条处理逻辑（raw→BPS）；是否按 servicer 取；哪些逻辑要全历史（不止最新 as-of）；给取数方案。+ 顺手对齐 doc 19/doc 32/JSON 编号。
+
+### Decision: doc 32 范例取数方案 [2026-06-11]
+- **结论**: FCL 共 15 条处理逻辑，14 条依赖多天历史（首见 min(dataasof)/逾期切换/LISTAGG/LM-Hold flag 切换/del_group 每日重算/去重 ROW_NUMBER）。
+- **方案**: 两层——Tier1 广度集 ~22 笔（最新快照，Newrez~12+Carrington~5+Capecodfive~3+逾期桶兜底）；Tier2 深度集 8 笔（全 dataasof/fctrdt 历史，每条历史逻辑 ≥1 样板）。必须含 3 家 servicer（UNION 列覆盖+计算逻辑逐家不同）。7 家推断型可选示意。
+- **深度 8 笔**: 7727003984/7727004408/7727000454(Newrez)、700082660000042(hold)、700082700000033(LM+FCL)、700082700000050(BK)、7727000803(Carrington)、7727004824(Capecodfive)。
+- **doc 19 对齐 caveat**: tab 由第三个生成器 build_fcl_sample_raw_dump_xlsx.py 建；须先重跑它重排 tab 再 enrich+diagram，否则 enrich 按圈号错位。执行前先验证 num 源。
+- DB 全程只读。
+
+### Decision: 数据流动图上游可见化 + portfunding 外部源 + 表名换行 [2026-06-11]
+- **Context**: fcl/fclo 的上游边存在但与上游同列、渲染成竖线/被中间节点遮挡，看不出上游；portfunding 真·无上游节点；表名 slice(0,22)+… 截断违反零省略号。
+- **Options considered**: A 重排 L4 成多列(大改) / B 同列边走左 gutter 画在节点之上+箭头(小改) ; portfunding: 加外部 Excel 源节点 vs 仅注释
+- **Choice**: B + 加 xls 外部源节点
+- **Reason**: 保留分层模型、改动可控；同列上游边走左侧 gutter 通道后 fcl/fclo/stg/s1/view 的上游一目了然；portfunding 上游经 PrefectFlow 代码取证=外部 Excel(load_portfunding.py)，补 xls 节点如实呈现。表名改智能换行≤2行+textLength 兜底，零省略号。
+
+## Milestones
+- [2026-06-11] 数据流动视图修复：①同列上游边改走左 gutter 通道(亮蓝#6cb6ff+箭头fah2，画在节点之上)，fcl←temp/fclo←fcl/stg←{fcl,rel}/s1←mysraw/view←{s1,s2} 上游全部可见(实测 7 条 gutter 边端点正确) ②新增 xls(Financials_study.xlsx 外部 Excel)节点喂 fund，portfunding 上游如实呈现(代码取证 load_portfunding.py) ③temp/fcl 叙述补 3-servicer UNION + hold_detail JOIN ④表名零省略号：flowLabelLines 按 ./_ 折≤2行+超长 textLength 缩放，NW152→188/NH34→48；实测 ellipsisCount=0、长名(loss_mitigation/MySQL/biz_data_view)均两行全显 ⑤清理 HTML 内全部 ~25 处 doc 21 引用→doc 02/25-31(grep 0 残留) ⑥doc 02 zh+en portfunding 行补外部 Excel 来源注。Preview 实测 B/C/D 三模式 0 报错。
+
+## [2026-06-11] 血缘图谱下拉选字段后未定位到该字段
+> lineage page, when the use select a field in the dropdown list, the system do not focus on the field in the lineage diagram, pls replay by Chinese
+
+### Milestone: doc 32 取数方案落地 + 逻辑覆盖矩阵 [2026-06-11]
+- 新增 `outputs/fcl_logic_coverage.json`（16 逻辑矩阵 + Carrington 广度 + CC5/bpms 发现 + 深度历史样板 + 逾期桶）。
+- doc 32 Excel → 15 sheet：新增 **F 逻辑覆盖矩阵**（16 逻辑×历史依赖×演示层，可筛选）；C 补 Carrington 5 行 + CC5 说明（CC5 不进 bpms）；D 扩 Hold(7727004408 20holds)/LISTAGG(7727000454)/BK(7727000010) 深度块；A 加「管道覆盖发现」。
+- **关键发现**：bpms.sync_loan_foreclosure 仅 91 笔（Newrez79+Carrington12+CC5 0），vs Redshift 6171；端到端演示只能用这 91 笔，CC5+多数中间逻辑只能 Redshift 层演示。
+- **doc 19 编号对齐**：实测 doc 19 tabs/⓪总览 已与 fcl_table_meta.json + doc 32 一致（⑦daily…⑩fcl…），**无需重跑**（且 raw-dump builder 源已删，本就不可重跑 tab）。用户早前截图为旧渲染。
+- 幂等跑两遍一致；DB 全程只读；未提交。
+
+### Decision: 血缘图谱搜索定位改为手动滚动容器（弃用 scrollIntoView）[2026-06-11]
+- **Context**: 下拉/搜索选字段后 graphFocus 已正确设置、节点存在，但视图不滚动到该字段（截图中字段在视口左侧 -84px 外）。根因：节点是 SVG <g>，外层 svg.glineage 用 transform:scale(zoom)，真正的滚动容器是嵌套的 .graphwrap；el.scrollIntoView() 对「带 CSS transform 的 SVG 子元素 + 嵌套滚动容器」在 Chromium 下不可靠，基本不滚动。
+- **Options considered**: A 继续用 scrollIntoView（不可靠）/ B 手动找最近可滚动祖先(.graphwrap)，用 getBoundingClientRect 差值把节点居中（zoom-safe，因 rect 已含 transform）
+- **Choice**: B
+- **Reason**: getBoundingClientRect 已反映 scale，按容器中心反推 scrollLeft/scrollTop 居中，既 zoom 安全又跨浏览器稳定；smooth 失败回退直接赋值。
+
+## Milestones
+- [2026-06-11] 修复血缘图谱「搜索/下拉选字段后不定位」：重写 scrollGraphTo() —— 找最近可滚动祖先(.graphwrap)，用 getBoundingClientRect 差值把目标节点在该容器内水平+垂直居中（替代失效的 SVG <g>.scrollIntoView）。Preview 实测：input change 事件→graphFocus 正确、容器滚动到位(垂直居中 frac=0.5)、抽屉打开、0 JS 报错；fcstage/demandexpirationdate/sync_loan_foreclosure 三例均定位成功。
+
+## [2026-06-11] 数据流动节点太宽、整图一屏显示不全
+> lineage page, The boxes of the nodes are too wide, which causes the lineage diagram to not be fully displayed on one screen.
+
+## Milestones
+- [2026-06-11] 收窄数据流动节点：NW 188→158、GAP 84→54、换行阈值 26→21；整图宽度 1856→1466px，BPS 列右边界 1446≤1466 一屏可见；Preview 实测 ellipsis=0、长名仍两行全显、B/C/D 三模式 0 报错。
+
+## [2026-06-11] 血缘图谱：抽屉宽度调整 + 搜索选中后自动显示字段详情
+> 1 右侧抽屉你可以调整得不要那么宽，比之前的宽，比现在的窄一些。2 lineage页面，搜字段功能，搜索到该字段，选中后，右侧的抽屉要可以自动显示该字段的详情。
+
+## Milestones
+- [2026-06-11] 血缘图谱抽屉宽度 min(860,max(500,0.40W))→min(620,max(460,0.30W))（~2000px 屏从 800→600px）；搜索选中字段改用 selectGField(f.id)（与点击一致）替代失效的 fieldOfPath+selectField，搜索后右抽屉自动显示该字段详情。Preview 实测：搜 demand_end_date→graphFocus 正确、抽屉由空变 2011 字符完整详情、0 报错。
+
+## Milestones
+- [2026-06-11] 数据流动视图三项优化：①竖向 gutter 边加「沿曲线流动的粒子」(getPointAtLength 路径跟随，path[data-ge] 定位)，方向可见(7 边×2=14 粒子) ②解拥挤：GAP 54→96、VG 16→20 拉开列/行距(图宽 1466→1718)，并在 flow 视图隐藏不用的右抽屉(renderView 中 view==='flow' 时 display:none)给图腾出整屏宽度 ③右抽屉默认 min(620,max(460,0.30W))→min(720,max(520,0.34W))(~2000px 屏 600→680px，比旧宽)。Preview 实测：flow 抽屉隐藏、14 路径粒子、0 报错；graph 抽屉恢复 flex+加宽。
+
+## [2026-06-11] 血缘图谱把占位符 (LM cycle)/(stage end) 等当成字段名显示
+> 这些是字段名吗？请检查是否其他地方还有这个问题，fix it（截图：basic_data_loan_fcl 展开出现 (LM cycle)/(stage dates)/(stage end) 等假字段行）
+
+## Milestones
+- [2026-06-11] 修复血缘图谱占位符伪装成字段：buildGraph (line 1914) 的占位过滤由不完整硬编码集 _GL_PLACE（漏了 (stage end)/(stage dates)/(LM cycle)/(none for Newrez)/—）改为健壮判定 isPh()（凡 (/—/空即占位），对表名+列名都判。占位 hop 不再生成字段节点。连带修好搜索下拉（由 buildGraph 派生）。排查确认：抽屉 hopCol/glinMiniSVG 仍有意把派生跳渲染成「派生/无独立列」灰显（保留）、flow 视图硬编码无占位——只此一处需改。已核验 154 字段无一被丢（均有≥1真实列 hop）。Preview 实测：全图占位字段节点=0、搜索下拉占位项=0、basic_data_loan_fcl 30→27 真实列、抽屉点派生字段仍显示 basic_data_loan_fcl「派生/无独立列」、六视图 0 报错。

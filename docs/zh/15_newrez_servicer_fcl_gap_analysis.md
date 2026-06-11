@@ -79,7 +79,7 @@ Newrez 日报/专项文件
 |----------|------------------|----------|------|
 | BPS 入库前提 | `fcreferraldate IS NOT NULL` 且 `activefcflag` 表示活跃 | doc 13/doc 14 已确认；BPS 以已转介 FCL 贷款为核心范围 | 历史 `activefcflag` NULL 需 NULL-safe 处理 |
 | FCL 主状态 | `delinquency_status_mba` / Newrez MBA 文本值含 `Foreclosure` 扩展值 | doc 08 已记录映射到内部 `FCL` | 复合值同时包含 BK，需要独立 BK 字段避免语义丢失 |
-| 当前阶段 | `currentmilestone` 优先，`fcstage` 兜底 | BPS Summary 当前步骤以 `currentmilestone` 为优先 | `currentmilestone` 填充率偏低，且与 `fcstage` 可能不一致 |
+| 当前阶段 | `fcstage`（直传，唯一来源） | BPS Summary 当前步骤 = `fcstage` 直传（pool:282）；`currentmilestone` ETL 不使用 | `currentmilestone` 全仓 0 引用、管道未用，无需补全（更正 2026-06-10，见 doc 13 Q13） |
 | Stage 聚合 | `fcscheduledsaledate`, `fcjudgmenthearingscheduled`, `servicecompletedate`, `firstlegaldate`, `fcreferraldate`, `demandsentdate` | BPS 使用瀑布式优先级写入 `sync_fcl_stage_info.stage` | Publication 对 Newrez 恒空，NOI/Demand 展示口径需特别说明 |
 | Hold | `fchold1/2/3*` 槽位 | BPS 每日追加变更，形成 Hold 历史 | Newrez 只给快照槽位，不是完整历史文件 |
 | LM/BK | `portnewrezlm`, `portnewrezbk` | BPS 独立面板读取独立 sync 表 | LM 已解码为文本；BK 解码行为仍需确认 |
@@ -128,14 +128,14 @@ Newrez 日报/专项文件
 
 | 标准字段 | Newrez 原始字段 | 状态 |
 |---|---|---|
-| `current_milestone` | `currentmilestone` | ⚠️ 62.7%（偏低） |
+| `current_milestone` | `currentmilestone` | ⚠️ 62.7%（ETL 未消费——summary_current_step 取 `fcstage`） |
 | `last_completed_step` | `lastfcstepcompleted` | ✅ 99.5% |
 | `attorney_firm` | `fcfirm` | ✅ 100% |
 | `days_in_fcl` | `daysinfc` + `dataasof` | ✅ 100% |
 | `sale_amount` | `fcsaleamount` | ⚠️ 4.7%（高于 sale_held 2.1%） |
 
 **缺口说明**：
-- `currentmilestone` 填充率偏低，BPS 降级使用 `fcstage` 兜底
+- `currentmilestone` ETL 不消费：BPS `summary_current_step` 恒取 `fcstage` 直传（pool:282；currentmilestone 全仓 0 引用）。补全填充率不影响 BPS
 - `fcsaleamount` 填充率高于 `fcsalehelddate`，疑为数据时序问题（见 doc 13 Q9）
 
 ---
@@ -246,7 +246,7 @@ Newrez 日报/专项文件
 
 | 请求项 | 原因 | 优先级 | 验收标准 |
 |--------|------|--------|----------|
-| 补充或提高 `currentmilestone` 填充率 | BPS Summary 当前步骤优先读取该字段 | P1 | 活跃 FCL 贷款填充率提升至业务认可阈值，且与 `fcstage` 差异可解释 |
+| ~~补充或提高 `currentmilestone` 填充率~~（已撤销） | BPS Summary 当前步骤 **不读** `currentmilestone`（恒取 `fcstage` 直传，pool:282）；补全无 BPS 收益 | — | 无需求（更正 2026-06-10） |
 | 确认 `fcsaleamount` 与 `fcsalehelddate` 更新时序 | 当前金额填充率高于 sale held 日期，可能造成成交信息误读 | P1 | Newrez 给出字段更新规则；BPS 使用金额时同步校验 sale held 日期 |
 | 提供 `publication_date` | Publication stage 和 timeline 字段恒空 | P2 | 新增字段或确认 Newrez 不适用 Publication 阶段 |
 | 提供 title 相关日期 | `titlereceiveddate` / `titlecleardate` 当前基本为空 | P2 | Title received/clear 字段可用于 Timeline |
@@ -414,4 +414,4 @@ LIMIT 25;
 | Newrez 是否能稳定提供 Publication 相关字段？ | 决定 BPS Publication 阶段是否长期为空 | Newrez / BPS 产品 |
 | BK 面板 `lien_status`、`claim_status` 来源字段是什么？ | 当前 doc 13 标注待确认，影响 BK 面板字段请求 | ETL/BPS |
 | Demand Letter 是否应在 BPS Time Line Tab 显示为 NOI Date？ | 当前 Newrez Demand 日期未进入 `noi_start_date`，可能导致 UI 看起来缺数据 | BPS 产品 |
-| `currentmilestone` 与 `fcstage` 冲突时是否永远以 `currentmilestone` 为准？ | 影响 Summary 当前步骤解释 | BPS 运营 / ETL |
+| ~~`currentmilestone` 与 `fcstage` 冲突时是否永远以 `currentmilestone` 为准？~~ ✅ **已解决（2026-06-10）**：summary_current_step **恒取 `fcstage` 直传**，`currentmilestone` ETL 从不读取（全仓 0 引用） | — | 已闭环（见 doc 13 Q13） |

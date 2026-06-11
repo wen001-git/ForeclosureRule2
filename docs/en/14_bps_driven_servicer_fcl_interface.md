@@ -752,11 +752,11 @@ FROM   bpms.sync_loan_foreclosure;
 |---|---|
 | Newrez Raw Field | `fcstage` |
 | Data Type | VARCHAR |
-| Business Meaning | Newrez's internal current workflow step text (e.g., "Pre-Sale Review"); `summary_current_step` **fallback** display field (used when `currentmilestone` is null) |
+| Business Meaning | Newrez's internal current workflow step text (e.g., "Pre-Sale Review"); **the sole source of `summary_current_step` (direct passthrough)** |
 | Format / Allowed Values | Text (Newrez internal stage description) |
 | Typical Value | Service Complete |
-| BPS Panel / Function | FCL Summary `summary_current_step` (**fallback**; used when `currentmilestone` is null) |
-| Newrez → BPS Rule | Stage-waterfall determination (by milestone priority), stored in sync_fcl_stage_info.stage |
+| BPS Panel / Function | FCL Summary `summary_current_step` (**sole source, direct passthrough**); also stage-waterfall → sync_fcl_stage_info.stage |
+| Newrez → BPS Rule | ① → `summary_current_step`: **direct passthrough of fcstage** (`basic_data_pool_config.py:282`; currentmilestone not involved); ② → `sync_fcl_stage_info.stage`: stage-waterfall determination (by milestone priority: REFERRAL/SALE/SERVICE/FIRST_LEGAL/JUDGEMENT/DEMAND) |
 | Newrez Status | ✅ 99.5% |
 | Newrez Verify Result | [data_date 2026-06-01] Pre-Sale Review 1 (SCRA and PACER Check):16 \| Service Complete:12 \| Post Sale Review (SCRA and PACER Check):9 \| Sale Scheduled For:9 \| Title Report Received:7 \| NOS Sent for Recording:6 \| Complaint Sent for Filing:5 \| Preliminary Title Clear:4 \| Presale Redemption Will Expire On:3 \| Pre-Sale Review 2 (SCRA and PACER Check):3 \| Order Of Reference Sent:3 \| Complaint Prepared and Sent for Filing:2 \| Service Sent:2 \| Judgment Hearing Scheduled For:2 \| NOD Prepared and Sent for Filing :2 \| NOD Mailed and Posted:1 \| First Publication:1 \| Order Of Reference Received:1 \| Acceleration Letter Sent:1 \| Hearing Complete:1 \| TSG Report Received:1 \| Dockets Prepared and Sent for Filing:1 \| Is Home Equity/Judicial Rail Needed :1 \| Return of Service Filed:1 \| Answer Period Will Expire On:1 \| Final Title Clear:1 \| Complaint Submitted for Service:1 \| Submitted for Service:1 \| Notice … |
 | BPS Verify Result | [BPS prod \| data date fctrdt=2026-06-01 \| ETL load 2026-06-03] REFERRAL:2738 \| SALE:2068 \| SERVICE:1528 \| FIRST_LEGAL:775 \| JUDGEMENT:732 \| DEMAND:422 |
@@ -785,12 +785,12 @@ GROUP  BY `stage` ORDER BY cnt DESC;
 |---|---|
 | Newrez Raw Field | `currentmilestone` |
 | Data Type | VARCHAR |
-| Business Meaning | BPS milestone label (written by BPS internal workflow or operations); `summary_current_step` **highest priority** display field |
+| Business Meaning | Newrez raw milestone-label column; **not consumed by the current ETL** (`summary_current_step` actually takes `fcstage`, see rule) |
 | Format / Allowed Values | BPS milestone label text |
 | Typical Value | First Legal |
-| BPS Panel / Function | FCL Summary `summary_current_step` (**highest priority**) |
-| Newrez → BPS Rule | currentmilestone if non-null else fcstage (→ summary_current_step) |
-| Newrez Status | ⚠️ 62.7% (fill rate low) |
+| BPS Panel / Function | (was assumed to feed `summary_current_step`; **field-measured: ETL does not use it** — see rule) |
+| Newrez → BPS Rule | ⛔ **ETL does not read `currentmilestone`**: `summary_current_step` = `fcstage` direct passthrough (`basic_data_pool_config.py:282`; `currentmilestone` has 0 refs in the entire PrefectFlow repo; prod `summary_current_step` values are all fcstage free-text). Kept as a standard-interface candidate but **unused by the current pipeline** (corrected 2026-06-10; the earlier "currentmilestone-first" was wrong, see doc 13 §8 Q13) |
+| Newrez Status | ⚠️ 62.7% (raw column exists but ETL does not consume it — **improving fill rate does not affect summary_current_step**) |
 | Newrez Verify Result | [data_date 2026-06-01] Closed:54 \| First Legal:16 \| Sold:9 \| Sale Held:7 \| Service Complete:6 \| Judgment Entered:4 \| Sale Scheduled:3 |
 | BPS Verify Result | [BPS prod \| data date 2026-06-01(main table has no embedded as-of, same ETL cycle as Newrez source) \| ETL load 2026-06-03] Pre-Sale Review 1 (SCRA and PACER Check):13 \| Post Sale Review (SCRA and PACER Check):9 \| NOS Sent for Recording:7 \| Sale Scheduled For:7 \| Service Complete:6 \| Preliminary Title Clear:5 \| ∅NULL:4 \| Complaint Sent for Filing:3 \| Order Of Reference Sent:3 \| Pre-Sale Review 2 (SCRA and PACER Check):3 \| First Legal Action Filed:2 \| Title Summary:2 \| Presale Redemption Will Expire On:2 \| Pending First Legal:2 \| Judgment Hearing Scheduled For:2 \| NOD Prepared and Sent for Filing :2 \| Title Report Received:2 \| Return of Service Filed:1 \| Acceleration Letter Sent:1 \| Is Home Equity/Judicial Rail Needed :1 \| Order Of Reference Received:1 \| Hearing Complete:1 \| TSG Report Received:1 \| Complaint Submitted for Service:1 \| Contested / Litigation Start:1 \| Sale Deed Recorded:1 \| Dockets Prepared and Sent for Filing:1 \| Answer Period … |
 
@@ -3165,7 +3165,7 @@ Fields Newrez provides but with quality concerns:
 
 | Field | Issue | Fill Rate | Priority |
 |---|---|---|---|
-| `currentmilestone` | Fill rate only 62.7%; BPS `summary_current_step` must fall back to `fcstage` | 62.7% | P1 ⚠️ |
+| `currentmilestone` | **ETL does not consume this column**: `summary_current_step` always takes `fcstage` direct (pool:282; currentmilestone has 0 refs in repo). The 62.7% fill rate is irrelevant to BPS | 62.7% | — (downgraded: not a BPS source) |
 | `fcsaleamount` | Fill rate (4.7%) > `fcsalehelddate` (2.1%); possible field sequencing issue (amount arrives before held date) | 4.7% | P1 ⚠️ |
 | `firstlegaldate` | 57.6%; some Non-Judicial state loans may legitimately have no First Legal date | 57.6% | P1 ⚠️ |
 | `servicecompletedate` | 28.9%; only loans that have passed the Service stage will have this (partially expected) | 28.9% | P1 |
@@ -3243,7 +3243,7 @@ Any of the following 7 fields missing will prevent the loan from being processed
 
 | Field | Issue | Priority |
 |---|---|---|
-| `currentmilestone` | Fill rate 62.7% (below acceptable) | P1 ⚠️ Recommend improvement to 90%+ |
+| `currentmilestone` | Not consumed by ETL (summary_current_step takes fcstage direct); improving fill rate has no BPS effect | — (not a BPS source) |
 | `fcsaleamount` | 4.7% vs `fcsalehelddate` 2.1% (sequencing anomaly; see Q9) | P1 ⚠️ Investigate |
 | `firstlegaldate` | 57.6% (partially expected; distinguish "not yet reached" from "not reported") | P1 |
 | `servicecompletedate` | 28.9% (partially expected for early-stage loans) | P1 |
@@ -3275,7 +3275,7 @@ Any of the following 7 fields missing will prevent the loan from being processed
 | | Judgement Date | `fcjudgmenthearingscheduled` | P1 |
 | | Sale Date | `fcscheduledsaledate` | P1 |
 | | Foreclosure Completed | `dtdeedrecorded` / `fcremovaldate` | P1/P2 |
-| **FCL Summary Panel** | Current Step | `currentmilestone` (priority) / `fcstage` (fallback) | P1 |
+| **FCL Summary Panel** | Current Step | `fcstage` (direct passthrough; `currentmilestone` not used by ETL) | P1 |
 | | Attorney | `fcfirm` | P1 |
 | | SMS Days / Days in FCL | `smsdaysinfc` + `dataasof` / `daysinfc` + `dataasof` | P1 |
 | | Sale Amount | `fcsaleamount` | P1 |

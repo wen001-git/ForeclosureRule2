@@ -61,12 +61,12 @@ Secondary: New team members · Future AI sessions
 | Type | `judicial` | if `judicial=1`, then = `'Judicial'`; if `judicial=0`, then = `'Non Judicial'`; if `NULL`/empty, then = `NULL` |
 | SMS Days in Foreclosure | `smsdaysinfc`(=svc_days_infc) + `dataasof` | Servicer (SMS=Shellpoint) basis, counted from the **setup date fcsetupdate** (Newrez native, passed through); **Real-time recalculation**: `smsdaysinfc + DATEDIFF(today NY, dataasof)`; ≤ Days in Foreclosure |
 | Days in Foreclosure | `daysinfc` + `dataasof` | Investor/full-timeline basis, counted from the **referral date fcreferraldate**; **Real-time recalculation**: `daysinfc + DATEDIFF(today NY, dataasof)`; ≥ SMS Days |
-| Current Step | `currentmilestone` / `fcstage` | if `currentmilestone` is non-null, then = `currentmilestone`; otherwise = `fcstage` (where the Newrez stage text goes) |
+| Current Step | `fcstage` | **= `fcstage` direct passthrough** (`basic_data_pool_config.py:282`). `currentmilestone` exists but is **referenced nowhere in the ETL / unused** (corrected 2026-06-10, see doc 13 Q13) |
 | Last Step Completed | `lastfcstepcompleted` | Direct (99.5% fill rate) |
 | Last Step Completed Date | `lastfcstepcompleteddate` | Direct |
 
 > **Screenshot verification (loanid=7727000088)**:  
-> "Active Foreclosure" ← fixed text (`activefcflag=1`, not `fcstage`); "Kelley Kronenberg, P.A." ← `fcfirm`; "Judicial" ← `judicial=1`; "298" ← `smsdaysinfc + DATEDIFF(screenshot date, dataasof)`; "Judgment Entered" ← `currentmilestone` (priority over fcstage); "Motion for Judgment Sent to Court" ← `lastfcstepcompleted`
+> "Active Foreclosure" ← fixed text (`activefcflag=1`, not `fcstage`); "Kelley Kronenberg, P.A." ← `fcfirm`; "Judicial" ← `judicial=1`; "298" ← `smsdaysinfc + DATEDIFF(screenshot date, dataasof)`; "Judgment Entered" ← `fcstage` (summary_current_step is a direct passthrough of fcstage; `currentmilestone` is unused by ETL); "Motion for Judgment Sent to Court" ← `lastfcstepcompleted`
 
 ---
 

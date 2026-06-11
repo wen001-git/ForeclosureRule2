@@ -1,7 +1,19 @@
-# 21 · Foreclosure 核心字段级数据血缘（来源字段 → 中间表 → 转换规则 → BPS 字段）
+# ⛔ DEPRECATED · 21 · Foreclosure 核心字段级数据血缘（来源字段 → 中间表 → 转换规则 → BPS 字段）
 
-> ⚠️ **已弃用（superseded）** —— 本文档由 **doc 25（血缘总览/hub）+ doc 26–30（各 BPS sync 表逐字段血缘）** 取代。
-> 新版按「一表一文档、一字段一行、固定跳列 + 每跳规则 + 代码出处」组织，由 `outputs/fcl_lineage_source.json` 生成（`python - < scripts/gen_fcl_lineage.py`），并对 prod（redshift_prod / mysql_prod）逐列核验。请改用 doc 25–30；本文档仅作历史保留。
+> # ⛔⛔⛔ 已归档 / DEPRECATED — DO NOT READ ⛔⛔⛔
+>
+> **本文件已于 2026-06-11 归档**：路径从 `docs/zh/21_*.md` 迁至 `docs/archive/zh/21_*.DEPRECATED.md`，并从 doc 00 索引去除链接。
+>
+> **AI 编码工具（Claude Code / Cursor / Copilot 等）请勿读本文件** —— 内容多处已被新文档校正过，继续参考会引入过时/错误信息。本文件仅作**历史保留**。
+>
+> **请改读以下替代文档**：
+> - **字段级血缘** → [doc 25 hub](../../zh/25_fcl_lineage_overview.md) + doc 26-30（各 BPS sync 表逐字段）
+> - **阶段窗口规则**（start/end/stage_days/in_lm/on_hold） → [doc 31](../../zh/31_fcl_stage_window_rules.md)
+> - **表间实体关系 ERD**（PK/FK/粒度/1:N） → [doc 33 — FCL 表实体关系图](../../zh/33_fcl_table_erd.md)
+> - **业务理由**（数据为什么这样处理） → [doc 20 §A.6](../../zh/20_end_to_end_walkthrough.md)
+> - **MCP 自查模板** → [doc 98](../../zh/98_database_verification_strategy.md)
+>
+> 本文档原 §0.5 ERD、§6/§7 跨 Servicer 对比、§8 端到端 SQL 实例仍有参考价值——doc 33 已迁出 ERD；其余暂留本档备查，将来按需迁入新 per-servicer 缺口分析系列。
 
 ---
 

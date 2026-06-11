@@ -1,5 +1,7 @@
 # Doc 27 · Stage / days — `bpms.sync_fcl_stage_info` field lineage
 
+> <!-- RULEGLOSS_PTR -->📖 **Rule terms**: plain-language + formula for the technical phrases in the `rule` column — see [doc 25 · transform-rule glossary (appendix)](25_fcl_lineage_overview.md).
+
 > **Auto-generated** — to change, edit `outputs/fcl_lineage_source.json` and re-run `python - < scripts/gen_fcl_lineage.py`; do not hand-edit this file.
 
 
@@ -46,7 +48,7 @@ doc 02 (ETL pipeline, table-level) · doc 13/14 (field mappings) · doc 25 (line
 | 4 | L4 | Redshift | `port.fcl_stage_info` | stage classification + day-math (GEN_FCL_STAGE); group/state from port.basic_data_fcl_related |
 | 5 | L5 | MySQL bpms | `bpms.sync_fcl_stage_info` | BPS app table (12-FCL_STAGE sync, keeps fctrdt history) |
 
-> The `#` column is a sequence number, not the layer number. The FCL fact `port.basic_data_loan_fcl` is built DIRECTLY from the L1 servicer raw tables (UNIONed in `tempfc.temp_basic_data_fcl`; CREATE_BASIC_FCL [pool:1531-1654](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1531-1654)), so the L2 unified-daily (`port.basic_data_daily_loan_common`) and L3 clean (`…_clean` / `…_delinq_clean`) layers are NOT part of this branch by design — they carry the common + delinquency fields and re-enter only via the `group` dimension (doc 27, `basic_data_fcl_related`) and the monthly `portmonth` path. See doc 02 for the full L0–L5 pipeline.
+> The `#` column is a sequence number, not the layer number. The FCL fact `port.basic_data_loan_fcl` is built DIRECTLY from the L1 servicer raw tables (UNIONed in `tempfc.temp_basic_data_fcl`; CREATE_BASIC_FCL [pool:1531-1654](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1531-1654)), so the L2 unified-daily (`port.basic_data_daily_loan_common`) and L3 clean (`basic_data_daily_loan_common_clean` / `basic_data_loan_delinq_clean`) layers are NOT part of this branch by design — they carry the common + delinquency fields and re-enter only via the `group` dimension (doc 27, `basic_data_fcl_related`) and the monthly `portmonth` path. See doc 02 for the full L0–L5 pipeline.
 
 > code: `pool` = [PrefectFlow/flow/basic_data/basic_data_config/basic_data_pool_config.py](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py) · `asset` = [PrefectFlow/flow/bps/bps_config/asset_managment_config.py](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py) · `view` = bpms.biz_data_view_loan_details_foreclosure (SHOW CREATE VIEW)
 
@@ -127,7 +129,7 @@ CASE: sale_start⇒SALE; elif fcjudgment_start⇒JUDGEMENT; elif publication_sta
 🔎 **How it works:** The current stage is the FURTHEST milestone the loan has reached: a 7-way CASE checked in priority order SALE → JUDGEMENT → PUBLICATION → SERVICE → FIRST_LEGAL → REFERRAL → DEMAND — the first stage whose start date is non-null wins.
 ▶ **Example:** ① 7727001179: sale_start set ⇒ stage = SALE. ② 7727000357: no sale but fcjudgment_start set ⇒ JUDGEMENT. ③ 700082880000091: only up to service_start ⇒ SERVICE. ④ 700082700000033: only referral_start ⇒ REFERRAL.
 
-### 6. Group (FCL/D120P/D90/REO/P…)  (`bpms.sync_fcl_stage_info.group`)
+### 6. Group (FCL/D120P/D90/REO/P)  (`bpms.sync_fcl_stage_info.group`)
 
 _Delinquency/legal group used to bucket the loan._
 
@@ -227,8 +229,8 @@ _Demand window end (= demand-expiration date demandexpirationdate)._
 
 **Flow:** ①portnewrezfc → ②basic_data_loan_fcl → ③fcl_stage_info → ④sync_fcl_stage_info
 **Lineage (per hop: # column — rule [code])**
-- 1. `newrez.portnewrezfc` — —
-- 2. `port.basic_data_loan_fcl` · (stage end) — source 源
+- 1. `newrez.portnewrezfc.demandexpirationdate` — servicer raw (column exists, DB-verified)
+- 2. `port.basic_data_loan_fcl.demandexpirationdate` — passthrough (column exists, DB-verified)
 - 3. `port.fcl_stage_info.demand_end_date` — = source demandexpirationdate (passthrough; NOT next-stage start) [pool:2038,2355](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2038)
 - 4. `bpms.sync_fcl_stage_info.demand_end_date` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 

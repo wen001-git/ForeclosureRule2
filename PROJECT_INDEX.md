@@ -101,6 +101,8 @@ Numbering is shared across `docs/en/` and `docs/zh/`.
 | 22 | `22_bps_fcl_timeline_sourcing.md` | Which table/SQL feeds the BPS agg-summary Foreclosure Time Line/Stage tabs (`sync_fcl_stage_info`). |
 | 25 | `25_fcl_lineage_overview.md` | 🔬 **Field-lineage hub** — Servicer raw → BPS sync tables; hop-chain skeletons + master index + worked trace. Generated from `outputs/fcl_lineage_source.json` via `scripts/gen_fcl_lineage.py`. Supersedes doc 21. |
 | 26–30 | `26..30_lineage_sync_*.md` | Per-BPS-sync-table field lineage (sync_loan_foreclosure / sync_fcl_stage_info / _hold / _loss_mitigation / _bankruptcy): one row per field, every hop column + per-hop rule + code. |
+| 31 | `31_fcl_stage_window_rules.md` | Stage start/end/stage_days + in_lm/on_hold window rules (speed-query of doc 27). |
+| 32 | `32_fcl_pipeline_field_mapping.md` + `docs/32_fcl_pipeline_field_mapping.xlsx` | 🟦 **Pipeline field-mapping workbook** — per-field × per-layer transform rules + 20-loan production examples + multi-as-of (reschedule/first-seen) demo + BPS-screenshot 3-way reconciliation. Interactive (nav index, hyperlinks, autofilter, transform-type color legend). Phase 1 = main chain `sync_loan_foreclosure`. Generated from JSON via `outputs/build_fcl_pipeline_mapping_xlsx.txt` (skill `excel-pipeline-lineage`). |
 
 **zh-only docs:** `15_newrez_servicer_fcl_gap_analysis`, `17_foreclosure_business_primer` (FCL process fundamentals), `19_fcl_sample_loan_raw_dump` (5-loan raw dump across layers), `98_database_verification_strategy`, `99_servicer_fcl_gap_summary_and_action_plan`, `08-1Data validation Manual`.
 
