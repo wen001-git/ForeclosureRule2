@@ -3166,3 +3166,26 @@
 - **doc 26 §64 ▶ 示例**（zh+en）：同步改成 markdown bullet 列表，与 HTML 抽屉效果对齐。
 - **验证**：JSON valid ✓；inject_glin.txt 172086 bytes / 154 fields ✓；密度审计：剩余密集 sql_eg = 1（field 58，69 字符，每 case 一行可接受）。
 - **DB**：未访问；未推送。
+
+## [2026-06-11] 数据流动连线交错难分辨——UI/UX 改进
+> on the data flow page, The lines are intertwined, making it difficult to distinguish. what is your UI/UX recommendation?（建议：悬停聚焦高亮+边按分支配色）
+
+## [2026-06-11 00:00 UTC] doc 33 §2.5.1 实测样例 子步骤名等需标注 DB 列名
+> 这里需要写上数据库字段名，让读者把字段名跟字段含义联系起来
+
+### Milestone: last_step_completed_date 实测样例加字段对照表 [2026-06-11]
+- **诊断**：HTML 抽屉「实测样例」的 3 笔 loan 用「子步骤名 / 完成日 / 当前 fcstage」中文标签，没标对应 DB 列，读者看不出「子步骤名 = `summary_last_step_completed`」、「当前 fcstage = `summary_current_step`」之类的映射。
+- **改动**：
+  - **JSON `summary_last_step_completed_date` 的 sql_eg.zh/en**：在 3 笔 loan 之前加「字段对照」段，3 行映射格式：`中文标签 → BPS sync 列 ← Newrez 源列`。3 笔 loan 的值变得简洁（去掉重复的 `← summary_last_step_completed_date` 注解，对照表已说明）。
+  - **fcl_pipeline.html GLIN 重刷**：172519 bytes / 154 字段 ✓
+  - **doc 26 zh+en §64 ▶ 示例**：同位置加 markdown 3-行映射表（中文标签 / BPS sync 列 / Newrez 源列），完成日行加粗标 "(本字段)"。
+- **其他 sql_eg 审计**：5 个多行 sql_eg 中其他 4 个（sale_date_set / stage / referral_end_date / first_legal_end_date）的示例本就用 DB 列名（如 `fcscheduled_sale_date`、`first_legal_start_date`、`referral_stage_days` 等），列名与示例值原本就关联，无需补。
+- **JSON valid ✓；DB 未访问；未推送。**
+
+### Decision: 数据流动连线交错——悬停聚焦 + 分支配色 [2026-06-11]
+- **Context**: flow 视图 L4/L5 多对多连线交错难分辨；用户问 UI/UX。单纯配色治标，业界标准是按需聚焦。
+- **Choice**: 悬停某表→高亮其上下游连线+相邻节点、其余淡化（复用血缘图谱 focus-dim 思路）；叠加「边按业务分支配色」(FCL主线/阶段/Hold/LM/破产/逾期/解码/维度) + 图例。
+- **Reason**: 默认靠颜色分组、悬停看清单条链路，认知负担最低；与血缘图谱体验一致。箭头用中性灰(#9aa6b4)避免 context-stroke 跨浏览器不可见风险。
+
+## Milestones
+- [2026-06-11] 数据流动降交错：①边按目标节点 branch 配色（FLOW_BRANCH/FLOW_BRANCH_COLOR，8 类色+图例 8 chips）②悬停节点 applyFlowHover()：相连边 opacity 1、其余 0.05、相邻节点亮其余 0.22、悬停时粒子隐藏；离开复原③箭头改中性灰避免 context-stroke 风险。Preview 实测：34 边 8 色、悬停 fcl 高亮 3 连线/淡化 31 且均接 fcl、图例 8、点表仍弹抽屉、B/C/D 模式 0 报错。

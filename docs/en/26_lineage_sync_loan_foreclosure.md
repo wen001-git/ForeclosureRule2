@@ -1135,20 +1135,30 @@ _Date the last completed FCL **sub-step event** finished (pair field `lastfcstep
 - 4. `bpms.biz_data_view_loan_details_foreclosure.summary_last_step_completed_date` — passthrough [view]
 
 🔎 **How it works:** Pure passthrough — pool:284 `fc.lastfcstepcompleteddate AS summary_last_step_completed_date`, no aggregation/computation. Newrez self-reports `lastfcstepcompleted` (sub-step name, 21+ distinct values like 'NOS Recorded' / 'Complaint Sent for Filing' / 'Motion for Judgment Sent to Court' etc.) + `lastfcstepcompleteddate` (date that sub-step completed). **Orthogonal to the BPS 6-stage model** (DEMAND/REFERRAL/FIRST_LEGAL/SERVICE/JUDGEMENT/SALE) — one stage may contain several sub-steps. This is **rule c direct passthrough** — see [doc 33 §2.5.1](33_fcl_table_erd.md) (3-rule comparison + 7-loan distribution + 21+ sub-step values). Carrington/Capecodfive set to null (pool:1602-1644).
-▶ **Worked example (MCP-verified prod 2026-06-11)** — 3 loans, each showing the sub-step name (pair field `lastfcstepcompleted`) + completion date (= this field value) + current `fcstage`:
+▶ **Worked example (MCP-verified prod 2026-06-11)** — 3 loans showing sub-step name + completion date + current fcstage.
+
+**Field mapping (Chinese label → BPS sync column ← Newrez raw column)**:
+
+| Label | BPS sync column | ← Newrez raw column |
+|---|---|---|
+| sub-step name | `bpms.sync_loan_foreclosure.summary_last_step_completed` | `newrez.portnewrezfc.lastfcstepcompleted` |
+| **completion date (this field)** | **`bpms.sync_loan_foreclosure.summary_last_step_completed_date`** | `newrez.portnewrezfc.lastfcstepcompleteddate` |
+| current fcstage | `bpms.sync_loan_foreclosure.summary_current_step` | `newrez.portnewrezfc.fcstage` |
+
+**3 MCP-verified loans**:
 
 - **Loan 7727004408**
   - sub-step name = `Motion for Judgment Sent to Court`
-  - completion date = **2026-05-13** ← `summary_last_step_completed_date`
+  - completion date = **2026-05-13**
   - current fcstage = `Judgment Hearing Scheduled For`
 - **Loan 7727003984**
   - sub-step name = `NOS Sent for Recording`
-  - completion date = **2025-07-16** ← `summary_last_step_completed_date`
+  - completion date = **2025-07-16**
   - current fcstage = `Pre-Sale Review 1 (SCRA and PACER Check)`
   - **Note**: this date coincides with the loan's first sale schedule day, but the two fields are semantically independent — see [doc 33 §2.5.1](33_fcl_table_erd.md)
 - **Loan 7727000088**
   - sub-step name = `Post Sale Review (SCRA and PACER Check)`
-  - completion date = **2026-05-26** ← `summary_last_step_completed_date`
+  - completion date = **2026-05-26**
   - current fcstage = `Post Sale Review (SCRA and PACER Check)`
 
 

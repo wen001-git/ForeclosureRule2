@@ -1135,20 +1135,30 @@ _最近完成的 FCL **子步骤事件**完成日（配对字段 `lastfcstepcomp
 - 4. `bpms.biz_data_view_loan_details_foreclosure.summary_last_step_completed_date` — passthrough [view]
 
 🔎 **说明** 纯透传——pool:284 `fc.lastfcstepcompleteddate AS summary_last_step_completed_date`，无聚合/计算。Newrez 自报 `lastfcstepcompleted`（子步骤名，21+ distinct 值如 'NOS Recorded' / 'Complaint Sent for Filing' / 'Motion for Judgment Sent to Court' 等）+ `lastfcstepcompleteddate`（该子步骤完成日）。**与 BPS 6-stage 模型（DEMAND/REFERRAL/FIRST_LEGAL/SERVICE/JUDGEMENT/SALE）正交**——一个 stage 内可能演化多个 sub-step。属规则 **c 直接透传**——详 [doc 33 §2.5.1](33_fcl_table_erd.md)（3 套规则 + 7 笔 loan 实测分布 + 21+ 种子步骤值）。Carrington/Capecodfive 设 null（pool:1602-1644）。
-▶ **实测样例（MCP 实测 prod 2026-06-11）** — 3 笔 loan，每笔展示「子步骤名（`lastfcstepcompleted` 配对字段） + 完成日（= 本字段值）+ 当前 `fcstage`」：
+▶ **实测样例（MCP 实测 prod 2026-06-11）** — 3 笔 loan 展示「子步骤名 + 完成日 + 当前 fcstage」。
+
+**字段对照（中文标签 → BPS sync 列 ← Newrez 源列）**：
+
+| 中文标签 | BPS sync 列 | ← Newrez 源列 |
+|---|---|---|
+| 子步骤名 | `bpms.sync_loan_foreclosure.summary_last_step_completed` | `newrez.portnewrezfc.lastfcstepcompleted` |
+| **完成日（本字段）** | **`bpms.sync_loan_foreclosure.summary_last_step_completed_date`** | `newrez.portnewrezfc.lastfcstepcompleteddate` |
+| 当前 fcstage | `bpms.sync_loan_foreclosure.summary_current_step` | `newrez.portnewrezfc.fcstage` |
+
+**3 笔实测**：
 
 - **Loan 7727004408**
   - 子步骤名 = `Motion for Judgment Sent to Court`
-  - 完成日 = **2026-05-13** ← `summary_last_step_completed_date`
+  - 完成日 = **2026-05-13**
   - 当前 fcstage = `Judgment Hearing Scheduled For`
 - **Loan 7727003984**
   - 子步骤名 = `NOS Sent for Recording`
-  - 完成日 = **2025-07-16** ← `summary_last_step_completed_date`
+  - 完成日 = **2025-07-16**
   - 当前 fcstage = `Pre-Sale Review 1 (SCRA and PACER Check)`
   - **注**：该日期碰巧与首次排定拍卖日同日，但两个字段语义独立——详 [doc 33 §2.5.1](33_fcl_table_erd.md)
 - **Loan 7727000088**
   - 子步骤名 = `Post Sale Review (SCRA and PACER Check)`
-  - 完成日 = **2026-05-26** ← `summary_last_step_completed_date`
+  - 完成日 = **2026-05-26**
   - 当前 fcstage = `Post Sale Review (SCRA and PACER Check)`
 
 
