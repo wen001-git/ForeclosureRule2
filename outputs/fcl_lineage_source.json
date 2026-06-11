@@ -1386,8 +1386,8 @@
     "Capecodfive": "—"
    },
    "sql_note": {
-    "en": "Tracks WHEN the current scheduled-hearing value first appeared: group the loan's daily snapshots by (loanid, fcjudgment_hearing_scheduled) and take MIN(dataasof). So it is the date that hearing date was first set — not the hearing date itself.",
-    "zh": "追踪「当前听证日期值」首次出现的日期：按 (loanid, fcjudgment_hearing_scheduled) 分组取 MIN(dataasof)。即该听证日被首次设定之日，而非听证日本身。"
+    "en": "Tracks WHEN the current scheduled-hearing value first appeared: group the loan's daily snapshots by (loanid, fcjudgment_hearing_scheduled) and take MIN(dataasof). So it is the date that hearing date was first set — not the hearing date itself. This is rule **b first-seen tracking** (see doc 33 §2.5.1 for full 3-rule comparison: a pick-latest / b first-seen / c direct passthrough).",
+    "zh": "追踪「当前听证日期值」首次出现的日期：按 (loanid, fcjudgment_hearing_scheduled) 分组取 MIN(dataasof)。即该听证日被首次设定之日，而非听证日本身。属规则 **b 首见追踪**（doc 33 §2.5.1 详解 a 取最新 / b 首见追踪 / c 直接透传 三套规则）。"
    },
    "sql_eg": {
     "en": "Loan 7727004408: the hearing date 2026-08-21 first appears in the 2026-05-14 snapshot ⇒ timeline_judgement_hearing_set_date = 2026-05-14 (while Judgement = 2026-08-21).",
@@ -1552,12 +1552,12 @@
     "Capecodfive": "portcapecodfive_monthly_collections.foreclosure_date_sale_scheduled"
    },
    "sql_note": {
-    "en": "Same first-seen logic as Hearing Set, for the scheduled-sale date: MIN(dataasof) over (loanid, fcscheduled_sale_date). The date the current sale date was first scheduled.",
-    "zh": "与 Hearing Set 同理，针对排定拍卖日：按 (loanid, fcscheduled_sale_date) 取 MIN(dataasof)。即当前拍卖日被首次排定之日。"
+    "en": "Same first-seen logic as Hearing Set, for the scheduled-sale date: MIN(dataasof) over (loanid, fcscheduled_sale_date). The date the current sale date was first scheduled. This is rule **b first-seen tracking** (see doc 33 §2.5.1 for full 3-rule comparison + 7727003984 worked example with 12 reschedules).",
+    "zh": "与 Hearing Set 同理，针对排定拍卖日：按 (loanid, fcscheduled_sale_date) 取 MIN(dataasof)。即当前拍卖日被首次排定之日。属规则 **b 首见追踪**（doc 33 §2.5.1 详解 3 套规则 + 7727003984 真例含 12 次改期）。"
    },
    "sql_eg": {
-    "en": "e.g. if a loan's scheduled sale 2026-06-23 first appears on the 2026-03-10 snapshot ⇒ timeline_sale_date_set_date = 2026-03-10 (Sale Date Projected stays 2026-06-23).",
-    "zh": "例：某贷款排定拍卖日 2026-06-23 在 2026-03-10 快照首次出现 ⇒ timeline_sale_date_set_date = 2026-03-10（Sale Date Projected 仍为 2026-06-23）。"
+    "en": "MCP-verified Loan 7727003984 (rescheduled 12 times, prod 2026-06-11):\n\n  current value (max-fctrdt fcscheduled_sale_date)  = 2026-06-30\n  this value first appears at dataasof              = 2026-05-22\n  → timeline_sale_date_set_date                     = 2026-05-22\n  → timeline_sale_date_projected_date               = 2026-06-30   (stays at current value)\n\nBPS UI cross-check: Sale Date Projected = 2026-06-30 / Sale Date Set = 2026-05-22 — exact match.",
+    "zh": "MCP 实证 Loan 7727003984（改期 12 次，prod 2026-06-11）：\n\n  当前值（max-fctrdt 行的 fcscheduled_sale_date）= 2026-06-30\n  该值首次出现的 dataasof                       = 2026-05-22\n  → timeline_sale_date_set_date                  = 2026-05-22\n  → timeline_sale_date_projected_date            = 2026-06-30  （保持当前值）\n\nBPS UI 对账：Sale Date Projected = 2026-06-30 / Sale Date Set = 2026-05-22——一字不差。"
    }
   },
   {
@@ -3406,8 +3406,8 @@
     "zh": "最近完成步骤日期"
    },
    "biz": {
-    "en": "Date of last completed step.",
-    "zh": "最近完成步骤日期。"
+    "en": "Date the last completed FCL **sub-step event** finished. Pair field is `lastfcstepcompleted` which carries the sub-step text (Newrez self-defined, 21+ distinct values like 'NOS Recorded' / 'Complaint Sent for Filing' / 'Motion for Judgment Sent to Court' / 'Order Of Reference Sent' etc.). **Granularity is much finer than BPS 6-stage model** (DEMAND/REFERRAL/FIRST_LEGAL/SERVICE/JUDGEMENT/SALE) — multiple sub-steps may occur within a single stage. Carrington/Capecodfive set this to null or coarser values (pool:1602-1644). NOT a derived/computed field; see doc 33 §2.5.1 for the 3 transform rules (a pick-latest / b first-seen / c direct passthrough — this field is **rule c direct passthrough**).",
+    "zh": "最近完成的 FCL **子步骤事件**完成日。配对字段 `lastfcstepcompleted` 携带子步骤文本（Newrez 自定义，21+ distinct 值，如 'NOS Recorded' / 'Complaint Sent for Filing' / 'Motion for Judgment Sent to Court' / 'Order Of Reference Sent' 等）。**粒度远细于 BPS 6-stage 模型**（DEMAND/REFERRAL/FIRST_LEGAL/SERVICE/JUDGEMENT/SALE）——一个 stage 内可能演化多个 sub-step。Carrington/Capecodfive 该字段设为 null 或粒度更粗（pool:1602-1644）。非派生/计算字段；详 doc 33 §2.5.1 的 a 取最新 / b 首见追踪 / c 直接透传 三套规则——本字段属规则 **c 直接透传**。"
    },
    "status": "ok",
    "hops": [
@@ -3426,7 +3426,7 @@
     {
      "t": "port.basic_data_loan_foreclosure",
      "c": "summary_last_step_completed_date",
-     "rule": "direct copy 直传",
+     "rule": "direct copy 直传 (rule c)",
      "code": "pool:284"
     },
     {
@@ -3446,6 +3446,14 @@
     "Newrez": "portnewrezfc.lastfcstepcompleteddate",
     "Carrington": "—",
     "Capecodfive": "—"
+   },
+   "sql_note": {
+    "en": "Pure passthrough — pool:284 `fc.lastfcstepcompleteddate AS summary_last_step_completed_date`, no aggregation/computation. Newrez self-reports both `lastfcstepcompleted` (sub-step name) and `lastfcstepcompleteddate` (date that sub-step completed). See doc 33 §2.5.1 'multi-loan distribution' for 7 sample loans + 21+ distinct sub-step values + business usage.",
+    "zh": "纯透传——pool:284 `fc.lastfcstepcompleteddate AS summary_last_step_completed_date`，无聚合/计算。Newrez 自己上报 `lastfcstepcompleted`（子步骤名）+ `lastfcstepcompleteddate`（该子步骤完成日）。详 doc 33 §2.5.1「多 loan 实测分布」7 笔 loan + 21+ distinct 子步骤值 + 业务用法。"
+   },
+   "sql_eg": {
+    "en": "MCP-verified samples (prod, 2026-06-11) — 3 loans, each showing the sub-step name (Newrez self-reported) + completion date (= this field value) + current fcstage:\n\n• Loan 7727004408\n    sub-step name      = 'Motion for Judgment Sent to Court'\n    completion date    = 2026-05-13   ← summary_last_step_completed_date\n    current fcstage    = 'Judgment Hearing Scheduled For'\n\n• Loan 7727003984\n    sub-step name      = 'NOS Sent for Recording'\n    completion date    = 2025-07-16   ← summary_last_step_completed_date\n    current fcstage    = 'Pre-Sale Review 1 (SCRA and PACER Check)'\n    Note: this date coincides with the loan's first sale schedule day, but the two fields are semantically independent — see doc 33 §2.5.1\n\n• Loan 7727000088\n    sub-step name      = 'Post Sale Review (SCRA and PACER Check)'\n    completion date    = 2026-05-26   ← summary_last_step_completed_date\n    current fcstage    = 'Post Sale Review (SCRA and PACER Check)'",
+    "zh": "MCP 实测样例（prod, 2026-06-11）—— 3 笔 loan，每笔展示「子步骤名（Newrez 自报） + 完成日（= 本字段值）+ 当前 fcstage」：\n\n• Loan 7727004408\n    子步骤名     = 'Motion for Judgment Sent to Court'\n    完成日       = 2026-05-13   ← summary_last_step_completed_date\n    当前 fcstage = 'Judgment Hearing Scheduled For'\n\n• Loan 7727003984\n    子步骤名     = 'NOS Sent for Recording'\n    完成日       = 2025-07-16   ← summary_last_step_completed_date\n    当前 fcstage = 'Pre-Sale Review 1 (SCRA and PACER Check)'\n    注：本日期碰巧与该 loan 首次排定拍卖日同日，但两个字段语义独立——详 doc 33 §2.5.1\n\n• Loan 7727000088\n    子步骤名     = 'Post Sale Review (SCRA and PACER Check)'\n    完成日       = 2026-05-26   ← summary_last_step_completed_date\n    当前 fcstage = 'Post Sale Review (SCRA and PACER Check)'"
    }
   },
   {
@@ -3540,8 +3548,8 @@
     "zh": "当前阶段取贷款已到达的最靠后里程碑：7 分支 CASE，按 SALE → JUDGEMENT → PUBLICATION → SERVICE → FIRST_LEGAL → REFERRAL → DEMAND 的优先级判断——第一个开始日非空的阶段即为结果。"
    },
    "sql_eg": {
-    "en": "① 7727001179: sale_start set ⇒ stage = SALE. ② 7727000357: no sale but fcjudgment_start set ⇒ JUDGEMENT. ③ 700082880000091: only up to service_start ⇒ SERVICE. ④ 700082700000033: only referral_start ⇒ REFERRAL.",
-    "zh": "① 7727001179：sale_start 有值 ⇒ stage = SALE。② 7727000357：无 sale 但 fcjudgment_start 有值 ⇒ JUDGEMENT。③ 700082880000091：仅到 service_start ⇒ SERVICE。④ 700082700000033：仅 referral_start ⇒ REFERRAL。"
+    "en": "Waterfall CASE — 4 MCP-verified loans, each picks the deepest milestone reached:\n\n  • 7727001179      sale_start set                    ⇒ stage = SALE\n  • 7727000357      no sale but fcjudgment_start set  ⇒ stage = JUDGEMENT\n  • 700082880000091 only up to service_start          ⇒ stage = SERVICE\n  • 700082700000033 only referral_start               ⇒ stage = REFERRAL",
+    "zh": "瀑布 CASE —— 4 笔 MCP 实测 loan，按「达到最深里程碑」落桶：\n\n  • 7727001179      sale_start 有值                   ⇒ stage = SALE\n  • 7727000357      无 sale 但 fcjudgment_start 有值  ⇒ stage = JUDGEMENT\n  • 700082880000091 仅到 service_start                ⇒ stage = SERVICE\n  • 700082700000033 仅 referral_start                 ⇒ stage = REFERRAL"
    }
   },
   {
@@ -4319,8 +4327,8 @@
     "zh": "转介窗口在下一阶段（首次法律）开始时结束：referral_end_date = first_legal_start_date。若首次法律尚未开始，则此列为 NULL——此时 referral_stage_days 改为数到当日（logic_referral_end_date = coalesce(end, curr_date)，pool:2050-2052）。"
    },
    "sql_eg": {
-    "en": "① next reached — 700082880000091: first_legal_start=2026-03-12 ⇒ referral_end_date=2026-03-12, referral_stage_days=52 (datediff(2026-01-20,2026-03-12)+1). ② not reached — 700082700000033 (in REFERRAL): referral_end_date=NULL, referral_stage_days=119 (counts 2026-02-11→today).",
-    "zh": "① 下一阶段已到 — 700082880000091：first_legal_start=2026-03-12 ⇒ referral_end_date=2026-03-12，referral_stage_days=52（datediff(2026-01-20,2026-03-12)+1）。② 未到 — 700082700000033（仍在 REFERRAL）：referral_end_date=NULL，referral_stage_days=119（从 2026-02-11 数到当日）。"
+    "en": "Two MCP-verified cases — next stage reached vs not reached:\n\n  ① Next stage reached — Loan 700082880000091\n      first_legal_start_date = 2026-03-12\n      ⇒ referral_end_date    = 2026-03-12  (= next stage's start)\n      ⇒ referral_stage_days  = datediff(2026-01-20, 2026-03-12) + 1 = 52\n\n  ② Not yet reached — Loan 700082700000033 (still in REFERRAL)\n      first_legal_start_date = NULL\n      ⇒ referral_end_date    = NULL\n      ⇒ referral_stage_days  = 119  (counts from 2026-02-11 to today)",
+    "zh": "MCP 实证两种情况——下一阶段已到 vs 未到：\n\n  ① 下一阶段已到 —— Loan 700082880000091\n      first_legal_start_date = 2026-03-12\n      ⇒ referral_end_date    = 2026-03-12  （= 下一阶段开始日）\n      ⇒ referral_stage_days  = datediff(2026-01-20, 2026-03-12) + 1 = 52\n\n  ② 下一阶段未到 —— Loan 700082700000033（仍在 REFERRAL）\n      first_legal_start_date = NULL\n      ⇒ referral_end_date    = NULL\n      ⇒ referral_stage_days  = 119  （从 2026-02-11 数到当日）"
    }
   },
   {
@@ -4554,8 +4562,8 @@
     "zh": "首次法律窗口在下一阶段（送达）开始时结束：first_legal_end_date = service_start_date；若送达尚未开始则为 NULL（此时 first_legal_stage_days 数到当日，pool:2060-2062）。"
    },
    "sql_eg": {
-    "en": "① next reached — 700082880000091: service_start=2026-05-13 ⇒ first_legal_end_date=2026-05-13, first_legal_stage_days=63. ② not reached — a loan still in FIRST_LEGAL ⇒ first_legal_end_date=NULL, stage_days counts to today (same pattern as referral 700082700000033).",
-    "zh": "① 下一阶段已到 — 700082880000091：service_start=2026-05-13 ⇒ first_legal_end_date=2026-05-13，first_legal_stage_days=63。② 未到 — 仍在 FIRST_LEGAL 的贷款 ⇒ first_legal_end_date=NULL，stage_days 数到当日（同 referral 700082700000033 的模式）。"
+    "en": "Two MCP-verified cases — next stage reached vs not reached:\n\n  ① Next stage reached — Loan 700082880000091\n      service_start_date         = 2026-05-13\n      ⇒ first_legal_end_date     = 2026-05-13  (= next stage's start)\n      ⇒ first_legal_stage_days   = datediff(2026-03-12, 2026-05-13) + 1 = 63\n\n  ② Not yet reached — a loan still in FIRST_LEGAL\n      service_start_date         = NULL\n      ⇒ first_legal_end_date     = NULL\n      ⇒ first_legal_stage_days   = counts to today (same pattern as referral 700082700000033)",
+    "zh": "MCP 实证两种情况——下一阶段已到 vs 未到：\n\n  ① 下一阶段已到 —— Loan 700082880000091\n      service_start_date         = 2026-05-13\n      ⇒ first_legal_end_date     = 2026-05-13  （= 下一阶段开始日）\n      ⇒ first_legal_stage_days   = datediff(2026-03-12, 2026-05-13) + 1 = 63\n\n  ② 下一阶段未到 —— 仍在 FIRST_LEGAL 的 loan\n      service_start_date         = NULL\n      ⇒ first_legal_end_date     = NULL\n      ⇒ first_legal_stage_days   = 数到当日（同 referral 700082700000033 模式）"
    }
   },
   {

@@ -327,7 +327,7 @@ _Date the current scheduled-hearing value first appeared in a snapshot (ETL trac
 ```sql
 ju.jd_set_date = min(dataasof) FROM port.basic_data_loan_fcl WHERE fcjudgment_hearing_scheduled IS NOT NULL GROUP BY loanid, fcjudgment_hearing_scheduled
 ```
-🔎 **How it works:** Tracks WHEN the current scheduled-hearing value first appeared: group the loan's daily snapshots by (loanid, fcjudgment_hearing_scheduled) and take MIN(dataasof). So it is the date that hearing date was first set — not the hearing date itself.
+🔎 **How it works:** Tracks WHEN the current scheduled-hearing value first appeared: group the loan's daily snapshots by (loanid, fcjudgment_hearing_scheduled) and take MIN(dataasof). So it is the date that hearing date was first set — not the hearing date itself. This is **rule b first-seen tracking** — see [doc 33 §2.5.1](33_fcl_table_erd.md) for the full 3-rule comparison (a pick-latest / b first-seen / c direct passthrough).
 ▶ **Example:** Loan 7727004408: the hearing date 2026-08-21 first appears in the 2026-05-14 snapshot ⇒ timeline_judgement_hearing_set_date = 2026-05-14 (while Judgement = 2026-08-21).
 
 ### 18. Judgement  (`bpms.sync_loan_foreclosure.timeline_judgement_date`)
@@ -383,8 +383,8 @@ _Date the current scheduled-sale value first appeared in a snapshot (ETL trackin
 ```sql
 sa.sa_set_date = min(dataasof) FROM port.basic_data_loan_fcl WHERE fcscheduled_sale_date IS NOT NULL GROUP BY loanid, fcscheduled_sale_date
 ```
-🔎 **How it works:** Same first-seen logic as Hearing Set, for the scheduled-sale date: MIN(dataasof) over (loanid, fcscheduled_sale_date). The date the current sale date was first scheduled.
-▶ **Example:** e.g. if a loan's scheduled sale 2026-06-23 first appears on the 2026-03-10 snapshot ⇒ timeline_sale_date_set_date = 2026-03-10 (Sale Date Projected stays 2026-06-23).
+🔎 **How it works:** Same first-seen logic as Hearing Set, for the scheduled-sale date: MIN(dataasof) over (loanid, fcscheduled_sale_date). The date the current sale date was first scheduled. This is **rule b first-seen tracking** — see [doc 33 §2.5.1](33_fcl_table_erd.md) (3-rule comparison + 7727003984 worked example with 12 reschedules).
+▶ **Example:** MCP-verified Loan 7727003984 (rescheduled 12 times, prod 2026-06-11): current fcscheduled_sale_date = 2026-06-30; that value first appears in the 2026-05-22 snapshot ⇒ timeline_sale_date_set_date = 2026-05-22 (while Sale Date Projected stays 2026-06-30). BPS UI Sale Date Projected = 2026-06-30 / Sale Date Set = 2026-05-22 — exact match.
 
 ### 21. Final Title Cleared  (`bpms.sync_loan_foreclosure.timeline_final_title_cleared_date`)
 
@@ -1120,7 +1120,7 @@ _Last completed FCL step._
 
 ### 64. Last step completed date  (`bpms.sync_loan_foreclosure.summary_last_step_completed_date`)
 
-_Date of last completed step._
+_Date the last completed FCL **sub-step event** finished (pair field `lastfcstepcompleted` carries the sub-step text; Newrez 21+ self-defined values, granularity much finer than the BPS 6-stage model)._
 
 **Source (L1)**
 - Newrez: `newrez.portnewrezfc.lastfcstepcompleteddate`
@@ -1130,9 +1130,26 @@ _Date of last completed step._
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
 - 1. `port.basic_data_loan_fcl.lastfcstepcompleteddate` — rename 改名 [pool:1562](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1562)
-- 2. `port.basic_data_loan_foreclosure.summary_last_step_completed_date` — direct copy 直传 [pool:284](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L284)
+- 2. `port.basic_data_loan_foreclosure.summary_last_step_completed_date` — direct copy 直传 (rule c) [pool:284](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L284)
 - 3. `bpms.sync_loan_foreclosure.summary_last_step_completed_date` — upsert pass-through [asset:744/795](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L744)
 - 4. `bpms.biz_data_view_loan_details_foreclosure.summary_last_step_completed_date` — passthrough [view]
+
+🔎 **How it works:** Pure passthrough — pool:284 `fc.lastfcstepcompleteddate AS summary_last_step_completed_date`, no aggregation/computation. Newrez self-reports `lastfcstepcompleted` (sub-step name, 21+ distinct values like 'NOS Recorded' / 'Complaint Sent for Filing' / 'Motion for Judgment Sent to Court' etc.) + `lastfcstepcompleteddate` (date that sub-step completed). **Orthogonal to the BPS 6-stage model** (DEMAND/REFERRAL/FIRST_LEGAL/SERVICE/JUDGEMENT/SALE) — one stage may contain several sub-steps. This is **rule c direct passthrough** — see [doc 33 §2.5.1](33_fcl_table_erd.md) (3-rule comparison + 7-loan distribution + 21+ sub-step values). Carrington/Capecodfive set to null (pool:1602-1644).
+▶ **Worked example (MCP-verified prod 2026-06-11)** — 3 loans, each showing the sub-step name (pair field `lastfcstepcompleted`) + completion date (= this field value) + current `fcstage`:
+
+- **Loan 7727004408**
+  - sub-step name = `Motion for Judgment Sent to Court`
+  - completion date = **2026-05-13** ← `summary_last_step_completed_date`
+  - current fcstage = `Judgment Hearing Scheduled For`
+- **Loan 7727003984**
+  - sub-step name = `NOS Sent for Recording`
+  - completion date = **2025-07-16** ← `summary_last_step_completed_date`
+  - current fcstage = `Pre-Sale Review 1 (SCRA and PACER Check)`
+  - **Note**: this date coincides with the loan's first sale schedule day, but the two fields are semantically independent — see [doc 33 §2.5.1](33_fcl_table_erd.md)
+- **Loan 7727000088**
+  - sub-step name = `Post Sale Review (SCRA and PACER Check)`
+  - completion date = **2026-05-26** ← `summary_last_step_completed_date`
+  - current fcstage = `Post Sale Review (SCRA and PACER Check)`
 
 
 ## System / audit columns

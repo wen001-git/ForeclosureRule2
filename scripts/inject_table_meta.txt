@@ -1,0 +1,16 @@
+# Inject outputs/fcl_table_meta.json (the `tables` object, zh) into outputs/fcl_pipeline.html as the FTMETA const.
+# Run from project root:  python - < scripts/inject_table_meta.txt
+# Idempotent: replaces the text between /*FTMETA_START*/ and /*FTMETA_END*/ (re-run after editing the JSON).
+import json, re
+HTML='outputs/fcl_pipeline.html'
+SRC='outputs/fcl_table_meta.json'
+tables=json.load(open(SRC, encoding='utf-8'))['tables']
+payload=json.dumps(tables, ensure_ascii=False, separators=(',',':'))
+# guard against breaking the inline <script> (premature </script>) — escape </ to <\/ (valid JSON.parse / JS literal)
+payload=payload.replace('</','<\\/')
+html=open(HTML, encoding='utf-8').read()
+repl='/*FTMETA_START*/'+payload+'/*FTMETA_END*/'
+new,n=re.subn(r'/\*FTMETA_START\*/.*?/\*FTMETA_END\*/', lambda m: repl, html, count=1, flags=re.S)  # lambda repl: do NOT process \n/\g escapes
+assert n==1, 'FTMETA markers not found (expected exactly 1)'
+open(HTML,'w', encoding='utf-8').write(new)
+print('injected FTMETA: %d bytes, %d tables' % (len(payload), len(tables)))

@@ -327,7 +327,7 @@ _当前排定听证日期值在快照中首次出现日（ETL 追踪）。仅司
 ```sql
 ju.jd_set_date = min(dataasof) FROM port.basic_data_loan_fcl WHERE fcjudgment_hearing_scheduled IS NOT NULL GROUP BY loanid, fcjudgment_hearing_scheduled
 ```
-🔎 **说明** 追踪「当前听证日期值」首次出现的日期：按 (loanid, fcjudgment_hearing_scheduled) 分组取 MIN(dataasof)。即该听证日被首次设定之日，而非听证日本身。
+🔎 **说明** 追踪「当前听证日期值」首次出现的日期：按 (loanid, fcjudgment_hearing_scheduled) 分组取 MIN(dataasof)。即该听证日被首次设定之日，而非听证日本身。属规则 **b 首见追踪**——详 [doc 33 §2.5.1](33_fcl_table_erd.md) 详解 a 取最新 / b 首见追踪 / c 直接透传 三套规则。
 ▶ **示例** 贷款 7727004408：听证日 2026-08-21 在 2026-05-14 的快照首次出现 ⇒ timeline_judgement_hearing_set_date = 2026-05-14（而 Judgement = 2026-08-21）。
 
 ### 18. Judgement 判决(当前排定听证日)  (`bpms.sync_loan_foreclosure.timeline_judgement_date`)
@@ -383,8 +383,8 @@ _当前排定拍卖值在快照中首次出现日（ETL 追踪）。_
 ```sql
 sa.sa_set_date = min(dataasof) FROM port.basic_data_loan_fcl WHERE fcscheduled_sale_date IS NOT NULL GROUP BY loanid, fcscheduled_sale_date
 ```
-🔎 **说明** 与 Hearing Set 同理，针对排定拍卖日：按 (loanid, fcscheduled_sale_date) 取 MIN(dataasof)。即当前拍卖日被首次排定之日。
-▶ **示例** 例：某贷款排定拍卖日 2026-06-23 在 2026-03-10 快照首次出现 ⇒ timeline_sale_date_set_date = 2026-03-10（Sale Date Projected 仍为 2026-06-23）。
+🔎 **说明** 与 Hearing Set 同理，针对排定拍卖日：按 (loanid, fcscheduled_sale_date) 取 MIN(dataasof)。即当前拍卖日被首次排定之日。属规则 **b 首见追踪**——详 [doc 33 §2.5.1](33_fcl_table_erd.md)（3 套规则 + 7727003984 真例含 12 次改期）。
+▶ **示例** MCP 实证 Loan 7727003984（改期 12 次，prod 2026-06-11）：当前 fcscheduled_sale_date = 2026-06-30，该值在 2026-05-22 快照首次出现 ⇒ timeline_sale_date_set_date = 2026-05-22（Sale Date Projected 仍为 2026-06-30）。BPS UI Sale Date Projected = 2026-06-30 / Sale Date Set = 2026-05-22——一字不差。
 
 ### 21. Final Title Cleared 最终产权清查  (`bpms.sync_loan_foreclosure.timeline_final_title_cleared_date`)
 
@@ -1120,7 +1120,7 @@ _最近完成的 FCL 步骤。_
 
 ### 64. 最近完成步骤日期  (`bpms.sync_loan_foreclosure.summary_last_step_completed_date`)
 
-_最近完成步骤日期。_
+_最近完成的 FCL **子步骤事件**完成日（配对字段 `lastfcstepcompleted` 携带子步骤文本，Newrez 21+ 种自定义值，粒度远细于 BPS 6-stage）。_
 
 **来源 / Source (L1)**
 - Newrez: `newrez.portnewrezfc.lastfcstepcompleteddate`
@@ -1130,9 +1130,26 @@ _最近完成步骤日期。_
 **流动顺序 / Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **血缘（逐跳：序号 列 — 规则 [代码]）/ Lineage (per hop)**
 - 1. `port.basic_data_loan_fcl.lastfcstepcompleteddate` — rename 改名 [pool:1562](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1562)
-- 2. `port.basic_data_loan_foreclosure.summary_last_step_completed_date` — direct copy 直传 [pool:284](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L284)
+- 2. `port.basic_data_loan_foreclosure.summary_last_step_completed_date` — direct copy 直传 (rule c) [pool:284](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L284)
 - 3. `bpms.sync_loan_foreclosure.summary_last_step_completed_date` — upsert pass-through [asset:744/795](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L744)
 - 4. `bpms.biz_data_view_loan_details_foreclosure.summary_last_step_completed_date` — passthrough [view]
+
+🔎 **说明** 纯透传——pool:284 `fc.lastfcstepcompleteddate AS summary_last_step_completed_date`，无聚合/计算。Newrez 自报 `lastfcstepcompleted`（子步骤名，21+ distinct 值如 'NOS Recorded' / 'Complaint Sent for Filing' / 'Motion for Judgment Sent to Court' 等）+ `lastfcstepcompleteddate`（该子步骤完成日）。**与 BPS 6-stage 模型（DEMAND/REFERRAL/FIRST_LEGAL/SERVICE/JUDGEMENT/SALE）正交**——一个 stage 内可能演化多个 sub-step。属规则 **c 直接透传**——详 [doc 33 §2.5.1](33_fcl_table_erd.md)（3 套规则 + 7 笔 loan 实测分布 + 21+ 种子步骤值）。Carrington/Capecodfive 设 null（pool:1602-1644）。
+▶ **实测样例（MCP 实测 prod 2026-06-11）** — 3 笔 loan，每笔展示「子步骤名（`lastfcstepcompleted` 配对字段） + 完成日（= 本字段值）+ 当前 `fcstage`」：
+
+- **Loan 7727004408**
+  - 子步骤名 = `Motion for Judgment Sent to Court`
+  - 完成日 = **2026-05-13** ← `summary_last_step_completed_date`
+  - 当前 fcstage = `Judgment Hearing Scheduled For`
+- **Loan 7727003984**
+  - 子步骤名 = `NOS Sent for Recording`
+  - 完成日 = **2025-07-16** ← `summary_last_step_completed_date`
+  - 当前 fcstage = `Pre-Sale Review 1 (SCRA and PACER Check)`
+  - **注**：该日期碰巧与首次排定拍卖日同日，但两个字段语义独立——详 [doc 33 §2.5.1](33_fcl_table_erd.md)
+- **Loan 7727000088**
+  - 子步骤名 = `Post Sale Review (SCRA and PACER Check)`
+  - 完成日 = **2026-05-26** ← `summary_last_step_completed_date`
+  - 当前 fcstage = `Post Sale Review (SCRA and PACER Check)`
 
 
 ## 系统 / 审计列

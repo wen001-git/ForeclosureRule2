@@ -37,6 +37,7 @@ doc 02（ETL 管道）· doc 13（BPS 视图字段映射）· doc 14（Servicer 
 
 > 🧬 **表关系入口**：先看 [doc 33 — FCL 表实体关系图](33_fcl_table_erd.md)（PK / 粒度键 / 1:N / N:N 一图看 22 张表布局），再回本文逐字段看跳链。
 > 📐 **阶段窗口规则速查**：见 [doc 31](31_fcl_stage_window_rules.md)（start/end/stage_days/in_lm/on_hold 公式 + 4 真实 loan 工作例）。
+> 🔀 **`fcl → foreclosure` 取数 3 套规则**：见 [doc 33 §2.5.1](33_fcl_table_erd.md)——多数字段「a 取最新」/ `*_set_date` 走「b 首见追踪 min(dataasof)」/ `last_step_completed_date` 走「c 直接透传」；含 7727003984 12 次改期工作例 + 21+ 种 servicer 子步骤分布。
 
 每个 **BPS sync 表**一篇明细文档（doc 26–30）。每篇里 **一行 = 一个字段**，列 = 该字段在链路上每一张表的列名，最后一列给出**每一跳的转换规则 + 代码出处**（`pool`/`asset`/`view`，见下）。非平凡转换（CASE/解码/unpivot/天数）附真实 SQL。
 

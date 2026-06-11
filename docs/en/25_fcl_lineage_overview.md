@@ -37,6 +37,7 @@ doc 02 (ETL pipeline) · doc 13 (BPS view field mapping) · doc 14 (Servicer FCL
 
 > 🧬 **Table relationships entry-point**: start with [doc 33 — FCL Table ERD](33_fcl_table_erd.md) (PK / grain key / 1:N / N:N — see the 22-table layout in one diagram), then come back here for per-field hops.
 > 📐 **Stage window rules cheat-sheet**: see [doc 31](31_fcl_stage_window_rules.md) (start/end/stage_days/in_lm/on_hold formulas + 4 real-loan worked examples).
+> 🔀 **`fcl → foreclosure` 3 transform rules**: see [doc 33 §2.5.1](33_fcl_table_erd.md) — most fields use **a pick-latest**, `*_set_date` fields use **b first-seen tracking min(dataasof)**, `last_step_completed_date` uses **c direct passthrough**; includes Loan 7727003984 12-reschedule worked example + distribution of 21+ servicer sub-step values.
 
 One detail doc per **BPS sync table** (doc 26–30). In each, **one row = one field**; columns are the field's column name at every table along its chain; the last column gives the **per-hop transform rule + code reference** (`pool`/`asset`/`view`, see below). Non-trivial transforms (CASE / decode / unpivot / day-math) include the real SQL.
 

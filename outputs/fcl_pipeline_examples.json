@@ -53,7 +53,8 @@
         ],
         "projected": "2026-06-30",
         "set_date": "2026-05-22",
-        "explain": "当前拍卖日 2026-06-30 在 2026-05-22 才排定 → set_date=2026-05-22；首次排定(2025-08-13)在 2025-07-16，被改期 11 次。单天快照只见 projected+set，看不到改期链。"
+        "last_step_completed_date": "2025-07-16",
+        "explain": "当前拍卖日 2026-06-30 在 2026-05-22 才排定 → set_date=2026-05-22；首次排定(2025-08-13)在 2025-07-16，被改期 11 次。单天快照只见 projected+set，看不到改期链。三个日期同属橙色「取最新」边但规则不同：projected=取最新当前值、set=首见 min(dataasof)、last_step_completed_date=2025-07-16 是 pool:284 直传 lastfcstepcompleteddate（NOS Sent for Recording 完成日，改期不更新 ≠ 首见；详见 doc 33 §2.5.1）。"
       },
       "7727000367": {
         "title": "稳定值（反例：非改期，451 天不变）",
@@ -75,7 +76,7 @@
     {
       "loanid": "7727003984",
       "img": "docs/images/bps_7727003984.png",
-      "anchors": {"Foreclosure status":"Active Foreclosure","Type":"Non Judicial","Sale Date Projected":"2026-06-30","Sale Date Set":"2026-05-22","Days in Foreclosure":"461","SMS Days in Foreclosure":"461","Current Step":"Pre-Sale Review 1 (SCRA and PACER Check)","Firm":"Asset Foreclosure Services, Inc"}
+      "anchors": {"Foreclosure status":"Active Foreclosure","Type":"Non Judicial","Sale Date Projected":"2026-06-30","Sale Date Set":"2026-05-22","Last Step Completed Date":"2025-07-16","Days in Foreclosure":"461","SMS Days in Foreclosure":"461","Current Step":"Pre-Sale Review 1 (SCRA and PACER Check)","Firm":"Asset Foreclosure Services, Inc"}
     }
   ],
   "reconcile_note": "三方对账：BPS UI（截图）= mysql_prod sync_loan_foreclosure（Sheet②）= 代码推演（pool:266/300-303）。7727000367 与 7727003984 的 Sale Date Set/Projected 三处一致。"

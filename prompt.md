@@ -3102,3 +3102,67 @@
 
 ## Milestones
 - [2026-06-11] 修复血缘图谱占位符伪装成字段：buildGraph (line 1914) 的占位过滤由不完整硬编码集 _GL_PLACE（漏了 (stage end)/(stage dates)/(LM cycle)/(none for Newrez)/—）改为健壮判定 isPh()（凡 (/—/空即占位），对表名+列名都判。占位 hop 不再生成字段节点。连带修好搜索下拉（由 buildGraph 派生）。排查确认：抽屉 hopCol/glinMiniSVG 仍有意把派生跳渲染成「派生/无独立列」灰显（保留）、flow 视图硬编码无占位——只此一处需改。已核验 154 字段无一被丢（均有≥1真实列 hop）。Preview 实测：全图占位字段节点=0、搜索下拉占位项=0、basic_data_loan_fcl 30→27 真实列、抽屉点派生字段仍显示 basic_data_loan_fcl「派生/无独立列」、六视图 0 报错。
+
+## [2026-06-11 UTC] 核验 doc 32 §2.5.1 summary_last_step_completed_date 更新 + 影响分析
+> doc 32 section 2.5.1 有关于字段 summary_last_step_completed_date 的更新，请核对是否正确；若正确，分析对 doc 32 的影响。
+
+### Milestone: 核验 doc 33 §2.5.1 + doc 32 增强（三日期对照）[2026-06-11]
+- **核验**：doc 33 §2.5.1 v4 正确——summary_last_step_completed_date = pool:284 直传 lastfcstepcompleteddate（非首见）；代码+doc26+prod(7727003984: 2025-07-16/2026-05-22/2026-06-30) 三方一致。
+- **影响**：doc 32 现状已正确（该字段早标「改名/直传」，未犯 v3「首见」错），无需纠错。
+- **增强（已做）**：doc 32 D 页 7727003984 加第 3 日期 last_step_completed_date=2025-07-16 三日期对照；E 页加 Last Step Completed Date 锚点行+规则；F 矩阵加「取最新 vs 首见」区分注；A 页 + 导读 MD 加 doc 33 §2.5.1 交叉引用。
+- 15 sheet 幂等；DB 只读；未提交。
+
+## [2026-06-11 UTC] 解释 projected 的英文与业务含义
+> 这里的 projected 是什么意思？我不明白英文含义和在这里的业务含义
+
+## [2026-06-11 00:00 UTC] doc 33 §2.5.1 同步信息到血缘文档 — P0+P1+P2 全做
+> P0 P1 P2全做
+
+### Milestone: doc 33 §2.5.1 信息同步到 6 个血缘文档 + JSON + HTML [2026-06-11]
+- **触发**：用户要求把 §2.5.1 的 3-rule (a/b/c) + 7727003984 工作例 + 21+ sub-step 分布信息同步到血缘相关文档，含 fcl_pipeline.html。
+- **P0 — outputs/fcl_lineage_source.json 真源（3 处）**：
+  1. `timeline_judgement_hearing_set_date`: sql_note 加规则 b 标签 + cross-ref doc 33 §2.5.1
+  2. `timeline_sale_date_set_date`: sql_note 加规则 b 标签；sql_eg **换 7727003984 MCP 实证真例**（projected=2026-06-30 / set=2026-05-22）替代旧虚构 2026-06-23 例子
+  3. `summary_last_step_completed_date`: biz 大幅扩写（加 21+ sub-step 值、与 BPS 6-stage 正交说明、规则 c 标签、Carrington/Capecodfive 行为）；新增 sql_note + sql_eg（3 笔 loan MCP 实测）
+  - JSON valid ✓
+- **P1 — outputs/fcl_pipeline.html**：
+  - 跑 `python - < scripts/inject_glin.txt` 重刷 GLIN — 输出 "injected GLIN: 169641 bytes, 154 fields" ✓
+- **P1 — docs/zh|en/26 §17/§20/§64**（每语言 3 处，共 6 处）：
+  - §17 judgement_hearing_set 说明加 cross-ref doc 33
+  - §20 sale_date_set **说明加规则 b cross-ref + 示例换 7727003984 MCP 真例**（替代虚构例子）
+  - §64 last_step_completed_date **完整重写**：title 增加 sub-step 说明；rule 标 "(rule c)"；新增 🔎说明 (Newrez 21+ sub-step、与 6-stage 正交、Carrington/Capecodfive 行为) + ▶ 示例（3 笔 MCP 真例）
+- **P2 — docs/zh|en/25 hub**：「怎么读这套血缘」段加第 3 行 cross-ref 🔀「fcl→foreclosure 取数 3 套规则」指向 doc 33 §2.5.1
+- **P2 — docs/zh|en/13**：
+  - zh L386 footnote 加 cross-ref（在已正确描述基础上）
+  - en L374 table row + L383 footnote **修正旧错描述**（原说"BPS distinguishes via internal state logic Direct"是错的，改为正确的 ETL MIN tracking + cross-ref）—— 顺手清掉一个旧的不一致
+- **验证（grep 计数）**：cross-ref `doc 33 §2.5.1` / `33_fcl_table_erd`：JSON=8、doc 25 zh=2 en=2、doc 26 zh=3 en=3、doc 13 zh=1 en=2，全部到位。HTML 已重刷至 499KB。
+- **未动**：doc 14 / docs/14_*.xlsx（用户同意跳过——字段命名级提及与"接口规范"语义不冲突）；doc 22 / 31 / 27 等其他文档；DB 全程只读；未推送。
+
+## [2026-06-11] 数据流动视图点表节点显示完整注释 + 血缘图谱列距加宽
+> 请给 fcl_pipeline.html 数据流动页面，每个节点（表）加上注释，展示在右侧抽屉，你觉得展示哪些内容比较好？（用户选：数据流动flow视图 + 完整一套内容）
+
+### Decision: flow 表节点注释复用 fcl_table_meta.json（内嵌 FTMETA）[2026-06-11]
+- **Context**: flow 视图节点（表）缺少可点开的业务注释；项目已有 fcl_table_meta.json（doc 19 中文 SoT，23 表，含业务含义/作用/粒度/上下游/何时查/为何）。
+- **Choice**: 内嵌 FTMETA（仿 GLIN，标记 /*FTMETA_START*/，新脚本 scripts/inject_table_meta.txt 可重跑）；FLOW_NODES 经 FLOW_META_KEY 映射到表 key；点节点弹右抽屉（默认隐藏保持图满宽，✕ 关闭）。
+- **Reason**: 复用已核实 SoT、可再生、符合修复传播规则；抽屉按需弹出兼顾浏览宽度。内容 zh（源 zh-only），分区标题双语 L()。
+
+## Milestones
+- [2026-06-11] flow 视图表节点注释：①scripts/inject_table_meta.txt 内嵌 FTMETA（23 表，23514 bytes）②FLOW_META_KEY 映射 23 真实表；s0/xls/bps 无表→回退 nar ③flowDraw 节点可点击+选中高亮 ④flowSelectNode 渲染完整抽屉（标题=DB.Schema.Table+层级 pill；业务含义/在管道中的作用/粒度/上游表/下游表/何时来查/为何这样处理/备注/验证SQL/文档）+✕关闭；默认隐藏、点开弹出、离开复原。血缘图谱列距 COL 250→320、VG 10→12 解拥挤。Preview 实测：FTMETA=23、flow 默认无抽屉点 fc/s1/fund/view/stg/hold 均正确（标题/9–10 分区/zh 内容）、s0/xls/bps 回退 nar、✕ 关闭恢复满宽、图谱列等距 320、六视图 0 报错。
+
+## [2026-06-11 00:00 UTC] doc 33 §2.5.1 抽屉示例难读 + 其他字段同样问题
+> 这是什么意思？看不明白（fcl_pipeline.html 抽屉的"计算示例"）
+> 其他字段是否也有同样的问题，请一并修复
+
+### Milestone: HTML 抽屉示例可读性大升级 + 5 个 sql_eg 多行重排 [2026-06-11]
+- **根因诊断**：HTML L2106-2107 `sql_eg` / `sql_note` 用 `<div class="kv">` 渲染，`.kv` 没 `white-space:pre-wrap` 所以 `\n` 被吃掉变成长 prose 单行，3 笔 loan 挤在一行难读。
+- **HTML 修复**：L2106-2107 都加 `style="white-space:pre-wrap"`，让 JSON 里 `\n` + 缩进生效；同时把 `计算示例` 标题改为 `实测样例`（直接透传字段没有"计算"，改名更准确）。
+- **JSON `sql_eg` 重排 5 处**（zh+en 共 10 条）：
+  - [19] `timeline_sale_date_set_date`（sale_date_set）—— 长 261 字符压成 4 行带箭头格式
+  - [29] `summary_last_step_completed_date` —— 3 笔 loan 拆成 3 个 bullet block，每笔显示「子步骤名 + 完成日 + 当前 fcstage」三行对照
+  - [66] `stage` 当前阶段（瀑布 CASE）—— 4 笔 loan 拆成 4 行对齐 bullet（修了字符串内嵌引号 JSON parse error）
+  - [84] `referral_end_date` —— 2 cases (①②) 各成 4 行算式 block
+  - [89] `first_legal_end_date` —— 2 cases 同上
+- **保留单行（无需改）**：49 个 sql_eg 中，44 个本就是短单行示例（如 [58] judicial 编码映射 69 字符），不密集。
+- **doc 26 §64 ▶ 示例**（zh+en）：同步改成 markdown bullet 列表，与 HTML 抽屉效果对齐。
+- **验证**：JSON valid ✓；inject_glin.txt 172086 bytes / 154 fields ✓；密度审计：剩余密集 sql_eg = 1（field 58，69 字符，每 case 一行可接受）。
+- **DB**：未访问；未推送。

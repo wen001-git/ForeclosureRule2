@@ -55,6 +55,7 @@
 2. **多天数据的意义**：仅 `*_set_date`/`judgement_hearing_set`/`*_days`（首见、天数重算）需多天；直传/decode 字段多天恒等，取最新快照即可。`basic_data_loan_fcl` 保留全部每日快照（943 个 dataasof）；`basic_data_loan_foreclosure`=MAX(dataasof) 每贷款最新；sync 主表当前态无 as-of。
 3. **`summary_current_step` = `fcstage` 直传**（`pool:282`；`currentmilestone` ETL 未使用）——与本仓库 doc 13/14 v 最新更正一致。
 4. **`summary_servicer_number`**：20 笔实测全 NULL（prod 已知异常，doc 14 v34）。
+5. **「取最新」橙色边两套规则**（见 D 页 7727003984 三日期对照 + F 矩阵注）：首见追踪 `min(dataasof)`（`sale_date_set_date`/`judgement_hearing_set_date`，需全历史）vs 纯取最新直传（`sale_date_projected_date`、`summary_last_step_completed_date`=pool:284 直传 `lastfcstepcompleteddate`，改期不更新、≠首见）。详见 **doc 33 §2.5.1**。
 
 ## 范围与分期
 - **本期（Phase 1）**：主链 `sync_loan_foreclosure`（66 个已录字段 / 表 72 列）+ 主链中间表逐表 sheet。

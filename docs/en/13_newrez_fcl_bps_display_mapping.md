@@ -371,7 +371,7 @@ Key fields shown in the BPS Loss Mitigation Cycle panel:
 | Milestone > Judgement Hearing Set Date | Judgment hearing scheduled date. Judicial states only; null for non-judicial | `timeline_judgement_hearing_set_date` | `fcjudgmenthearingscheduled` | Direct | 11.9% |
 | Milestone > Judgement Date | Judgment entered date. Judicial states only | `timeline_judgement_date` | `fcjudgmententered` | Direct | 7.9% |
 | Milestone > Projected Sale Date | Latest projected / scheduled sale date (updates dynamically) | `timeline_sale_date_projected_date` | `fcscheduledsaledate` | Direct | 18.2% |
-| Milestone > Sale Date Set | Confirmed scheduled sale date. Same raw field as Projected; BPS distinguishes via internal state logic ⚠️ | `timeline_sale_date_set_date` | `fcscheduledsaledate` | Direct | 18.2% |
+| Milestone > Sale Date Set | **Date the current scheduled-sale value first appeared in a Newrez snapshot** (ETL tracking field, NOT a direct copy). Each reschedule refreshes this to the new sale date's first-seen `dataasof`. ⚠️ See [doc 33 §2.5.1](33_fcl_table_erd.md) | `timeline_sale_date_set_date` | `fcscheduledsaledate` | **ETL tracking**: `MIN(dataasof WHERE fcscheduled_sale_date = current value)` (code: `basic_data_pool_config.py` lines 300–303) | 18.2% |
 | Milestone > Final Title Cleared Date | Final title clearance completed ⚠️ Newrez does not populate this field; same raw field as preliminary clearance | `timeline_final_title_cleared_date` | `titlecleardate` | Direct (final clearance) | 0.0% |
 | Milestone > Sale Date Held | Actual sale held date. Most active FCL loans have not yet reached this milestone | `timeline_sale_date_held_date` | `fcsalehelddate` | Direct | 2.1% |
 | Milestone > Foreclosure Completed Date | Final FCL completion marker. Deed recorded date takes priority; falls back to FCL removal / completion date (verified: `dtdeedrecorded`=0%, `fcremovaldate`=2.0%, COALESCE result=2.0%) | `timeline_foreclosure_completed_date` | `dtdeedrecorded` / `fcremovaldate` | `COALESCE(dtdeedrecorded, fcremovaldate)` | 2.0% |
@@ -380,7 +380,7 @@ Key fields shown in the BPS Loss Mitigation Cycle panel:
 
 > ⚠️ **Newrez-specific behavior**:
 > - `fcsetupdate` and `fcreferraldate` are typically the same date (confirmed in live data), so `timeline_approved_for_referral_date` and `timeline_referred_to_attorney_date` will usually show identical values.
-> - `timeline_sale_date_projected_date` and `timeline_sale_date_set_date` both derive from `fcscheduledsaledate`; the distinction is managed internally by BPS state logic.
+> - `timeline_sale_date_projected_date` = current value of `fcscheduledsaledate` (direct); `timeline_sale_date_set_date` = the **first-seen `dataasof` of the current sale value** (ETL MIN tracking, NOT BPS-side logic). Same raw column but different semantics: the former is "which date is the sale scheduled for", the latter is "on which date did that value first appear in Newrez". See [doc 33 §2.5.1](33_fcl_table_erd.md) (3-rule comparison + 7727003984 worked example with 12 reschedules: projected=2026-06-30 / set=2026-05-22 / last_step_completed=2025-07-16 — three independent dates).
 > - `timeline_preliminary_title_cleared_date` and `timeline_final_title_cleared_date` both derive from `titlecleardate`; BPS records each at different pipeline stages.
 
 ---

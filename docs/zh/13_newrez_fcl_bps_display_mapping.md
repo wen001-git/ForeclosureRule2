@@ -383,7 +383,7 @@ biz_data_view_loan_details_foreclosure（104列 VIEW）
 
 > ⚠️ **Newrez 特殊性说明**：
 > - `fcsetupdate` 与 `fcreferraldate` 通常为同一日期（实测样本验证），因此 `timeline_approved_for_referral_date` 与 `timeline_referred_to_attorney_date` 往往相同。
-> - `timeline_sale_date_projected_date` = `fcscheduledsaledate` 当前值（直接）；`timeline_sale_date_set_date` = 当前拍卖日值**首次出现的 `dataasof`**（ETL MIN 追踪）。来源字段相同但语义不同：前者是"拍卖排定在哪天"，后者是"该日期首次出现于 Newrez 的日期"。
+> - `timeline_sale_date_projected_date` = `fcscheduledsaledate` 当前值（直接）；`timeline_sale_date_set_date` = 当前拍卖日值**首次出现的 `dataasof`**（ETL MIN 追踪）。来源字段相同但语义不同：前者是"拍卖排定在哪天"，后者是"该日期首次出现于 Newrez 的日期"。详 [doc 33 §2.5.1](33_fcl_table_erd.md)（3 套规则 + 7727003984 12 次改期工作例：projected=2026-06-30 / set=2026-05-22 / last_step_completed=2025-07-16 三个独立日期）。
 > - `timeline_preliminary_title_cleared_date` 与 `timeline_final_title_cleared_date` 来自同一字段 `titlecleardate`，BPS 在不同阶段分别记录。
 
 ---
