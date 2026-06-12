@@ -1,0 +1,63 @@
+{
+  "_meta": {
+    "purpose": "doc 32 非 src 逐表 sheet「🧮 公式演示」列规格：精选可单格表达的转换逻辑，写活 Excel 公式(显示码已在公式内当空/VALUE/DATEVALUE 处理)，结果应=该 demo loan 实测值。脚本只排版。",
+    "version": "v1 2026-06-12",
+    "placeholders": "{i0}/{i1}.. = inputs[n] 在 demo_loan 列的实际单元格地址(跨表自动加 'sheet'! 前缀)。公式前自动补 '='。",
+    "highlight": "demo loan 列：输入字段格浅蓝 DDEBF7 / 输出字段格浅橙 FCE4D6 / 公式格浅绿 E2EFDA",
+    "note": "COALESCE(dtdeedrecorded,fcremovaldate)→timeline_foreclosure_completed_date 经实测 7727000065 输出为 ∅NULL 而输入非空(规则不符)，已不收录，避免假演示。set_date 首见/decode/LISTAGG 不可单格表达，留在「计算逻辑」列/B 提示/D 页。"
+  },
+  "demos": [
+    { "sheet_meta": "tempfc.temp_basic_data_fcl", "out_field": "daysinfc", "demo_loan": "7727000806",
+      "logic": "Carrington daysinfc = datediff(referral_start_date, snapshot)+1 [pool:1628]（Newrez 直传，Carr/CC5 计算）",
+      "inputs": [ {"sheet_meta":"tempfc.temp_basic_data_fcl","field":"referral_start_date"},
+                  {"sheet_meta":"tempfc.temp_basic_data_fcl","field":"dataasof"} ],
+      "formula": "DATEDIF(DATEVALUE({i0}),DATEVALUE({i1}),\"d\")+1", "expect": "477" },
+
+    { "sheet_meta": "port.basic_data_loan_fcl", "out_field": "daysinfc", "demo_loan": "7727000806",
+      "logic": "Carrington daysinfc = datediff(referral_start_date, snapshot)+1 [pool:1628]",
+      "inputs": [ {"sheet_meta":"port.basic_data_loan_fcl","field":"referral_start_date"},
+                  {"sheet_meta":"port.basic_data_loan_fcl","field":"dataasof"} ],
+      "formula": "DATEDIF(DATEVALUE({i0}),DATEVALUE({i1}),\"d\")+1", "expect": "477" },
+
+    { "sheet_meta": "port.basic_data_loan_foreclosure", "out_field": "summary_type", "demo_loan": "7727003984",
+      "logic": "CASE judicial→类型 [pool:279]：1→Judicial 否则 Non Judicial（同表输入）",
+      "inputs": [ {"sheet_meta":"port.basic_data_loan_foreclosure","field":"summary_judicial_foreclosure"} ],
+      "formula": "IF(IFERROR(VALUE({i0}),-1)=1,\"Judicial\",\"Non Judicial\")", "expect": "Non Judicial" },
+
+    { "sheet_meta": "bpms.sync_loan_foreclosure", "out_field": "summary_type", "demo_loan": "7727004408",
+      "logic": "CASE judicial→类型 [pool:279]：1→Judicial（同表输入）",
+      "inputs": [ {"sheet_meta":"bpms.sync_loan_foreclosure","field":"summary_judicial_foreclosure"} ],
+      "formula": "IF(IFERROR(VALUE({i0}),-1)=1,\"Judicial\",\"Non Judicial\")", "expect": "Judicial" },
+
+    { "sheet_meta": "bpms.sync_loan_foreclosure", "out_field": "summary_foreclosure_status", "demo_loan": "7727000367",
+      "logic": "CASE 止赎状态 [pool:273]（输入在 ⑩）：activefcflag=0 且 fcremovaldesc 非空 → 'Closed Foreclosure:'+desc",
+      "inputs": [ {"sheet_meta":"port.basic_data_loan_fcl","field":"activefcflag"},
+                  {"sheet_meta":"port.basic_data_loan_fcl","field":"fcremovaldesc"} ],
+      "formula": "IF(IFERROR(VALUE({i0}),-1)=1,\"Active Foreclosure\",IF(AND(IFERROR(VALUE({i0}),-1)=0,NOT(OR({i1}=\"∅NULL\",{i1}=\"∅空串\",{i1}=\"\"))),\"Closed Foreclosure:\"&{i1},\"\"))",
+      "expect": "Closed Foreclosure:Loss Mitigation" },
+
+    { "sheet_meta": "port.basic_data_loan_foreclosure", "out_field": "summary_foreclosure_status", "demo_loan": "7727003984",
+      "logic": "CASE 止赎状态 [pool:273]（输入在 ⑩）：activefcflag=1 → 'Active Foreclosure'",
+      "inputs": [ {"sheet_meta":"port.basic_data_loan_fcl","field":"activefcflag"},
+                  {"sheet_meta":"port.basic_data_loan_fcl","field":"fcremovaldesc"} ],
+      "formula": "IF(IFERROR(VALUE({i0}),-1)=1,\"Active Foreclosure\",IF(AND(IFERROR(VALUE({i0}),-1)=0,NOT(OR({i1}=\"∅NULL\",{i1}=\"∅空串\",{i1}=\"\"))),\"Closed Foreclosure:\"&{i1},\"\"))",
+      "expect": "Active Foreclosure" },
+
+    { "sheet_meta": "bpms.sync_loan_foreclosure", "out_field": "summary_days_in_fcl", "demo_loan": "7727004408",
+      "logic": "days 实时重算 = ⑪存储值 + datediff(dataasof→运行日) [asset:597]（含 TODAY() 会逐日增长）",
+      "inputs": [ {"sheet_meta":"port.basic_data_loan_foreclosure","field":"summary_days_in_fcl"},
+                  {"sheet_meta":"port.basic_data_loan_foreclosure","field":"dataasof"} ],
+      "formula": "IFERROR(VALUE({i0}),0)+(TODAY()-DATEVALUE({i1}))", "expect": "827（2026-06-12 实测；TODAY() 后逐日+1）" },
+
+    { "sheet_meta": "port.basic_data_loan_foreclosure", "out_field": "timeline_referred_to_foreclosure_date", "demo_loan": "7727003984",
+      "logic": "改名直传 ⑩.referral_start_date → timeline_referred_to_foreclosure_date [pool:266]（值不变）",
+      "inputs": [ {"sheet_meta":"port.basic_data_loan_fcl","field":"referral_start_date"} ],
+      "formula": "{i0}", "expect": "2025-03-07" },
+
+    { "sheet_meta": "bpms.biz_data_view_loan_details_foreclosure", "out_field": "actual_first_legal_days", "demo_loan": "7727000065",
+      "logic": "actual = TO_DAYS(timeline_first_legal_date) − TO_DAYS(nextduedate) [视图;doc33 §2.5]（同表输入）",
+      "inputs": [ {"sheet_meta":"bpms.biz_data_view_loan_details_foreclosure","field":"timeline_first_legal_date"},
+                  {"sheet_meta":"bpms.biz_data_view_loan_details_foreclosure","field":"nextduedate"} ],
+      "formula": "DATEVALUE({i0})-DATEVALUE({i1})", "expect": "391" }
+  ]
+}

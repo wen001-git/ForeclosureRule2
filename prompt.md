@@ -3375,3 +3375,42 @@
 
 ## Milestones
 - [2026-06-12] basic_data_loan_reo 一致性（用户选「两者都做」）：①数据流动 L4 加 reo 旁支节点(pred:[]，无 BPS 连边；点开抽屉说明 REO 持有区间表/外部维护/下游=资金·PBI/不流向 BPS)，配套 COLN/FLOW_ORDER/FLOW_VOL/FLOW_BRANCH ②血缘图谱 PAGEDOC desc(zh+en) 加说明：本图仅画到 BPS sync 表的字段血缘，REO 等外部旁支不在此、见数据流动+doc02 ③doc02 zh+en reo 行标注「旁支·外部维护·不流向 BPS」。Code-First+DB 已证 reo 不由 ETL 构建、不喂 BPS。Preview：flow 有 reo 节点(0 连边)、点开抽屉正确、graph 注释在、0 报错。
+
+## [2026-06-12] 业务族关系图「逾期支线」那行看不懂（/liq · carrington · .group）
+> newrez.portnewrezgeneral/liq · carrington → basic_data_fcl_related → fcl_stage_info.group 这行是什么意思？
+
+### 含义（Code-First, pool:1697-1723）
+basic_data_fcl_related 由 portnewrezgeneral.delinquency_status_mba 映射成 delq_status(FCL/REO/D120P/P…)，作为 fcl_stage_info 的 group(逾期分类)+state 维度。/liq=liquidation 等标志简写、·carrington=Carrington 也供数、.group=喂入 group 列——都是没解释的缩写故看不懂。
+
+## Milestones
+- [2026-06-12] famDiagram() L1039 逾期支线行改写：去掉 /liq 与 .group 缩写、carrington 统一为 (+carrington)，链改为 portnewrezgeneral(+carrington)→basic_data_fcl_related→fcl_stage_info，并加一行易懂中/英说明(逾期支线：MBA delinquency_status_mba→delq_status，作为阶段表 group+state 维度, pool:1697-1723)。纯 HTML famDiagram 字符串(非 GLIN)。Preview 实测：无 /liq/.group、新格式在、说明渲染、0 报错。
+
+## [2026-06-12] 这句 HTML 有来源文件吗？请同时改来源/生成文件
+> html 的这句话有来源文件吗？请同时修改来源文件/生成文件
+
+### 结论
+- famDiagram() 这段无生成器：fcl_pipeline.html 整体非生成，仅 GLIN(inject_glin)/FTMETA(inject_table_meta) 两块注入；famDiagram 手写在 HTML，故 HTML 即其源，已在源处改。
+- 平行叙述 doc 02（逾期支线 group=delq_status）与 JSON meta.fcl_fact_note 本就清晰、无 /liq，无需同步该缩写。
+- Code-First(pool:1696-1770) 查实三缩写：/liq=newrez.portnewrezliq 表；·carrington=basic_data_fcl_related 是 Newrez(general/liq/pmt/bk/prop) UNION Carrington(portcarrington)；.group=喂 fcl_stage_info.group。delq_status 由 delinquency_status_mba(Carrington 用 loan_status)映射。直接读原始表(不经 daily_clean)。
+- 顺带发现 flow 模型 rel.pred=['dlcc'] 与代码(直接从原始表)不符——另处小瑕疵，未改，待用户定。
+
+## Milestones
+- [2026-06-12] famDiagram 逾期支线行按 Code-First 精修：chain 用 portnewrezgeneral ∪ carrington.portcarrington → basic_data_fcl_related → fcl_stage_info（与顶部 3-servicer ∪ 风格一致），note 写明 Newrez(general+liq/pmt/bk/prop)∪Carrington、delq_status 映射、group+state、pool:1697-1770。纯 HTML(无生成器)。Preview 实测：∪ 链+准确 note、无 /liq、0 报错。
+
+## Milestone [2026-06-12] doc 32 逐表 sheet 新增「逐层逐字段 25 笔样本举例列」(方案B)
+- **真源**: outputs/fcl_layer_examples.json (25 笔 × 5 层全字段真值，prod 只读拉取，schema-verify NOT-IN 0 行；子代理执行使大数据不进主上下文)。
+- **生成器**: build_fcl_pipeline_mapping_xlsx.txt 非 src 分支 —— 「来源/类型」右侧加 25 列(1列1贷款，序同 C 页)；冻结前 4 列；举例列 outline_level=1 可折叠；autofilter 至 col29；表头上方加黄底说明行；人工列 assert 守卫。全历史字段(拍卖/判决听证首见 set_date 及 ⑨⑩ raw 输入)采用方案B：格内当前值下附多天提示(共 N 个排定日…首见=set_date)，与 D 页「改期12次」口径一致。② src 保持 3 列不变。
+- **校验**: 重生成幂等(连跑3次一致)；⑨⑩⑪⑱⑳ 均 29 列、freeze E15、outline 生效；② 3 列；抽查 7727003984 set_date=2026-05-22/projected=2026-06-30、⑩ fcscheduled_sale_date=2026-06-30、0804(Carr) summary_type=∅NULL 均对。
+- **同步**: 导读 MD doc 32（依赖列 +fcl_layer_examples.json、修订历史 v3、sheet 指南、A 导读说明）。清理中间件 _raw_temp.json。
+- **/simplify 说明**: 新增代码为单一 else 分支、风格与上下文一致且已验证可用；为不扰动已验证的 550 行生成器、避免回归，建议作为独立聚焦轮再跑 /simplify（未自动执行）。DB 全程只读；未提交。
+
+## [2026-06-12] doc 32 逐表 sheet 新增「🧮 公式演示」列(活 Excel 公式 + 高亮相关字段)
+> 每个表的示例中，每一列（每一个loan）都加上excel公式实现的1列，让读者加深对转换逻辑的理解 → (选方案2:每表+1公式列) + 显示码用公式侧判断处理(不改数据) + 对该笔数据要解释的逻辑相关字段高亮 + excel要美观
+
+### Decision: 公式演示列实现方式 [2026-06-12]
+- **方案**: 方案2 —— 每张非 src 表 +1 个「🧮 公式演示」列(col5)，仅精选 ~15 条可单格表达的逻辑写**活 Excel 公式**；25 举例列顺延 col6..30(5 表一致)。平凡字段留空(美观)。
+- **显示码**: 公式侧判断(识别 ∅NULL/∅空串当空、VALUE/DATEVALUE 转数/日期)，**不改数据**(保留显式 null 标记)。
+- **跨层**: 输入在 ⑨⑩、输出在 ⑪⑱⑳ 的逻辑用**跨 sheet 引用**(后置 pass 用 REG 实算地址)；同表逻辑(daysinfc/summary_type/actual_X)用同 sheet 引用。
+- **高亮**: demo loan 列里输入格浅蓝、输出格浅橙、公式格浅绿 + 图例行。
+- **真源**: 新建 outputs/fcl_formula_demos.json(逻辑规格)；脚本只排版。DB 只读(无需查库)。
+- **限制**: 无 Excel 引擎，结果靠 公式well-formed+地址正确+expect文档化 三重保证，用户开表肉眼确认。

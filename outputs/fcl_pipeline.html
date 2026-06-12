@@ -1036,7 +1036,8 @@ function famDiagram(){
   d+=row(`${C('newrez.portnewrezbk')}(+general)/carrington/cc5 → ${C('port.basic_data_loan_foreclosure_bankruptcy')} → ${C('bpms.sync_loan_foreclosure_bankruptcy')}`);
   d+=row(`${C('newrez.portnewrezlm')} → ${C('port.basic_data_loan_foreclosure_loss_mitigation')} → ${C('bpms.sync_loan_foreclosure_loss_mitigation')}`);
   d+=row(`${C('newrez.portnewrezfc')} → hold_detail → ${C('port.basic_data_loan_foreclosure_hold')} → ${C('bpms.sync_loan_foreclosure_hold')}`);
-  d+=row(`${C('newrez.portnewrezgeneral')}/liq · carrington → ${C('port.basic_data_fcl_related')} → ${C('port.fcl_stage_info')}.group`);
+  d+=row(`${C('newrez.portnewrezgeneral')} ∪ ${C('carrington.portcarrington')} → ${C('port.basic_data_fcl_related')} → ${C('port.fcl_stage_info')}`
+    +`<div class="famdg-note" style="color:var(--muted);font-size:11px;margin:2px 0 0 14px">${zh?'逾期支线：basic_data_fcl_related = Newrez(portnewrezgeneral + portnewrezliq/pmt/bk/prop) ∪ Carrington(portcarrington)，把 MBA 逾期状态 delinquency_status_mba（Carrington 用 loan_status）映射成 delq_status（FCL / REO / D120P / P…），作为阶段表 fcl_stage_info 的 group（逾期分类）+ state 维度（pool:1697-1770）':'delinquency branch: basic_data_fcl_related = Newrez(portnewrezgeneral + portnewrezliq/pmt/bk/prop) ∪ Carrington(portcarrington); maps MBA delinquency_status_mba (Carrington uses loan_status) → delq_status (FCL / REO / D120P / P…), used as the stage table fcl_stage_info group (delinquency class) + state dimension (pool:1697-1770)'}</div>`);
   return '<div class="sec"><h3>'+cap+'</h3><div class="famdg">'+d+'</div></div>';
 }
 

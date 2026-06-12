@@ -17,12 +17,14 @@
 |------|------|------|------|------|
 | 2026-06-10 | AI Agent (Claude Opus 4.8) | v1 | Phase 1 pilot：主链 sync_loan_foreclosure 逐字段 mapping + 20 笔生产举例 + 多 as-of 改期演示 + BPS 截图三方对账 | doc 25/26, 02, 13, 14；skill `excel-pipeline-lineage` |
 | 2026-06-12 | AI Agent (Claude Opus 4.7) | v2 | §关键口径 +bullet 6「投影列」(SQL π / pool:253-305 + CC5 7727004824 跨表对照) +bullet 7「bpms 主表」(=sync_loan_foreclosure + sibling 4 表 + 视图层 + CC5 0 笔进入原因 asset:605)；Sheet C 描述补 footnote 链向 bullet 7 | doc 33 §2 / §2.5.1 |
+| 2026-06-12 | AI Agent (Claude Opus 4.8) | v3 | 5 张非 src 逐表 sheet（⑨⑩⑪⑱⑳）右侧新增 **25 笔样本贷款「逐层真值举例列」**（1 列 1 贷款，序同 C 页；冻结前 4 列、举例列可折叠）；全历史字段（拍卖/判决听证首见 set_date）采用**方案B**：格内当前值下附多天提示。真源 `outputs/fcl_layer_examples.json`（prod 只读、schema-verify 通过） | skill `excel-pipeline-lineage`；D 页改期演示 |
 
 **依赖（单一真源 JSON，脚本只排版）：**
 - `outputs/fcl_lineage_source.json` — 逐字段 hops + 每跳规则 + 代码出处（与 doc 26 同源）
 - `outputs/fcl_table_meta.json` — 23 表业务含义/血缘元数据
 - `outputs/fcl_field_meanings.json` — 逐表字段含义
 - `outputs/fcl_pipeline_examples.json` — prod 只读拉取的 20 笔举例 + 改期历史 + BPS 截图锚点
+- `outputs/fcl_layer_examples.json` — **逐层逐字段 25 笔样本真值**（5 张非 src 表的逐表 sheet 举例列真源；prod 只读，含全历史字段的多天提示）
 - 生成器：`outputs/build_fcl_pipeline_mapping_xlsx.txt`（`python - < …txt` 运行，幂等可重跑）
 
 ---
@@ -45,7 +47,7 @@
 | **E BPS 截图证据** | 嵌入 BPS UI 截图 + 代码⇄Redshift⇄BPS UI 三方对账 |
 | **F 逻辑类型目录** | FCL 全部**字段级逻辑 LT01–LT30+SYS**（每类 历史依赖 + 示例字段 + 覆盖字段数 + 示例 loan + ✓体检）+ **管道级机制 M1–M5**（标演示位置）。体检：26 类直接覆盖 + 4 类(LT04/13/14/21)覆盖于上游 Redshift/视图/合并 + 0 真缺 → 30/30 已说明 |
 | **G 字段级逻辑清单** | **字段驱动·穷尽**：5 张 BPS sync 表全部 **154 字段**，每字段标 **LT#** + 规则摘要 + 历史依赖（每字段必有 LT，无空行）。真源 `fcl_lineage_source.json` + `fcl_pipeline.html`。可按 LT 筛选/排序 |
-| **② src·portnewrezfc … ⑳ bps·view_loan_details** | 主链每张表（含中间表）一个 sheet：业务含义/全链路血缘 + 全字段清单。tab 名带 **src·/mid·/bps·** 层级标签。**非 src 表（⑨⑩⑪⑱⑳）每字段在「业务含义」旁加「计算逻辑/mapping rule（上游→本字段）」列**，非直传附实测例（源 fcl_lineage_source 逐跳 + pool/asset 代码行 + doc 33）。按表看：改名/UNION 在 ⑨⑩、首见/CASE/datediff 在 ⑪、upsert 透传在 ⑱、actual/var 公式在 ⑳；src ② 为 L1 raw 无此列 |
+| **② src·portnewrezfc … ⑳ bps·view_loan_details** | 主链每张表（含中间表）一个 sheet：业务含义/全链路血缘 + 全字段清单。tab 名带 **src·/mid·/bps·** 层级标签。**非 src 表（⑨⑩⑪⑱⑳）每字段在「业务含义」旁加「计算逻辑/mapping rule（上游→本字段）」列**，非直传附实测例（源 fcl_lineage_source 逐跳 + pool/asset 代码行 + doc 33）。按表看：改名/UNION 在 ⑨⑩、首见/CASE/datediff 在 ⑪、upsert 透传在 ⑱、actual/var 公式在 ⑳；src ② 为 L1 raw 无此列。**「来源/类型」列右侧再加 25 笔样本贷款「逐层真值举例列」**（1 列 1 贷款，序同 C 页；冻结前 4 列、举例列可一键折叠；同一贷款顺 ⑨→⑩→⑪→⑱→⑳ 下看即见值的改名/派生/坍缩）。全历史字段（拍卖/判决听证首见 set_date）格内附**方案B**多天提示（完整改期链见 D 页）；∅NULL=真实空、∅空串=空字符串。真源 `fcl_layer_examples.json` |
 
 > **关于圈号 ②⑨⑩⑪⑱⑳**：是「全 FCL pipeline 23 表的**全局编号**」（与 doc 19/25、`fcl_table_meta.json` 一致）。② src·portnewrezfc、⑨ mid·temp、⑩ mid·fcl、⑪ mid·foreclosure、⑱ bps·sync主表、⑳ bps·视图。缺号（③④…⑬⑲…）是本 pilot 尚未纳入的表，**Phase 2 补齐，不是排序错误**（① 表清单索引里这些表已列出、标「Phase 2 待补」）。分析视图用字母 A–E，与表号区分。
 
