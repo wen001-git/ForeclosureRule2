@@ -315,7 +315,7 @@ GROUP BY delinq ORDER BY n DESC;
 | `port.basic_data_loan_foreclosure_loss_mitigation` | — | FCL+LM 联合视图（16字段：方案、周期、最终处置） |
 | `port.basic_data_fcl_related` | — | FCL 关联属性（诉讼标志、清算类型、BK 标志、违约原因） |
 | `port.fcl_stage_info` | ~9,587（累计/302 快照）· 41（最新快照 2026-06-07） | FCL 阶段跟踪（6阶段 × 5维度：起止日期、阶段天数、LM天数、暂停天数）。详见 §5.3 两种口径 |
-| `port.basic_data_loan_reo` | — | REO 简单记录（loanid + start_date + end_date） |
+| `port.basic_data_loan_reo` | — | REO 持有区间记录（loanid + start_date + end_date）。**旁支：外部 / 另处维护（ETL 不构建，PrefectFlow 全仓无 create/insert）**；下游＝资金 / direction_letter / PBI 报表的 `reo_flag`，**不流向任何 BPS sync 表** → 故不在 fcl_pipeline.html 的「数据流动 / 血缘图谱」FCL→BPS 主链上（在「管道(Layer)」视图与本表列出） |
 
 > **`basic_data_loan_fcl` vs `basic_data_loan_foreclosure`——事实中枢 vs BPS 投影（易混，特此说明）**
 > 这两张名字相近、**不重复**，是「原料中枢」与「按订单打包的成品」的关系：

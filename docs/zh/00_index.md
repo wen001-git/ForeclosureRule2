@@ -29,7 +29,7 @@
 | 00 | `00_index.md` | 本索引 | 导航入口 |
 | **20** | **`20_end_to_end_walkthrough.md`** | **🌟【推荐第一篇】数据流总览 + 讲解稿**：把 foreclosure 数据从来源 Servicer 文件 → BPS 系统的五层全过程串成一条线，并**从业务角度解释「数据为什么这样处理」**（§A.6，如一个 FCL 为何多条 Hold）；两层（业务视角全景+讲解脚本+Q&A／按层深入 walkthrough+代码定位地图+样本 loan 走查） | 向同事讲解全流程+业务理由；新成员快速建立全局认知；其它文档总入口 |
 | ~~21~~ | ⛔ **已归档**（无超链接） · `docs/archive/zh/21_fcl_field_lineage.DEPRECATED.md` | **2026-06-11 归档**：迁至 `docs/archive/zh/`；AI 编码工具请勿读；ER 部分迁入 doc 33，字段血缘迁入 doc 25-30，业务理由见 doc 20 §A.6。 | 不再使用；仅历史保留 |
-| **25** | **`25_fcl_lineage_overview.md`** | **🔬【字段血缘总入口/hub】** 止赎核心字段 Servicer 原始列 → BPS sync 表的字段级血缘总览：4 条规范跳链骨架 + 全字段主索引 + 已知缺口 + 端到端样例（loan 7727004408，MCP 实测）+ 指向 26–30 的链接。规则 Code-First 取自 PrefectFlow（含 file:line），列名逐列对 prod 核验。由 `outputs/fcl_lineage_source.json` 经 `scripts/gen_fcl_lineage.py` 生成 | 字段级血缘讲解/对账总入口；取代 doc 21 |
+| **25** | **`25_fcl_lineage_overview.md`** | **🔬【字段血缘总入口/hub】** 止赎核心字段 Servicer 原始列 → BPS sync 表的字段级血缘总览：4 条规范跳链骨架 + 全字段主索引 + 已知缺口 + 端到端样例（loan 7727004408，MCP 实测）+ 指向 26–30 的链接。规则 Code-First 取自 PrefectFlow（含 file:line），列名逐列对 prod 核验。由 `outputs/fcl_lineage_source.json` 驱动（手工维护；旧生成器 `gen_fcl_lineage.py` 已删，附录词典/HTML 内嵌经 `scripts/build_rule_glossary.txt`+`inject_glin.txt` 刷新） | 字段级血缘讲解/对账总入口；取代 doc 21 |
 | **26** | **`26_lineage_sync_loan_foreclosure.md`** | `bpms.sync_loan_foreclosure` 逐字段血缘：里程碑(`timeline_*`)+汇总/状态(`summary_*`)，一字段一行、每跳列名+规则+代码，终于展示视图(Actual/Var) | 主表字段对账 |
 | **27** | **`27_lineage_sync_fcl_stage_info.md`** | `bpms.sync_fcl_stage_info` 逐字段血缘：阶段开始日/天数/to_*_days/in_lm/on_hold + group(delq_status: mba+days360)/judicial(州级回退)/state | 聚合页字段对账 |
 | **28** | **`28_lineage_sync_loan_foreclosure_hold.md`** | `bpms.sync_loan_foreclosure_hold` 逐字段血缘：fchold1..4 宽列 → 长表 unpivot | Hold 面板对账 |

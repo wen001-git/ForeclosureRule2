@@ -1,6 +1,7 @@
 # doc 31 — FCL Stage Window Rules Cheat-sheet (start / end / days / in_lm / on_hold)
 
 > <!-- RULEGLOSS_PTR -->📖 **Rule terms**: plain-language + formula for the technical phrases in the `rule` column — see [doc 25 · transform-rule glossary (appendix)](25_fcl_lineage_overview.md).
+> <!-- CODEGLOSS_PTR -->🔧 **code legend**: `pool`=ETL build/SQL code `basic_data_pool_config.py` · `asset`=BPS sync SQL `asset_managment_config.py` · `view`=BPS view definition; the number after the colon = **line number** in that file (links are clickable).
 
 ## Document Purpose
 

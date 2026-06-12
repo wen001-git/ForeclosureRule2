@@ -303,7 +303,7 @@ GROUP BY delinq ORDER BY n DESC;
 | `port.basic_data_loan_foreclosure_loss_mitigation` | — | FCL+LM combined view (16 fields: program, cycle, final disposition) |
 | `port.basic_data_fcl_related` | — | FCL related attributes (litigation flag, liquidation type, BK flag, default reason) |
 | `port.fcl_stage_info` | ~9,587 (cumulative/302 snapshots) · 41 (latest snapshot 2026-06-07) | FCL stage tracking (6 stages × 5 dimensions: dates, stage days, LM days, hold days). See §5.3 for both methods |
-| `port.basic_data_loan_reo` | — | Simple REO record (loanid + start_date + end_date) |
+| `port.basic_data_loan_reo` | — | REO holding-interval record (loanid + start_date + end_date). **Side table: externally maintained (NOT built by the ETL — no create/insert anywhere in PrefectFlow)**; consumed by funding / direction_letter / PBI reporting as `reo_flag`, **does NOT flow to any BPS sync table** → so it is off the FCL→BPS main chain in fcl_pipeline.html's Data-flow / Lineage-graph views (it is listed in the Pipeline (Layer) view and in this table) |
 
 > **`basic_data_loan_fcl` vs `basic_data_loan_foreclosure` — fact hub vs BPS projection (easily confused; clarified here)**
 > The two similarly-named tables are **not duplicates** — it's a "raw warehouse" vs "packed-to-order product" relationship:

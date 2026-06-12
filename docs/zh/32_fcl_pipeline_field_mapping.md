@@ -16,6 +16,7 @@
 | 日期 | 作者 | 版本 | 变更 | 相关 |
 |------|------|------|------|------|
 | 2026-06-10 | AI Agent (Claude Opus 4.8) | v1 | Phase 1 pilot：主链 sync_loan_foreclosure 逐字段 mapping + 20 笔生产举例 + 多 as-of 改期演示 + BPS 截图三方对账 | doc 25/26, 02, 13, 14；skill `excel-pipeline-lineage` |
+| 2026-06-12 | AI Agent (Claude Opus 4.7) | v2 | §关键口径 +bullet 6「投影列」(SQL π / pool:253-305 + CC5 7727004824 跨表对照) +bullet 7「bpms 主表」(=sync_loan_foreclosure + sibling 4 表 + 视图层 + CC5 0 笔进入原因 asset:605)；Sheet C 描述补 footnote 链向 bullet 7 | doc 33 §2 / §2.5.1 |
 
 **依赖（单一真源 JSON，脚本只排版）：**
 - `outputs/fcl_lineage_source.json` — 逐字段 hops + 每跳规则 + 代码出处（与 doc 26 同源）
@@ -37,25 +38,65 @@
 | **① 表清单 索引** | 首张索引，**分层分组**（分析视图 / 一 Newrez源 src / 二 Redshift中间层 mid / 三 BPS对接 bps / 四 字典 dic）+ 列数 + 「➤ 打开」跳转链 |
 | **⓪ 表说明与全链路血缘** | 全 23 表总览：层级 / 业务含义 / pipeline 作用 / 上下游链路 / 粒度（仿 doc 19 ⓪） |
 | **⓪b 全局Pipeline图** | L1→L5 网格图：各层表 + 主线/逾期支线/维度字典 + 图例（仿 doc 19 ⓪b） |
-| **A 导读·色卡·样本** | 读法、as-of/多天说明、**转换类型色卡 + 一行定义**、20 笔样本清单 |
+| **A 导读·色卡·样本** | 读法、as-of/多天说明、**转换类型色卡 + 一行定义**、样本贷款清单（Newrez 20 + Carrington 5，与 C 页一致） |
 | **B 主表逐字段 Mapping** | 一字段一行：目标字段 → L1 servicer 源 → L4 fcl 族 → L4 foreclosure 投影(+代码) → L5 upsert/视图规则 → **转换类型**(色卡) → 代表样本。可筛选 |
-| **C 生产数据矩阵 20 笔** | 20 笔贷款 × 主表关键字段**最新快照实测值** |
+| **C 生产数据矩阵（样本）** | 样本贷款 × 主表关键字段**最新快照实测值**（Newrez 20 + Carrington 5 广度 + CC5 说明，**非全量**——实际进 bpms 约 91 笔）。⚙️ "bpms" = **bpms 主表** = `bpms.sync_loan_foreclosure`，定义见 §关键口径 bullet 7 |
 | **D 多as-of 改期演示** | `7727003984`（改期 12 次）+ `7727000367`（稳定值反例）的多天历史，演示 `set_date` vs `projected` |
 | **E BPS 截图证据** | 嵌入 BPS UI 截图 + 代码⇄Redshift⇄BPS UI 三方对账 |
-| **F 逻辑覆盖矩阵** | PrefectFlow FCL **16 条处理逻辑**，每条 ≥1 示例 loan + 转换类型 + **历史依赖**（最新/去重/全历史）+ **演示层**（端到端 bpms / Redshift 层）。可筛选 |
-| **② src·portnewrezfc … ⑳ bps·view_loan_details** | 主链每张表（含中间表）一个 sheet：业务含义/全链路血缘 + 全字段清单。tab 名带 **src·/mid·/bps·** 层级标签 |
+| **F 逻辑类型目录** | FCL 全部**字段级逻辑 LT01–LT30+SYS**（每类 历史依赖 + 示例字段 + 覆盖字段数 + 示例 loan + ✓体检）+ **管道级机制 M1–M5**（标演示位置）。体检：26 类直接覆盖 + 4 类(LT04/13/14/21)覆盖于上游 Redshift/视图/合并 + 0 真缺 → 30/30 已说明 |
+| **G 字段级逻辑清单** | **字段驱动·穷尽**：5 张 BPS sync 表全部 **154 字段**，每字段标 **LT#** + 规则摘要 + 历史依赖（每字段必有 LT，无空行）。真源 `fcl_lineage_source.json` + `fcl_pipeline.html`。可按 LT 筛选/排序 |
+| **② src·portnewrezfc … ⑳ bps·view_loan_details** | 主链每张表（含中间表）一个 sheet：业务含义/全链路血缘 + 全字段清单。tab 名带 **src·/mid·/bps·** 层级标签。**非 src 表（⑨⑩⑪⑱⑳）每字段在「业务含义」旁加「计算逻辑/mapping rule（上游→本字段）」列**，非直传附实测例（源 fcl_lineage_source 逐跳 + pool/asset 代码行 + doc 33）。按表看：改名/UNION 在 ⑨⑩、首见/CASE/datediff 在 ⑪、upsert 透传在 ⑱、actual/var 公式在 ⑳；src ② 为 L1 raw 无此列 |
 
 > **关于圈号 ②⑨⑩⑪⑱⑳**：是「全 FCL pipeline 23 表的**全局编号**」（与 doc 19/25、`fcl_table_meta.json` 一致）。② src·portnewrezfc、⑨ mid·temp、⑩ mid·fcl、⑪ mid·foreclosure、⑱ bps·sync主表、⑳ bps·视图。缺号（③④…⑬⑲…）是本 pilot 尚未纳入的表，**Phase 2 补齐，不是排序错误**（① 表清单索引里这些表已列出、标「Phase 2 待补」）。分析视图用字母 A–E，与表号区分。
 
 **转换类型** 一行定义（A 总览页色卡同款）：直传＝值与列名都不变的纯透传；**改名**＝值不变但中途列名改过；**首见日**＝取 `min(dataasof)`（当前值首次出现日，需多天历史）；天数重算＝存储天数+datediff(dataasof→运行日)；decode解码＝字典译码；CASE派生＝条件分支/拼接；常量NULL＝硬编码常量/空；其他＝主键/审计/视图列。
 
+> **字段全限定记法 `db.schema.table.field`**（Sheet D / E 起用）：Redshift = `dev.<schema>.<表>.<列>`（catalog 名为 `dev`，实为 prod 集群，如 `dev.port.basic_data_loan_fcl.fcscheduled_sale_date`）；MySQL/BPS 无独立 schema 层，记为 `bpms.<表>.<列>`（如 `bpms.sync_loan_foreclosure.timeline_sale_date_set_date`）。
+
 ## 关键口径（已核代码 + prod 实证）
 
-1. **`projected` = 当前(最新 as-of)值**；**`set_date` = 该当前值首次出现的 `dataasof`**（`min(dataasof WHERE 值=当前值)`，`basic_data_pool_config.py:300-303`）。改期链只有多天历史可见（见 Sheet ③）。
+1. **`bpms.sync_loan_foreclosure.timeline_sale_date_projected_date`（projected）= 当前(最新 as-of)值**；**`bpms.sync_loan_foreclosure.timeline_sale_date_set_date`（set_date）= 该当前值首次出现的 `dataasof`**（`min(dataasof WHERE 值=当前值)`，`basic_data_pool_config.py:300-303`；按天追踪上游 `dev.port.basic_data_loan_fcl.fcscheduled_sale_date`）。改期链只有多天历史可见（见 Sheet D）。
 2. **多天数据的意义**：仅 `*_set_date`/`judgement_hearing_set`/`*_days`（首见、天数重算）需多天；直传/decode 字段多天恒等，取最新快照即可。`basic_data_loan_fcl` 保留全部每日快照（943 个 dataasof）；`basic_data_loan_foreclosure`=MAX(dataasof) 每贷款最新；sync 主表当前态无 as-of。
 3. **`summary_current_step` = `fcstage` 直传**（`pool:282`；`currentmilestone` ETL 未使用）——与本仓库 doc 13/14 v 最新更正一致。
-4. **`summary_servicer_number`**：20 笔实测全 NULL（prod 已知异常，doc 14 v34）。
-5. **「取最新」橙色边两套规则**（见 D 页 7727003984 三日期对照 + F 矩阵注）：首见追踪 `min(dataasof)`（`sale_date_set_date`/`judgement_hearing_set_date`，需全历史）vs 纯取最新直传（`sale_date_projected_date`、`summary_last_step_completed_date`=pool:284 直传 `lastfcstepcompleteddate`，改期不更新、≠首见）。详见 **doc 33 §2.5.1**。
+4. **`bpms.sync_loan_foreclosure.summary_servicer_number`**：Newrez 样本实测全 NULL（prod 已知异常，doc 14 v34）。
+5. **「取最新」橙色边两套规则**（见 D 页 7727003984 三日期对照 + F 矩阵注）：首见追踪 `min(dataasof)`（`bpms.sync_loan_foreclosure.timeline_sale_date_set_date` / `…timeline_judgement_hearing_set_date`，需全历史）vs 纯取最新直传（`bpms.sync_loan_foreclosure.timeline_sale_date_projected_date`、`bpms.sync_loan_foreclosure.summary_last_step_completed_date`=pool:284 直传 `dev.port.basic_data_loan_fcl.lastfcstepcompleteddate`，改期不更新、≠首见）。详见 **doc 33 §2.5.1**。
+
+6. **📐 概念：什么是「投影列」？** —— 「投影」(Projection，关系代数 **π** 操作) 即 SQL `SELECT` 列表所选取的列；派生表从源表 `SELECT` 哪些列、改成什么名、是否做计算，那个完整列单就是该派生表的「**投影列**」。具体到 `dev.port.basic_data_loan_foreclosure`：该表由 `GEN_FCL_DETAIL` SQL（`basic_data_pool_config.py:253-305`）从 `dev.port.basic_data_loan_fcl` 投影而来，`SELECT` 列表里约 30 个列即「投影列」，例如：
+
+   - `fc.noi_date AS timeline_notice_of_intent_date` —— 源列 `noi_date` 投影到新列名
+   - `fc.legal_start_date AS timeline_first_legal_date` —— 改名投影
+   - `fc.fcscheduled_sale_date AS timeline_sale_date_projected_date` —— 改名投影
+   - `case when fc.activefcflag=1 then 'Active Foreclosure' ... AS summary_foreclosure_status` —— CASE 计算后投影
+   - `ju.jd_set_date AS timeline_judgement_hearing_set_date`、`sa.sa_set_date AS timeline_sale_date_set_date` —— 来自子查询的派生投影（详 doc 33 §2.5.1）
+
+   **Capecodfive Loan `7727004824` 跨表对照（prod MCP 2026-06-12 实测；4825/4827 同）**：
+
+   | 阶段 / 字段 | 源列（`dev.port.basic_data_loan_fcl`） | 投影后（`dev.port.basic_data_loan_foreclosure`） |
+   |---|---|---|
+   | servicer 标识 | `servicer = "Capecodfive"` | （投影不含 servicer，此处仅作行存在性证据） |
+   | NOI | `noi_date = NULL` | `timeline_notice_of_intent_date = NULL` |
+   | Referral | `referral_start_date = NULL` | `timeline_referred_to_foreclosure_date = NULL` |
+   | First Legal | `legal_start_date = NULL` | `timeline_first_legal_date = NULL` |
+   | Service | `service_start_date = NULL` | `timeline_service_date = NULL` |
+   | Sale Projected | `fcscheduled_sale_date = NULL` | `timeline_sale_date_projected_date = NULL` |
+   | Sale Held | `fcsale_held_date = NULL` | `timeline_sale_date_held_date = NULL` |
+   | Summary status | （CASE 输入字段全 NULL） | `summary_foreclosure_status = NULL` |
+
+   **解读**：投影列 ≠ 来源原始列——`basic_data_loan_foreclosure.timeline_notice_of_intent_date` 是通过 `GEN_FCL_DETAIL` 投影出的**新列**（改名自 `basic_data_loan_fcl.noi_date`）；Capecodfive 这 3 笔样本源列即为 NULL，投影下来仍为 NULL，这就是「投影列实测全 NULL」的含义。详跨表彩色血缘见 **doc 33 §2.5.1**。
+
+7. **📐 概念：什么是「bpms 主表」？** —— 「**bpms 主表**」= **`bpms.sync_loan_foreclosure`**（BPS MySQL 应用层的 FCL 主同步表），是本工作簿 Sheet C 默认的 lineage 终点；它与 BPS 库内 4 张 sibling sync 表 + 1 张视图区分如下：
+
+   | 角色 | 表名 | 说明 |
+   |---|---|---|
+   | **bpms 主表（本工作簿默认终点）** | `bpms.sync_loan_foreclosure` | 1 行/loan · 含 `timeline_*` / `summary_*` / `target_*` / `bid_approval_*` 等所有主体字段。Sheet C「实际进 bpms 约 91 笔」即此表 |
+   | sibling 1（Hold 长表） | `bpms.sync_loan_foreclosure_hold` | 1 loan 多 Hold；详 doc 28 |
+   | sibling 2（LM 周期） | `bpms.sync_loan_foreclosure_loss_mitigation` | 1 loan 多 cycle；详 doc 29 |
+   | sibling 3（BK 申请） | `bpms.sync_loan_foreclosure_bankruptcy` | 1 loan 多次申请；详 doc 30 |
+   | sibling 4（阶段表） | `bpms.sync_fcl_stage_info` | 1 loan/fctrdt（保留多月快照）；详 doc 27/31 |
+   | sibling 5（月度账务） | `bpms.sync_portmonth` | 视图日期差锚点；非 FCL 主线 |
+   | 视图层 | `bpms.biz_data_view_loan_details_foreclosure` | 由 `sync_loan_foreclosure` LEFT JOIN `sync_portmonth`（详 doc 33 §2 + §3.1） |
+
+   **为什么 Capecodfive「0 笔进 bpms 主表」？** —— `GEN_FORECLOSURE` 同步（`asset_managment_config.py:605`）有 2 个过滤条件：① `timeline_referred_to_foreclosure_date IS NOT NULL`；② `JOIN dev.port.portfunding`（已融资在投组）。CC5 的 382 笔在 fcl 投影列已全 NULL（见 bullet 6 跨表对照），`referral_date` 全空 → 第一个过滤条件即排除，0 笔进入 bpms 主表。主图见 **doc 33 §2**。
 
 ## 范围与分期
 - **本期（Phase 1）**：主链 `sync_loan_foreclosure`（66 个已录字段 / 表 72 列）+ 主链中间表逐表 sheet。

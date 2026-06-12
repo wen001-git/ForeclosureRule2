@@ -130,7 +130,7 @@
   .copy2{margin-left:auto;font-size:10px;background:var(--chip);border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 6px;cursor:pointer;flex:none}
   .copy2:hover{color:var(--txt);border-color:var(--accent)}
   /* lineage graph */
-  .graphwrap{position:relative;overflow:auto;height:100%;background:#0b0e12}
+  .graphwrap{position:relative;background:#0b0e12}
   .gtoolbar{position:sticky;top:0;left:0;z-index:6;display:flex;gap:8px;padding:8px 12px;background:var(--panel2);border-bottom:1px solid var(--border);flex-wrap:wrap;align-items:center}
   .gsearch{font-size:12px;padding:4px 9px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--txt);width:200px;outline:none}
   .gsearch:focus{border-color:var(--accent)}
@@ -159,7 +159,8 @@
   .gdim{opacity:.14;transition:opacity .15s}
   .gnode.glit rect{filter:drop-shadow(0 0 5px rgba(120,200,255,.6))}
   .gnode.gfocus rect{stroke:var(--accent)!important}
-  path.glitedge{filter:drop-shadow(0 0 3px rgba(120,200,255,.5))}
+  path.glitedge{filter:drop-shadow(0 0 3px rgba(120,200,255,.5));stroke-dasharray:7 7;animation:gflow .55s linear infinite}
+  @keyframes gflow{to{stroke-dashoffset:-14}}
   .glegend .lgchip{cursor:pointer;padding:1px 6px;border-radius:5px}
   .glegend .lgchip:hover{background:#222b38}
   .glegend .lgchip.lgon{background:#2d3a4d;outline:1px solid var(--accent)}
@@ -397,8 +398,8 @@ const PAGEDOC={
     src:{en:"Primarily <b>doc 13 (BPS display mapping)</b> + <b>doc 14 (servicer FCL field spec)</b> + <b>doc 25-31 (field lineage)</b>; timeline sourcing from <b>doc 22</b>. Every field SQL DB-verified.",
          zh:"主要基于 <b>doc 13（BPS 显示映射）</b> + <b>doc 14（servicer FCL 字段规范）</b> + <b>doc 25-31（字段血缘）</b>；时间线取数见 <b>doc 22</b>。每个字段 SQL 经 DB 核验。"}},
   graph:{
-    desc:{en:"A layered DAG of EVERY field's cross-database lineage (Newrez/source → Redshift L4 incl. the basic_data_loan_fcl fact hub → BPS sync table → BPS view), driven by fcl_lineage_source.json — all 5 BPS sync tables' full columns + as-of fields (fctrdt/dataasof). Each edge is colored by transform type; click a field/edge for its per-hop rule + SQL + code reference. System/audit columns are hidden by default (toolbar toggle).",
-          zh:"把<b>每一个</b>字段的跨库血缘画成分层 DAG（Newrez/源 → Redshift L4 含 basic_data_loan_fcl 事实中枢 → BPS sync 表 → BPS 视图），由 fcl_lineage_source.json 驱动——含全部 5 张 BPS sync 表的全部列 + as-of 字段（fctrdt/dataasof）。边按转换类型配色；点字段/边看逐跳 rule + SQL + 代码出处。系统/审计列默认隐藏（工具栏开关可显）。"},
+    desc:{en:"A layered DAG of EVERY field's cross-database lineage (Newrez/source → Redshift L4 incl. the basic_data_loan_fcl fact hub → BPS sync table → BPS view), driven by fcl_lineage_source.json — all 5 BPS sync tables' full columns + as-of fields (fctrdt/dataasof). Each edge is colored by transform type; click a field/edge for its per-hop rule + SQL + code reference. System/audit columns are hidden by default (toolbar toggle). <b>This graph only draws field lineage that reaches a BPS sync table; side tables like REO (basic_data_loan_reo) that are externally maintained / never flow to BPS are not shown here — see the Data-flow L4 side node and doc 02.</b>",
+          zh:"把<b>每一个</b>字段的跨库血缘画成分层 DAG（Newrez/源 → Redshift L4 含 basic_data_loan_fcl 事实中枢 → BPS sync 表 → BPS 视图），由 fcl_lineage_source.json 驱动——含全部 5 张 BPS sync 表的全部列 + as-of 字段（fctrdt/dataasof）。边按转换类型配色；点字段/边看逐跳 rule + SQL + 代码出处。系统/审计列默认隐藏（工具栏开关可显）。<b>本图只画「到 BPS sync 表」的字段血缘；REO（basic_data_loan_reo）等外部维护/不流向 BPS 的旁支表不在此图，见「数据流动」L4 旁支节点与 doc 02。</b>"},
     who:{en:"Data engineers · architecture / lineage reviewers.",
          zh:"数据工程师 · 架构 / 血缘审阅人员。"},
     how:{en:"Click a table to expand · click the ▾ header to collapse · click a field for details · click an edge for the fields it carries · toolbar to zoom / reset focus. (Two branches: FCL business-family here; delinquency branch in the Pipeline view.)",
@@ -605,7 +606,7 @@ const BPS_PANELS=[
  {id:'p_bk',name:{en:'Bankruptcy',zh:'破产'},src:'sync_bk',srcTable:'bpms.sync_loan_foreclosure_bankruptcy (22 cols)',newrez:'newrez.portnewrezbk',
   ds:{en:'All bankruptcy records for the loan; independent of the main FCL table.',zh:'该笔贷款的全部破产记录；独立于主 FCL 表。'},
   fields:['bankruptcy_status','chapter','mfr_filed_date','mfr_status','proof_of_claim_date'],
-  note:{en:'bkstatus / bkstage are numeric codes; whether they are decoded (unlike LM) needs confirmation. lien_status / claim_status source fields need confirmation.',zh:'bkstatus / bkstage 为数字编码；是否像 LM 那样解码尚需确认。lien_status / claim_status 的来源字段待确认。'}},
+  note:{en:'bkstatus is datadic JOIN-decoded to text (same as LM; confirmed, pool:354/367). legal_status comes from portnewrezgeneral.legalstatus. lien_status / mfr_status / claim_status are constant NULL for Newrez (Carrington-only columns).',zh:'bkstatus 经 datadic JOIN 解码为文本（同 LM，已确认，pool:354/367）。legal_status 实源 portnewrezgeneral.legalstatus。lien_status / mfr_status / claim_status 对 Newrez 恒空（常量 NULL，Carrington-only）。'}},
  {id:'p_stage',name:{en:'Aggregate Overview — Stage Tab',zh:'聚合总览 — 阶段页'},src:'sync_stage',srcTable:'bpms.sync_fcl_stage_info (57 cols)',newrez:'newrez.portnewrezfc',
   ds:{en:'Portfolio-level stage grouping with Days in Stage / Days in LM / Days on Hold.',zh:'组合级阶段分组，含 Days in Stage / Days in LM / Days on Hold。'},
   fields:['stage','group','*_stage_days','*_in_lm_days','*_on_hold_days'],
@@ -699,7 +700,7 @@ const FLOW_COLS=[
 ];
 // per-column ordered node ids (order also makes intra-column edges go downward)
 const COLN=[['s0','xls'],['fc','bk','lm','gen','dic'],['dlc'],['dlcc'],
- ['temp','fcl','rel','fclo','stg','hold','lm4','bk4','fund'],
+ ['temp','fcl','rel','fclo','stg','hold','lm4','bk4','fund','reo'],
  ['mysraw','s1','s2','shold','slm','sbk','view'],['bps']];
 const FLOW_NODES={
  s0:{label:'Servicer 文件 (S3)',pred:[],nar:{zh:'各 Servicer（Newrez/SLS/Carrington/MRC/FCI/Selene）每天把贷款最新状态打包成文件投递到 S3。',en:'Servicers drop daily loan-state files to S3.'},loan:{zh:'文件中的一行',en:'a file row'}},
@@ -720,6 +721,7 @@ const FLOW_NODES={
  lm4:{label:'basic_data_loan_foreclosure_loss_mitigation',pred:['lm','dic'],nar:{zh:'LM 周期；deal/program/status 经 datadic 解码。',en:'LM cycles; deal/program/status decoded via datadic.'}},
  bk4:{label:'basic_data_loan_foreclosure_bankruptcy',pred:['bk','dic'],nar:{zh:'BK 明细；bkstatus 经 datadic 解码。',en:'BK detail; bkstatus decoded via datadic.'}},
  fund:{label:'portfunding',pred:['xls'],nar:{zh:'融资池维度表（dealid=bid_id, fundingid）。上游不是 servicer / ETL，而是外部 Excel：Financials_study.xlsx 经 load_portfunding.py 加载，再用 portinternal/actddcost/basic_data_semi 富化。L5 同步时按 loanid JOIN 它，给 sync_loan_foreclosure 补 bid_id/funding_id。',en:'Funding dimension table (dealid=bid_id, fundingid). Its upstream is NOT a servicer / ETL table but an external Excel: Financials_study.xlsx loaded by load_portfunding.py, then enriched via portinternal/actddcost/basic_data_semi. JOINed on loanid at L5 to add bid_id/funding_id to sync_loan_foreclosure.'}},
+ reo:{label:'port.basic_data_loan_reo',pred:[],nar:{zh:'REO（银行收房）持有区间表，3 列：loanid · start_date · end_date（一笔贷款一段 REO 持有期）。<b>外部 / 另处维护，ETL 不构建</b>；下游＝资金 / direction_letter / PBI 报表（按 loanid + 日期落在区间算 reo_flag），<b>不流向任何 BPS sync 表</b>——故不在 FCL→BPS 主链上（与其它 L4 表无连边）。doc 02 把它列入 L4 是「port.* 全表」口径。',en:'REO (bank-owned) holding-interval table, 3 cols: loanid · start_date · end_date (one REO holding period per loan). <b>Externally maintained — not built by the ETL</b>; consumed by funding / direction_letter / PBI reporting (reo_flag via loanid + date-in-interval), <b>does NOT flow to any BPS sync table</b> — so it is off the FCL→BPS main chain (no edges to the other L4 tables). doc 02 lists it under L4 as the broader port.* set.'}},
  mysraw:{label:'port.basic_data_loan_foreclosure (MySQL)',pred:['fclo'],nar:{zh:'L5 中转：sync_to_mysql() 清+插，把 Redshift 的 FCL 表落到 MySQL。这就是你在 mysql 看到该表的原因。',en:'L5 staging: sync_to_mysql() lands the Redshift FCL table into MySQL — why the table also exists in MySQL.'},loan:{zh:'已落 MySQL 中转表',en:'landed in MySQL staging'}},
  s1:{label:'bpms.sync_loan_foreclosure',pred:['mysraw','fund'],nar:{zh:'BPS 主表：UPDATE_FORECLOSURE upsert（ON DUPLICATE KEY UPDATE）。每日约 4:35 ET。',en:'BPS main table: UPDATE_FORECLOSURE upsert (ON DUPLICATE KEY UPDATE), ~4:35 ET daily.'},loan:{zh:"Closed Foreclosure:Process Complete",en:'Closed Foreclosure:Process Complete'}},
  s2:{label:'bpms.sync_fcl_stage_info',pred:['stg'],nar:{zh:'阶段同步表。',en:'Stage sync table.'}},
@@ -729,14 +731,14 @@ const FLOW_NODES={
  view:{label:'biz_data_view_loan_details_foreclosure',pred:['s1','s2'],nar:{zh:'104 列 BPS 视图（timeline/target/actual/var/summary…），界面绑定它。',en:'104-col BPS view the UI binds to.'},loan:{zh:'界面字段拼装',en:'UI fields assembled'}},
  bps:{label:'BPS 法拍 5 面板',pred:['view','s1','s2','shold','slm','sbk'],nar:{zh:'业务在 BPS 看到的 5 个面板（时间线/Hold/LM/破产/阶段）。数据流终点。',en:'The 5 BPS panels. End of the flow.'},loan:{zh:'界面：已完结止赎 (FL 司法)',en:'UI: closed foreclosure (FL judicial)'}},
 };
-const FLOW_ORDER=['s0','xls','fc','bk','lm','gen','dic','dlc','dlcc','temp','fcl','rel','fclo','stg','hold','lm4','bk4','fund','mysraw','s1','s2','shold','slm','sbk','view','bps'];
+const FLOW_ORDER=['s0','xls','fc','bk','lm','gen','dic','dlc','dlcc','temp','fcl','rel','fclo','stg','hold','lm4','bk4','fund','reo','mysraw','s1','s2','shold','slm','sbk','view','bps'];
 const FLOW_SPINE=['s0','fc','temp','fcl','fclo','mysraw','s1','view','bps'];
-const FLOW_VOL={s0:8,xls:2,fc:7,bk:3,lm:3,gen:7,dic:2,dlc:7,dlcc:6,temp:5,fcl:5,rel:4,fclo:5,stg:5,hold:3,lm4:3,bk4:2,fund:2,mysraw:2,s1:2,s2:2,shold:2,slm:2,sbk:2,view:2,bps:2};
+const FLOW_VOL={s0:8,xls:2,fc:7,bk:3,lm:3,gen:7,dic:2,dlc:7,dlcc:6,temp:5,fcl:5,rel:4,fclo:5,stg:5,hold:3,lm4:3,bk4:2,fund:2,reo:2,mysraw:2,s1:2,s2:2,shold:2,slm:2,sbk:2,view:2,bps:2};
 // flow node id -> fcl_table_meta key (FTMETA). Nodes without a DB table (s0/xls/bps) fall back to their nar.
 const FLOW_META_KEY={fc:'newrez.portnewrezfc',bk:'newrez.portnewrezbk',lm:'newrez.portnewrezlm',gen:'newrez.portnewrezgeneral',dic:'newrez.portnewrezdatadic',dlc:'port.basic_data_daily_loan_common',dlcc:'port.basic_data_daily_loan_common_clean',temp:'tempfc.temp_basic_data_fcl',fcl:'port.basic_data_loan_fcl',rel:'port.basic_data_fcl_related',fclo:'port.basic_data_loan_foreclosure',stg:'port.fcl_stage_info',hold:'port.basic_data_loan_foreclosure_hold',lm4:'port.basic_data_loan_foreclosure_loss_mitigation',bk4:'port.basic_data_loan_foreclosure_bankruptcy',fund:'port.portfunding',mysraw:'port.basic_data_loan_foreclosure',s1:'bpms.sync_loan_foreclosure',s2:'bpms.sync_fcl_stage_info',shold:'bpms.sync_loan_foreclosure_hold',slm:'bpms.sync_loan_foreclosure_loss_mitigation',sbk:'bpms.sync_loan_foreclosure_bankruptcy',view:'bpms.biz_data_view_loan_details_foreclosure'};
 let flowSel=null, flowHoverId=null;
 // edge color by business branch (colored by the edge's destination node's branch) + legend
-const FLOW_BRANCH={s0:'src',xls:'dim',fc:'main',temp:'main',fcl:'main',fclo:'main',mysraw:'main',s1:'main',view:'main',bps:'main',rel:'stage',stg:'stage',s2:'stage',hold:'hold',shold:'hold',lm:'lm',lm4:'lm',slm:'lm',bk:'bk',bk4:'bk',sbk:'bk',gen:'delinq',dlc:'delinq',dlcc:'delinq',dic:'decode',fund:'dim'};
+const FLOW_BRANCH={s0:'src',xls:'dim',fc:'main',temp:'main',fcl:'main',fclo:'main',mysraw:'main',s1:'main',view:'main',bps:'main',rel:'stage',stg:'stage',s2:'stage',hold:'hold',shold:'hold',lm:'lm',lm4:'lm',slm:'lm',bk:'bk',bk4:'bk',sbk:'bk',gen:'delinq',dlc:'delinq',dlcc:'delinq',dic:'decode',fund:'dim',reo:'dim'};
 const FLOW_BRANCH_COLOR={main:'#6cb6ff',stage:'#4db6a0',hold:'#e3a857',lm:'#c98bdb',bk:'#e06c75',delinq:'#d19a66',decode:'#7ee787',dim:'#8a94a6',src:'#8a94a6'};
 const FLOW_BRANCH_LABEL={main:{zh:'FCL 主线',en:'FCL main'},stage:{zh:'阶段',en:'stage'},hold:{zh:'Hold',en:'hold'},lm:{zh:'损失缓释',en:'loss-mit'},bk:{zh:'破产',en:'bankruptcy'},delinq:{zh:'逾期支线',en:'delinquency'},decode:{zh:'解码字典',en:'decode'},dim:{zh:'维度/外部',en:'dim/ext'}};
 const flowEdgeColor=e=>FLOW_BRANCH_COLOR[FLOW_BRANCH[e.to]]||'#5b6b7d';
@@ -786,20 +788,24 @@ function renderFlow(){
      </div>`
    +`<div class="note" id="flow-cap" style="border-left:3px solid var(--accent);min-height:50px"></div>`
    +`<div id="flowlegend" style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin:10px 0 2px;font-size:11px;color:var(--muted)">`
-     +`<span style="color:var(--accent2)">💡 ${L({zh:'鼠标悬停某表＝高亮它的上下游连线（其余淡化）；点表＝看详情',en:'Hover a table to highlight its up/downstream edges (others fade); click for details'})}</span>`
+     +`<span style="color:var(--accent2)">💡 ${L({zh:'鼠标悬停某表＝高亮它的整条上下游血缘链（全部 n 跳，其余淡化）；点表＝看详情',en:'Hover a table to highlight its full up/downstream lineage chain (all n hops; others fade); click for details'})}</span>`
      +Object.keys(FLOW_BRANCH_LABEL).map(k=>`<span style="display:inline-flex;align-items:center;gap:4px"><span style="width:14px;height:3px;border-radius:2px;background:${FLOW_BRANCH_COLOR[k]};display:inline-block"></span>${L(FLOW_BRANCH_LABEL[k])}</span>`).join('')
    +`</div>`
    +`<div id="flow-svg-wrap" style="overflow:auto;margin-top:8px"></div>`;
   buildFlowModes(); flowStep=0; flowDraw();
 }
-// hover a flow node -> highlight only its connected edges + adjacent nodes, fade the rest (de-clutter)
+// hover a flow node -> highlight its FULL up/downstream lineage chain (all n hops, transitive), fade the rest
 function applyFlowHover(){
   const svg=document.getElementById('flow-svg'); if(!svg)return;
   const edges=svg.querySelectorAll('path.fedge'), nodes=svg.querySelectorAll('g.fbox');
   if(flowHoverId==null){ edges.forEach(p=>{p.style.opacity='';p.style.strokeWidth='';}); nodes.forEach(g=>g.style.opacity=''); return; }
+  // transitive reachable set: all ancestors (upstream) + all descendants (downstream), not just direct neighbors
+  const fwd={},bwd={}; FLOW_EDGES.forEach(e=>{ (fwd[e.from]=fwd[e.from]||[]).push(e.to); (bwd[e.to]=bwd[e.to]||[]).push(e.from); });
   const nb=new Set([flowHoverId]);
-  edges.forEach(p=>{ const f=p.getAttribute('data-from'),t=p.getAttribute('data-to'),lit=(f===flowHoverId||t===flowHoverId);
-    p.style.opacity=lit?'1':'0.05'; p.style.strokeWidth=lit?'2.8':''; if(lit){nb.add(f);nb.add(t);} });
+  let st=[flowHoverId]; while(st.length){ const c=st.pop(); (fwd[c]||[]).forEach(x=>{ if(!nb.has(x)){nb.add(x);st.push(x);} }); }
+  st=[flowHoverId]; while(st.length){ const c=st.pop(); (bwd[c]||[]).forEach(x=>{ if(!nb.has(x)){nb.add(x);st.push(x);} }); }
+  edges.forEach(p=>{ const f=p.getAttribute('data-from'),t=p.getAttribute('data-to'),lit=nb.has(f)&&nb.has(t);
+    p.style.opacity=lit?'1':'0.05'; p.style.strokeWidth=lit?'2.2':''; });
   nodes.forEach(g=>{ const r=g.querySelector('rect[data-nid]'),nid=r&&r.getAttribute('data-nid'); g.style.opacity=nb.has(nid)?'1':'0.22'; });
 }
 function buildFlowModes(){
@@ -813,8 +819,12 @@ function flowDraw(){
   const P=flowPos(), maxRow=Math.max.apply(null,COLN.map(c=>c.length));
   const W=colX(COLN.length-1)+NW+20, H=TOP+maxRow*(NH+VG)+16;
   const svg=fEl('svg',{id:'flow-svg',width:W,height:H,style:'background:#0b0e12;border:1px solid var(--border);border-radius:10px'});
-  const defs=fEl('defs',{}); defs.innerHTML='<marker id="fah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#9aa6b4"></path></marker>'
-    +'<marker id="fah2" markerWidth="10" markerHeight="10" refX="8" refY="3.2" orient="auto"><path d="M0,0 L8,3.2 L0,6.4 Z" fill="#9aa6b4"></path></marker>'; svg.appendChild(defs);
+  const defs=fEl('defs',{});
+  // small, fixed-size (userSpaceOnUse → not scaled by stroke-width) arrowheads, one per branch color so the
+  // arrow matches its line color and reads as connected to the thin curve (no oversized detached grey triangle)
+  const _mk=Object.assign({},FLOW_BRANCH_COLOR,{_def:'#9aa6b4',_lit:'#cfe8ff'});
+  defs.innerHTML=Object.keys(_mk).map(k=>`<marker id="fa_${k}" markerUnits="userSpaceOnUse" markerWidth="7" markerHeight="7" refX="6" refY="2.4" orient="auto"><path d="M0,0 L6,2.4 L0,4.8 Z" fill="${_mk[k]}"></path></marker>`).join('');
+  svg.appendChild(defs);
   const seq=flowSeq(), stepMode=(flowMode==='D');
   const curId=seq[flowStep], curOrd=FLOW_ORDER.indexOf(curId);
   // column headers (layer + plat)
@@ -829,7 +839,7 @@ function flowDraw(){
     const x1=a.x+NW,y1=a.y+NH/2,x2=b.x,y2=b.y+NH/2,mx=(x1+x2)/2;
     const d=`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
     let w=1.4; if(flowMode==='C') w=Math.max(1.4,(FLOW_VOL[e.to]||2)*1.4);
-    const p=fEl('path',{d,fill:'none',stroke:lit?'var(--accent)':flowEdgeColor(e),'stroke-width':lit?3:w,'marker-end':'url(#fah)',class:'fedge','data-from':e.from,'data-to':e.to});
+    const p=fEl('path',{d,fill:'none',stroke:lit?'var(--accent)':flowEdgeColor(e),'stroke-width':lit?3:w,'marker-end':'url(#fa_'+(lit?'_lit':(FLOW_BRANCH[e.to]||'_def'))+')',class:'fedge','data-from':e.from,'data-to':e.to});
     if(lit)p.setAttribute('filter','drop-shadow(0 0 3px rgba(120,200,255,.6))');
     else p.setAttribute('opacity','0.5');
     svg.appendChild(p);
@@ -854,7 +864,7 @@ function flowDraw(){
   sameColEdges.forEach((e,li)=>{ const a=P[e.from],b=P[e.to]; const lit=stepMode&&e.to===curId;
     const ax=a.x,ay=a.y+NH/2,bx=b.x,by=b.y+NH/2,gx=a.x-14-li*7;   // exit left of source, curve through gutter lane, enter left of target
     const d=`M${ax},${ay} C${gx},${ay} ${gx},${by} ${bx},${by}`;
-    const p=fEl('path',{d,fill:'none',stroke:lit?'var(--accent)':flowEdgeColor(e),'stroke-width':lit?3:1.9,'marker-end':'url(#fah2)','data-ge':e.from+'>'+e.to,class:'fedge','data-from':e.from,'data-to':e.to});
+    const p=fEl('path',{d,fill:'none',stroke:lit?'var(--accent)':flowEdgeColor(e),'stroke-width':lit?3:1.4,'marker-end':'url(#fa_'+(lit?'_lit':(FLOW_BRANCH[e.to]||'_def'))+')','data-ge':e.from+'>'+e.to,class:'fedge','data-from':e.from,'data-to':e.to});
     if(lit)p.setAttribute('filter','drop-shadow(0 0 3px rgba(120,200,255,.6))');
     else p.setAttribute('opacity',stepMode?'0.55':'0.92');
     svg.appendChild(p);
@@ -1443,7 +1453,7 @@ function bkF(id,col,label,biz,nz,nzTbl,calc,note){
   line.push(nz?{r:'rNz',p:FN+(nzTbl||'portnewrezbk')+'.'+nz}:{r:'rNz',p:'—（待确认 / TBD）'});
   addF(id,{label,biz,calc,line,code:'asset_managment_config.py GEN_FORECLOSURE_BK',note:note||null,fill:null,range:null});
 }
-bkF('bk_status','bankruptcy_status',{en:'Status',zh:'Status 破产状态'},{en:'Bankruptcy status text (decoded).',zh:'破产状态文本（已解码）。'},'bkstatus',null,{en:'ETL decode: 1→Active,2→Discharged,3→Dismissed,4→Closed,5→ReliefGranted',zh:'ETL 解码：1→Active,2→Discharged,3→Dismissed,4→Closed,5→ReliefGranted'});
+bkF('bk_status','bankruptcy_status',{en:'Status',zh:'Status 破产状态'},{en:'Bankruptcy status text (decoded).',zh:'破产状态文本（已解码）。'},'bkstatus',null,{en:'datadic JOIN decode (COALESCE(description,bkstatus) via LEFT JOIN newrez.portnewrezdatadic[BKStatus]; dict values: 1→Active,2→Discharged,3→Dismissed,4→Closed,5→ReliefGranted; code pool:354/367) — same mechanism as LM, NOT ETL-hardcoded',zh:'datadic JOIN 解码（COALESCE(description,bkstatus)，LEFT JOIN newrez.portnewrezdatadic[BKStatus]；字典值：1→Active,2→Discharged,3→Dismissed,4→Closed,5→ReliefGranted；代码 pool:354/367）— 同 LM 机制，非 ETL 硬编码'});
 bkF('bk_legal','legal_status',{en:'Legal Status',zh:'Legal Status 法律状态'},{en:'Legal status text (FCBU/BK13/BK7/...).',zh:'法律状态文本（FCBU/BK13/BK7/…）。'},'legalstatus','portnewrezgeneral',{en:'Direct text — actually from portnewrezgeneral.legalstatus (not a bkstage decode)',zh:'直接取文本 — 实际源为 portnewrezgeneral.legalstatus（非 bkstage 解码）'},{en:'Live-schema confirmed: source is newrez.portnewrezgeneral.legalstatus.',zh:'已 live schema 确认：源为 newrez.portnewrezgeneral.legalstatus。'});
 bkF('bk_statusdt','status_date',{en:'Status Date',zh:'Status Date 状态日期'},{en:'Bankruptcy FILING date (not the current-status date).',zh:'破产【申请日】（非当前状态生效日）。'},'bkfileddate',null,DIRECT,{en:'Source is bkfileddate, NOT bkrcurrentstatusdate — code + doc 13 v30 + doc 30 verified; bkrcurrentstatusdate is mostly NULL in dev.',zh:'来源是 bkfileddate，非 bkrcurrentstatusdate — 代码 + doc 13 v30 + doc 30 核实；bkrcurrentstatusdate 在 dev 多为 NULL。'});
 bkF('bk_chapter','chapter',{en:'Chapter',zh:'Chapter 破产章节'},{en:'Bankruptcy chapter (7/11/13).',zh:'破产章节（7/11/13）。'},'bkchapter',null,DIRECT);
@@ -1839,7 +1849,7 @@ function doc14FieldSQL(f){
     +`-- 源表 newrez.${table}.${col} | 运行 mysql_prod | 最新快照 dataasof=MAX\n`
     +`SELECT dataasof AS data_date, ${col} AS val, COUNT(*) AS cnt\nFROM   newrez.${table}\nWHERE  dataasof = (SELECT MAX(dataasof) FROM newrez.${table})\n  AND  ${col} IS NOT NULL AND ${col} != ''\nGROUP  BY dataasof, ${col} ORDER BY cnt DESC LIMIT 30;`;
 }
-function selectField(id){
+function selectField(id,opts){
   activeSel={type:'field',id}; renderView();
   const f=FIELDS[id]; const d=document.getElementById('drawer');
   if(!f){drawerEmpty();return;}
@@ -1849,12 +1859,17 @@ function selectField(id){
   if(f.calc) h+=`<div class="sec"><h3>${t('fCalc')}</h3><div class="lin"><code>${esc(L(f.calc))}</code></div></div>`;
   h+=`<div class="sec"><h3>${t('fLineage')}</h3>`;
   h+=`<div class="kv" style="color:var(--muted);font-size:11px;margin-bottom:6px">${L({zh:'数据生产方向：从上到下 = 源 → BPS（上＝最初来源，下＝最终进入 BPS）',en:'Production direction: top → bottom = source → BPS (top = original source, bottom = final in BPS)'})}</div>`;
-  h+=miniLineageSVG(f);
-  // list hops top→bottom in production order (source first, BPS last) — matches the SVG above
-  [...f.line].reverse().forEach(hp=>{
-    const copyable=hp.p&&hp.p.indexOf('—')!==0;
-    h+=`<div class="linehop"><span class="lkrole">${t(hp.r)}</span><span class="lkpath">${esc(hp.p)}</span>`+(copyable?`<button class="copy2" onclick="copyText(this,'${hp.p}')">copy</button>`:'')+`</div>`;
-  });
+  if(opts&&opts.hops){
+    // accurate per-hop lineage from GLIN (each edge = its real rule; includes intermediate tables)
+    h+=glinMiniSVG(opts.hops);
+  } else {
+    h+=miniLineageSVG(f);
+    // list hops top→bottom in production order (source first, BPS last) — matches the SVG above
+    [...f.line].reverse().forEach(hp=>{
+      const copyable=hp.p&&hp.p.indexOf('—')!==0;
+      h+=`<div class="linehop"><span class="lkrole">${t(hp.r)}</span><span class="lkpath">${esc(hp.p)}</span>`+(copyable?`<button class="copy2" onclick="copyText(this,'${hp.p}')">copy</button>`:'')+`</div>`;
+    });
+  }
   h+=`</div>`;
   h+=famDiagram();
   if(f.range) h+=`<div class="sec"><h3>${t('fRange')}</h3><div class="kv">${L(f.range)}</div></div>`;
@@ -2018,13 +2033,23 @@ function renderGraph(){
   // component for an isolated node (no edges).
   let lit=null, litEdges=null;
   if(graphFocus){
-    const fset=new Set();
-    g.edges.forEach(e=>{ if(e.from===graphFocus||e.to===graphFocus) e.fields.forEach(f=>fset.add(f)); });
-    if(fset.size){
-      lit=new Set([graphFocus]); litEdges=new Set();
-      g.edges.forEach(e=>{ if(e.fields.some(f=>fset.has(f))){ lit.add(e.from); lit.add(e.to); litEdges.add(e.from+'>>'+e.to); } });
+    const _fn=g.nodes.find(n=>n.id===graphFocus), isTbl=_fn&&_fn.kind!=='field';
+    if(isTbl){
+      // table focus: highlight only its DIRECT upstream + downstream tables (1 hop) + connecting edges.
+      // seed from the whole table group (table id + its field ids) so it works expanded or collapsed.
+      const seeds=new Set(g.nodes.filter(n=>n.group===graphFocus).map(n=>n.id));
+      lit=new Set(seeds); litEdges=new Set();
+      g.edges.forEach(e=>{ if(seeds.has(e.from)){ lit.add(e.to); litEdges.add(e.from+'>>'+e.to); }
+                           if(seeds.has(e.to)){ lit.add(e.from); litEdges.add(e.from+'>>'+e.to); } });
     } else {
-      lit=new Set([graphFocus]); const adj={}; g.edges.forEach(e=>{ (adj[e.from]=adj[e.from]||[]).push(e.to); (adj[e.to]=adj[e.to]||[]).push(e.from); }); const st=[graphFocus]; while(st.length){ const c=st.pop(); (adj[c]||[]).forEach(x=>{ if(!lit.has(x)){lit.add(x);st.push(x);} }); }
+      const fset=new Set();
+      g.edges.forEach(e=>{ if(e.from===graphFocus||e.to===graphFocus) e.fields.forEach(f=>fset.add(f)); });
+      if(fset.size){
+        lit=new Set([graphFocus]); litEdges=new Set();
+        g.edges.forEach(e=>{ if(e.fields.some(f=>fset.has(f))){ lit.add(e.from); lit.add(e.to); litEdges.add(e.from+'>>'+e.to); } });
+      } else {
+        lit=new Set([graphFocus]); const adj={}; g.edges.forEach(e=>{ (adj[e.from]=adj[e.from]||[]).push(e.to); (adj[e.to]=adj[e.to]||[]).push(e.from); }); const st=[graphFocus]; while(st.length){ const c=st.pop(); (adj[c]||[]).forEach(x=>{ if(!lit.has(x)){lit.add(x);st.push(x);} }); }
+      }
     }
   } else if(graphCatFilter){
     // legend-click: highlight every edge of this rule category + the nodes it connects
@@ -2071,8 +2096,8 @@ function renderGraph(){
 }
 function graphNodeClick(id,kind){
   const nk=ORIGIN_IDS.has(id)?id:id.split('.').pop();  // table short-name (or origin id) -> GNOTE key
-  if(kind==='thead'){ graphExpanded.delete(id); renderGraph(); selectGNote(nk,'table'); return; }
-  if(kind==='table'){ if(ORIGIN_IDS.has(id)){ graphCatFilter=null; graphFocus=id; renderGraph(); selectGNote(id,'origin'); return; } if(graphExpanded.has(id)) graphExpanded.delete(id); else graphExpanded.add(id); renderGraph(); selectGNote(nk,'table'); }
+  if(kind==='thead'){ graphExpanded.delete(id); graphCatFilter=null; graphFocus=id; renderGraph(); selectGNote(nk,'table'); return; }
+  if(kind==='table'){ if(ORIGIN_IDS.has(id)){ graphCatFilter=null; graphFocus=id; renderGraph(); selectGNote(id,'origin'); return; } if(graphExpanded.has(id)) graphExpanded.delete(id); else graphExpanded.add(id); graphCatFilter=null; graphFocus=id; renderGraph(); selectGNote(nk,'table'); }
   else { graphCatFilter=null; graphFocus=id; renderGraph(); selectGField(id); }
 }
 function graphToggleSys(on){ graphShowSys=!!on; GSEARCH_IDX=null; renderGraph(); }
@@ -2112,17 +2137,40 @@ function glinMiniSVG(hops){
     if(i>0){ const rule=(hs[i].rule==null?'':hs[i].rule)+''; const rp=rule?rulePlain(rule):null;
       s+=`<div class="hlin-edge">▼ <code>${esc(rule||'')}</code>`+(rp?` <span class="rplain">💡 ${L(rp)}${rp.formula?` · <span class="rformula">${esc(rp.formula)}</span>`:''}</span>`:'')+`</div>`; }
     const col=NODE_DB_COLOR[_glDb(h.t)]||'#888';
-    s+=`<div class="hlin-box" style="border-color:${col}"><span class="hlin-db">${esc(_glDbName(h.t))}</span> ${hopCol(h.t,h.c)}</div>`;
+    s+=`<div class="hlin-box" style="border-color:${col}">${hopCol(h.t,h.c)}</div>`;
   });
   return s+'</div>';
 }
 // GLIN 增量段：逐跳规则表 + 取数 SQL + 规则说明/示例 + servicers（withSvg 时加 mini-SVG）
+// code citations: pool/asset = PrefectFlow source files; number after ':' = line number. Make them clickable + explained.
+const GLIN_COMMIT='32a750a39c7eda989de991c47467979043e3d209';
+const GLIN_CODE_FILE={pool:'flow/basic_data/basic_data_config/basic_data_pool_config.py',asset:'flow/bps/bps_config/asset_managment_config.py'};
+function glinCodeCell(code){
+  if(!code) return '';
+  const m=(''+code).match(/^(pool|asset|view)(?::(.+))?$/);
+  if(!m) return esc(code);
+  const kind=m[1], spec=m[2]||'';
+  if(kind==='view') return `<span title="${esc(L({zh:'BPS 视图 biz_data_view_loan_details_foreclosure 的定义 (SHOW CREATE VIEW)',en:'BPS view biz_data_view_loan_details_foreclosure definition (SHOW CREATE VIEW)'}))}">view</span>`;
+  const first=(spec.match(/\d+/)||[''])[0];
+  const url='https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/'+GLIN_COMMIT+'/'+GLIN_CODE_FILE[kind]+(first?('#L'+first):'');
+  const tip=GLIN_CODE_FILE[kind]+(first?(' · '+L({zh:'冒号后数字=行号',en:'number after colon = line number'})):'');
+  return `<a href="${url}" target="_blank" rel="noopener" title="${esc(tip)}" style="color:var(--accent2)">${esc(code)}</a>`;
+}
+function glinCodeLegend(){
+  const c=(GLIN.meta&&GLIN.meta.code_legend)||{};
+  return `<div class="note" style="font-size:11px;line-height:1.7;margin-top:6px">`
+    +`<b>${L({zh:'code 列＝转换规则在 PrefectFlow 代码中的出处',en:'code = where the rule lives in PrefectFlow source'})}：</b><br>`
+    +`· <b>pool</b> = <code>${esc(c.pool||GLIN_CODE_FILE.pool)}</code> —— ${L({zh:'ETL 在 Redshift 建 FCL 各表 / 跑 SQL 规则的代码',en:'ETL code that builds the FCL tables / runs SQL in Redshift'})}<br>`
+    +`· <b>asset</b> = <code>${esc(c.asset||GLIN_CODE_FILE.asset)}</code> —— ${L({zh:'把 Redshift 结果同步进 BPS 表的 SQL 代码',en:'SQL that syncs Redshift results into the BPS tables'})}<br>`
+    +`· <b>view</b> = ${L({zh:'BPS 视图 biz_data_view_loan_details_foreclosure 的定义（SHOW CREATE VIEW）',en:'definition of the BPS view biz_data_view_loan_details_foreclosure (SHOW CREATE VIEW)'})}<br>`
+    +`· ${L({zh:'冒号后数字 = 该文件的行号（点击跳 GitLab 源码对应行）',en:'number after the colon = line number in that file (click to open the source line on GitLab)'})}</div>`;
+}
 function glinExtra(f,withSvg){
   const st=GL_STATUS[f.status]; let h='';
   if(withSvg) h+=`<div class="sec"><h3>${L({zh:'数据血缘（源 → BPS）',en:'Lineage (source → BPS)'})}</h3>`+glinMiniSVG(f.hops)+`</div>`;
   h+=`<div class="sec"><h3>${L({zh:'逐跳转换规则',en:'Per-hop transform rules'})}</h3>`+(st?statMeta(`<span style="color:${st.c}">●</span> ${L(st)}`):'')
     +`<table class="mini"><tr><th>${L({zh:'表.列',en:'table.column'})}</th><th>rule</th><th>code</th></tr>`
-    +(f.hops||[]).map(hp=>{const rp=rulePlain(hp.rule);return `<tr><td>${hopCol(hp.t,hp.c)}</td><td>${esc(hp.rule||'')}`+(rp?`<div class="rplain">💡 ${L(rp)}${rp.formula?` · <span class="rformula">${esc(rp.formula)}</span>`:''}</div>`:'')+`</td><td style="color:var(--muted)">${esc(hp.code||'')}</td></tr>`;}).join('')+`</table></div>`;
+    +(f.hops||[]).map(hp=>{const rp=rulePlain(hp.rule);return `<tr><td>${hopCol(hp.t,hp.c)}</td><td>${esc(hp.rule||'')}`+(rp?`<div class="rplain">💡 ${L(rp)}${rp.formula?` · <span class="rformula">${esc(rp.formula)}</span>`:''}</div>`:'')+`</td><td style="color:var(--muted)">${glinCodeCell(hp.code)}</td></tr>`;}).join('')+`</table>`+glinCodeLegend()+`</div>`;
   if(f.sql) h+=`<div class="sec"><h3>${L({zh:'取数 SQL（doc 25–31）',en:'Fetch SQL (doc 25–31)'})}</h3><div class="sqlwrap"><button class="copy" onclick="copySql(this)">${t('copy')}</button><pre>${esc(f.sql)}</pre></div></div>`;
   if(f.sql_note) h+=`<div class="sec"><h3>${L({zh:'规则说明',en:'Rule note'})}</h3><div class="kv" style="white-space:pre-wrap">${L(f.sql_note)}</div></div>`;
   if(f.sql_eg) h+=`<div class="sec"><h3>${L({zh:'实测样例',en:'Worked example'})}</h3><div class="kv" style="white-space:pre-wrap">${L(f.sql_eg)}</div></div>`;
@@ -2135,7 +2183,7 @@ function showGField(f){
   const bh=hops.find(h=>h.t==='bpms.'+f.bps_table)||hops[hops.length-1];
   const fid=fieldByBps()['bpms.'+f.bps_table+'.'+(bh?bh.c:'')];
   if(fid && FIELDS[fid]){
-    selectField(fid);   // 完整恢复旧富抽屉（业务/计算逻辑/mini-SVG/famDiagram/取数SQL/range/spec/fill/doc14/为什么这样建模）
+    selectField(fid,{hops:f.hops});   // 富抽屉（业务/计算逻辑/famDiagram/SQL/range/spec/fill/doc14）+ 迷你血缘改用准确的 GLIN 逐跳（每条边=真实规则、含中间表）
     const body=d.querySelector('.d-body');
     if(body) body.insertAdjacentHTML('beforeend',
       `<div class="sec" style="border-top:1px solid var(--border);margin-top:8px;padding-top:10px"><h3>${L({zh:'🔗 逐跳血缘规则（doc 25–31 真源）',en:'🔗 Per-hop lineage rules (doc 25–31)'})}</h3></div>`+glinExtra(f,false));
@@ -2181,7 +2229,13 @@ function scrollGraphTo(id){
   try{ sc.scrollTo({left:Math.max(0,left),top:Math.max(0,top),behavior:'smooth'}); }
   catch(_){ sc.scrollLeft=Math.max(0,left); sc.scrollTop=Math.max(0,top); }
 }
-function focusGraphField(f){ graphCatFilter=null; graphExpanded.add(f.table); graphFocus=f.id; renderGraph(); scrollGraphTo(f.id); selectGField(f.id); }
+function focusGraphField(f){ graphCatFilter=null; graphExpanded.add(f.table);
+  // expand EVERY table on this field's lineage chain so the related field shows (expanded) at each stage.
+  // look the field up in GLIN.fields by matching a hop == f.id (independent of current expansion;
+  // GLIN_BY_NODE only holds currently-expanded nodes, so it's unreliable for a not-yet-expanded table).
+  const gf=(GLIN&&GLIN.fields||[]).find(x=>(x.hops||[]).some(h=>h.t&&(h.t+'.'+h.c)===f.id)) || GLIN_BY_NODE[f.id];
+  if(gf&&gf.hops) gf.hops.forEach(h=>{ if(h.t&&!isPh(h.t)) graphExpanded.add(h.t); });
+  graphFocus=f.id; renderGraph(); scrollGraphTo(f.id); selectGField(f.id); }
 function focusGraphTable(id,short){ graphCatFilter=null; graphFocus=id; renderGraph(); scrollGraphTo(id); selectGNote(short,'table'); }
 function graphSearch(q){
   q=(q||'').trim(); if(!q) return; const idx=graphSearchIndex(), ql=q.toLowerCase();

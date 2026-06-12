@@ -1,0 +1,77 @@
+{
+  "_meta": {
+    "purpose": "doc 32 逐表 sheet「计算逻辑/mapping rule」列的缺口补充（lineage hop 未覆盖处）。content；脚本只排版。来源 Code-First：basic_data_pool_config.py / asset_managment_config.py + doc 33 §2.5。",
+    "version": "v1 2026-06-11"
+  },
+  "table_default": {
+    "tempfc.temp_basic_data_fcl": "servicer raw 经 CREATE_BASIC_FCL 三家 UNION（pool:1533-1654）：多为同名直传，部分改名(见字段级)，servicer/noi_date 等为常量",
+    "port.basic_data_loan_fcl": "= temp_basic_data_fcl.*（pool:1658）+ Hold 槽位 join；继承 temp 的直传/改名",
+    "port.basic_data_loan_foreclosure": "由 basic_data_loan_fcl 投影 GEN_FCL_DETAIL（pool:253-305）；取每 servicer MAX(dataasof) 最新快照",
+    "bpms.sync_loan_foreclosure": "由 basic_data_loan_foreclosure 经 GEN/UPDATE_FORECLOSURE upsert 同步（asset:535-760）",
+    "bpms.biz_data_view_loan_details_foreclosure": "视图：透传 sync_loan_foreclosure 列 + 实时计算 actual/var 天数"
+  },
+  "system_cols": ["create_user","create_dept","create_time","update_user","update_time","status","is_deleted","tenant_id","id","fctrdt"],
+  "system_rule": "BPS app/ETL 审计/系统列（非业务映射；create_time/update_time 实测 NULL）",
+  "view_prefix": {
+    "actual_": "TO_DAYS(timeline_<X>) − TO_DAYS(nextduedate)（视图实时算，nextduedate 来自 sync_portmonth；详见 doc 33 §2.5 / LT20）",
+    "var_": "actual_<X> − Σ(target_i, i≤X) 累积差（视图；LT21）",
+    "target_": "SLA 默认常量（配置/视图；主表此列 commented out→NULL；LT06）"
+  },
+  "view_passthrough_rule": "透传自 bpms.sync_loan_foreclosure（视图 SELECT；同名）",
+  "field_rule": {
+    "tempfc.temp_basic_data_fcl": {
+      "referral_start_date": "改名自 fcreferraldate (pool:1544)",
+      "svc_loanid": "改名自 shellpointloanid (pool:1537)",
+      "svc_days_infc": "改名自 smsdaysinfc (pool:1545)",
+      "legal_start_date": "改名自 firstlegaldate (pool:1549)",
+      "service_start_date": "改名自 servicecompletedate (pool:1550；SERVICE 阶段起点，非送达完成日)",
+      "fcjudgment_hearing_scheduled": "改名自 fcjudgmenthearingscheduled (pool:1551)",
+      "fcjudgment_end_date": "改名自 fcjudgmententered (pool:1552；ETL 预留列，未进 BPS)",
+      "fcscheduled_sale_date": "改名自 fcscheduledsaledate (pool:1553)",
+      "fcsale_held_date": "改名自 fcsalehelddate (pool:1554)",
+      "noi_date": "常量 NULL（Newrez 不报；仅 Capecodfive 有真值 pool:1624）",
+      "activefcflag": "cast(int)；Carr/CC5 为 CASE fcl_flag/foreclosure_flag='Active'→1 (pool:1538/1579/1620)",
+      "servicer": "常量 'Newrez'/'Carrington'/'Capecodfive'（UNION 分支 pool:1536/1577/1618）",
+      "daysinfc": "Newrez 直传；Carr/CC5 计算 datediff(referral, snap)+1 (pool:1587/1628)",
+      "fcstage": "Newrez 直传 fcstage；Carr 取 fcl_sub_status；CC5 NULL (pool:1560/1601/1642)",
+      "fcresults": "直传自 fcresults（pool:1559）；本身不进 BPS，仅作下游 timeline_third_party_sold 的判定条件(fcresults='3rd Party')",
+      "fcapprbidprice": "直传自 fcapprbidprice（核准竞价价 pool:1556）；下游 BPS 未使用"
+    },
+    "port.basic_data_loan_fcl": {
+      "fcresults": "继承 temp（直传 fcresults）；仅作 timeline_third_party_sold 条件(pool:270)，本身不进 BPS",
+      "fcapprbidprice": "继承 temp（直传 fcapprbidprice）；核准竞价价，下游 BPS 未使用",
+      "referral_start_date": "继承 temp（改名自 fcreferraldate, pool:1544）",
+      "legal_start_date": "继承 temp（改名自 firstlegaldate）",
+      "service_start_date": "继承 temp（改名自 servicecompletedate）",
+      "fcjudgment_hearing_scheduled": "继承 temp（改名自 fcjudgmenthearingscheduled）",
+      "fcscheduled_sale_date": "继承 temp（改名自 fcscheduledsaledate）",
+      "fcsale_held_date": "继承 temp（改名自 fcsalehelddate）",
+      "fcjudgment_end_date": "继承 temp（改名自 fcjudgmententered；ETL 预留）",
+      "noi_date": "常量 NULL（Newrez；CC5 有值）",
+      "fchold1description": "Hold 槽位 join (pool:1661)"
+    },
+    "bpms.biz_data_view_loan_details_foreclosure": {
+      "nextduedate": "join sync_portmonth（actual/var 天数计算基准）",
+      "svcloanid": "透传自 sync_loan_foreclosure"
+    }
+  },
+  "eg_by_keyword": {
+    "首见": "例 7727003984：projected=2026-06-30(当前值) / set=2026-05-22(首见 min(dataasof))",
+    "min(dataasof": "例 7727003984：set_date=2026-05-22(当前拍卖日首见日)",
+    "datadic": "例 bkstatus 1→Active（LEFT JOIN portnewrezdatadic[BKStatus]）",
+    "解码": "例 LMStatus 166→'Pending Financials'（datadic 解码）",
+    "TO_DAYS": "例 7727000065：TO_DAYS(timeline_first_legal)−TO_DAYS(nextduedate)",
+    "累积差": "例 var=actual−Σtarget(到本里程碑)",
+    "Σ": "例 var_X=actual_X−Σ(target≤X)",
+    "datediff": "例 referral_stage_days=datediff(start,end或curr)+1",
+    "CONCAT": "例 activefcflag=0&desc→'Closed Foreclosure:Reinstated'",
+    "Closed Foreclosure": "例 7727000367→'Closed Foreclosure:Loss Mitigation'",
+    "COALESCE": "例 timeline_foreclosure_completed=COALESCE(dtdeedrecorded, fcremovaldate)",
+    "unpivot": "例 7727004408：fchold1..4 宽列→长表 20 行",
+    "Hold 槽": "例 7727004408：Hold 槽位→长表",
+    "取反": "例 activefcflag=0→summary_completed_foreclosure=1",
+    "days360": "例 days360(nextduedate, asof)<90→'D60'",
+    "瀑布": "例 有 sale→SALE；否则 judgment→JUDGEMENT；…→DEMAND",
+    "datediff(referral": "例 Carr/CC5：datediff(referral, snap)+1"
+  }
+}

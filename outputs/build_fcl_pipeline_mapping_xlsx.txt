@@ -76,6 +76,91 @@ def layer_tag(meta_key):
     return 'mid'   # port.* / tempfc.*
 NUM = {k: T[k]['num'] for k in T}
 
+# ---- 字段 → logic-type (LT01–LT30 / SYS) 分类器（family + 字段名 + 规则文本）----
+def classify_lt(family, fname, blob):
+    f=(fname or '').lower(); b=(blob or '').lower(); fam=family or ''
+    if 'min(dataasof' in b or '首见' in b or f.endswith('_set_date'): return 'LT16'
+    if 'listagg' in b or 'date_history' in f: return 'LT17'
+    if f.startswith('actual_') or 'view actual' in b: return 'LT20'
+    if f.startswith('var_'): return 'LT21'
+    if fam=='stage_days':
+        if 'in_lm' in f: return 'LT24'
+        if 'on_hold' in f: return 'LT23'
+        return 'LT19'
+    if f in ('summary_days_in_fcl','summary_sms_days_in_fcl'): return 'LT18'
+    if fam=='target': return 'LT06'
+    if fam=='bid': return 'LT30'
+    if fam=='variance': return 'LT25' if 'estimated_hold' in f else 'LT29'
+    if fam=='hold': return 'LT26'
+    if fam=='lm':
+        return 'LT10' if any(k in f for k in ('deal','program','status','disposition','denial','intention','reason')) else 'LT27'
+    if fam=='bk':
+        return 'LT10' if ('status' in f and 'legal' not in f) else 'LT28'
+    if fam=='system': return 'SYS'
+    if fam=='stage_dim':
+        if f=='stage' or 'stage'==f: return 'LT22'
+        if 'group' in f or 'del' in f: return 'LT15'
+        if 'judicial' in f: return 'LT11'
+        return 'LT02'
+    if f=='stage': return 'LT22'
+    if fam=='stage_date': return 'LT16' if ('available' in f or f.endswith('_set_date')) else 'LT02'
+    if fam=='summary':
+        if f=='summary_type' or f=='summary_foreclosure_status': return 'LT11'
+        if f=='summary_current_step': return 'LT12'
+        if f=='summary_completed_foreclosure': return 'LT07'
+        if f=='summary_servicer_number': return 'LT02'
+        if f=='summary_judicial_foreclosure': return 'LT03'
+    if fam=='milestone':
+        if 'foreclosure_completed' in f: return 'LT08'
+        if 'third_party_sold' in f: return 'LT09'
+        return 'LT02'
+    if fam=='identity':
+        return 'LT02' if ('svc' in f or 'servicer_number' in f) else 'LT01'
+    if 'datadic' in b or 'decode' in b or '解码' in b: return 'LT10'
+    if 'coalesce' in b: return 'LT08'
+    if 'concat' in b: return 'LT04'
+    if 'cast' in b: return 'LT03'
+    if 'days360' in b: return 'LT13'
+    if 'case' in b or '取反' in b: return 'LT11'
+    if 'rename' in b or '改名' in b: return 'LT02'
+    if 'null' in b and ('未填' in b or 'not populated' in b or 'design' in b or '常量' in b): return 'LT05'
+    if 'union' in b: return 'LT30'
+    return 'LT01'
+LLM = CV.get('loan_logic_map', {})   # loanid → "LT..,LT.." 反向标注
+
+# ---- 逐表「计算逻辑/mapping rule」列：hop 索引 + 缺口补 + 非直传举例 ----
+RX = json.load(open(B+'fcl_field_rules_extra.json', encoding='utf-8'))
+hop_idx = {}
+for _f in L['fields']:
+    _hops=_f.get('hops',[])
+    for _i,_h in enumerate(_hops):
+        _t=str(_h.get('t','')); _c=str(_h.get('c','')); _r=_h.get('rule','') or ''
+        if not _t or not _c or (_t,_c) in hop_idx: continue
+        _up=_hops[_i-1] if _i>0 else None; _ups=str(_up.get('c','')) if _up else 'servicer raw'
+        _seg=_r
+        if _up and _r and any(k in _r.lower() or k in _r for k in ('直传','改名','passthrough','rename','direct copy','pass-through')):
+            _seg=_r+'（自 '+_ups+'）'
+        if _h.get('code'): _seg=(_seg+' ['+_h['code']+']') if _seg else _h['code']
+        hop_idx[(_t,_c)]=_seg
+def eg_for(rule):
+    r=rule or ''
+    for k,v in RX.get('eg_by_keyword',{}).items():
+        if k in r: return v
+    return ''
+def rule_for(meta_key, field):
+    if (meta_key, field) in hop_idx: return hop_idx[(meta_key, field)], 'hop'
+    fr=RX.get('field_rule',{}).get(meta_key,{})
+    if field in fr: return fr[field], 'extra'
+    if meta_key=='bpms.biz_data_view_loan_details_foreclosure':
+        for pre,tmpl in RX.get('view_prefix',{}).items():
+            if field.startswith(pre): return tmpl, 'view'
+        if field.startswith(('timeline_','summary_','bid_','variance_')): return RX.get('view_passthrough_rule',''), 'view'
+    if field in RX.get('system_cols',[]): return RX.get('system_rule',''), 'sys'
+    # temp/fcl 未追踪 raw 列：点名上游同名列（CREATE_BASIC_FCL UNION 直传/改名）
+    if meta_key in ('tempfc.temp_basic_data_fcl','port.basic_data_loan_fcl'):
+        return '直传自 servicer raw 同名列 %s（CREATE_BASIC_FCL UNION，pool:1533-1654）' % field, 'default'
+    return RX.get('table_default',{}).get(meta_key,''), 'default'
+
 # ============================================================ ⓪ 表说明与全链路血缘（仿 doc 19 ⓪；全 23 表）
 ws = wb.create_sheet('⓪ 表说明与全链路血缘')
 H0=['表(num)','层','业务说明','业务目的','在pipeline中的作用','为什么会有这张表','何时来查','数据粒度','上游链路','全部上游表','下游链路','全部下游表','备注']
@@ -145,13 +230,14 @@ for bk in ['main','stage','hold','lm','bk']:
     line('【%s】%s' % (bk, chain))
 line('二、本工作簿读法（逻辑清晰）—— 首张「① 表清单 索引」分层列出全部页并可一键跳转', 'S')
 line('全局/导航：① 表清单 索引（分层分组+跳转）｜⓪ 表说明与全链路血缘（全 23 表总览）｜⓪b 全局Pipeline图（L1→L5 网格）。仿 doc 19。')
-line('分析视图（字母页）：A 导读·色卡·样本 / B 主表逐字段 mapping（每字段一行：L1源→L4→L5 每跳规则+转换类型+样本，可筛选）/ C 20笔生产矩阵 / D 多as-of改期演示 / E BPS截图三方对账。')
+line('分析视图（字母页）：A 导读·色卡·样本 / B 主表逐字段 mapping（每字段一行：L1源→L4→L5 每跳规则+转换类型+样本，可筛选）/ C 生产数据矩阵(样本；末列 覆盖LT#) / D 多as-of改期演示 / E BPS截图三方对账 / F 逻辑类型目录(LT01-30+M1-5+完整性体检) / G 字段级逻辑清单(每字段标LT#，字段驱动穷尽，154 字段)。')
 line('逐表页（圈号·层级标签）：②src·portnewrezfc、⑨mid·temp、⑩mid·fcl、⑪mid·foreclosure、⑱bps·sync主表、⑳bps·视图。⚠️ 圈号=全 pipeline 23 表全局编号（同 doc 19/25）；缺号是尚未纳入本 pilot 的表，Phase 2 补齐——不是排序错误。')
 line('三、as-of / 多天数据说明（已核代码+prod）', 'S')
+line('字段全限定记法 db.schema.table.field（本工作簿中单独出现的字段均标全限定出处）：Redshift=dev.<schema>.<表>.<列>（catalog 名 dev、实为 prod 集群）；MySQL/BPS 无独立 schema 层 → bpms.<表>.<列>。')
 line(EX['multiday']['rule'])
 line('projected=当前(最新)值；set_date=该当前值首次出现的 dataasof。直传/decode 字段多天恒等、取最新快照即可；仅 set/首见/天数字段需多天历史（见 D 页）。')
-line('⚠️ 「取最新」橙色边其实两套规则：首见追踪 min(dataasof)（set_date，需全历史）vs 纯取最新直传（projected、summary_last_step_completed_date=pool:284，改期不更新≠首见）。详见 doc 33 §2.5.1（D 页 7727003984 三日期对照）。')
-line('basic_data_loan_fcl 保留全部每日快照（实测 943 个 dataasof）；basic_data_loan_foreclosure=MAX(dataasof) 每贷款最新；sync 主表当前态（无 as-of 列）。')
+line('⚠️ 「取最新」橙色边其实两套规则：首见追踪 min(dataasof)（set_date，需全历史）vs 纯取最新直传（projected、bpms.sync_loan_foreclosure.summary_last_step_completed_date=pool:284，改期不更新≠首见）。详见 doc 33 §2.5.1（D 页 7727003984 三日期对照）。')
+line('dev.port.basic_data_loan_fcl 保留全部每日快照（实测 943 个 dataasof）；dev.port.basic_data_loan_foreclosure=MAX(dataasof) 每贷款最新；bpms.sync_loan_foreclosure 主表当前态（无 as-of 列）。')
 _pf=CV['pipeline_coverage_finding']
 line('六、⚠️ 管道覆盖发现（取数前必读）', 'S')
 line('%s：bpms.sync_loan_foreclosure 仅 %d 笔（%s），而 Redshift basic_data_loan_fcl 有 %d 笔（%s）。' % (_pf['title'], _pf['bpms_main_loans'], _pf['bpms_main_breakdown'], _pf['redshift_fcl_loans'], _pf['redshift_breakdown']))
@@ -163,9 +249,17 @@ for _k,_color in TYPE_COLORS.items():
     c1=ws.cell(r,1,_k); c1.fill=F(_color); c1.font=VFONT; c1.border=BORDER; c1.alignment=CENTER
     c2=ws.cell(r,2,TYPE_DEFS.get(_k,'')); ws.merge_cells(start_row=r,start_column=2,end_row=r,end_column=6); c2.font=VFONT; c2.fill=F(_color); c2.border=BORDER; c2.alignment=WRAP
     ws.row_dimensions[r].height=autoheight(TYPE_DEFS.get(_k,''),per_line=88); r+=1
-line('五、样本贷款（20 笔，最新快照；均 Newrez——主表以 Newrez 为主，Carrington/Capecodfive 见 Phase 2）', 'S')
-line('、'.join(row[0] for row in EX['sample_loans_main']))
+_nz_ids=[row[0] for row in EX['sample_loans_main']]
+_carr_ids=[cr[0] for cr in CV.get('carrington_breadth',[])]
+line('五、样本贷款清单（与「C 生产数据矩阵（样本）」一致，最新快照）—— Newrez %d 笔 + Carrington %d 笔（广度行）；Capecodfive 不进 bpms 主表（见 C 页 CC5 说明）' % (len(_nz_ids), len(_carr_ids)), 'S')
+line('Newrez（%d 笔）：%s' % (len(_nz_ids), '、'.join(_nz_ids)))
+line('Carrington（%d 笔）：%s' % (len(_carr_ids), '、'.join(_carr_ids)))
 line(EX['note_servicer_number'])
+line('七、code 列说明（rule 在 PrefectFlow 代码中的出处；B 页/逐表页 code 列同义）', 'S')
+line('pool = ETL 建表/SQL 代码 flow/basic_data/basic_data_config/basic_data_pool_config.py（在 Redshift 建 FCL 各表、跑 SQL 规则）')
+line('asset = BPS 同步 SQL 代码 flow/bps/bps_config/asset_managment_config.py（把 Redshift 结果同步进 BPS 表）')
+line('view = BPS 视图 biz_data_view_loan_details_foreclosure 的定义（SHOW CREATE VIEW）')
+line('冒号后数字 = 该文件的行号（例：pool:273 = basic_data_pool_config.py 第 273 行；代码钉 GitLab commit 32a750a3 可点开对应行）')
 set_widths(ws, [40,22,22,22,22,22]); ws.freeze_panes='A3'
 add_back_link(ws, ws.cell(r+1,1)); print('overview rows:', r)
 
@@ -197,24 +291,26 @@ ws.freeze_panes='C2'; add_autofilter(ws, header_row=1)
 print('main field rows:', len(rows))
 
 # ============================================================ C 生产数据矩阵
-ws = wb.create_sheet('C 生产数据矩阵 20 笔')
-H = EX['main_col_labels']
+ws = wb.create_sheet('C 生产数据矩阵（样本）')
+H = EX['main_col_labels'] + ['覆盖LT#']
 style_header_row(ws,1,H)
 disp=[]
 for row in EX['sample_loans_main']:
-    disp.append(['∅NULL' if v is None else v for v in row])
+    rr=['∅NULL' if v is None else v for v in row]
+    rr.append(LLM.get(str(row[0]),''))
+    disp.append(rr)
 nextr=fill_data_rows(ws,2,disp)
 # 追加 Carrington 广度行（映射到 16 列；演示其 NULL 列 + 计算 days）
 def _v(x): return '∅NULL' if x in (None,'','∅') else x
 carr=[]
 for cr in CV.get('carrington_breadth',[]):
     lid,s_status,cur,days,referred,sset,sproj,firm,note = cr
-    carr.append([lid,'Carrington','∅NULL',_v(s_status),_v(cur),_v(days),'∅NULL',_v(referred),'∅NULL','∅NULL','∅NULL','∅NULL',_v(sset),_v(sproj),_v(firm),'∅NULL'])
+    carr.append([lid,'Carrington','∅NULL',_v(s_status),_v(cur),_v(days),'∅NULL',_v(referred),'∅NULL','∅NULL','∅NULL','∅NULL',_v(sset),_v(sproj),_v(firm),'∅NULL', LLM.get(str(lid),'')])
 nextr=fill_data_rows(ws,nextr,carr)
 # CC5 说明行（CC5 不进 bpms 主表）
-cc=ws.cell(nextr,1,'Capecodfive：'+CV.get('cc5_finding','')); ws.merge_cells(start_row=nextr,start_column=1,end_row=nextr,end_column=16)
+cc=ws.cell(nextr,1,'Capecodfive：'+CV.get('cc5_finding','')); ws.merge_cells(start_row=nextr,start_column=1,end_row=nextr,end_column=17)
 cc.font=VFONT; cc.fill=F('FCE4D6'); cc.alignment=WRAP; cc.border=BORDER; ws.row_dimensions[nextr].height=autoheight(CV.get('cc5_finding',''),per_line=120)
-set_widths(ws,[16,9,11,26,30,9,9,12,12,12,14,16,14,14,30,12]); ws.freeze_panes='C2'; add_autofilter(ws,header_row=1,last_row=nextr-1)
+set_widths(ws,[16,9,11,26,30,9,9,12,12,12,14,16,14,14,30,12,16]); ws.freeze_panes='C2'; add_autofilter(ws,header_row=1,last_row=nextr-1)
 print('matrix rows: Newrez',len(disp),'+ Carrington',len(carr))
 
 # ============================================================ D 多 as-of 演示
@@ -222,10 +318,12 @@ ws = wb.create_sheet('D 多as-of 改期演示')
 r=1
 t=ws.cell(r,1,'D 跨天「改期/首见」演示 —— 为什么 set_date 与 projected 不同（只有多天历史可见）')
 ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=3); t.font=TITLEFONT; t.fill=F(DARK); t.alignment=WRAP; r+=1
-c=ws.cell(r,1,EX['multiday']['rule']); ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=3); c.font=VFONT; c.fill=F(LIGHT); c.alignment=WRAP; ws.row_dimensions[r].height=autoheight(EX['multiday']['rule'],per_line=60); r+=2
+c=ws.cell(r,1,EX['multiday']['rule']); ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=3); c.font=VFONT; c.fill=F(LIGHT); c.alignment=WRAP; ws.row_dimensions[r].height=autoheight(EX['multiday']['rule'],per_line=60); r+=1
+_dsfn='字段全限定 db.schema.table.field：Redshift = dev.<schema>.<表>.<列>（catalog 名为 dev，实为 prod 集群）；MySQL/BPS 无独立 schema，记为 bpms.<表>.<列>。'
+c=ws.cell(r,1,_dsfn); ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=3); c.font=ENDFONT; c.fill=F(LIGHT); c.alignment=WRAP; ws.row_dimensions[r].height=autoheight(_dsfn,per_line=60); r+=2
 for lid,info in EX['multiday']['loans'].items():
     c=ws.cell(r,1,'loan %s —— %s' % (lid, info['title'])); ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=3); c.font=HFONT; c.fill=F(MID); c.alignment=WRAP; r+=1
-    style_header_row(ws,r,['变化发生日 (dataasof)','新的 fcscheduled_sale_date','说明']); r+=1
+    style_header_row(ws,r,['变化发生日 (dataasof)','新值 dev.port.basic_data_loan_fcl.fcscheduled_sale_date','说明']); r+=1
     n=len(info['changes'])
     for j,(d,val) in enumerate(info['changes']):
         note=''
@@ -235,9 +333,19 @@ for lid,info in EX['multiday']['loans'].items():
         for k,v in enumerate(ww):
             cc=ws.cell(r,k+1,v); cc.font=VFONT; cc.border=BORDER; cc.alignment=WRAP; cc.fill=F(WHITE if r%2 else GREY)
         r+=1
-    _ls=('；last_step_completed_date = %s（pool:284 直传，改期不更新≠首见）' % info['last_step_completed_date']) if info.get('last_step_completed_date') else ''
-    res='结论：projected = %s（当前值/取最新）；set_date = %s（当前值首见 min(dataasof)）%s。%s' % (info['projected'], info['set_date'], _ls, info['explain'])
-    c=ws.cell(r,1,res); ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=3); c.font=VFONT; c.fill=F('FFF2CC'); c.alignment=WRAP; c.border=BORDER; ws.row_dimensions[r].height=autoheight(res,per_line=55); r+=2
+    # 结论：3 行小表（同一橙色「取最新」边，三个日期三种规则）+ 一句要点
+    cc=ws.cell(r,1,'结论 —— 同一笔贷款、同属橙色「取最新」边，但三个日期规则不同：'); ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=3); cc.font=VFONT; cc.fill=F(LIGHT); cc.alignment=WRAP; cc.border=BORDER; r+=1
+    style_header_row(ws,r,['日期字段','值','一句话规则']); r+=1
+    trip=[['bpms.sync_loan_foreclosure.timeline_sale_date_projected_date（预计拍卖日 projected）', info['projected'], '当前(最新)排定的拍卖日；直传 dev.port.basic_data_loan_fcl.fcscheduled_sale_date 当前值（pool:266）'],
+          ['bpms.sync_loan_foreclosure.timeline_sale_date_set_date（排定首见日 set_date）', info['set_date'], '当前这个拍卖日「哪天首次排定」= min(dataasof)；需多天历史（pool:300）']]
+    if info.get('last_step_completed_date'):
+        trip.append(['bpms.sync_loan_foreclosure.summary_last_step_completed_date（last_step_completed_date）', info['last_step_completed_date'], '最后完成步骤(NOS Sent for Recording)日；直传 dev.port.basic_data_loan_fcl.lastfcstepcompleteddate（pool:284），改期不更新、≠首见（doc 33 §2.5.1）'])
+    for tr in trip:
+        for k,v in enumerate(tr):
+            cc=ws.cell(r,k+1,v); cc.font=VFONT; cc.border=BORDER; cc.alignment=WRAP; cc.fill=F(WHITE if r%2 else GREY)
+        ws.row_dimensions[r].height=autoheight(max(tr,key=len),per_line=38); r+=1
+    tk='要点：'+info.get('takeaway','')
+    cc=ws.cell(r,1,tk); ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=3); cc.font=VFONT; cc.fill=F('FFF2CC'); cc.alignment=WRAP; cc.border=BORDER; ws.row_dimensions[r].height=autoheight(tk,per_line=52); r+=2
 # —— 深度历史样板（其它历史依赖逻辑）——
 DH=CV.get('deep_history',{})
 DH_TITLES={'7727000454_legal_listagg':'loan 7727000454 — 首次法律日历史 LISTAGG（逻辑 10）',
@@ -254,7 +362,7 @@ for key,info in DH.items():
     if res:
         c=ws.cell(r,1,'结论：'+res); ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=5)
         c.font=VFONT; c.fill=F('FFF2CC'); c.alignment=WRAP; c.border=BORDER; ws.row_dimensions[r].height=autoheight(res,per_line=95); r+=2
-set_widths(ws,[22,28,20,12,20]); ws.freeze_panes='A2'
+set_widths(ws,[40,26,40,12,20]); ws.freeze_panes='A2'
 print('multiday loans:', len(EX['multiday']['loans']), '| deep_history blocks:', len(DH))
 
 # ============================================================ E BPS 截图证据
@@ -266,11 +374,11 @@ import os
 for sc in EX['bps_screenshots']:
     c=ws.cell(r,1,'loan %s' % sc['loanid']); ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=4); c.font=HFONT; c.fill=F(MID); r+=1
     style_header_row(ws,r,['BPS UI 字段','BPS UI 值（截图）','字段/规则','一致性']); r+=1
-    keymap={'Sale Date Projected':'timeline_sale_date_projected_date = fcscheduledsaledate 当前值 (pool:266)',
-            'Sale Date Set':'timeline_sale_date_set_date = min(dataasof of 当前值) (pool:300-303)',
-            'Days in Foreclosure':'summary_days_in_fcl = 存储值 + datediff(dataasof→运行日)',
-            'Current Step':'summary_current_step = fcstage 直传 (pool:282)',
-            'Last Step Completed Date':'summary_last_step_completed_date = lastfcstepcompleteddate 直传 (pool:284；取最新≠首见，改期不更新；详见 doc 33 §2.5.1)'}
+    keymap={'Sale Date Projected':'bpms.sync_loan_foreclosure.timeline_sale_date_projected_date = dev.newrez.portnewrezfc.fcscheduledsaledate 当前值 (pool:266)',
+            'Sale Date Set':'bpms.sync_loan_foreclosure.timeline_sale_date_set_date = min(dataasof of 当前值) (pool:300-303)',
+            'Days in Foreclosure':'bpms.sync_loan_foreclosure.summary_days_in_fcl = 存储值 + datediff(dataasof→运行日)',
+            'Current Step':'bpms.sync_loan_foreclosure.summary_current_step = dev.port.basic_data_loan_fcl.fcstage 直传 (pool:282)',
+            'Last Step Completed Date':'bpms.sync_loan_foreclosure.summary_last_step_completed_date = dev.port.basic_data_loan_fcl.lastfcstepcompleteddate 直传 (pool:284；取最新≠首见，改期不更新；详见 doc 33 §2.5.1)'}
     for k,v in sc['anchors'].items():
         rule=keymap.get(k,'—'); ok='✓ 三方一致' if k in keymap else ''
         for j,val in enumerate([k,v,rule,ok]):
@@ -282,22 +390,72 @@ for sc in EX['bps_screenshots']:
         ws.add_image(im, 'A%d' % (r)); r += int(im.height/15)+2
     else:
         c=ws.cell(r,1,'⚠️ 图片缺失：%s' % img_path); c.font=ENDFONT; r+=2
-set_widths(ws,[30,30,46,14])
+set_widths(ws,[30,28,58,14])
 print('screenshots embedded')
 
-# ============================================================ F 逻辑覆盖矩阵
-ws = wb.create_sheet('F 逻辑覆盖矩阵')
-t=ws.cell(1,1,'F 逻辑覆盖矩阵 —— PrefectFlow FCL 16 条处理逻辑，每条 ≥1 示例 loan；「历史依赖」标是否需全历史，「演示层」标端到端(bpms)还是 Redshift 层')
-ws.merge_cells(start_row=1,start_column=1,end_row=1,end_column=8); t.font=TITLEFONT; t.fill=F(DARK); t.alignment=WRAP; ws.row_dimensions[1].height=30
-style_header_row(ws,2,CV['logic_matrix_headers'])
-fill_data_rows(ws,3,CV['logic_matrix'])
-HIST_COLORS={'全历史':'FCE4D6','每日重算':'FCE4D6','去重':'E4DFEC','最新':'D6E4F0'}
-color_by_type(ws,5,HIST_COLORS,start_row=3)
-_nr=3+len(CV['logic_matrix'])
-_note='⚠️ 注：「取最新」与「首见日」易混——逻辑1/2(judgement/sale set_date)是首见 min(dataasof)需全历史；而 summary_last_step_completed_date / sale_date_projected_date 是纯取最新直传(pool:284/266)，改期不更新、非首见。详见 doc 33 §2.5.1。'
-nc=ws.cell(_nr,1,_note); ws.merge_cells(start_row=_nr,start_column=1,end_row=_nr,end_column=8); nc.font=VFONT; nc.fill=F('FFF2CC'); nc.alignment=WRAP; nc.border=BORDER; ws.row_dimensions[_nr].height=autoheight(_note,per_line=100)
-set_widths(ws,[4,18,30,40,16,18,22,18]); ws.freeze_panes='C3'; add_autofilter(ws,header_row=2,last_row=3+len(CV['logic_matrix'])-1)
-print('logic matrix rows:', len(CV['logic_matrix']))
+# ============================================================ F 逻辑类型目录 + G 字段级清单（字段驱动·穷尽）
+import collections as _cl
+def _bps_tgt(f):
+    bt=f.get('bps_table',''); hops=f.get('hops',[])
+    bh=next((h for h in hops if str(h.get('t','')).startswith('bpms.'+bt)), None)
+    tgt=(bh.get('c') if bh else '') or f.get('label',{}).get('zh','')
+    rule=(bh.get('rule') if bh else (hops[-1].get('rule') if hops else '')) or ''
+    blob=' '.join((h.get('rule') or '') for h in hops)
+    return bt, str(tgt), rule, blob
+HISTSET={'LT13','LT15','LT16','LT17','LT23','LT24','LT26','LT27'}
+g_rows=[]; lt_count=_cl.Counter()
+for f in L['fields']:
+    bt,tgt,rule,blob=_bps_tgt(f)
+    lt=classify_lt(f.get('family',''), tgt, blob); lt_count[lt]+=1
+    hist=('全历史' if lt in HISTSET else '去重' if lt=='LT28' else '最新+运行日' if lt=='LT18' else '最新(view)' if lt in ('LT20','LT21') else '—' if lt=='SYS' else '最新')
+    g_rows.append([bt, tgt, lt, (rule or '')[:48], hist])
+LLM=CV.get('loan_logic_map',{}); loans_by_lt=_cl.defaultdict(list)
+for _lid,_lts in LLM.items():
+    for _x in _lts.split(','): loans_by_lt[_x.strip()].append(_lid)
+LT_COLORS={'最新':'D6E4F0','全历史':'FCE4D6','去重':'E4DFEC','最新+运行日':'FFF2CC','最新(view)':'DDEBF7','—':'F2F2F2'}
+
+ws = wb.create_sheet('F 逻辑类型目录')
+t=ws.cell(1,1,'F 逻辑类型目录 —— FCL 全部字段级逻辑 LT01–LT30+SYS（覆盖字段数/示例loan/✓体检；字段明细见 G 页）+ 管道级机制 M1–M5')
+ws.merge_cells(start_row=1,start_column=1,end_row=1,end_column=7); t.font=TITLEFONT; t.fill=F(DARK); t.alignment=WRAP; ws.row_dimensions[1].height=30
+style_header_row(ws,2,['LT#','逻辑类型','历史依赖','示例字段','覆盖字段数','示例 loan / 覆盖说明','✓'])
+NOTES=CV.get('lt_notes',{}); LOANNOTES=CV.get('lt_loan_notes',{}); r=3; direct=0; elsewhere=0; gap=0; no_loan=[]
+for lt,name,hist,exf in CV['logic_types']:
+    cnt=lt_count.get(lt,0); note=NOTES.get(lt,'')
+    _loans=loans_by_lt.get(lt,[])
+    col6 = ('、'.join(_loans[:3]) if _loans else (note or LOANNOTES.get(lt,'')))
+    if lt!='SYS' and not _loans and not note and not LOANNOTES.get(lt): no_loan.append(lt)
+    if cnt>0: ok='✓'; (None if lt=='SYS' else None)
+    elif note: ok='✓ 上游/视图'
+    else: ok='✗ 缺'
+    if lt!='SYS':
+        if cnt>0: direct+=1
+        elif note: elsewhere+=1
+        else: gap+=1
+    for j,v in enumerate([lt,name,hist,exf,cnt,col6,ok]):
+        cc=ws.cell(r,j+1,v); cc.font=VFONT; cc.alignment=WRAP; cc.border=BORDER; cc.fill=F(WHITE if r%2 else GREY)
+    ws.cell(r,3).fill=F(LT_COLORS.get(hist,'FFFFFF'))
+    if cnt==0 and note: ws.cell(r,7).fill=F('E2EFDA')
+    elif cnt==0 and lt!='SYS': ws.cell(r,7).fill=F('FCE4D6')
+    ws.row_dimensions[r].height=autoheight(col6,per_line=40); r+=1
+chk='完整性体检：字段级直接覆盖 %d 类；另 %d 类(LT04/13/14/21)覆盖于上游 Redshift/视图/合并(见「覆盖说明」)；真缺 %d 类 → 业务逻辑 30/30 已说明。字段总数 %d，G 页每字段均有 LT(无空行)。机制 M1–M5 见下。' % (direct, elsewhere, gap, len(g_rows))
+cc=ws.cell(r,1,chk); ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=7); cc.font=VFONT; cc.fill=F('FFF2CC'); cc.alignment=WRAP; cc.border=BORDER; ws.row_dimensions[r].height=autoheight(chk,per_line=85); r+=2
+mh=ws.cell(r,1,'管道级 as-of/写入机制（M1–M5；非逐字段——标演示位置）'); ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=7); mh.font=HFONT; mh.fill=F(MID); r+=1
+style_header_row(ws,r,['M#','机制','演示位置(sheet)','','','','']); r+=1
+for mid,mname,demo in CV['mechanisms']:
+    for j,v in enumerate([mid,mname,demo,'','','','']):
+        cc=ws.cell(r,j+1,v); cc.font=VFONT; cc.alignment=WRAP; cc.border=BORDER; cc.fill=F(WHITE if r%2 else GREY)
+    r+=1
+set_widths(ws,[7,30,14,28,11,24,8]); ws.freeze_panes='A3'
+print('F logic types:', len(CV['logic_types']), '| direct:', direct, 'elsewhere:', elsewhere, 'gap:', gap, '| LT 无 loan 无 note:', no_loan, '| mechanisms:', len(CV['mechanisms']))
+
+ws = wb.create_sheet('G 字段级逻辑清单')
+t=ws.cell(1,1,'G 字段级逻辑清单 —— 5 张 BPS sync 表全部字段，每字段标 LT#（字段驱动·穷尽；真源 fcl_lineage_source.json + fcl_pipeline.html）')
+ws.merge_cells(start_row=1,start_column=1,end_row=1,end_column=5); t.font=TITLEFONT; t.fill=F(DARK); t.alignment=WRAP; ws.row_dimensions[1].height=30
+style_header_row(ws,2,['BPS 表','字段','LT#','规则摘要','历史依赖'])
+fill_data_rows(ws,3,g_rows)
+color_by_type(ws,5,LT_COLORS,start_row=3)
+set_widths(ws,[30,30,8,50,14]); ws.freeze_panes='C3'; add_autofilter(ws,header_row=2,last_row=2+len(g_rows))
+print('G field rows:', len(g_rows), '| empty LT:', sum(1 for x in g_rows if not x[2]))
 
 # ============================================================ B 组：主链逐表 sheet
 B_TABLES = [
@@ -323,15 +481,28 @@ for meta_key, fm_key, sheetname in B_TABLES:
         c=ws.cell(r,1,'%s：%s'%(kk,vv)); ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=3); c.font=VFONT; c.fill=F(LIGHT); c.alignment=WRAP; c.border=BORDER; ws.row_dimensions[r].height=autoheight('%s：%s'%(kk,vv),per_line=70); r+=1
     r+=1
     flds = FM.get(fm_key,{}).get('fields',{})
-    style_header_row(ws,r,['字段','业务含义','来源/类型']); hdr_row=r; r+=1
-    for fn,info in flds.items():
-        m = info.get('m','') if isinstance(info,dict) else str(info)
-        src = info.get('src','') if isinstance(info,dict) else ''
-        for j,v in enumerate([fn,m,src]):
-            cc=ws.cell(r,j+1,v); cc.font=VFONT; cc.border=BORDER; cc.alignment=WRAP; cc.fill=F(WHITE if r%2 else GREY)
-        r+=1
-    set_widths(ws,[30,60,16]); ws.freeze_panes='A%d'%(hdr_row+1); add_autofilter(ws,header_row=hdr_row,last_row=r-1)
-    print('B-table %s fields:' % meta_key, len(flds))
+    is_src = meta_key.startswith('newrez.')   # src 源表(② portnewrezfc)：L1 raw 无上游，不加计算逻辑列
+    if is_src:
+        style_header_row(ws,r,['字段','业务含义','来源/类型']); hdr_row=r; r+=1
+        for fn,info in flds.items():
+            m=info.get('m','') if isinstance(info,dict) else str(info); src=info.get('src','') if isinstance(info,dict) else ''
+            for j,v in enumerate([fn,m,src]):
+                cc=ws.cell(r,j+1,v); cc.font=VFONT; cc.border=BORDER; cc.alignment=WRAP; cc.fill=F(WHITE if r%2 else GREY)
+            r+=1
+        set_widths(ws,[30,60,16]); ws.freeze_panes='A%d'%(hdr_row+1); add_autofilter(ws,header_row=hdr_row,last_row=r-1)
+    else:
+        style_header_row(ws,r,['字段','业务含义','计算逻辑 / mapping rule（上游→本字段；非直传附例）','来源/类型']); hdr_row=r; r+=1
+        for fn,info in flds.items():
+            m=info.get('m','') if isinstance(info,dict) else str(info); src=info.get('src','') if isinstance(info,dict) else ''
+            rule,rsrc=rule_for(meta_key, fn); rule=rule or '直传'
+            eg=eg_for(rule) if rsrc in ('hop','extra','view') else ''   # 仅对真实规则举例，默认值不举例
+            rulecell=rule+('　｜　'+eg if eg else '')
+            for j,v in enumerate([fn,m,rulecell,src]):
+                cc=ws.cell(r,j+1,v); cc.font=VFONT; cc.border=BORDER; cc.alignment=WRAP; cc.fill=F(WHITE if r%2 else GREY)
+            ws.row_dimensions[r].height=autoheight(rulecell,per_line=46)
+            r+=1
+        set_widths(ws,[28,44,54,14]); ws.freeze_panes='A%d'%(hdr_row+1); add_autofilter(ws,header_row=hdr_row,last_row=r-1)
+    print('B-table %s fields:' % meta_key, len(flds), '| src' if is_src else '| +rule col')
 
 # ============================================================ ① 表清单 索引（仿 doc 19；分层分组 + 跳转链）置首位
 SHEET_OF = {mk: sn for mk, _, sn in B_TABLES}
@@ -359,12 +530,13 @@ def row(sheet_label, tv, purpose, ncol_val, target):
 grp('分析视图（字母页 + ⓪/⓪b 全局图）', '1F3864')
 row('⓪ 表说明与全链路血缘','全 23 表','业务含义 + 全链路血缘一表看清','23 表','⓪ 表说明与全链路血缘')
 row('⓪b 全局Pipeline图','L1→L5 网格','端到端数据流 + 两支线 + 图例','—','⓪b 全局Pipeline图')
-row('A 导读·色卡·样本','—','读法 + 转换类型色卡/定义 + as-of 说明 + 20 样本清单','—','A 导读·色卡·样本')
+row('A 导读·色卡·样本','—','读法 + 转换类型色卡/定义 + as-of 说明 + 样本贷款清单（Newrez+Carrington，与 C 页一致）','—','A 导读·色卡·样本')
 row('B 主表逐字段 Mapping','bpms.sync_loan_foreclosure','每字段每跳规则 + 转换类型 + 代表样本（可筛选）','66 字段','B 主表逐字段 Mapping')
-row('C 生产数据矩阵 20 笔','—','20 笔贷款 × 主表关键字段最新值（实测）','—','C 生产数据矩阵 20 笔')
+row('C 生产数据矩阵（样本）','—','样本贷款 × 主表关键字段最新值（实测，含 Carrington 广度 + CC5 说明，非全量）','—','C 生产数据矩阵（样本）')
 row('D 多as-of 改期演示','—','set vs projected：改期/首见跨天演示','—','D 多as-of 改期演示')
 row('E BPS 截图证据','BPS UI','BPS 截图 + 代码⇄Redshift⇄UI 三方对账','—','E BPS 截图证据')
-row('F 逻辑覆盖矩阵','16 逻辑','每条 FCL 逻辑 ≥1 示例 + 历史依赖 + 演示层（端到端/Redshift）','16 行','F 逻辑覆盖矩阵')
+row('F 逻辑类型目录','LT01-30+M1-5','逻辑类型目录 + 覆盖字段数/示例loan/✓完整性体检 + 机制','30+5','F 逻辑类型目录')
+row('G 字段级逻辑清单','5 sync 表','每个 BPS 字段标 LT#（字段驱动·穷尽，可筛选）','全字段','G 字段级逻辑清单')
 # —— 逐表区：按层分组（全 23 表；有详情 sheet 的可跳，余 Phase 2）——
 GRP_TITLE={'src':'一、Newrez 源数据表（src·，mysql_prod.newrez）','mid':'二、Redshift 中间层（mid·，redshift_prod.port / tempfc）',
            'bps':'三、BPS 直接对接表（bps·，mysql_prod.bpms）','dic':'四、解码字典（dic·）'}

@@ -1,8 +1,9 @@
 # Doc 26 · 主线（里程碑 / 汇总 / 状态） — `bpms.sync_loan_foreclosure` 字段血缘
 
 > <!-- RULEGLOSS_PTR -->📖 **术语解释**：本文 `rule` 列的技术语句 → 易懂中文 + 数学公式，见 [doc 25 · 逐跳转换规则速查（附录）](25_fcl_lineage_overview.md)。
+> <!-- CODEGLOSS_PTR -->🔧 **code 列图例**：`pool`=ETL 建表/SQL 代码 `basic_data_pool_config.py` · `asset`=BPS 同步 SQL `asset_managment_config.py` · `view`=BPS 视图定义；冒号后数字=该文件**行号**（链接可点）。
 
-> **自动生成** —— 改动请编辑 `outputs/fcl_lineage_source.json` 后重跑 `python - < scripts/gen_fcl_lineage.py`，勿手改本文件。
+> **数据来源** —— 真源为 `outputs/fcl_lineage_source.json`（逐字段血缘）；本组逐字段文档目前为手工维护（旧生成器 `scripts/gen_fcl_lineage.py` 已废弃删除）。
 
 
 ## 文档目的

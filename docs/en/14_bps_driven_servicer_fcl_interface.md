@@ -1,5 +1,7 @@
 # doc 14 — BPS-Driven Servicer FCL Data Interface Standard
 
+> <!-- CODEGLOSS_PTR -->🔧 **code legend**: `pool`=ETL build/SQL code `basic_data_pool_config.py` · `asset`=BPS sync SQL `asset_managment_config.py` · `view`=BPS view definition; number after the colon = **line number** in that file (GitLab commit 32a750a3, clickable).
+
 ---
 
 ## Document Purpose

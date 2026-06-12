@@ -1,5 +1,7 @@
 # doc 14 — BPS 驱动的 Servicer FCL 数据接口规范
 
+> <!-- CODEGLOSS_PTR -->🔧 **code 图例**：`pool`=ETL 建表/SQL 代码 `basic_data_pool_config.py` · `asset`=BPS 同步 SQL `asset_managment_config.py` · `view`=BPS 视图定义；冒号后数字=该文件**行号**（GitLab commit 32a750a3 可点开对应行）。
+
 ---
 
 ## 文档目的

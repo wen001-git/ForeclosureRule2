@@ -9,7 +9,7 @@
     "bpms_main_breakdown": "Newrez 79 + Carrington 12 + Capecodfive 0",
     "redshift_fcl_loans": 6171,
     "redshift_breakdown": "Newrez 5071 + Carrington 718 + Capecodfive 382",
-    "note": "GEN_FORECLOSURE 过滤 timeline_referred_to_foreclosure_date IS NOT NULL + portfunding(已融资在投组) join（asset:605）→ 仅 ~91 笔进 bpms.sync_loan_foreclosure。Capecodfive 0 笔进 bpms，且其 basic_data_loan_foreclosure 投影列实测全 NULL（仅 raw 进 basic_data_loan_fcl）。Hold/LM/BK 明细表同步更宽（hold 91 / lm 245 / bk 65 loan）。→ 端到端(→bpms)演示只能用这 ~91 笔；CC5 与多数中间逻辑只能在 Redshift 层演示。"
+    "note": "GEN_FORECLOSURE 过滤 dev.port.basic_data_loan_foreclosure.timeline_referred_to_foreclosure_date IS NOT NULL + dev.port.portfunding(已融资在投组) join（asset:605）→ 仅 ~91 笔进 bpms.sync_loan_foreclosure。Capecodfive 0 笔进 bpms，且其 dev.port.basic_data_loan_foreclosure 投影列实测全 NULL（仅 raw 进 dev.port.basic_data_loan_fcl）。Hold/LM/BK 明细表同步更宽（hold 91 / lm 245 / bk 65 loan）。→ 端到端(→bpms)演示只能用这 ~91 笔；CC5 与多数中间逻辑只能在 Redshift 层演示。"
   },
   "logic_matrix_headers": ["#","逻辑","输出字段","转换类型","历史依赖","servicer","示例 loan","演示层"],
   "logic_matrix": [
@@ -60,5 +60,68 @@
     ["C","4851","0699785994"],["P","766","700082660000010"],["D30","70","700082700000072"],
     ["FCL","42","700082700000033"],["D120P","24","0694953688"],["D60","21","700082870000074"],
     ["D90","10","7727000243"],["REO","5","7727000065"]
-  ]
+  ],
+  "logic_types_headers": ["LT#","逻辑类型","历史依赖","示例字段"],
+  "logic_types": [
+    ["LT01","纯直传(同名)","最新","loanid / fcbidamount"],
+    ["LT02","改名(值不变;含 servicer_number)","最新","svc_loanid"],
+    ["LT03","cast/类型转换","最新","summary_judicial_foreclosure"],
+    ["LT04","CONCAT/常量文本拼接","最新","summary_foreclosure_status"],
+    ["LT05","常量NULL(未提供/未填)","最新","timeline_publication_date"],
+    ["LT06","常量非空默认(SLA target)","最新(view/config)","target_first_legal_days"],
+    ["LT07","布尔取反","最新","summary_completed_foreclosure"],
+    ["LT08","COALESCE 双源回退","最新","timeline_foreclosure_completed_date"],
+    ["LT09","条件取源列(fcresults)","最新","timeline_third_party_sold_date_date"],
+    ["LT10","datadic 解码(JOIN)","最新","bankruptcy_status / lm program"],
+    ["LT11","CASE 派生","最新","summary_type"],
+    ["LT12","fcstage 直传","最新","summary_current_step"],
+    ["LT13","days360 逾期分桶","全历史","delq_status"],
+    ["LT14","逾期状态覆盖 FCL/REO/P","最新","delq_status(override)"],
+    ["LT15","del_group 关联","全历史","del_group"],
+    ["LT16","首见日 min(dataasof)","全历史","timeline_sale_date_set_date"],
+    ["LT17","LISTAGG 历史累积","全历史","first_legal_date_history"],
+    ["LT18","days 实时重算(双基准)","最新+运行日","summary_days_in_fcl"],
+    ["LT19","stage 天数 datediff","最新","referral_stage_days"],
+    ["LT20","view actual_X_days(TO_DAYS差)","最新(view)","actual_first_legal_days"],
+    ["LT21","view var_X_days(累积差)","最新(view)","var_first_legal_days"],
+    ["LT22","stage 瀑布判定","最新","stage"],
+    ["LT23","on_hold_days 区间相交","全历史","demand_on_hold_days"],
+    ["LT24","in_lm_days 区间相交","全历史","demand_in_lm_days"],
+    ["LT25","estimated_hold_days 未来投影","最新","variance_estimated_hold_days"],
+    ["LT26","Hold unpivot 拆槽+去重","全历史","description/start/end"],
+    ["LT27","LM 去重/周期","全历史","cycle_opened_date"],
+    ["LT28","BK 去重(per filed_date)","去重","status_date"],
+    ["LT29","BK variance 多形态(direct/cond/count)","最新/聚合","variance_bankruptcies"],
+    ["LT30","UNION 三家列差异 + bid_approval(BPS内部)","最新","bid_approval_status"],
+    ["SYS","系统/审计列(非业务转换)","—","create_time/update_time"]
+  ],
+  "mechanisms_headers": ["M#","管道级 as-of/写入机制","演示位置(sheet)"],
+  "mechanisms": [
+    ["M1","as-of 列演变 dataasof→asofdate→fctrdt","⓪ 粒度列 + A as-of 注"],
+    ["M2","MAX(dataasof)/servicer 坍缩(fcl 全历史→foreclosure 1 行)","⓪b 管道图 + ⓪ 粒度 + D"],
+    ["M3","fctrdt 历史保留(fcl_stage_info/sync 多行)","⓪ 粒度 + doc 22"],
+    ["M4","sync 主表当前态 upsert 无 as-of(DELETE+APPEND/ON DUP KEY)","A as-of 注 + ⑱ 逐表 sheet"],
+    ["M5","curr_date(NY) 运行日配置(datediff 基准)","D 多as-of + A 注"]
+  ],
+  "loan_logic_map": {
+    "7727003984":"LT16","7727000367":"LT11","7727004408":"LT01,LT02,LT03,LT16,LT18,LT19,LT26",
+    "7727000088":"LT05,LT06,LT11,LT12","7727001179":"LT11,LT19","7727004200":"LT11",
+    "7727000708":"LT11","7727001074":"LT22","7727000357":"LT22",
+    "7727000065":"LT07,LT10,LT20,LT23,LT28","7727001107":"LT11","7727000569":"LT11",
+    "7727003923":"LT11","7727000403":"LT11","7727003981":"LT11","7727001433":"LT11",
+    "7727000761":"LT10,LT27","7727001329":"LT11","7727000315":"LT11","7727000199":"LT08,LT11",
+    "7727000804":"LT22,LT30","7727000881":"LT16,LT30","7727000883":"LT22,LT30","7727000806":"LT22,LT30","7727000955":"LT22,LT30",
+    "7727000454":"LT17","700082660000042":"LT26","700082700000033":"LT15","700082700000050":"LT28","7727000803":"LT27,LT30","7727004824":"LT30",
+    "7727000243":"LT13,LT14","7727000196":"LT09","7727000010":"LT10,LT24,LT28"
+  },
+  "lt_loan_notes": {
+    "LT25":"prod 实测恒空/未填（列存在，同 bid_approval；无真值 loan 可举）",
+    "LT29":"prod 实测恒 0/未填（列存在；无真值 loan 可举）"
+  },
+  "lt_notes": {
+    "LT04":"合并入 LT11：summary_foreclosure_status 同时 CASE+CONCAT('Closed Foreclosure:'+desc)，无独立 CONCAT-only 字段",
+    "LT13":"上游 Redshift days360 计算→喂 del_group；BPS sync 字段是 del_group(LT15)/group，见 C 页逾期桶 + D",
+    "LT14":"上游逾期状态覆盖(FCL/REO/P)→喂 del_group；同 LT13，见 FCL 桶样本 700082700000033",
+    "LT21":"view 列(biz_data_view_loan_details_foreclosure)，非 5 张 sync 表字段；见 ⑳ 视图 + LT20(actual)"
+  }
 }

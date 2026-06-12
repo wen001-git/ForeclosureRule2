@@ -3189,3 +3189,189 @@
 
 ## Milestones
 - [2026-06-11] 数据流动降交错：①边按目标节点 branch 配色（FLOW_BRANCH/FLOW_BRANCH_COLOR，8 类色+图例 8 chips）②悬停节点 applyFlowHover()：相连边 opacity 1、其余 0.05、相邻节点亮其余 0.22、悬停时粒子隐藏；离开复原③箭头改中性灰避免 context-stroke 风险。Preview 实测：34 边 8 色、悬停 fcl 高亮 3 连线/淡化 31 且均接 fcl、图例 8、点表仍弹抽屉、B/C/D 模式 0 报错。
+
+## [2026-06-11] 血缘图谱点表高亮其上下游表+边（边显示不明显）
+> lineage 页面，竖线（连接边）显示不明显；点选一个表时，跟它相关的边、上游表、下游表都高亮？（用户选：直接上下游 1 跳）
+
+### Decision: 表点击复用 graphFocus 高亮，范围=1 跳直接上下游 [2026-06-11]
+- **Context**: 边低对比不明显；点表只展开+抽屉、无高亮。字段点击已有整链高亮机制。
+- **Choice**: graphNodeClick 表/表头时设 graphFocus；高亮块加 isTbl 分支，以「该表 group 全体（表 id+字段 id）」为种子做 1 跳（兼容展开/折叠），点亮直接上下游表+连接边，其余 .gdim 淡化。字段聚焦逻辑包进 else 不变。
+- **Reason**: 复用现有 lit/litEdges/.gdim 机制；1 跳对中枢表也清爽；展开陷阱（边连字段 id 非表 id）用 group 种子解决。
+
+## Milestones
+- [2026-06-11] 血缘图谱点表高亮直接上下游：①graphNodeClick 表/表头设 graphFocus ②高亮块新增 isTbl 1-跳分支（group 种子，兼容展开/折叠）。Preview 实测：折叠态点中枢 basic_data_loan_fcl→8 亮边/28 暗、9 亮节点（清爽）；叶子表 sync_loan_foreclosure_hold→3 亮/33 暗；展开态点表亮其全部字段级直连边（准确）；字段点击整链高亮无回归（demandexpirationdate→3 亮/88 暗+抽屉详情）；六视图 0 报错。
+
+### Decision: doc 32 字段驱动·穷尽逻辑覆盖（LT01-LT30 + M1-M5）[2026-06-11]
+- **缘起**：手工枚举逻辑反复漏（16→27→拿 fcl_pipeline.html 对账再 +13）。改为字段驱动：以 fcl_pipeline.html 逐字段逻辑为真源，每个 BPS 字段标 logic-type-id，完整性结构性保证。
+- **已核**：bankruptcy_status = datadic JOIN 解码（pool:354/367 + prod datadic 1→Active…5→ReliefGranted），归 LT10；fcl_pipeline.html「ETL 硬编码」表述偏差（备注，不改数据）。
+- **方案**：Sheet G 字段级清单（5 sync 表全字段×LT##）+ F 类型目录 LT01-30/M1-5（覆盖字段/示例loan/✓体检）+ C 加「覆盖 LT#」+ D 标 LT#。
+- DB 只读；用户已批准。
+
+### Milestone: doc 32 字段驱动·穷尽逻辑覆盖完成 [2026-06-11]
+- 新增 **G 字段级逻辑清单**（5 sync 表全 154 字段，每字段标 LT#，0 空行）+ **F 逻辑类型目录**（LT01-30+SYS + M1-5；体检 26 直接覆盖 + 4 覆盖于上游/视图/合并(LT04/13/14/21) + 0 真缺 → 30/30 已说明）。C 加「覆盖LT#」列；分类器自动判 LT。
+- 修正 classifier：`stage` → LT22（原误判 LT02）。
+- doc 32 现 16 sheet；幂等跑两遍一致；导读 MD 同步 F/G。
+- **fcl_pipeline.html 措辞澄清项（待后续顺手改 html）**：`bankruptcy_status` 注「ETL 硬编码 1→Active」表述偏差——实为 datadic JOIN 解码（pool:354/367，值源自 portnewrezdatadic[BKStatus]）；归 LT10。不影响数据，仅 html 说明措辞。
+- DB 只读；未提交。
+
+## [2026-06-11 UTC] 改 fcl_pipeline.html BK 措辞：硬编码→datadic JOIN 解码
+> fcl_pipeline.html 那处 BK「硬编码」措辞建议顺手改成「datadic JOIN 解码」以保持口径统一
+
+## [2026-06-11 UTC] 用 F 逻辑目录反推 C 应取的覆盖数据（逻辑驱动选样）
+> 接下来是不是要根据 F 逻辑类型目录 重新确定更新 C 生产数据矩阵应获取的、覆盖所有 pipeline 数据血缘逻辑的数据
+
+### Milestone: 用 F 逻辑目录反推校验 C 覆盖（逻辑驱动选样闭环）[2026-06-11]
+- **结论**：C 现有 20+5 loan 集 + D 已覆盖所有"可演示" LT，无需新取数；缺的只是 loan_logic_map 未补全 tag。
+- **补全**：LT20/LT23←7727000065、LT24←7727000010、LT01/02/03←7727004408、LT05/06←7727000088（均已在样本里）。
+- **新发现（prod 实测）**：LT25 variance_estimated_hold_days、LT29 variance_*bankruptcy 在 bpms 主表**恒 0/未填**（列存在但 0 笔有值，同 bid_approval）→ 无真值 loan 可举，F「示例loan」列标注 prod 恒空。
+- **结果**：F 逻辑类型目录每个 LT 的「示例loan/说明」列均非空（loan 或 note）；30/30 业务逻辑各有去向。16 sheet 幂等；DB 只读；未提交。
+
+## [2026-06-11 UTC] doc 32 逐表 sheet 加「上游→本字段 计算逻辑/mapping rule」列（Phase 2 范例）
+> 给 doc 32 除 src 表外的逐表 sheet 在「业务含义」旁加一列说明字段从上游到本字段的计算逻辑/mapping rule，非直接 copy 的举例；参考 doc 25-31/33 + fcl_pipeline.html 抽屉；歧义用 PrefectFlow 代码 + MCP 实证。
+
+### Decision: 逐表 mapping-rule 列数据来源 [2026-06-11]
+- 主源 fcl_lineage_source.json 逐跳 hops[(t,c)]→rule（覆盖 ⑪60/62、⑱64/72、⑩25/61）；缺口按表规则化补：temp/fcl raw=UNION 改名/直传(pool:1533-1654)、sync/foreclosure 系统列=审计、view actual=TO_DAYS差/var=累积/target=SLA常量/timeline=透传。
+- 缺口内容入 outputs/fcl_field_rules_extra.json（content）；脚本只排版。非直传按规则关键词附实测例。
+- src 表(②)不加列。DB 只读。
+
+### Milestone: doc 32 逐表 sheet 加「计算逻辑/mapping rule」列完成 [2026-06-11]
+- 5 张非-src 表（⑨temp/⑩fcl/⑪foreclosure/⑱sync/⑳view）每字段在「业务含义」旁加列；src ②(portnewrezfc) 保持 3 列不变。0 空规则格。
+- 新建 outputs/fcl_field_rules_extra.json（temp/fcl UNION 改名映射 pool:1533-1654 + view actual/var/target 公式 + 系统列 + 非直传 eg）。生成器：hop_idx(lineage 逐跳) → extra → view 前缀 → 系统 → 表默认；非直传按关键词附实测例。
+- 抽查一致(Code-First)：⑪ sale_set=min(dataasof)首见[pool:267,300]+例7727003984；⑪ foreclosure_status=CASE[pool:273]；⑩/⑨ referral_start_date=改名自 fcreferraldate[pool:1544]；⑨ daysinfc Newrez直传/Carr datediff;⑳ actual=TO_DAYS差/var=累积差;bk_status=datadic JOIN。⑪ summary_completed_foreclosure=未填充NULL(与 prod 一致,非猜)。
+- 16 sheet 幂等;DB 只读;未提交。这套列作为 Phase 2(stage/hold/lm/bk 逐表)的范例。
+
+## [2026-06-11 UTC] doc 32 D 页结论改简洁：长句→3 行小表+一句要点
+> D 多as-of 改期演示页的结论段落看不明白，改简洁清晰，可举例但要清晰
+
+## [2026-06-11] doc 32 Sheet D 字段改用 db.schema.table.field 全限定表示
+> 请用 db.schema.table.field来表示字段
+
+### Decision: pool/asset/view 统一注释（单源 meta.code_legend）[2026-06-11]
+- **Context**: code: pool/asset/view 散见 HTML/MD/Excel，读者(尤其 PM)不懂；真源 meta.code_legend 有路径对照但未在出现处解释，HTML 抽屉里还只是灰字不可点。
+- **Choice**: 统一措辞（pool=basic_data_pool_config.py 建表/SQL · asset=asset_managment_config.py BPS 同步 · view=BPS 视图 DDL · 冒号后=行号）落到三载体：HTML 抽屉加图例+code 变可点 GitLab 链接(钉 32a750a3)+tooltip；doc 26-31/14/16 加图例行；doc 32/19 生成器在总览 sheet 加图例。
+- **Reason**: 一处真源、PM 看得懂(代码文件+行号)、技术能点到源；顺带修 doc 26-31/00 过时 gen_fcl_lineage.py 引用。
+
+## Milestones
+- [2026-06-11] pool/asset/view 注释全覆盖：①HTML glinCodeCell(pool/asset→GitLab #L行号链接+tooltip；view tooltip)+glinCodeLegend 4 行图例，逐跳表 code 列改用之（实测 3 链接 URL 正确、图例显示、0 报错）②doc 26-31 zh+en 加 code 图例行 + 头部过时 gen_fcl_lineage.py→现行口径；doc 00 zh+en 索引同修③Excel：doc 32 生成器「A 导读」+ doc 19 生成器「⓪ 总览」加「code 列说明」，重跑(doc19 skipped人工=[])、openpyxl 实测两表均含 basic_data_pool_config.py+行号④doc 14/16 zh+en MD 加 code 图例（共 16 文件含 CODEGLOSS_PTR）。doc 21 矩阵已 deprecated 跳过。
+
+## [2026-06-11] 血缘图谱高亮边加数据流动效果
+> 血缘图谱，选中表/字段高亮线路时，能否像数据流动图那样在连线上加活动小亮点表数据流向？你的方案？
+
+### Decision: 血缘图谱高亮边流动效果＝CSS 流动虚线（非粒子）[2026-06-11]
+- **Context**: 用户想给血缘图谱高亮边加数据流向动效，参考数据流动图的小亮点。
+- **Options**: A 流动虚线 marching-ants（CSS stroke-dashoffset，零 JS、GPU、可扩展到中枢表 60+ 边）；B 粒子（rAF+getPointAtLength，边多时开销大）
+- **Choice**: A（用户选定）
+- **Reason**: 边为密集贝塞尔、高亮集可能很大，CSS 虚线更轻更稳更干净；方向随路径 draw 方向（源→下游）。加 prefers-reduced-motion 降级（静态实线）保无障碍。
+
+## Milestones
+- [2026-06-11] 血缘图谱高亮边加「流动虚线」：CSS `path.glitedge{stroke-dasharray:7 7;animation:gflow .55s linear infinite}` + `@keyframes gflow{to{stroke-dashoffset:-14}}`，方向=数据流向；`@media(prefers-reduced-motion:reduce)` 降级静态。纯 CSS 零 JS，只作用于高亮边（选中表/字段时）。Preview 实测：基础规则存在(dash 7,7 + gflow .55s)、点中枢表 8 高亮边、0 报错；预览环境强制 reduced-motion 故本地不动，真实浏览器会流动。
+
+### Decision: doc 32 字段改用 db.schema.table.field 全限定记法 [2026-06-11]
+- **Context**: 用户看 Sheet D 时，字段以裸名/缩写出现（projected、set_date、fcscheduled_sale_date），易混淆来源表/库；要求用 db.schema.table.field 表示字段。
+- **Options considered**: A 仅改 Sheet D 指认处；B Sheet D + 同字段族的 E 对账页 + 共享 multiday 规则串 + 导读 MD 同步；C 全工作簿每处（含逐表页每行）加前缀。
+- **Choice**: B。
+- **Reason**: C 会让本就「按表分页」的逐表 sheet 每行前缀冗余、变吵；A 又会与紧邻、引用同字段的 E 页不一致。B 覆盖以「字段标签身份」出现的位置（D 结论三行 + 被追踪列头 + E 字段/规则列 + MD 关键口径），散文性说明保留短名。记法：Redshift=dev.<schema>.<表>.<列>（catalog 名 dev 实为 prod）；MySQL/BPS 无独立 schema → bpms.<表>.<列>。全部列名经 information_schema 实测存在后才写。
+
+## [2026-06-11] 血缘图谱右侧两个滚动条合并为一个
+> 这2个滚动条可以合并吗？去掉1个
+
+## Milestones
+- [2026-06-11] 修血缘图谱双滚动条：`.canvas`(overflow:auto) 与内层 `.graphwrap`(overflow:auto;height:100%) 嵌套→两条竖滚动条。去掉 graphwrap 的 overflow/height，使 `.canvas` 成唯一滚动容器。Preview 实测：图谱可滚动祖先仅剩 canvas、graphwrap 不再滚动、scrollGraphTo(搜索定位)仍正常(改走 canvas)、0 报错。
+
+## [2026-06-11] 流动虚线看不到——去掉 reduced-motion 降级
+> 没看到有流动虚线啊
+- 根因：环境 prefers-reduced-motion:reduce=true（Windows 关动画/预览），我加的 @media reduce 降级把 dasharray+animation 都关了→高亮边显示为实线。
+- 修复：移除该 @media 降级，path.glitedge 始终 stroke-dasharray:7 7 + gflow 动画。Preview 实测：即便 reduced=true，computed dasharray=7px,7px、animationName=gflow .55s、4 高亮边、0 报错。用户需硬刷新(Ctrl+F5)清缓存。
+
+## [2026-06-11] 确认逐表页不加 db.schema.table 前缀（避免冗余）
+> 是的，那些 sheet 本就按表分页(tab 名即表名),每行再加 dev.port.basic_data_loan_fcl. 会冗余变吵
+
+## [2026-06-11] Sheet A 单独出现的字段须标全限定出处（timeline_referred_to_foreclosure_date 属哪库/schema/表）
+> doc 32 excel, sheet A ... timeline_referred_to_foreclosure_date 是哪个库哪个schema哪个表的字段，当字段单独出现时，请标明具体出处（db.schema.table.field）
+
+## [2026-06-11] summary_foreclosure_status CASE 步骤被抽屉迷你图误标 copy
+> if activefcflag=1...CONCAT('Closed Foreclosure:',fcremovaldesc)... 是不是应该在 activefcflag+fcremovaldesc 向 summary_foreclosure_status 转换那一步？请查代码
+
+### Code-First 结论 [2026-06-11]
+- basic_data_pool_config.py:273（INSERT basic_data_loan_foreclosure SELECT，fc=basic_data_loan_fcl）：CASE 正是 activefcflag+fcremovaldesc → summary_foreclosure_status 那一步；L1538/1563=basic_data_loan_fcl 改名/转型。真源 JSON hops 已正确(hop2 rule=CASE active/closed, code=pool:273)。结论：数据没错，CASE 已在正确步骤。
+- Bug 仅在抽屉顶部迷你图：selectField 用旧 miniLineageSVG(f.line)，把除末跳外所有边一律标 copy、且漏 basic_data_loan_fcl → CASE 显示成 copy，与底部 GLIN 逐跳表矛盾。
+
+## Milestones
+- [2026-06-11] 修抽屉迷你血缘把 CASE 误标 copy：selectField(id,opts) 支持传 GLIN hops 时改用准确的 glinMiniSVG(opts.hops)（逐跳真实规则+含中间表）；showGField 匹配分支传 {hops:f.hops}；顺手去掉 glinMiniSVG 盒子里与全路径重复的 hlin-db 前缀。Preview 实测：summary_foreclosure_status 迷你图 5 盒含 basic_data_loan_fcl、CASE 边标"CASE active/closed 见 sql"+💡、无双 mysql_prod 前缀、0 报错。纯前端渲染修复，数据未动。
+
+## [2026-06-12] 搜索字段时同步展开整条血缘链的关联字段
+> Lineage 搜索字段时，期望被定位字段的相关联字段也同步展开，不要折叠在表中
+
+## Milestones
+- [2026-06-12] focusGraphField：搜索/定位字段时，除自身表外，按该字段 GLIN hops 展开整条血缘链上所有表(graphExpanded.add 每个 hop.t，跳过占位)，使关联字段在每一站以独立行显示并高亮、其余变暗。Preview 实测：搜 summary_foreclosure_status→5 张链表全展开、5 个链节点全 lit(250 dim/10 lit)、graphFocus 正确、0 报错。
+
+## [2026-06-12] 数据流动边箭头太大/脱节/颜色不统一
+> 箭头太大、没跟线段连在一起；用横向那种细线但不同颜色避免混淆
+
+## Milestones
+- [2026-06-12] flow 边箭头重做：原 marker 默认 markerUnits=strokeWidth 被线宽放大(10×1.9≈19px)显得巨大且灰色脱节。改为按分支生成 per-branch marker(markerUnits=userSpaceOnUse 固定 7px、fill=分支色)，箭头与线同色相连、不同分支不同色；同列 gutter 线宽 1.9→1.4 与横向细线一致。Preview 实测：11 个 marker 全 userSpaceOnUse/宽7、边引用 fa_main/fa_stage/...分支 marker、gutter 线宽 1.4、无残留旧 fah/fah2、0 报错。
+
+## [2026-06-11] doc 32 Sheet C tab 去掉误导性「20 笔」计数 + 同步引用
+> doc 32, C 生产数据矩阵 20 笔：是否可以去掉这个数量，因为实际可能不止20笔，会误导读者。看看这个sheet是否被其他sheet引用，meanwhile update the quote
+
+### Decision: Sheet C 改名「C 生产数据矩阵（样本）」并传播引用 [2026-06-11]
+- **Context**: tab「C 生产数据矩阵 20 笔」误导——该页实为 Newrez 20 + Carrington 5 广度 + CC5 说明（=25 笔，且仅 ~91 笔最终进 bpms），「20 笔」既不等于页内行数也不等于全量。
+- **Choice**: 改名为「C 生产数据矩阵（样本）」（去掉数字、加「样本」明示非全量）。
+- **传播**（被引用处全部同步）: ① 表清单索引 row 532（显示名+跳转 target，描述去掉「20 笔贷款」改为「样本贷款 ×…含 Carrington 广度+CC5 说明，非全量」）; A 导读 sheet 指南 line 233（「C 20笔生产矩阵」→「C 生产数据矩阵(样本…)」); 导读 MD line 42（名+描述，注明 Newrez 20+Carr 5+CC5、实际进 bpms ~91）。
+- **保留**: 描述 Newrez 样本子集的「20 笔」（section 五 样本清单/MD 等）——那是真实的 20 笔 Newrez 样本,非误导。
+- **校验**: 重生成幂等; 原始 rels 实证 index 跳链 rId5 指向新名; 全簿 0 残留「生产数据矩阵 20/20笔生产/20 笔贷款」。
+
+## [2026-06-12] 数据流动悬停高亮 1 跳→整条 n 跳血缘链
+> 不止展示 1 hop，也展示 n hops
+
+## Milestones
+- [2026-06-12] flow 视图 applyFlowHover：由 1 跳直接邻居改为传递闭包——沿 FLOW_EDGES 正向(下游)+反向(上游) BFS，点亮该表整条上下游血缘链(全部 n 跳)+链内边，其余淡化；图例提示同步改为「整条上下游血缘链(全部 n 跳)」。Preview 实测：悬停 portnewrezfc→16 边/13 节点(全下游+源)、悬停 basic_data_loan_foreclosure→9 边/9 节点(祖先+后代)、0 报错。
+
+## [2026-06-11] Sheet A 五、样本贷款 与 C 不同步修复
+> did you update the sheet A 导读·色卡·样本 - 五、样本贷款 section, I see [20 笔], and the loan ids didn't sync with [C 生产数据矩阵（样本）], right?
+
+### Decision: 五、样本贷款 改为与 C 动态同步（去掉 20 笔/均 Newrez 的误导）[2026-06-11]
+- **Context**: 上轮只改了 C tab 名，漏改 A 五、样本贷款——它仍写「20 笔…均 Newrez」且只列 20 个 Newrez id，与 C（实为 Newrez 20 + Carrington 5 = 25 笔）不一致。用户指出。
+- **Choice**: 五、样本贷款标题改「样本贷款清单（与 C 生产数据矩阵（样本）一致）—— Newrez N 笔 + Carrington M 笔；Capecodfive 不进 bpms」；分两行列 Newrez / Carrington id；N/M 用 len() 动态取（不再硬编码 20，杜绝漂移）。
+- **连带**: 索引①描述「20 样本清单」→「样本贷款清单（Newrez+Carrington，与 C 页一致）」；note_servicer_number 限定为「Newrez 样本中实测全 NULL」；MD line 40/60 同步。
+- **校验**: 重生成幂等；程序化比对 A 五列出 id 集合 == C 行 id 集合（25==25，双向差 0，MATCH）。
+
+## [2026-06-11] 核对 Sheet F 是否含 summary_foreclosure_status 的 activefcflag CASE 逻辑 + 列出全部转换逻辑
+> doc 32 , sheet F 逻辑类型目录 中有这个逻辑吗：如果 activefcflag=1 → 'Active Foreclosure'；activefcflag=0 且 fcremovaldesc 非空 → 'Closed Foreclosure:'+fcremovaldesc；否则 NULL。请仔细检查，列出所有数据转换逻辑
+
+## [2026-06-12] 搜索字段时部分链表只高亮未展开（propertystate）
+> 当选中某个字段时，相关联的字段需要展开高亮，别折叠在表中
+
+## Milestones
+- [2026-06-12] 修 focusGraphField 漏展开：原用 GLIN_BY_NODE[f.id] 取 hops，但它只含当前已展开表的节点→搜未展开表里的字段时 undefined，导致下游链表(如 fcl_stage_info/sync_fcl_stage_info)只高亮未展开。改为从 GLIN.fields 按 hop==f.id 查找(与展开状态无关)，展开整条链每张表。Preview 实测：折叠态搜 propertystate→4 链表全展开(含 fcl_stage_info+sync_fcl_stage_info)、propertystate/propertystate/state/state 四个关联字段行全部存在且高亮(8 lit/118)、0 报错。
+
+## [2026-06-12 00:00 UTC] doc 32 "投影列"是什么意思？请举例
+> Capecodfive: ... basic_data_loan_foreclosure 投影列实测全 NULL ... 这句话中，投影列是什么意思？请举例说明
+
+## [2026-06-12 00:01 UTC] doc 32 "bpms 主表"是什么？请说清楚（Sheet C）
+> bpms 主表 是什么？请说清楚，在doc 32 ，sheet C 生产数据矩阵（样本） 中
+
+## Milestones
+- [2026-06-12] doc 32 §关键口径 增补 2 个术语 glossary：bullet 6「投影列」(SQL π / pool:253-305 例子 + CC5 7727004824 跨表对照 prod 实测) + bullet 7「bpms 主表」(=sync_loan_foreclosure 与 4 张 sibling sync 表 + 视图层对照 + CC5 0 笔进入原因 asset:605 过滤) ；Sheet C 描述补 footnote 链 §关键口径 bullet 7；修订历史 +v2 行。en 镜像跳过（项目无 docs/en/32 文件）。
+
+## [2026-06-11] doc 32 逐表 sheet 右侧新增「逐层逐字段 25 笔样本举例列」+ 全历史呈现 3 方案 demo
+> doc 32 excel, 我想用举例的方式来说明pipeline/字段转换逻辑，我想在除了src表之外的表的【计算逻辑 / mapping rule】列旁边新增所有的sheet页【C 生产数据矩阵（样本）】中的数据，1列1条数据……如果有生产数据，则优先用生产数据，如果没有，则自己造数据（但需要注明）
+> (追问) 全历史字段如何呈现？→ 用户要先看 demo 比较
+- 计划已批准(plan 文件)。Step 0：已建独立 demo docs/_demo_全历史3方案对比.xlsx(4 sheet：说明+方案A/B/C)，用 7727003984(改期12次)/7727000367(稳定) 真实值各渲一遍，等用户选 A/B/C 再落进 doc 32。
+
+## [2026-06-12] doc02 有 basic_data_loan_reo 但 flow/graph 没有
+> doc 2 layer4 有 port.basic_data_loan_reo，html(数据流动&血缘图谱)没有，请查 PrefectFlow+DB
+
+### Code-First+DB 结论 [2026-06-12]
+- DB(redshift_prod)：port.basic_data_loan_reo 存在，3 列 loanid/start_date/end_date（REO 持有区间表）。
+- PrefectFlow：无 create/insert/load（不由 ETL 构建，外部/另处维护）；仅被 direction_letter/gen_funding_*/pbi LEFT JOIN 读取算 reo_flag。下游=资金/PBI 报表，不流向任何 BPS sync 表。
+- 故 GLIN(=到 5 BPS sync 表的字段血缘) 与 flow(FCL→BPS 主链) 都不含它；doc02/管道视图是更宽的 port.* L4 全表口径才列。非数据错误，是口径差异。区别于 portfunding(在 BPS 链上故已加)。
+
+### Decision: 全历史字段举例呈现采用「方案B（格内嵌多天提示）」+ 保留「见D页」链 [2026-06-11]
+- **Context**: 用户看完 demo 选 B —— 信息立等可取（不用跳页）。
+- **Choice**: 方案B：全历史字段(本期仅 timeline_sale_date_set_date / timeline_judgement_hearing_set_date 及 ⑨⑩ raw 输入 fcscheduledsaledate/fcjudgmenthearingscheduled)的举例格内，在当前值下附一句**逐贷款**多天提示（改期N次 first→…→current / 首见即稳定）。规则列仍保留「见 D 页」链(B+链)。
+- **影响**: 仅这 2 个字段行变高(~2 行/sheet)，其余字段仍单快照单行；列数不增。
+- **取数**: 这 2 字段需逐贷款 multiday 改期摘要(group by 取每个 distinct 值的 min(dataasof))→ 生成 B 提示串。
+
+## Milestones
+- [2026-06-12] basic_data_loan_reo 一致性（用户选「两者都做」）：①数据流动 L4 加 reo 旁支节点(pred:[]，无 BPS 连边；点开抽屉说明 REO 持有区间表/外部维护/下游=资金·PBI/不流向 BPS)，配套 COLN/FLOW_ORDER/FLOW_VOL/FLOW_BRANCH ②血缘图谱 PAGEDOC desc(zh+en) 加说明：本图仅画到 BPS sync 表的字段血缘，REO 等外部旁支不在此、见数据流动+doc02 ③doc02 zh+en reo 行标注「旁支·外部维护·不流向 BPS」。Code-First+DB 已证 reo 不由 ETL 构建、不喂 BPS。Preview：flow 有 reo 节点(0 连边)、点开抽屉正确、graph 注释在、0 报错。

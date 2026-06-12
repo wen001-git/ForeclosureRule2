@@ -181,6 +181,14 @@ for num in ORDER:
         cc=ws.cell(r,c,v); cc.font=VFONT; cc.alignment=WRAP; cc.border=BORDER
         cc.fill=F('FFFFFF' if r%2 else GREY)
     ws.row_dimensions[r].height=96; r+=1; n_ovr+=1
+# code 列说明（pool/asset/view 图例）—— 各逐表 sheet 的 code 出处同义
+_leg=('code 列说明（rule 在 PrefectFlow 代码中的出处）： '
+      'pool = ETL 建表/SQL 代码 flow/basic_data/basic_data_config/basic_data_pool_config.py（在 Redshift 建 FCL 各表、跑 SQL 规则）； '
+      'asset = BPS 同步 SQL 代码 flow/bps/bps_config/asset_managment_config.py（把 Redshift 结果同步进 BPS 表）； '
+      'view = BPS 视图 biz_data_view_loan_details_foreclosure 的定义（SHOW CREATE VIEW）； '
+      '冒号后数字 = 该文件的行号（例 pool:273 = 该文件第 273 行；GitLab commit 钉 32a750a3，可点开对应行）。')
+lc=ws.cell(r,1,_leg); ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=len(H))
+lc.font=VFONT; lc.fill=F('FFF8E1'); lc.alignment=WRAP; lc.border=BORDER; ws.row_dimensions[r].height=64; r+=1
 for c,w in enumerate([22,18,40,34,34,40,26,18,54,28,54,28,28],1):
     ws.column_dimensions[get_column_letter(c)].width=w
 ws.freeze_panes='C3'

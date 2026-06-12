@@ -29,11 +29,11 @@
     ["7727000315","Newrez","Non Judicial","Active Foreclosure","Is Home Equity/Judicial Rail Needed",63,63,"2026-04-09",null,null,null,null,null,null,"Padgett Law Group",null],
     ["7727000199","Newrez","Judicial","Closed Foreclosure:Deed in Lieu Cmplte","Title Report Received",173,173,"2024-09-10",null,null,null,null,null,null,"Padgett Law Group",null]
   ],
-  "note_servicer_number": "summary_servicer_number 20 笔实测全 NULL —— prod 已知异常（doc 14 v34 记录：Newrez shellpointloanid 100% 有值但 BPS 主表未填）。在 Sheet 中如实标注。",
+  "note_servicer_number": "bpms.sync_loan_foreclosure.summary_servicer_number 在 Newrez 样本中实测全 NULL —— prod 已知异常（doc 14 v34 记录：Newrez dev.newrez.portnewrezfc.shellpointloanid 100% 有值但 BPS 主表未填）。在 Sheet 中如实标注。",
   "note_servicer_coverage": "本 pilot 20 笔均 Newrez（主表 sync_loan_foreclosure 以 Newrez 为主）；Carrington/Capecodfive 差异在 Phase 2 与逐表 sheet 补充。",
   "multiday": {
-    "field": "newrez.portnewrezfc.fcscheduledsaledate → port.basic_data_loan_fcl.fcscheduled_sale_date（多天快照）",
-    "rule": "projected_date = 当前(最新)值（pool:266 直传）；set_date = min(dataasof WHERE 值=当前值)（pool:300-303）。改期链只有多天历史可见。",
+    "field": "dev.newrez.portnewrezfc.fcscheduledsaledate → dev.tempfc.temp_basic_data_fcl.fcscheduled_sale_date → dev.port.basic_data_loan_fcl.fcscheduled_sale_date（多天快照）",
+    "rule": "projected = 当前(最新)值 → bpms.sync_loan_foreclosure.timeline_sale_date_projected_date（pool:266 直传）；set_date = 该当前值首次出现的 dataasof → bpms.sync_loan_foreclosure.timeline_sale_date_set_date（min(dataasof)，pool:300-303）。本页按天追踪 dev.port.basic_data_loan_fcl.fcscheduled_sale_date；改期链只有多天历史可见。",
     "loans": {
       "7727003984": {
         "title": "改期 12 次（每月顺延）",
@@ -54,7 +54,8 @@
         "projected": "2026-06-30",
         "set_date": "2026-05-22",
         "last_step_completed_date": "2025-07-16",
-        "explain": "当前拍卖日 2026-06-30 在 2026-05-22 才排定 → set_date=2026-05-22；首次排定(2025-08-13)在 2025-07-16，被改期 11 次。单天快照只见 projected+set，看不到改期链。三个日期同属橙色「取最新」边但规则不同：projected=取最新当前值、set=首见 min(dataasof)、last_step_completed_date=2025-07-16 是 pool:284 直传 lastfcstepcompleteddate（NOS Sent for Recording 完成日，改期不更新 ≠ 首见；详见 doc 33 §2.5.1）。"
+        "takeaway": "改期 12 次：2025-07-16 首次把拍卖排到 2025-08-13，之后几乎每月顺延，2026-05-22 改成最新的 2026-06-30。所以 set_date(5-22) 只是「当前这个日期何时排定」，不是最早排定日；单天快照只看到 projected+set，看不到中间 11 次改期。",
+        "explain": ""
       },
       "7727000367": {
         "title": "稳定值（反例：非改期，451 天不变）",
@@ -63,7 +64,8 @@
         ],
         "projected": "2025-06-05",
         "set_date": "2025-03-07",
-        "explain": "同一拍卖日持续 451 天 → set_date=2025-03-07≠projected=2025-06-05，但不是改期。"
+        "takeaway": "反例：拍卖日 2025-06-05 自 2025-03-07 起 451 天没变。set_date(3-07)≠projected(6-05) 只是因为「排定那天 ≠ 拍卖那天」，并不是改期。",
+        "explain": ""
       }
     }
   },

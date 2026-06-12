@@ -1,8 +1,9 @@
 # Doc 27 · Stage / days — `bpms.sync_fcl_stage_info` field lineage
 
 > <!-- RULEGLOSS_PTR -->📖 **Rule terms**: plain-language + formula for the technical phrases in the `rule` column — see [doc 25 · transform-rule glossary (appendix)](25_fcl_lineage_overview.md).
+> <!-- CODEGLOSS_PTR -->🔧 **code legend**: `pool`=ETL build/SQL code `basic_data_pool_config.py` · `asset`=BPS sync SQL `asset_managment_config.py` · `view`=BPS view definition; the number after the colon = **line number** in that file (links are clickable).
 
-> **Auto-generated** — to change, edit `outputs/fcl_lineage_source.json` and re-run `python - < scripts/gen_fcl_lineage.py`; do not hand-edit this file.
+> **Data source** — the source of truth is `outputs/fcl_lineage_source.json` (per-field lineage); these per-field docs are currently hand-maintained (the old generator `scripts/gen_fcl_lineage.py` has been retired/removed).
 
 
 ## Document Purpose
