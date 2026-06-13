@@ -11,13 +11,13 @@
       "logic": "Carrington daysinfc = datediff(referral_start_date, snapshot)+1 [pool:1628]（Newrez 直传，Carr/CC5 计算）",
       "inputs": [ {"sheet_meta":"tempfc.temp_basic_data_fcl","field":"referral_start_date"},
                   {"sheet_meta":"tempfc.temp_basic_data_fcl","field":"dataasof"} ],
-      "formula": "DATEDIF(DATEVALUE({i0}),DATEVALUE({i1}),\"d\")+1", "expect": "477" },
+      "formula": "DATEVALUE({i1})-DATEVALUE({i0})+1", "expect": "477" },
 
     { "sheet_meta": "port.basic_data_loan_fcl", "out_field": "daysinfc", "demo_loan": "7727000806",
       "logic": "Carrington daysinfc = datediff(referral_start_date, snapshot)+1 [pool:1628]",
       "inputs": [ {"sheet_meta":"port.basic_data_loan_fcl","field":"referral_start_date"},
                   {"sheet_meta":"port.basic_data_loan_fcl","field":"dataasof"} ],
-      "formula": "DATEDIF(DATEVALUE({i0}),DATEVALUE({i1}),\"d\")+1", "expect": "477" },
+      "formula": "DATEVALUE({i1})-DATEVALUE({i0})+1", "expect": "477" },
 
     { "sheet_meta": "port.basic_data_loan_foreclosure", "out_field": "summary_type", "demo_loan": "7727003984",
       "logic": "CASE judicial→类型 [pool:279]：1→Judicial 否则 Non Judicial（同表输入）",

@@ -377,12 +377,20 @@ _Date the current scheduled-sale value first appeared in a snapshot (ETL trackin
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
 - 1. `port.basic_data_loan_fcl.fcscheduled_sale_date` — rename 改名 [pool:1553](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1553)
-- 2. `port.basic_data_loan_foreclosure.timeline_sale_date_set_date` — ETL tracking: min(dataasof) of current value 首见日 [pool:267,300](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L267)
+- 2. `port.basic_data_loan_foreclosure.timeline_sale_date_set_date` — ETL tracking: min(dataasof) of current value first-seen (group by (loanid, fcscheduled_sale_date), take MIN(dataasof), then join the current value) [pool:266-303](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L266-L303)
 - 3. `bpms.sync_loan_foreclosure.timeline_sale_date_set_date` — upsert pass-through [asset:765](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L765)
 - 4. `bpms.biz_data_view_loan_details_foreclosure` · timeline_sale_date_set_date (+actual/var) — view actual/var [view]
 
 ```sql
-sa.sa_set_date = min(dataasof) FROM port.basic_data_loan_fcl WHERE fcscheduled_sale_date IS NOT NULL GROUP BY loanid, fcscheduled_sale_date
+-- Redshift GEN_FCL_DETAIL projection [basic_data_pool_config.py pool:266-303]
+fc.fcscheduled_sale_date AS timeline_sale_date_projected_date,  -- pool:266  projected = scheduled-sale "value" (current)
+sa.sa_set_date           AS timeline_sale_date_set_date         -- pool:267  set_date  = that value's "first-seen" dataasof
+LEFT JOIN (
+  SELECT loanid, fcscheduled_sale_date, MIN(dataasof) AS sa_set_date   -- pool:300
+  FROM port.basic_data_loan_fcl
+  WHERE fcscheduled_sale_date IS NOT NULL
+  GROUP BY loanid, fcscheduled_sale_date                              -- pool:301
+) sa ON fc.loanid = sa.loanid AND fc.fcscheduled_sale_date = sa.fcscheduled_sale_date  -- pool:303
 ```
 🔎 **How it works:** Same first-seen logic as Hearing Set, for the scheduled-sale date: MIN(dataasof) over (loanid, fcscheduled_sale_date). The date the current sale date was first scheduled. This is **rule b first-seen tracking** — see [doc 33 §2.5.1](33_fcl_table_erd.md) (3-rule comparison + 7727003984 worked example with 12 reschedules).
 ▶ **Example:** MCP-verified Loan 7727003984 (rescheduled 12 times, prod 2026-06-11): current fcscheduled_sale_date = 2026-06-30; that value first appears in the 2026-05-22 snapshot ⇒ timeline_sale_date_set_date = 2026-05-22 (while Sale Date Projected stays 2026-06-30). BPS UI Sale Date Projected = 2026-06-30 / Sale Date Set = 2026-05-22 — exact match.
@@ -1078,7 +1086,7 @@ _Days in FCL from referral (investor basis)._
 
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_loan_fcl.daysinfc` — rename (Newrez) / computed (others) [pool:1546](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1546)
+- 1. `port.basic_data_loan_fcl.daysinfc` — Newrez direct copy of same-name column daysinfc (servicer-reported, not recomputed); Carrington/Capecodfive computed = FCL active ? datediff(referral_start_date, snapshot)+1 : NULL [pool:1546(NZ copy),1587(Carr),1628(CC5)](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1546)
 - 2. `port.basic_data_loan_foreclosure.summary_days_in_fcl` — direct copy 直传 [pool:281](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L281)
 - 3. `bpms.sync_loan_foreclosure.summary_days_in_fcl` — upsert pass-through [asset:741/792](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L741)
 - 4. `bpms.biz_data_view_loan_details_foreclosure.summary_days_in_fcl` — passthrough [view]

@@ -18,6 +18,11 @@
 | 2026-06-10 | AI Agent (Claude Opus 4.8) | v1 | Phase 1 pilot：主链 sync_loan_foreclosure 逐字段 mapping + 20 笔生产举例 + 多 as-of 改期演示 + BPS 截图三方对账 | doc 25/26, 02, 13, 14；skill `excel-pipeline-lineage` |
 | 2026-06-12 | AI Agent (Claude Opus 4.7) | v2 | §关键口径 +bullet 6「投影列」(SQL π / pool:253-305 + CC5 7727004824 跨表对照) +bullet 7「bpms 主表」(=sync_loan_foreclosure + sibling 4 表 + 视图层 + CC5 0 笔进入原因 asset:605)；Sheet C 描述补 footnote 链向 bullet 7 | doc 33 §2 / §2.5.1 |
 | 2026-06-12 | AI Agent (Claude Opus 4.8) | v3 | 5 张非 src 逐表 sheet（⑨⑩⑪⑱⑳）右侧新增 **25 笔样本贷款「逐层真值举例列」**（1 列 1 贷款，序同 C 页；冻结前 4 列、举例列可折叠）；全历史字段（拍卖/判决听证首见 set_date）采用**方案B**：格内当前值下附多天提示。真源 `outputs/fcl_layer_examples.json`（prod 只读、schema-verify 通过） | skill `excel-pipeline-lineage`；D 页改期演示 |
+| 2026-06-13 | AI Agent (Claude Opus 4.8) | v6 | 🧮 公式列改为**每 servicer 一列**（🧮·Newrez 7727003984 + 🧮·Carrington 7727000806），各列内部统一引用该 servicer 那笔→列自洽、并排展示 servicer 差异（daysinfc：Newrez 461 直传 vs Carrington 477 datediff，真 Excel 实算确认）；Carr 计算列加 null-guard、⑨ Carr 直传标「源未纳入」。336×2=672 格→476 公式+196 注。真 Excel 0 错误 | 测试报告 v5 |
+| 2026-06-13 | AI Agent (Claude Opus 4.8) | v7 | **澄清 daysinfc 规则 + 非copy计算规则在「计算逻辑」cell内附本笔真值工作示例**。daysinfc 旧写「rename (Newrez) / computed (others)」既错(Newrez 是 copy 非 rename)又含糊；真源 `fcl_lineage_source.json` 改为「Newrez 直传同名列；Carr/CC5 = FCL活跃 ? datediff(referral,快照日)+1 : NULL」（code pool:1546/1587/1628，已核代码）→ 重跑 inject_glin 刷 HTML + doc 26 zh/en 同步。生成器新增 `eg_worked()`：用 demo loan 真值给 servicer/daysinfc/activefcflag/fcstage/summary_foreclosure_status/summary_type/⑱ days 重算/⑳ actual_* 生成「｜ 例 …」工作示例（纯 copy 不举例）。审计 0 个真计算字段缺示例；真 Excel 0 错误；内容级幂等 | doc 26；pool:1546/1587/1628 |
+| 2026-06-13 | AI Agent (Claude Opus 4.8) | v8 | **⑨ Carrington 派生字段从文字注 → 活 Excel 公式**。此前 ⑨ `activefcflag` 的 🧮·Carrington 列是文字注（输入 `fcl_flag` 在 `carrington.portcarrington`，本工作簿未建该 sheet，无格可引用）。现 ⑨ 表底新增「Carr 源输入演示」块（DB 实测 8 列：fcl_flag/fcl_sub_status/fcl_referral_date/carrington_ln/sale 日期/fcl_attorney_name/snap，loan 7727000806），Carr 派生字段引用该块出**活公式**：`activefcflag=IF(块!fcl_flag="Active",1,"∅NULL")`、`fcstage/svc_loanid/referral/fcfirm/dataasof`=直接引用；⑩ Carr activefcflag/fcstage 直传引用 ⑨ 格；仅该 UNION 分支恒 NULL 字段标「Carr 分支=NULL 常量」。真 Excel 实算 ⑨ activefcflag=1/svc_loanid=3000077131/referral=2025-02-19/daysinfc=477、0 错误；公式 476→487。真源 `outputs/fcl_carr_source_demo.json`（DB 只读） | pool:1574-1611；测试报告 TC16 |
+| 2026-06-13 | AI Agent (Claude Opus 4.8) | v5 | **全字段 🧮 覆盖**：用 lineage hops + 同名直传，把 5 非 src 表**每个字段**的 🧮 填为「引用上游层活公式」(直传/改名 `='上游'!cell`→整条 pipeline 成可联动活链)；336 字段→247 活公式+89 诚实注。② 补 25 笔源头数据。真·Excel(COM) 复算 0 错误 | `fcl_lineage_source.json` hops；测试报告 v4 |
+| 2026-06-12 | AI Agent (Claude Opus 4.8) | v4 | 5 张非 src sheet「来源/类型」后新增 **「🧮 公式演示」列**：精选 9 条可单格表达的逻辑写**活 Excel 公式**（CASE 止赎状态/类型、Carr daysinfc datediff、days 实时重算、actual_X TO_DAYS 差、改名直传），显示码在公式内当空处理(VALUE/DATEVALUE)，跨层逻辑用跨 sheet 引用；**高亮**该笔 demo loan 的输入(浅蓝)/输出(浅橙)/公式(浅绿)格 + 公式格批注。冻结改前 5 列。另：全历史「首见 min(dataasof)」(set_date)用**方案3**——⑪⑱ 表底加 3 行抽样块 + 矩阵 set_date 行 🧮=实时 `MINIFS`、D 页自包含块。真源 `outputs/fcl_formula_demos.json` + `outputs/fcl_minihist_demos.json` | doc 33 §2.5；pool:273/279/300/1628、asset:597 |
 
 **依赖（单一真源 JSON，脚本只排版）：**
 - `outputs/fcl_lineage_source.json` — 逐字段 hops + 每跳规则 + 代码出处（与 doc 26 同源）
@@ -25,6 +30,8 @@
 - `outputs/fcl_field_meanings.json` — 逐表字段含义
 - `outputs/fcl_pipeline_examples.json` — prod 只读拉取的 20 笔举例 + 改期历史 + BPS 截图锚点
 - `outputs/fcl_layer_examples.json` — **逐层逐字段 25 笔样本真值**（5 张非 src 表的逐表 sheet 举例列真源；prod 只读，含全历史字段的多天提示）
+- `outputs/fcl_formula_demos.json` — **🧮 公式演示规格**（精选可单格表达的转换逻辑 → 活 Excel 公式 + 高亮配色；脚本只排版）
+- `outputs/fcl_minihist_demos.json` — **首见 min(dataasof) 活公式数据**（方案3 多值小块：⑪⑱ 表底 + D 页 MINIFS 演示）
 - 生成器：`outputs/build_fcl_pipeline_mapping_xlsx.txt`（`python - < …txt` 运行，幂等可重跑）
 
 ---
@@ -47,7 +54,7 @@
 | **E BPS 截图证据** | 嵌入 BPS UI 截图 + 代码⇄Redshift⇄BPS UI 三方对账 |
 | **F 逻辑类型目录** | FCL 全部**字段级逻辑 LT01–LT30+SYS**（每类 历史依赖 + 示例字段 + 覆盖字段数 + 示例 loan + ✓体检）+ **管道级机制 M1–M5**（标演示位置）。体检：26 类直接覆盖 + 4 类(LT04/13/14/21)覆盖于上游 Redshift/视图/合并 + 0 真缺 → 30/30 已说明 |
 | **G 字段级逻辑清单** | **字段驱动·穷尽**：5 张 BPS sync 表全部 **154 字段**，每字段标 **LT#** + 规则摘要 + 历史依赖（每字段必有 LT，无空行）。真源 `fcl_lineage_source.json` + `fcl_pipeline.html`。可按 LT 筛选/排序 |
-| **② src·portnewrezfc … ⑳ bps·view_loan_details** | 主链每张表（含中间表）一个 sheet：业务含义/全链路血缘 + 全字段清单。tab 名带 **src·/mid·/bps·** 层级标签。**非 src 表（⑨⑩⑪⑱⑳）每字段在「业务含义」旁加「计算逻辑/mapping rule（上游→本字段）」列**，非直传附实测例（源 fcl_lineage_source 逐跳 + pool/asset 代码行 + doc 33）。按表看：改名/UNION 在 ⑨⑩、首见/CASE/datediff 在 ⑪、upsert 透传在 ⑱、actual/var 公式在 ⑳；src ② 为 L1 raw 无此列。**「来源/类型」列右侧再加 25 笔样本贷款「逐层真值举例列」**（1 列 1 贷款，序同 C 页；冻结前 4 列、举例列可一键折叠；同一贷款顺 ⑨→⑩→⑪→⑱→⑳ 下看即见值的改名/派生/坍缩）。全历史字段（拍卖/判决听证首见 set_date）格内附**方案B**多天提示（完整改期链见 D 页）；∅NULL=真实空、∅空串=空字符串。真源 `fcl_layer_examples.json` |
+| **② src·portnewrezfc … ⑳ bps·view_loan_details** | 主链每张表（含中间表）一个 sheet：业务含义/全链路血缘 + 全字段清单。tab 名带 **src·/mid·/bps·** 层级标签。**非 src 表（⑨⑩⑪⑱⑳）每字段在「业务含义」旁加「计算逻辑/mapping rule（上游→本字段）」列**，非直传附实测例（源 fcl_lineage_source 逐跳 + pool/asset 代码行 + doc 33）。按表看：改名/UNION 在 ⑨⑩、首见/CASE/datediff 在 ⑪、upsert 透传在 ⑱、actual/var 公式在 ⑳；src ② 无计算逻辑/公式列，但**已补 25 笔源头原始值举例列**（servicer 原始表 `newrez.portnewrezfc`，pipeline 起点；Carrington=∅NULL）。**非 src 表「来源/类型」列右侧再加 25 笔样本贷款「逐层真值举例列」**（1 列 1 贷款，序同 C 页；冻结前 4 列、举例列可一键折叠；同一贷款顺 ⑨→⑩→⑪→⑱→⑳ 下看即见值的改名/派生/坍缩）。全历史字段（拍卖/判决听证首见 set_date）格内附**方案B**多天提示（完整改期链见 D 页）；∅NULL=真实空、∅空串=空字符串。真源 `fcl_layer_examples.json`。**另在「来源/类型」后加两个「🧮 公式演示」列（每 servicer 一列：Newrez 7727003984 / Carrington 7727000806）**：每字段都有活公式(点击看)——直传/改名=引用上游层该笔格 `='上游'!cell`(改 ② 源头值会一路联动上来)、计算=真公式(显示码当空)、结果=该 servicer 该笔实测值;少数(NULL投影/SLA常量/系统列/decode/Hold多行/视图实时算)注明原因(绿=公式/灰=注)。例 daysinfc：Newrez=461 直传 vs Carrington=477 datediff（真 Excel 实算确认）。⚠️ Carr 源(非②)未纳入→⑨ Carr 直传标「未纳入」。真源 lineage hops + `fcl_formula_demos.json` |
 
 > **关于圈号 ②⑨⑩⑪⑱⑳**：是「全 FCL pipeline 23 表的**全局编号**」（与 doc 19/25、`fcl_table_meta.json` 一致）。② src·portnewrezfc、⑨ mid·temp、⑩ mid·fcl、⑪ mid·foreclosure、⑱ bps·sync主表、⑳ bps·视图。缺号（③④…⑬⑲…）是本 pilot 尚未纳入的表，**Phase 2 补齐，不是排序错误**（① 表清单索引里这些表已列出、标「Phase 2 待补」）。分析视图用字母 A–E，与表号区分。
 

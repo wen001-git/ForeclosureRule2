@@ -1,0 +1,22 @@
+{
+  "_meta": {
+    "purpose": "doc 32 全历史「首见 min(dataasof)」逻辑的活公式演示数据（方案3 多值布局）。set_date 这类字段需多个 (dataasof,value) 行才能用 MINIFS 取最小演示；矩阵单格放不下，故用独立小块：⑪⑱ 表底 inline + D 页各一处。3 行抽样(真实 12 行见 D 改期表)。脚本只排版。",
+    "version": "v1 2026-06-12",
+    "note": "MINIFS(dataasof列, 拍卖日列, 当前值) = 首见 set_date；dataasof 存为真实日期(可被 MIN 计算)，拍卖日存文本(与当前值文本匹配)。当前值在历史中若多次出现取最早；本例恰好一次。"
+  },
+  "sale_7727003984": {
+    "demo_loan": "7727003984",
+    "out_field": "timeline_sale_date_set_date",
+    "value_label": "拍卖排定日 fcscheduled_sale_date",
+    "current": "2026-06-30",
+    "expect": "2026-05-22",
+    "logic": "首见 set_date = min(dataasof WHERE 拍卖排定日=当前值 2026-06-30) [pool:300-303]（多值取最小；3 行抽样，真实 12 行见 D 改期表）",
+    "sql": "-- Redshift GEN_FCL_DETAIL 投影 [basic_data_pool_config.py pool:266-303]\nfc.fcscheduled_sale_date AS timeline_sale_date_projected_date,  -- pool:266  projected = 排定日「值」(当前)\nsa.sa_set_date           AS timeline_sale_date_set_date         -- pool:267  set_date  = 该值「首见」dataasof\nLEFT JOIN (\n  SELECT loanid, fcscheduled_sale_date, MIN(dataasof) AS sa_set_date   -- pool:300\n  FROM port.basic_data_loan_fcl\n  WHERE fcscheduled_sale_date IS NOT NULL\n  GROUP BY loanid, fcscheduled_sale_date                              -- pool:301\n) sa ON fc.loanid = sa.loanid AND fc.fcscheduled_sale_date = sa.fcscheduled_sale_date  -- pool:303",
+    "rows": [
+      ["2025-07-16", "2025-08-13"],
+      ["2026-04-23", "2026-05-29"],
+      ["2026-05-22", "2026-06-30"]
+    ],
+    "inline_sheets": ["port.basic_data_loan_foreclosure", "bpms.sync_loan_foreclosure"]
+  }
+}

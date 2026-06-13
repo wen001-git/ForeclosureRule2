@@ -3414,3 +3414,94 @@ basic_data_fcl_related 由 portnewrezgeneral.delinquency_status_mba 映射成 de
 - **高亮**: demo loan 列里输入格浅蓝、输出格浅橙、公式格浅绿 + 图例行。
 - **真源**: 新建 outputs/fcl_formula_demos.json(逻辑规格)；脚本只排版。DB 只读(无需查库)。
 - **限制**: 无 Excel 引擎，结果靠 公式well-formed+地址正确+expect文档化 三重保证，用户开表肉眼确认。
+
+## [2026-06-12] 追加：首见 min(dataasof) 全历史字段的活公式（方案3）
+> 那种取全历史最小值的字段怎么处理…换成方案3？多值取最小…用3个值举例 → (回答:可行) 两个方案都实现
+
+### Decision: 首见 min 用「方案3 多值块 + MINIFS」，矩阵单格不动 [2026-06-12]
+- **问题**: set_date 这类「全历史取最小」字段，矩阵是单格(值+多天提示文本)，公式无法取 min。
+- **方案**: 新建 outputs/fcl_minihist_demos.json(3 行抽样 (dataasof,value)，dataasof 存真实日期可被 MIN 计算)。两处落地(用户要两个都做)：① ⑪⑱ 表底各加 3 行方案3小块 + 矩阵 set_date 行 🧮 = 实时 MINIFS(引用本表底块)；② D 页加自包含演示块(含 MINIFS 结果行)。3 行抽样(非真实12行)。
+- **校验**: MINIFS(A:A,B:B,"2026-06-30")=2026-05-22=实测；dataasof 实测为 datetime；全 16 sheet 幂等(8b30fde0/16296 格)。
+
+## Milestone [2026-06-12] doc 32「🧮 公式演示」列 + 首见 min 方案3 活公式 完成
+- 真源: outputs/fcl_formula_demos.json(9 条精选活公式) + outputs/fcl_minihist_demos.json(首见 min 方案3)。
+- 生成器: 非 src 表 col5「🧮 公式演示」(loans→col6..30)、跨表引用、显示码公式侧判断(VALUE/DATEVALUE/空判)、高亮(输入蓝/输出橙/公式绿)+批注；⑪⑱ 表底 min 块 + D 页块。
+- 校验: 9/9 公式地址/期望/高亮 PASS；首见 min MINIFS=2026-05-22 PASS；② src 3 列不回归；全 16 sheet 幂等。
+- 文档: 测试报告 docs/zh/32_formula_demo_test_report.md(TC1–TC11 全 PASS)；导读 MD v4 + A 导读 + 依赖 同步。
+- /simplify 暂缓(新增多为数据驱动的排版分支、已验证；建议独立轮跑)。DB 只读;未提交。
+
+## [2026-06-12 00:00 UTC] Add Newrez raw values to fcl_layer_examples.json for doc 32 ② src·portnewrezfc
+> Add raw Newrez source values for the sample loans into outputs/fcl_layer_examples.json so doc 32's ② src·portnewrezfc sheet can show example columns. Add values["newrez.portnewrezfc"] (25 loans × ~63 fields) + layers["newrez.portnewrezfc"] meta, preserve everything else.
+
+## [2026-06-13] 用真·Excel 引擎验证公式 + 修复 #NAME? + ② 补源头数据
+> Excel 计算引擎去哪获取？你能获取吗？帮我验证计算 / D!B60 MINIFS 报错 / ② src·portnewrezfc 没填数据，请补
+
+### Decision: 用本机真 Excel(pywin32 COM) 做引擎级验证 [2026-06-13]
+- **引擎获取**: 本机已装 Excel(Office16, C:\Program Files\Microsoft Office\Root\Office16\EXCEL.EXE)；`pip install pywin32` 后用 COM 驱动真 Excel `CalculateFull()` 复算 + `SpecialCells(xlErrors)` 扫错。(备选: LibreOffice headless / python formulas|pycel——均未装。)
+- **验证结果**: 独立 Python 复算 10/10 公式=期望=实测；真 Excel 全 16 sheet **0 公式错误**；D!B60 首见=2026-05-22。
+- **修复 2 缺陷**: ① MINIFS 在本机 Excel(实为缺 MINIFS 的构建)报 #NAME? → 全部改 MIN+IF助列(全版本兼容)；② 规则文本"= fcbidamount"(⑪C59/C65)以 = 开头被当公式 → 新增 _T() 文本单元格首字符 = 转全角 ＝。
+- **②补数据**: 子代理拉 newrez.portnewrezfc 25 笔×63 字段最新快照(key=loanid, asof 2026-06-10)入 fcl_layer_examples.json；is_src 分支渲染 25 举例列(无规则/公式列)；fcreferraldate(3984)=2025-03-07=⑩.referral_start_date；Carr 5=∅NULL。
+- **校验**: 全 16 sheet 幂等(3e484c54/18224 格)；测试报告 v3 更新(TC12-14)；DB 只读;未提交。
+
+## [2026-06-13] 全字段 🧮 公式覆盖 + ② 源头数据
+> ② 也要有数据(否则 mid/bps 数据从哪来)；mid/bps 字段为什么大部分没公式？应该所有字段都要有 excel 公式演示 pipeline 计算逻辑
+
+### Decision: 用 lineage hops 把每个字段的 🧮 填为「引用上游层活公式」[2026-06-13]
+- **逻辑**: 用户对——② 是 pipeline 源头必须有数据(已补 25 笔)；每个字段都应能演示其来源。直传/改名的「计算」就是「= 上游同字段」。
+- **实现**: 从 fcl_lineage_source.json 的 fields[].hops 建跨层 UPSTREAM 映射(连续跳)+ 同名直传(⑩←⑨/⑱←⑪/⑳←⑱)+ temp 改名(←②) → 每个非 src 字段的 🧮 = `='上游sheet'!<demo loan 7727003984 格>`(直传/改名活引用，整簿成可联动 pipeline)；计算字段用 9 条 demo;首见 min 用方案3 块。
+- **覆盖**: 5 非 src 表 336 字段 → 247 活公式 + 89 诚实注。注 = NULL投影/SLA target常量/variance/bid_approval/decode/系统PK/Hold多行/视图实时算(nextduedate off-sheet) —— 这些无法单格如实表达，强写即造假，故注明(规则列另有说明)。
+- **缺陷修复**: ① `_T()` 文本单元格首字符 = → 全角 ＝(防被当公式)；② ② REG 补 field2row(供 ⑨ 引用)。
+- **验证(真 Excel)**: pip install pywin32 → COM CalculateFull → SpecialCells(xlErrors) 全 16 sheet **0 错误**;幂等 463a343e;独立 Python 复算计算类 10/10=期望=实测。
+- 测试报告 v4(TC15)、导读 MD v5 同步。DB 只读;未提交。
+
+## [2026-06-13] 🧮 公式列改为「每 servicer 一列」(Newrez + Carrington)
+> 公式演示列你是不是多个servicer混在1列？做成一个servicer一个公式演示 / 一个servicer一个公式演示列
+
+### Decision: 每 servicer 一列(Newrez 7727003984 / Carrington 7727000806) [2026-06-13]
+- **背景**: 单列里 daysinfc 用 Carrington、其余用 Newrez → loan 不统一。我曾建议「统一1笔+差异块」，用户两次坚持「每 servicer 一列」→ 照办。
+- **实现**: 非 src 表「来源/类型」后插 2 公式列(col5 Newrez / col6 Carrington)，举例列顺延 col7..31，冻结前 6 列。统一 `formula_for(meta,field,loan)` 两列各跑：直传/改名=引用上游该笔格(lineage hops+同名+temp改名)；计算(CASE/type/days/actual/daysinfc-Carr)=真公式，**全部 null-guard**(Carr 缺值→∅NULL，匹配实测)；servicer 分叉(daysinfc Newrez直传 vs Carr datediff)各列各写；⑨ Carr 直传=「源(非②)未纳入」注；首见 set_date→表底方案3块(MIN助列)。
+- **覆盖**: 336×2=672 格 → 476 活公式 + 196 注。
+- **缺陷修复**: actual_* 引用全历史 set_date(VALUE 含「值\n提示」两行)致 DATEVALUE #VALUE → f_actual 跳过 FULLHIST timeline。
+- **真 Excel 验证(pywin32 COM CalculateFull+SpecialCells)**: 全 16 sheet **0 公式错误**；实算 daysinfc Newrez=461 / Carrington=477（与实测一致）。幂等 e68c7365。
+- 同步: 导读 MD v6、测试报告 v5(TC16)、A 导读读法。DB 只读;未提交。
+
+## [2026-06-13] 核对首见 set_date 应填 dataasof 还是 fcscheduled_sale_date
+> ⑱ 首见 min 块助列 C 填的应该是拍卖排定日首次出现的 dataasof 还是 fcscheduled_sale_date？请查本地 prefect 代码
+
+## [2026-06-13] 把首见 set_date 的 SQL(pool:300-303)加到文档 + fcl_pipeline.html
+> 把这条 SQL 出处 pool:300-303 以及 sql 语句都加到文档中，以及 fcl_pipeline.html 中，找到合适合理的地方
+
+### 完成: 首见 set_date 的 SQL(pool:266-303) 加到文档 + HTML [2026-06-13]
+- 真源 fcl_lineage_source.json: timeline_sale_date_set_date 的 `sql` 由简写改为完整 GEN_FCL_DETAIL 片段(projected/set_date 两行 + LEFT JOIN sa 子查询 + ON)，逐行标 pool:266/267/300/301/303；hop code pool:267,300→pool:266-303。
+- fcl_pipeline.html: 重跑 scripts/inject_glin.txt 刷新内嵌 GLIN → 该字段抽屉「取数 SQL」<pre> 显示完整 SQL(实测含 pool:266-303 + JOIN 片段)。
+- doc 32 Excel: fcl_minihist_demos.json 加 `sql` 字段；write_minihist 在首见 min 块底部新增「源 SQL(pool:266-303)」Consolas 行(⑪⑱ 表底 + D 页块均显示)。
+- doc 26 (zh+en): hop 2 代码 pool:267,300→pool:266-303 + ```sql 块换成完整语句(传播规则)。
+- 校验: 0 残留旧简写 sql；全 16 sheet 真 Excel 0 公式错误(SQL 为文本不影响)；HTML/xlsx inject 均幂等。DB/代码只读;未提交。
+
+## [2026-06-13] doc32 ⑩ daysinfc 计算规则不清 + 非copy规则需在「计算逻辑」cell内附举例说明
+> daysinfc的计算规则没清楚，而且对于非copy的计算规则，请在计算逻辑cell中还不上举例说明
+
+## [2026-06-12] 血缘图谱搜索下拉单击选字段后自动定位+高亮
+> 搜索框下拉单击选中字段后，期望图定位到该字段、该字段及关联字段高亮
+
+## Milestones
+- [2026-06-12] gsearch 输入加 oninput=graphSearchPick：仅当值=精确表/字段名时触发 graphSearch（单击 datalist 选项会填入完整值并触发 input，跨浏览器可靠；onchange 在 datalist 单击时可能不触发故补此）。保留 onchange+Enter。focusGraphField 随后展开整条链+高亮+居中。Preview 实测：部分输入不触发；选完整 timeline_sale_date_set_date→focus 命中、5 链表展开、10 节点高亮、0 报错。
+
+### 完成: doc32 daysinfc 规则澄清 + 非copy计算规则在「计算逻辑」cell内附本笔真值工作示例 [2026-06-13]
+- 问题: ⑩ daysinfc 规则写「rename (Newrez) / computed (others)」既错(Newrez 是 copy 非 rename)又含糊(computed 无公式/示例)；用户要求所有非copy计算规则在「计算逻辑」cell内补举例说明。
+- 真源 fcl_lineage_source.json: daysinfc hop rule 改为「Newrez 直传同名列 daysinfc(servicer 自报,不重算);Carrington/Capecodfive 计算 = FCL 活跃 ? datediff(referral_start_date,快照日)+1 : NULL」;code pool:1546→pool:1546(NZ直传),1587(Carr),1628(CC5)。已核 PrefectFlow 代码 pool:1546/1587/1628。
+- 传播: 重跑 inject_glin → HTML(含新规则);doc 26 zh+en 逐跳行同步;grep 旧「rename (Newrez) / computed (others)」全仓 0 残留。
+- 生成器 build_fcl_pipeline_mapping_xlsx.txt: 新增 eg_worked(meta,field) 用 demo loan(NZ 7727003984/CA 7727000806)真值生成「例 …」工作示例,接到「计算逻辑」cell(优先于关键词模板;纯直传/改名=copy 不举例)。覆盖: servicer/daysinfc/activefcflag/fcstage(⑨⑩)、summary_foreclosure_status/summary_type(仅⑪计算层)、summary_days_in_fcl(⑱实时重算)、actual_*_days(⑳)。
+- 校验: 审计 0 个真计算字段缺示例;真 Excel COM 全 16 sheet 0 公式错误;内容级幂等(hash A==B);DB/代码只读;未提交。
+
+## [2026-06-13] ⑨ activefcflag 的 Carrington 公式列为何是文字注而非公式？
+> ⑨ mid·temp_basic_data_fcl 的activefcflag的 🧮 公式·Carrington(7727000806)列，不能用公式表达吗？文字的表达已经在【计算逻辑 / mapping rule】列有了呀，为什么这里用不了公式？
+
+### 完成: ⑨ Carrington 派生字段(activefcflag 等)从文字注 → 活 Excel 公式 [2026-06-13]
+- 问题: ⑨ activefcflag 的 🧮·Carrington 列是文字注「Carrington 特有逻辑…其 raw 源未纳入」而非公式。根因: activefcflag=CASE fcl_flag='Active' 的输入 fcl_flag 在 carrington.portcarrington（本工作簿未建该 sheet，② 仅 Newrez），无格可引用。
+- 取数(只读): redshift_prod 查 carrington.portcarrington loan 7727000806 最新快照 → fcl_flag=Active / fcl_sub_status=Contested / fcl_referral_date=2025-02-19 / carrington_ln=3000077131 / fcl_attorney_name=Lender Legal PLLC / sale 日期=NULL。schema 先核 information_schema 列存在。
+- 新数据文件 outputs/fcl_carr_source_demo.json（脚本只排版）。生成器: ⑨ 表底新增「Carr 源输入演示」块(8 行 DB 实测原始列, 输入浅蓝)；新增 CARR_DERIVE 映射(pool:1574-1611) + carr_formula + write_carr_source；formula_for 改: ⑨ Carr 派生字段引用该块出活公式(activefcflag=IF(块!fcl_flag="Active",1,"∅NULL")、fcstage/svc_loanid/referral/fcfirm/dataasof=直接引用)，去掉旧 activefcflag/fcstage 文字注短路；⑩ Carr activefcflag/fcstage 落入 _passthrough → 引用 ⑨ 格；仅该 UNION 分支恒 NULL 的字段标「Carr 分支=NULL 常量」。
+- 校验: 真 Excel COM 全 16 sheet 0 错误且实算 ⑨ activefcflag Carr=1 / svc_loanid=3000077131 / referral=2025-02-19 / daysinfc=477 / ⑩ activefcflag=1；公式 476→487(+11)、注 196→185(-11)；内容级幂等(hash A==B)。仅改 Excel(+新JSON)，未动 lineage/HTML/doc26。DB 只读;未提交。
+
+## [2026-06-13] 公式·Carrington 数据源应是 portcarrington 而非 ⑨ 内 demo 块？是否新增 src 表 portcarrington
+> 公式·Carrington 的数据源是不是应该是 portcarrington？ 但是carrington的数据放在这个表了 ② src·portnewrezfc 是不是应该新增一个src表 portcarrington？请检查prefect代码和DB分析一下

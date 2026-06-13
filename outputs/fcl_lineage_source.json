@@ -1513,7 +1513,7 @@
     "zh": "当前排定拍卖值在快照中首次出现日（ETL 追踪）。"
    },
    "status": "ok",
-   "sql": "sa.sa_set_date = min(dataasof) FROM port.basic_data_loan_fcl WHERE fcscheduled_sale_date IS NOT NULL GROUP BY loanid, fcscheduled_sale_date",
+   "sql": "-- GEN_FCL_DETAIL 投影 [basic_data_pool_config.py pool:266-303]\n-- projected = 排定日「值」(当前)；set_date = 该值「首见」dataasof\nfc.fcscheduled_sale_date AS timeline_sale_date_projected_date,  -- pool:266\nsa.sa_set_date           AS timeline_sale_date_set_date         -- pool:267\nLEFT JOIN (\n  SELECT loanid, fcscheduled_sale_date, MIN(dataasof) AS sa_set_date   -- pool:300\n  FROM port.basic_data_loan_fcl\n  WHERE fcscheduled_sale_date IS NOT NULL\n  GROUP BY loanid, fcscheduled_sale_date                              -- pool:301\n) sa ON fc.loanid = sa.loanid AND fc.fcscheduled_sale_date = sa.fcscheduled_sale_date  -- pool:303",
    "hops": [
     {
      "t": "newrez.portnewrezfc",
@@ -1530,8 +1530,8 @@
     {
      "t": "port.basic_data_loan_foreclosure",
      "c": "timeline_sale_date_set_date",
-     "rule": "ETL tracking: min(dataasof) of current value 首见日",
-     "code": "pool:267,300"
+     "rule": "ETL tracking: min(dataasof) of current value 首见日（按 (loanid,fcscheduled_sale_date) 分组取 MIN(dataasof)，再 join 当前值）",
+     "code": "pool:266-303"
     },
     {
      "t": "bpms.sync_loan_foreclosure",
@@ -3263,8 +3263,8 @@
     {
      "t": "port.basic_data_loan_fcl",
      "c": "daysinfc",
-     "rule": "rename (Newrez) / computed (others)",
-     "code": "pool:1546"
+     "rule": "Newrez 直传同名列 daysinfc（servicer 自报值，不重算）；Carrington/Capecodfive 计算 = FCL 活跃 ? datediff(referral_start_date, 快照日)+1 : NULL",
+     "code": "pool:1546(NZ直传),1587(Carr),1628(CC5)"
     },
     {
      "t": "port.basic_data_loan_foreclosure",
