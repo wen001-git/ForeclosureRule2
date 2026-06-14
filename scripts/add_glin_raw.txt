@@ -1,0 +1,67 @@
+# Attach per-field "values.raw" (RAW SOURCE value-range, per servicer) to the enum fields that already have values.
+# Run from project root:  python - < scripts/add_glin_raw.txt   (after add_glin_values.txt)
+# Node-scoped rendering: output/decoded column shows values.items; raw source column shows values.raw.
+# Sources (DB read-only): mysql_prod newrez.* + bpms.* / redshift_prod carrington.* capecodfive.* GROUP BY (2026-06-14); datadic for code meanings.
+import json
+SRC='outputs/fcl_lineage_source.json'
+
+def sv(who,col,zh,en,counts=None):
+    d={"who":who,"col":col,"range":{"zh":zh,"en":en}}
+    if counts is not None: d["counts"]=counts
+    return d
+
+CODED_NOTE={"zh":"Carrington/Capecodfive 不上报 LM/BK 明细，源仅 Newrez。原始列存编码，经 datadic 解码为输出文本。",
+            "en":"Carrington/Capecodfive do not report LM/BK detail — source is Newrez only. The raw column stores codes, decoded via datadic into the output text."}
+
+RAW = {
+ ("sync_loan_foreclosure","summary_foreclosure_status"): {
+   "note":{"zh":"三家 servicer 原始源列与取值都不同；下游用统一 CASE 生成 BPS 文本（pool:273）。","en":"All three servicers have different raw source columns/values; a shared downstream CASE produces the BPS text (pool:273)."},
+   "servicers":[
+     sv("Newrez","portnewrezfc.activefcflag (+ fcremovaldesc)","活跃止赎标志 0/1（+ fcremovaldesc 自由文本退出原因）","active-FC flag 0/1 (+ fcremovaldesc free-text exit reason)",[["0",1654285],["1",14279]]),
+     sv("Carrington","portcarrington.fcl_flag","'Active' 或空","'Active' or empty",[["(空)",317250],["Active",3490]]),
+     sv("Capecodfive","portcapecodfive_monthly_collections.foreclosure_flag","实测全空（未填充）","empty in practice (not populated)",[["(空)",6182]]),
+   ]},
+ ("sync_loan_foreclosure","summary_judicial_foreclosure"): {
+   "note":{"zh":"仅 Newrez 有此源；Carrington/Capecodfive 无。","en":"Only Newrez has this source; Carrington/Capecodfive do not."},
+   "servicers":[ sv("Newrez","portnewrezfc.judicial","0=非司法 · 1=司法 · NULL","0=non-judicial · 1=judicial · NULL",[["1",17699],["0",17551],["(NULL)",1633314]]) ]},
+ ("sync_loan_foreclosure","summary_contested_litigation"): {
+   "note":{"zh":"仅 Newrez 有此源；Carrington/Capecodfive 无。","en":"Only Newrez has this source; Carrington/Capecodfive do not."},
+   "servicers":[ sv("Newrez","portnewrezfc.fccontestedflag","0=无争议 · 1=有争议/诉讼","0=not contested · 1=contested/litigation",[["0",1667586],["1",978]]) ]},
+ ("sync_loan_foreclosure","summary_type"): {
+   "note":{"zh":"取自与 judicial 同一原始码（0/1），下游 CASE 转文本。仅 Newrez。","en":"From the same raw judicial code (0/1) as judicial; CASE turns it into text. Newrez only."},
+   "servicers":[ sv("Newrez","portnewrezfc.judicial","0→Non Judicial · 1→Judicial · NULL","0→Non Judicial · 1→Judicial · NULL",[["1",17699],["0",17551],["(NULL)",1633314]]) ]},
+ ("sync_fcl_stage_info","stage"): {
+   "note":{"zh":"无单一原始码源——由各阶段开始日期按 waterfall 取最深里程碑（pool:2095-2102）。","en":"No single raw source — derived by a waterfall over stage start dates, taking the deepest milestone (pool:2095-2102)."},
+   "servicers":[]},
+ ("sync_fcl_stage_info","group"): {
+   "note":{"zh":"下游统一映射到 delq_status 桶（FCL/D120P/D90/D60/D30/C/P/REO）。Capecodfive 不在 basic_data_fcl_related。","en":"Downstream mapped to delq_status buckets (FCL/D120P/D90/D60/D30/C/P/REO). Capecodfive is not in basic_data_fcl_related."},
+   "servicers":[
+     sv("Newrez","portnewrezgeneral.delinquency_status_mba","MBA 19 档文本（Current/…/Foreclosure/REO/Full Payoff…），否则按 days360 分桶","MBA 19-value text (Current/…/Foreclosure/REO/Full Payoff…), else days360 bucket"),
+     sv("Carrington","portcarrington.loan_status (/ fcl_flag)","CUR/0-29/30-59/60-89/90-119/120+/Foreclosure/REO/Completed Payoff/Loss Mitigation/Bankruptcy…","CUR/0-29/.../Foreclosure/REO/Completed Payoff/Loss Mitigation/Bankruptcy…",[["CUR",214345],["0-29",63103],["Completed Payoff",19224],["Foreclosure",2203],["REO",316]]),
+     sv("Capecodfive","—","不在 basic_data_fcl_related（无此源）","not in basic_data_fcl_related (no source)"),
+   ]},
+ ("sync_loan_foreclosure_loss_mitigation","deal"): {"note":CODED_NOTE,"servicers":[ sv("Newrez","portnewrezlm.lmdeal","整数码，datadic(LMDeal) 解码为输出文本","integer code, decoded via datadic(LMDeal)") ]},
+ ("sync_loan_foreclosure_loss_mitigation","program"): {"note":CODED_NOTE,"servicers":[ sv("Newrez","portnewrezlm.lmprogram","整数码，datadic(LMProgram) 解码","integer code, decoded via datadic(LMProgram)") ]},
+ ("sync_loan_foreclosure_loss_mitigation","lmc_status"): {"note":CODED_NOTE,"servicers":[ sv("Newrez","portnewrezlm.lmstatus","整数码，datadic(LMStatus) 解码","integer code, decoded via datadic(LMStatus)") ]},
+ ("sync_loan_foreclosure_loss_mitigation","final_disposition"): {"note":CODED_NOTE,"servicers":[ sv("Newrez","portnewrezlm.lmdecision","整数码，datadic(LMDecision) 解码","integer code, decoded via datadic(LMDecision)") ]},
+ ("sync_loan_foreclosure_loss_mitigation","denialreason"): {"note":CODED_NOTE,"servicers":[ sv("Newrez","portnewrezlm.denialreason","整数码，datadic(DenialReason) 解码","integer code, decoded via datadic(DenialReason)") ]},
+ ("sync_loan_foreclosure_loss_mitigation","borrower_intentions"): {"note":CODED_NOTE,"servicers":[ sv("Newrez","portnewrezlm.borrowerintention","整数码 1/2/3，datadic(BorrowerIntention) 解码","integer code 1/2/3, decoded via datadic(BorrowerIntention)") ]},
+ ("sync_loan_foreclosure_bankruptcy","bankruptcy_status"): {"note":CODED_NOTE,"servicers":[ sv("Newrez","portnewrezbk.bkstatus","整数码，datadic(BKStatus) 解码","integer code, decoded via datadic(BKStatus)") ]},
+ ("sync_loan_foreclosure_bankruptcy","chapter"): {"note":{"zh":"原始列即破产章节数值，无需解码。仅 Newrez。","en":"Raw column is the bankruptcy chapter number; no decode. Newrez only."},"servicers":[ sv("Newrez","portnewrezbk.bkchapter","数值 7 / 11 / 13","numeric 7 / 11 / 13") ]},
+ ("sync_loan_foreclosure_bankruptcy","legal_status"): {"note":{"zh":"来自 portnewrezgeneral.legalstatus（非 portnewrezbk）。短码（BK13/BK7/FCBU/REO…），datadic(LegalStatus) 解释。仅 Newrez。","en":"From portnewrezgeneral.legalstatus (not portnewrezbk). Short codes (BK13/BK7/FCBU/REO…), explained via datadic(LegalStatus). Newrez only."},"servicers":[ sv("Newrez","portnewrezgeneral.legalstatus","短码：BK13/BK7/BK11/FCBU/REO/REOSLD/90plus…","short codes: BK13/BK7/BK11/FCBU/REO/REOSLD/90plus…") ]},
+}
+
+data=json.load(open(SRC, encoding='utf-8'))
+hit=set()
+for f in data['fields']:
+    bt=f.get('bps_table')
+    if not bt or 'values' not in f: continue
+    synccol=None
+    for h in f.get('hops',[]):
+        if h.get('t','')==('bpms.'+bt): synccol=h.get('c')
+    key=(bt, synccol)
+    if key in RAW:
+        f['values']['raw']=RAW[key]; hit.add(key)
+missing=[k for k in RAW if k not in hit]
+json.dump(data, open(SRC,'w',encoding='utf-8'), ensure_ascii=False, indent=1)
+print('attached raw to %d fields; missing: %s' % (len(hit), missing))

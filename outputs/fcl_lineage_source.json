@@ -2810,6 +2810,64 @@
     "more": {
      "zh": "规则：activefcflag=1→'Active Foreclosure'；=0 且 fcremovaldesc 非空→'Closed Foreclosure:'+退出原因。另有少量 Carrington 风格编号状态（如 '1. First Legal Pending'/'5. Sales Held'）。",
      "en": "Rule: activefcflag=1→'Active Foreclosure'; =0 with non-empty fcremovaldesc→'Closed Foreclosure:'+reason. A few Carrington-style numbered statuses also occur (e.g. '1. First Legal Pending', '5. Sales Held')."
+    },
+    "raw": {
+     "note": {
+      "zh": "三家 servicer 原始源列与取值都不同；下游用统一 CASE 生成 BPS 文本（pool:273）。",
+      "en": "All three servicers have different raw source columns/values; a shared downstream CASE produces the BPS text (pool:273)."
+     },
+     "servicers": [
+      {
+       "who": "Newrez",
+       "col": "portnewrezfc.activefcflag (+ fcremovaldesc)",
+       "range": {
+        "zh": "活跃止赎标志 0/1（+ fcremovaldesc 自由文本退出原因）",
+        "en": "active-FC flag 0/1 (+ fcremovaldesc free-text exit reason)"
+       },
+       "counts": [
+        [
+         "0",
+         1654285
+        ],
+        [
+         "1",
+         14279
+        ]
+       ]
+      },
+      {
+       "who": "Carrington",
+       "col": "portcarrington.fcl_flag",
+       "range": {
+        "zh": "'Active' 或空",
+        "en": "'Active' or empty"
+       },
+       "counts": [
+        [
+         "(空)",
+         317250
+        ],
+        [
+         "Active",
+         3490
+        ]
+       ]
+      },
+      {
+       "who": "Capecodfive",
+       "col": "portcapecodfive_monthly_collections.foreclosure_flag",
+       "range": {
+        "zh": "实测全空（未填充）",
+        "en": "empty in practice (not populated)"
+       },
+       "counts": [
+        [
+         "(空)",
+         6182
+        ]
+       ]
+      }
+     ]
     }
    }
   },
@@ -3066,7 +3124,37 @@
       },
       "n": 34
      }
-    ]
+    ],
+    "raw": {
+     "note": {
+      "zh": "仅 Newrez 有此源；Carrington/Capecodfive 无。",
+      "en": "Only Newrez has this source; Carrington/Capecodfive do not."
+     },
+     "servicers": [
+      {
+       "who": "Newrez",
+       "col": "portnewrezfc.judicial",
+       "range": {
+        "zh": "0=非司法 · 1=司法 · NULL",
+        "en": "0=non-judicial · 1=judicial · NULL"
+       },
+       "counts": [
+        [
+         "1",
+         17699
+        ],
+        [
+         "0",
+         17551
+        ],
+        [
+         "(NULL)",
+         1633314
+        ]
+       ]
+      }
+     ]
+    }
    }
   },
   {
@@ -3173,7 +3261,33 @@
       },
       "n": 1
      }
-    ]
+    ],
+    "raw": {
+     "note": {
+      "zh": "仅 Newrez 有此源；Carrington/Capecodfive 无。",
+      "en": "Only Newrez has this source; Carrington/Capecodfive do not."
+     },
+     "servicers": [
+      {
+       "who": "Newrez",
+       "col": "portnewrezfc.fccontestedflag",
+       "range": {
+        "zh": "0=无争议 · 1=有争议/诉讼",
+        "en": "0=not contested · 1=contested/litigation"
+       },
+       "counts": [
+        [
+         "0",
+         1667586
+        ],
+        [
+         "1",
+         978
+        ]
+       ]
+      }
+     ]
+    }
    }
   },
   {
@@ -3310,6 +3424,36 @@
     "more": {
      "zh": "由 judicial 码 0/1 经 CASE 转文本（pool:279）。",
      "en": "Text from judicial code 0/1 via CASE (pool:279)."
+    },
+    "raw": {
+     "note": {
+      "zh": "取自与 judicial 同一原始码（0/1），下游 CASE 转文本。仅 Newrez。",
+      "en": "From the same raw judicial code (0/1) as judicial; CASE turns it into text. Newrez only."
+     },
+     "servicers": [
+      {
+       "who": "Newrez",
+       "col": "portnewrezfc.judicial",
+       "range": {
+        "zh": "0→Non Judicial · 1→Judicial · NULL",
+        "en": "0→Non Judicial · 1→Judicial · NULL"
+       },
+       "counts": [
+        [
+         "1",
+         17699
+        ],
+        [
+         "0",
+         17551
+        ],
+        [
+         "(NULL)",
+         1633314
+        ]
+       ]
+      }
+     ]
     }
    }
   },
@@ -3742,6 +3886,13 @@
     "more": {
      "zh": "stage = 瀑布取「已到达的最深里程碑」（SALE>JUDGEMENT>PUBLICATION>SERVICE>FIRST_LEGAL>REFERRAL>DEMAND，pool:2095-2102）。计数＝最新快照 41 行（doc04 §6.1）。",
      "en": "stage = deepest milestone reached (waterfall SALE>…>DEMAND, pool:2095-2102). Counts = latest snapshot, 41 rows (doc04 §6.1)."
+    },
+    "raw": {
+     "note": {
+      "zh": "无单一原始码源——由各阶段开始日期按 waterfall 取最深里程碑（pool:2095-2102）。",
+      "en": "No single raw source — derived by a waterfall over stage start dates, taking the deepest milestone (pool:2095-2102)."
+     },
+     "servicers": []
     }
    }
   },
@@ -3924,6 +4075,60 @@
     "more": {
      "zh": "group = 逾期/组合分类（= ⑫ basic_data_fcl_related.delq_status，答「在哪个逾期桶」），≠ stage（法律阶段）。最新止赎快照基本全为 FCL（doc04 §6.1）。",
      "en": "group = delinquency bucket (= basic_data_fcl_related.delq_status), NOT the legal stage. Latest FCL snapshot is essentially all FCL (doc04 §6.1)."
+    },
+    "raw": {
+     "note": {
+      "zh": "下游统一映射到 delq_status 桶（FCL/D120P/D90/D60/D30/C/P/REO）。Capecodfive 不在 basic_data_fcl_related。",
+      "en": "Downstream mapped to delq_status buckets (FCL/D120P/D90/D60/D30/C/P/REO). Capecodfive is not in basic_data_fcl_related."
+     },
+     "servicers": [
+      {
+       "who": "Newrez",
+       "col": "portnewrezgeneral.delinquency_status_mba",
+       "range": {
+        "zh": "MBA 19 档文本（Current/…/Foreclosure/REO/Full Payoff…），否则按 days360 分桶",
+        "en": "MBA 19-value text (Current/…/Foreclosure/REO/Full Payoff…), else days360 bucket"
+       }
+      },
+      {
+       "who": "Carrington",
+       "col": "portcarrington.loan_status (/ fcl_flag)",
+       "range": {
+        "zh": "CUR/0-29/30-59/60-89/90-119/120+/Foreclosure/REO/Completed Payoff/Loss Mitigation/Bankruptcy…",
+        "en": "CUR/0-29/.../Foreclosure/REO/Completed Payoff/Loss Mitigation/Bankruptcy…"
+       },
+       "counts": [
+        [
+         "CUR",
+         214345
+        ],
+        [
+         "0-29",
+         63103
+        ],
+        [
+         "Completed Payoff",
+         19224
+        ],
+        [
+         "Foreclosure",
+         2203
+        ],
+        [
+         "REO",
+         316
+        ]
+       ]
+      },
+      {
+       "who": "Capecodfive",
+       "col": "—",
+       "range": {
+        "zh": "不在 basic_data_fcl_related（无此源）",
+        "en": "not in basic_data_fcl_related (no source)"
+       }
+      }
+     ]
     }
    }
   },
@@ -6410,6 +6615,22 @@
     "more": {
      "zh": "整数码经 datadic(LMDeal) 解码为文本。完整 13 类另含 Reinstatement / Loan Sale / Settlement / CFK / Consent Judgement，见 doc 14。",
      "en": "Integer code decoded via datadic(LMDeal). Full 13-type domain also has Reinstatement / Loan Sale / Settlement / CFK / Consent Judgement — see doc 14."
+    },
+    "raw": {
+     "note": {
+      "zh": "Carrington/Capecodfive 不上报 LM/BK 明细，源仅 Newrez。原始列存编码，经 datadic 解码为输出文本。",
+      "en": "Carrington/Capecodfive do not report LM/BK detail — source is Newrez only. The raw column stores codes, decoded via datadic into the output text."
+     },
+     "servicers": [
+      {
+       "who": "Newrez",
+       "col": "portnewrezlm.lmdeal",
+       "range": {
+        "zh": "整数码，datadic(LMDeal) 解码为输出文本",
+        "en": "integer code, decoded via datadic(LMDeal)"
+       }
+      }
+     ]
     }
    }
   },
@@ -6559,6 +6780,22 @@
     "more": {
      "zh": "LMProgram 共 388 码，此处列最常用 12（含未解码码如 496/498/499/527/531 需向 Newrez 核对）；完整见 DB / doc 14。",
      "en": "LMProgram has 388 codes; top 12 shown (incl. undecoded codes like 496/498/499 — verify with Newrez). Full list in DB / doc 14."
+    },
+    "raw": {
+     "note": {
+      "zh": "Carrington/Capecodfive 不上报 LM/BK 明细，源仅 Newrez。原始列存编码，经 datadic 解码为输出文本。",
+      "en": "Carrington/Capecodfive do not report LM/BK detail — source is Newrez only. The raw column stores codes, decoded via datadic into the output text."
+     },
+     "servicers": [
+      {
+       "who": "Newrez",
+       "col": "portnewrezlm.lmprogram",
+       "range": {
+        "zh": "整数码，datadic(LMProgram) 解码",
+        "en": "integer code, decoded via datadic(LMProgram)"
+       }
+      }
+     ]
     }
    }
   },
@@ -6708,6 +6945,22 @@
     "more": {
      "zh": "LMStatus 共 149 码，此处列最常用 12；完整见 DB / doc 14。",
      "en": "LMStatus has 149 codes; top 12 shown — full list in DB / doc 14."
+    },
+    "raw": {
+     "note": {
+      "zh": "Carrington/Capecodfive 不上报 LM/BK 明细，源仅 Newrez。原始列存编码，经 datadic 解码为输出文本。",
+      "en": "Carrington/Capecodfive do not report LM/BK detail — source is Newrez only. The raw column stores codes, decoded via datadic into the output text."
+     },
+     "servicers": [
+      {
+       "who": "Newrez",
+       "col": "portnewrezlm.lmstatus",
+       "range": {
+        "zh": "整数码，datadic(LMStatus) 解码",
+        "en": "integer code, decoded via datadic(LMStatus)"
+       }
+      }
+     ]
     }
    }
   },
@@ -6925,6 +7178,22 @@
     "more": {
      "zh": "LM 周期最终结论，整数码经 datadic(LMDecision) 解码。完整 24 码见 doc 14。",
      "en": "LM cycle final decision, decoded via datadic(LMDecision). Full 24-code domain in doc 14."
+    },
+    "raw": {
+     "note": {
+      "zh": "Carrington/Capecodfive 不上报 LM/BK 明细，源仅 Newrez。原始列存编码，经 datadic 解码为输出文本。",
+      "en": "Carrington/Capecodfive do not report LM/BK detail — source is Newrez only. The raw column stores codes, decoded via datadic into the output text."
+     },
+     "servicers": [
+      {
+       "who": "Newrez",
+       "col": "portnewrezlm.lmdecision",
+       "range": {
+        "zh": "整数码，datadic(LMDecision) 解码",
+        "en": "integer code, decoded via datadic(LMDecision)"
+       }
+      }
+     ]
     }
    }
   },
@@ -7074,6 +7343,22 @@
     "more": {
      "zh": "LM 被拒原因，整数码经 datadic(DenialReason) 解码。共 130 码，此处列最常用 12；完整见 DB / doc 14。",
      "en": "LM denial reason, decoded via datadic(DenialReason). 130 codes; top 12 shown — full in DB / doc 14."
+    },
+    "raw": {
+     "note": {
+      "zh": "Carrington/Capecodfive 不上报 LM/BK 明细，源仅 Newrez。原始列存编码，经 datadic 解码为输出文本。",
+      "en": "Carrington/Capecodfive do not report LM/BK detail — source is Newrez only. The raw column stores codes, decoded via datadic into the output text."
+     },
+     "servicers": [
+      {
+       "who": "Newrez",
+       "col": "portnewrezlm.denialreason",
+       "range": {
+        "zh": "整数码，datadic(DenialReason) 解码",
+        "en": "integer code, decoded via datadic(DenialReason)"
+       }
+      }
+     ]
     }
    }
   },
@@ -7151,7 +7436,23 @@
       },
       "n": 1
      }
-    ]
+    ],
+    "raw": {
+     "note": {
+      "zh": "Carrington/Capecodfive 不上报 LM/BK 明细，源仅 Newrez。原始列存编码，经 datadic 解码为输出文本。",
+      "en": "Carrington/Capecodfive do not report LM/BK detail — source is Newrez only. The raw column stores codes, decoded via datadic into the output text."
+     },
+     "servicers": [
+      {
+       "who": "Newrez",
+       "col": "portnewrezlm.borrowerintention",
+       "range": {
+        "zh": "整数码 1/2/3，datadic(BorrowerIntention) 解码",
+        "en": "integer code 1/2/3, decoded via datadic(BorrowerIntention)"
+       }
+      }
+     ]
+    }
    }
   },
   {
@@ -7467,6 +7768,22 @@
     "more": {
      "zh": "datadic BKStatus 解码 1→Active/2→Discharged/3→Dismissed/4→Closed/5→ReliefGranted；实测另见 'Completed/Cancelled'。",
      "en": "datadic BKStatus decodes 1→Active/2→Discharged/3→Dismissed/4→Closed/5→ReliefGranted; data also shows 'Completed/Cancelled'."
+    },
+    "raw": {
+     "note": {
+      "zh": "Carrington/Capecodfive 不上报 LM/BK 明细，源仅 Newrez。原始列存编码，经 datadic 解码为输出文本。",
+      "en": "Carrington/Capecodfive do not report LM/BK detail — source is Newrez only. The raw column stores codes, decoded via datadic into the output text."
+     },
+     "servicers": [
+      {
+       "who": "Newrez",
+       "col": "portnewrezbk.bkstatus",
+       "range": {
+        "zh": "整数码，datadic(BKStatus) 解码",
+        "en": "integer code, decoded via datadic(BKStatus)"
+       }
+      }
+     ]
     }
    }
   },
@@ -7603,6 +7920,22 @@
     "more": {
      "zh": "来自 portnewrezgeneral.legalstatus。LegalStatus 共 26 码，此处列实测出现的 11；完整见 datadic LegalStatus / doc 14。",
      "en": "From portnewrezgeneral.legalstatus. LegalStatus has 26 codes; 11 observed shown — full in datadic LegalStatus / doc 14."
+    },
+    "raw": {
+     "note": {
+      "zh": "来自 portnewrezgeneral.legalstatus（非 portnewrezbk）。短码（BK13/BK7/FCBU/REO…），datadic(LegalStatus) 解释。仅 Newrez。",
+      "en": "From portnewrezgeneral.legalstatus (not portnewrezbk). Short codes (BK13/BK7/FCBU/REO…), explained via datadic(LegalStatus). Newrez only."
+     },
+     "servicers": [
+      {
+       "who": "Newrez",
+       "col": "portnewrezgeneral.legalstatus",
+       "range": {
+        "zh": "短码：BK13/BK7/BK11/FCBU/REO/REOSLD/90plus…",
+        "en": "short codes: BK13/BK7/BK11/FCBU/REO/REOSLD/90plus…"
+       }
+      }
+     ]
     }
    }
   },
@@ -7705,7 +8038,23 @@
       },
       "n": 6
      }
-    ]
+    ],
+    "raw": {
+     "note": {
+      "zh": "原始列即破产章节数值，无需解码。仅 Newrez。",
+      "en": "Raw column is the bankruptcy chapter number; no decode. Newrez only."
+     },
+     "servicers": [
+      {
+       "who": "Newrez",
+       "col": "portnewrezbk.bkchapter",
+       "range": {
+        "zh": "数值 7 / 11 / 13",
+        "en": "numeric 7 / 11 / 13"
+       }
+      }
+     ]
+    }
    }
   },
   {

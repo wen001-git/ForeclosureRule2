@@ -3684,3 +3684,32 @@ basic_data_fcl_related 由 portnewrezgeneral.delinquency_status_mba 映射成 de
 - 需求：给抽屉血缘小图一个隐蔽切换，回到旧版（紧凑配色 SVG）。
 - 实现：新增 glinClassicSVG(hops)——从 GLIN 逐跳渲染旧版紧凑 SVG（每跳一框三行配色 db灰/schema.table浅蓝/.字段绿，短边标签=edgeCatL 类别，占位列渲染「派生/无独立列」斜体不伪装字段，长表名自动缩字号）。新增 glLineStyle('rich'|'classic', localStorage 记忆) + glLineSVG(hops) 派发 + glLineToggleHtml()（血缘段标题右侧不显眼小链接「⇄ 详细/经典」）+ toggleGlLineStyle()（切换+存储+重渲当前抽屉）。selectField/glinExtra 两路径接入。
 - 验证(Preview)：开关切 详细⇄经典 正确（HTML .hlin-box ⇄ svg.miniln）；切语言保持所选样式；localStorage 持久化；经典 SVG 3 框配色+占位斜体正确；7 视图 0 报错。DB/代码只读。**LOCAL，未 push。**
+
+## [2026-06-14 UTC] 取值范围按选中列走 + 多 servicer 源对照
+> lineage，字段的取值范围，对于不同的servicer源数据，不同的servicer 的取值范围不一样吧…目前来源表都是newrez…如果要说其他servicer则要把其他servicer源表也放数据血缘图，且选中该servicer源表字段时才展示该字段取值范围…你现在是把同一链路上字段共用一个字段详情了吗？
+
+### 完成: 取值范围节点感知 + 多 servicer 原始源对照 [2026-06-14]
+- **确认用户三点均成立**：①血缘图抽屉=按「字段(整条链)」，点链上任一节点共用同一 f/抽屉（原设计）；②我原取值范围取自 bpms.sync_*（合并各 servicer+已解码）的 BPS 输出，并非 Newrez 原始源列范围；③不同 servicer 原始源列取值不同。
+- **DB 查证（只读）改变方案前提**：15 枚举字段中 13 个源头只有 Newrez（LM/BK 等 Carrington/Capecodfive 不上报明细），仅 summary_foreclosure_status、group 真有多 servicer 源。故不往图里硬塞空节点（会让 13/15 多出「—」）。用户选「按选中列显示+多 servicer 处加对照」。
+- **实现**：value-range 节点感知——`showGField(f,nodeId)`+`glVRMode`：选中 BPS/解码输出列→`📊 取值范围·BPS 输出列`（合并解码后 items）；选中原始源列→`📊 取值范围·原始源列`（GLIN 新增 values.raw：per-servicer 源列+取值+实测计数）。真源 scripts/add_glin_raw.txt 给 15 字段加 raw（Newrez flag 0/1 实测计数、LM/BK「整数码 datadic 解码」、Foreclosure Status/group 列 NZ+Carr+Cape 对照：carr.fcl_flag Active=3490、carr.loan_status CUR/Foreclosure/REO…、cape.foreclosure_flag 实测全空）。activeGNode 记住选中节点，切语言/切样式都按该节点重渲。
+- **验证(Preview)**：BPS 输出节点→解码值；中间 redshift 解码列→输出模式；Newrez 原始节点→原始范围；coded LM 字段 raw=「整数码 datadic 解码」、output=解码文本；Foreclosure Status raw=NZ/Carr/Cape 三行对照(含计数)；切语言保持该节点模式(zh↔en 标题切换)；7 视图 0 报错。DB 只读。**LOCAL，未 push。**
+
+## [2026-06-14 UTC] 血缘小图：长规则解释太挤，整形为「公式主句 + 折叠详解」
+> 有些规则解释很多时显示很乱，能否显示完全又整齐易读，或把语句改写简洁、用数学符号
+
+### 完成: 长规则整形 fmtRuleSegments + 折叠详解 [2026-06-14]
+- 问题：computed 字段（如 demand_in_lm_days）的 per-hop rule 是 ~600 字大段（公式+【为何+1】+【来源字段】+⚠️+【实例】），整段塞进血缘小图的边/逐跳表，挤成一团。
+- 方案（纯渲染，覆盖所有长规则，不改真源数据）：新增 fmtRuleSegments(rule)——按「短标签【…】(≤10字)」拆成「主句(公式) + 小节」；行内强调用的长【…】留在正文不误拆。新增 ruleHtml(rule)：主句(公式)始终内联可见，小节(为何/来源字段/实例…)收进 `<details>「详解(N)」` 折叠；⚠️ 自动换行高亮。.ruledet/.ruleseg/.rsl/.rwarn 样式。glinMiniSVG 边 + glinExtra 逐跳表均改用 ruleHtml。
+- 验证(Preview)：demand_in_lm_days 边显示「重叠天数=datediff(max(…),min(…))+1」主句 + 折叠「详解(3)：为何+1 / 来源字段 / 实例」，展开完整可读；短规则(rename 等)仍纯内联无折叠；7 视图 0 报错。DB/代码只读。**LOCAL，未 push。**
+
+## [2026-06-14 UTC] 血缘图谱：点字段时自动展开整条链相关字段并高亮
+> 选中一个字段时，相关联字段没展开、被折叠在表中；想展开+高亮
+
+### 完成: 点字段=展开整条链+高亮（与搜索一致）[2026-06-14]
+- 问题：focusGraphField（展开链上每张表+高亮）只接在「搜索」上；直接点字段节点（graphNodeClick field 分支）只设 graphFocus、不展开其余表，相关字段仍折叠。
+- 修法：抽出 expandFieldChain(nodeId)（按 GLIN 字段 hops 把链上每张非占位表加入 graphExpanded），focusGraphField 复用之；graphNodeClick 的 field 分支改为 `expandFieldChain(id); graphFocus=id; renderGraph(); scrollGraphTo(id); selectGField(id)`。
+- 验证(Preview)：仅展开 basic_data_loan_fcl 时点 Foreclosure Status 字段 → 自动展开全部 5 张链表（portnewrezfc/…/sync_loan_foreclosure/view），高亮 5 个链上字段节点；搜索 focus、表展开切换仍正常；7 视图 0 报错。DB/代码只读。**LOCAL，未 push。**
+
+## [2026-06-14 UTC] doc 32 ⑬ 公式列(E/F) 改为「数据代入·分步运算」工作示例
+> 你改了吗？没改啊，公式列还是没有拿实际数据来运算啊，如果你不能用excel公式，也可以用语言或者数学公式把这个公式代入数据描述出来吧？
+> 如果不能用excel公式实现，你就用计算cell需要用到的数据，在cell中把逻辑描述出来，分步骤运算出来，用语言描述，也可以用数学公式描述
