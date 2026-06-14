@@ -1,0 +1,184 @@
+# 知识图谱生成器：把已结构化的真源（表元/字段血缘/LT逻辑/业务概念）汇编成 fcl_knowledge_graph.json
+# 运行：cd 项目根 && python - < outputs/build_fcl_knowledge_graph.txt
+# 脚本只排版+连边；内容来自 fcl_table_meta / fcl_lineage_source / fcl_logic_coverage / fcl_kg_{business,analysis,panels}.json
+import json,sys
+sys.stdout.reconfigure(encoding='utf-8')
+B='outputs/'
+TM=json.load(open(B+'fcl_table_meta.json',encoding='utf-8'))['tables']
+LIN=json.load(open(B+'fcl_lineage_source.json',encoding='utf-8'))
+LC=json.load(open(B+'fcl_logic_coverage.json',encoding='utf-8'))
+CONC=[json.load(open(B+f,encoding='utf-8')) for f in ['fcl_kg_business.json','fcl_kg_analysis.json','fcl_kg_panels.json']]
+
+nodes={}; edges={}
+def addn(o):
+    nid=o['id']
+    if nid in nodes:
+        ex=nodes[nid]
+        for k,v in o.items():
+            if v and not ex.get(k): ex[k]=v
+        return ex
+    nodes[nid]=dict(o); return nodes[nid]
+def adde(frm,to,typ,lz='',le=''):
+    if not frm or not to or frm==to: return
+    k=(frm,to,typ)
+    if k not in edges: edges[k]={'from':frm,'to':to,'type':typ,'label_zh':lz,'label_en':le}
+
+# ---------- 维度1：管道处理逻辑（层 / 表 / 字段 / servicer / LT规则 / 机制） ----------
+LAYERS=[('L0','文件源','Source files'),('L1','源保真层','Raw source'),('L2','统一日表','Unified daily'),
+        ('L3','清洗日表','Clean daily'),('L4','FCL 业务族','FCL family'),('L5','BPS 对接','BPS sync/view')]
+for lk,lz,le in LAYERS:
+    addn({'id':'layer:'+lk,'type':'layer','label_zh':lk+' '+lz,'label_en':lk+' '+le,'desc_zh':lk+' 管道层','desc_en':lk+' pipeline layer','dim':'pipeline'})
+def layer_of(meta):
+    lay=TM.get(meta,{}).get('layer','')
+    for lk,_,_ in LAYERS:
+        if lay.startswith(lk): return lk
+    if meta.split('.')[0] in ('newrez','carrington','capecodfive'): return 'L1'
+    if meta.startswith('bpms.'): return 'L5'
+    return 'L4'
+def dbof(meta):
+    return 'mysql' if (meta.startswith('bpms.') or meta.startswith('newrez.')) else 'redshift'
+# 表节点 + 在层 + 血缘
+for k,t in TM.items():
+    lk=layer_of(k)
+    addn({'id':'table:'+k,'type':'table','label_zh':(t.get('num','')+' '+k.split('.')[-1]).strip(),
+          'label_en':(t.get('num','')+' '+k.split('.')[-1]).strip(),'desc_zh':t.get('business_meaning',''),
+          'desc_en':t.get('business_meaning',''),'layer':lk,'db':dbof(k),'doc':'02','dim':'pipeline','full':k})
+    adde('table:'+k,'layer:'+lk,'in_layer','属于层','in layer')
+for k,t in TM.items():
+    for d in t.get('downstream_tables',[]):
+        if d in TM: adde('table:'+k,'table:'+d,'lineage','下游','downstream')
+# servicer
+SVC=[('newrez','Newrez','newrez.portnewrezfc'),('carrington','Carrington','carrington.portcarrington'),
+     ('capecodfive','Capecodfive','capecodfive.portcapecodfive_monthly_collections')]
+for sid,lab,src in SVC:
+    addn({'id':'servicer:'+sid,'type':'servicer','label_zh':lab+' 服务商','label_en':lab+' servicer',
+          'desc_zh':lab+' 的 FCL L1 源，经 CREATE_BASIC_FCL UNION 汇入 ⑨','desc_en':lab+' FCL L1 source, UNIONed into the fact table','doc':'01','dim':'pipeline'})
+    if 'table:'+src in nodes: adde('servicer:'+sid,'table:'+src,'supplies','供给源表','supplies')
+# 字段节点（来自字段血缘）+ 归属表 + 字段族
+FAM_BY_PREFIX=[('timeline_','concept:timeline_fields'),('summary_','concept:summary_fields'),('bid_','concept:bid_approval_fields')]
+FAM_BY_BPSTBL={'sync_loan_foreclosure_hold':'concept:hold_fields','sync_loan_foreclosure_loss_mitigation':'concept:loss_mitigation',
+               'sync_loan_foreclosure_bankruptcy':'concept:bankruptcy','sync_fcl_stage_info':'concept:stage_fields'}
+nf=0
+for f in LIN.get('fields',[]):
+    bt=f.get('bps_table');
+    if not bt: continue
+    hops=f.get('hops',[])
+    bh=next((h for h in hops if str(h.get('t','')).startswith('bpms.'+bt)), None)
+    col=(bh.get('c') if bh else (f.get('label',{}) or {}).get('en','')) or ''
+    if not col: continue
+    fid='field:'+bt+'.'+col
+    addn({'id':fid,'type':'field','label_zh':col,'label_en':col,'desc_zh':(f.get('biz',{}) or {}).get('zh',''),
+          'desc_en':(f.get('biz',{}) or {}).get('en',''),'doc':'25','dim':'pipeline','bps_table':bt}); nf+=1
+    tnode='table:bpms.'+bt
+    if tnode in nodes: adde(fid,tnode,'belongs_to','所属表','in table')
+    fam=FAM_BY_BPSTBL.get(bt)
+    if not fam:
+        for pre,fc in FAM_BY_PREFIX:
+            if col.startswith(pre): fam=fc; break
+    if fam: adde(fid,fam,'in_family','字段族','field family')
+# LT 规则 + 机制（管道处理逻辑目录，doc 32）
+for row in LC.get('logic_types',[]):
+    if not row or not str(row[0]).startswith('LT'): continue
+    lt=row[0]
+    addn({'id':'rule:'+lt,'type':'rule','label_zh':lt+' '+(row[1] if len(row)>1 else ''),'label_en':lt+' '+(row[1] if len(row)>1 else ''),
+          'desc_zh':'历史依赖:'+(row[2] if len(row)>2 else '')+'；示例:'+(row[3] if len(row)>3 else ''),
+          'desc_en':'history:'+(row[2] if len(row)>2 else '')+'; e.g. '+(row[3] if len(row)>3 else ''),'doc':'32','dim':'pipeline'})
+for row in LC.get('mechanisms',[]):
+    if not row or not str(row[0]).startswith('M'): continue
+    addn({'id':'mech:'+row[0],'type':'mechanism','label_zh':row[0]+' '+(row[1] if len(row)>1 else ''),'label_en':row[0]+' '+(row[1] if len(row)>1 else ''),
+          'desc_zh':(row[2] if len(row)>2 else ''),'desc_en':(row[2] if len(row)>2 else ''),'doc':'32','dim':'pipeline'})
+
+# ---------- 维度2/3：foreclosure 分析 + 业务逻辑（来自 3 个概念文件） ----------
+for c in CONC:
+    for n in c.get('nodes',[]):
+        n=dict(n); n.setdefault('dim','business' if n.get('doc') in ('17','18','10') else 'analysis')
+        addn(n)
+# 概念边稍后统一加（先确保所有节点在册）
+
+# ---------- 文档节点 ----------
+DOC_TITLES={'00':'文档库索引','01':'源数据分析','02':'ETL 管道分析','03':'止赎状态生成逻辑','04':'状态码清单',
+'05':'贷款属性↔FCL状态映射','06':'系统图表汇总','07':'FCL 血缘与判断规则','08':'Servicer字段→状态映射','09':'Servicer数据接口标准',
+'10':'综合术语清单','11':'Servicer实施映射','12':'sync_asset_management 调研','13':'Newrez FCL→BPS显示映射','14':'BPS驱动的Servicer FCL接口',
+'15':'Newrez FCL字段缺口','16':'BPS Foreclosure面板速查','17':'Foreclosure业务入门','18':'Loss Mitigation业务入门','19':'5样例贷款全链路dump',
+'20':'端到端数据流讲解','22':'BPS Timeline/Stage聚合','23':'BK→Payoff历时分析','24':'BK→Current vs Foreclosure','25':'止赎字段血缘总览',
+'26':'血缘 sync_loan_foreclosure','27':'血缘 sync_fcl_stage_info','28':'血缘 Hold','29':'血缘 Loss Mitigation','30':'血缘 Bankruptcy',
+'31':'FCL阶段窗口规则','32':'全Pipeline逐字段Mapping','33':'FCL表ERD','98':'数据库验证规范','99':'Servicer缺口汇总'}
+for num,title in DOC_TITLES.items():
+    addn({'id':'doc:'+num,'type':'doc','label_zh':'doc '+num+' '+title,'label_en':'doc '+num+' '+title,
+          'desc_zh':title,'desc_en':title,'dim':'doc'})
+
+# ---------- 概念边（端点都在册才连） + documented_in + 跨维桥 ----------
+for c in CONC:
+    for e in c.get('edges',[]):
+        adde(e['from'],e['to'],e.get('type','related'),e.get('label_zh',''),e.get('label_en',''))
+# documented_in：任意带 doc 的节点 → 文档节点
+for nid,n in list(nodes.items()):
+    d=n.get('doc')
+    if d and ('doc:'+d) in nodes and n['type']!='doc':
+        adde(nid,'doc:'+d,'documented_in','记录于','documented in')
+# 跨维桥（人工核对，准确）：业务概念 ↔ 承载数据表
+BRIDGE=[('concept:foreclosure','table:bpms.sync_loan_foreclosure','modeled_by','建模于','modeled by'),
+ ('concept:foreclosure','table:port.basic_data_loan_foreclosure','modeled_by','建模于','modeled by'),
+ ('concept:loss_mitigation','table:bpms.sync_loan_foreclosure_loss_mitigation','modeled_by','建模于','modeled by'),
+ ('concept:bankruptcy','table:bpms.sync_loan_foreclosure_bankruptcy','modeled_by','建模于','modeled by'),
+ ('concept:fcl_hold','table:bpms.sync_loan_foreclosure_hold','modeled_by','建模于','modeled by'),
+ ('concept:stage_fields','table:bpms.sync_fcl_stage_info','modeled_by','建模于','modeled by'),
+ ('panel:detail','table:bpms.biz_data_view_loan_details_foreclosure','rendered_from','取数自','rendered from'),
+ ('servicer:newrez','concept:foreclosure','reports','申报FCL','reports FCL'),
+ ('servicer:carrington','concept:foreclosure','reports','申报FCL','reports FCL'),
+ ('servicer:capecodfive','concept:foreclosure','reports','申报FCL','reports FCL')]
+for a,b,t,lz,le in BRIDGE: adde(a,b,t,lz,le)
+# 层序 spine（L0→L5），连通 L0
+LSEQ=['L0','L1','L2','L3','L4','L5']
+for i in range(len(LSEQ)-1): adde('layer:'+LSEQ[i],'layer:'+LSEQ[i+1],'next_layer','下一层','next layer')
+# 文档索引：doc:00 索引其余文档（把孤立文档节点并入主图）
+for num in DOC_TITLES:
+    if num!='00': adde('doc:00','doc:'+num,'indexes','索引','indexes')
+# 分析维度 ↔ 业务概念 桥（同一真实事件/状态对应，语义准确）：把 analysis 岛接入主图
+ABRIDGE=[('milestone:demand','concept:demand'),('milestone:referral','concept:referral'),
+ ('milestone:first_legal','concept:first_legal'),('milestone:service','concept:service'),
+ ('milestone:judgment','concept:judgement'),('milestone:scheduled_sale','concept:sale'),
+ ('milestone:sale_held','concept:sale'),('status:fcl','concept:foreclosure'),
+ ('status:active_foreclosure','concept:foreclosure'),('status:reo','concept:reo'),
+ ('status:p','concept:payoff'),('status:closed_reinstated','concept:reinstatement'),
+ ('status:closed_loss_mitigation','concept:loss_mitigation'),('status:closed_deed_in_lieu','concept:deed_in_lieu'),
+ ('status:closed_paid_in_full','concept:payoff'),('status:closed_process_complete','concept:sale'),
+ ('status:d120p','concept:delinquency'),('status:c','concept:delinquency')]
+for a,b in ABRIDGE: adde(a,b,'corresponds','对应','corresponds to')
+
+# ---------- 校验：丢弃端点缺失的边 ----------
+valid=[]; dangling=[]
+for e in edges.values():
+    if e['from'] in nodes and e['to'] in nodes: valid.append(e)
+    else: dangling.append(e)
+# 节点/边类型统计
+from collections import Counter
+ntc=Counter(n['type'] for n in nodes.values()); etc=Counter(e['type'] for e in valid)
+TYPE_META={'node':{
+ 'layer':{'zh':'管道层','en':'Layer','color':'8C8C8C','dim':'pipeline'},
+ 'table':{'zh':'数据表','en':'Table','color':'2E75B6','dim':'pipeline'},
+ 'field':{'zh':'字段','en':'Field','color':'9DC3E6','dim':'pipeline'},
+ 'servicer':{'zh':'服务商','en':'Servicer','color':'C9A86A','dim':'pipeline'},
+ 'rule':{'zh':'转换规则(LT)','en':'Rule (LT)','color':'7FB069','dim':'pipeline'},
+ 'mechanism':{'zh':'写入机制(M)','en':'Mechanism','color':'5BA3A3','dim':'pipeline'},
+ 'concept':{'zh':'业务概念','en':'Concept','color':'B05A8C','dim':'business'},
+ 'term':{'zh':'术语','en':'Term','color':'D6A2C4','dim':'business'},
+ 'status':{'zh':'状态码','en':'Status','color':'C0504D','dim':'analysis'},
+ 'stage':{'zh':'阶段','en':'Stage','color':'E8A33D','dim':'analysis'},
+ 'milestone':{'zh':'里程碑','en':'Milestone','color':'F2C14E','dim':'analysis'},
+ 'panel':{'zh':'BPS面板','en':'BPS Panel','color':'5B2C6F','dim':'business'},
+ 'doc':{'zh':'文档','en':'Doc','color':'70AD47','dim':'doc'}}}
+out={'_meta':{'title':{'zh':'FCL 知识图谱 · 管道处理逻辑 + Foreclosure 分析 + 业务逻辑',
+ 'en':'FCL Knowledge Graph: pipeline logic + foreclosure analysis + business logic'},
+ 'desc':{'zh':'由 fcl_table_meta / fcl_lineage_source / fcl_logic_coverage + 业务概念抽取(doc 03/04/05/10/16/17/18/31)汇编。脚本只排版连边。',
+ 'en':'Assembled from table-meta / field-lineage / logic-coverage + business-concept extraction (docs 03/04/05/10/16/17/18/31).'},
+ 'version':'v1 2026-06-13','node_count':len(nodes),'edge_count':len(valid),
+ 'node_types':dict(ntc),'edge_types':dict(etc),'dangling_dropped':len(dangling)},
+ 'type_meta':TYPE_META,'nodes':list(nodes.values()),'edges':valid}
+json.dump(out,open(B+'fcl_knowledge_graph.json','w',encoding='utf-8'),ensure_ascii=False,indent=1)
+print('KG nodes=%d edges=%d (dropped dangling=%d)'%(len(nodes),len(valid),len(dangling)))
+print('node types:',dict(ntc))
+print('edge types:',dict(etc))
+if dangling:
+    print('dangling sample:',[(e['from'],e['to'],e['type']) for e in dangling[:12]])
+print('SAVED',B+'fcl_knowledge_graph.json')

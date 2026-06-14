@@ -3505,3 +3505,75 @@ basic_data_fcl_related 由 portnewrezgeneral.delinquency_status_mba 映射成 de
 
 ## [2026-06-13] 公式·Carrington 数据源应是 portcarrington 而非 ⑨ 内 demo 块？是否新增 src 表 portcarrington
 > 公式·Carrington 的数据源是不是应该是 portcarrington？ 但是carrington的数据放在这个表了 ② src·portnewrezfc 是不是应该新增一个src表 portcarrington？请检查prefect代码和DB分析一下
+
+### 完成: 新增 ②c src·portcarrington（Carrington L1 源表），⑨ Carr 公式改引真上游 [2026-06-13]
+- 代码取证: CREATE_BASIC_FCL UNION 三 servicer 源 newrez.portnewrezfc(pool:1572)/carrington.portcarrington(pool:1613)/capecodfive.portcapecodfive_monthly_collections(pool:1654)；此前只渲染 Newrez ②，Carr/CC5 两源不在 23 表清单——确属缺口。⑩=temp_fcl.*+Hold join(pool:1657+)。
+- 决策(用户拍板): 只加 Carrington（CC5 不进 bpms、无样本，留 Phase 2）；先在 doc 32 内加(num ②c 临时号)，全局 23→24 重编号留 doc 19/25 同步。
+- DB 只读: portcarrington 共 199 列、pipeline 仅消费 9 列；information_schema 核 9 列全存在；拉 5 Carr 样本(804/806/881/883/955) snap 2026-06-10 实测(fcl_flag 非活跃为空串→activefcflag NULL，仅 806/955=Active)。
+- 真源: fcl_field_meanings.json 加 portcarrington(9列)、fcl_layer_examples.json 加 values+layers['carrington.portcarrington']、fcl_table_meta.json 加 ②c 表元。生成器: B_TABLES 加 ②c、is_src/layer_tag 纳入 carrington/capecodfive、is_src note 分支化、src 组标题/23→24 文案、carr_formula 由「⑨表底块」改为 cref('carrington.portcarrington',raw,806)、删 write_carr_source+CARRSRC+ fcl_carr_source_demo.json。
+- 全面测试: 真 Excel COM 全 17 sheet 0 公式错误；⑨ Carr 经 ②c 实算 activefcflag=1/svc_loanid=3000077131/referral=2025-02-19/fcstage=Contested/daysinfc=477/⑩ activefcflag=1；内容级幂等(hash A==B)；② Newrez 未受损。导读 v9、测试报告 TC17。DB 只读;未提交。
+
+## [2026-06-13] 为什么有 ⑨ temp_basic_data_fcl 临时表？直接生成 ⑩ 不行吗？是设计问题还是更好做法？
+> 为什么会有  ⑨ mid·temp_basic_data_fcl 这张临时表？直接 生成 ⑩ mid·basic_data_loan_fcl  不好吗？这是这个项目的一个问题吗？还是这样做比较好？
+
+## [2026-06-13] 把「为什么有 ⑨ temp 表」设计理由补进文档（含 doc 02 + fcl_pipeline.html），研究合理落点
+> 好的，请补充到文档中，包括 doc 2 和"fcl_pipeline.html" 你研究一下补充到哪些地方比较合理，符合人类思考分析需求
+
+### 完成: 「为什么有 ⑨ temp 暂存表」设计理由补进文档（table_meta/doc32 ⓪+⑨、doc02 zh+en、HTML）[2026-06-13]
+- 代码事实复核: temp_basic_data_fcl 全仓只被 basic_data_loan_fcl 一处读(pool:1686)=单消费者暂存；⑨=3家UNION+列名归一(pool:1532-1654)，⑩=⑨ LEFT JOIN hold_detail 挂4槽(pool:1657-1692)；hold_detail 独立构建(pool:467-768)。
+- 落点(符合分析阅读流): ①真源 fcl_table_meta.json ⑨.why_pipeline 扩写四点权衡(关注点分离/可读/Redshift性能/可调试)+非缺陷 → 重生成 doc32：实测同时显示在 ⓪ 总览 与 ⑨ 表头「为什么有这张表」。②doc 02 §5.2 fcl-vs-foreclosure 区块后新增「为什么先建 temp 暂存表」blockquote(zh+en 镜像)，带 pool 行号链接。③fcl_pipeline.html temp 节点 narrative(zh+en，line715，在 GLIN 外属手写)追加同款理由；JS 引号/花括号配平、GLIN 标记完好。
+- 校验: doc32 内容级幂等(hashA==B)、真Excel 17 sheet 0 公式错误；rationale 全目标 grep 命中各 1；HTML 未破坏。DB/代码只读;未提交。
+
+### 完成: fcl_pipeline.html 升级为「FCL 知识图谱」(第6视图) + ⑨ temp 设计理由补文档 [2026-06-13]
+- ⑨ 理由(前置): table_meta ⑨.why_pipeline 扩写四点权衡 → doc32 ⓪+⑨ 表头；doc 02 §5.2 zh+en blockquote；HTML temp 节点 narrative。真Excel 0错误、幂等。
+- 知识图谱(KG)：决策=同一HTML加第6视图「知识图谱」、穷尽v1、三维(业务/分析/管道)。
+  - 3 个抽取 agent 并行从 doc 17/18/10、03/04/05/31、16/13/14 抽业务概念/状态码/阶段窗口/里程碑/BPS面板/术语 → outputs/fcl_kg_{business,analysis,panels}.json(脚本只排版数据)。
+  - 生成器 build_fcl_knowledge_graph.txt 汇编：管道(层6/表24/字段154/servicer3/LT规则30/机制5) + 分析(状态18/阶段8/里程碑9) + 业务(概念61/术语23/面板10) + 文档35 → fcl_knowledge_graph.json：386节点/963边/0悬挂/1连通分量。跨维边498(documented_in/modeled_by/displayed_in/corresponds/...)。
+  - HTML：新增 v-kg 按钮+setView('kg')+renderKG 自包含模块(维度泳道聚类布局+类型chip过滤+搜索+滚轮缩放/拖拽平移+点节点ego高亮+详情抽屉邻居可点)；scripts/inject_kg.txt 注入(251KB)。
+  - 测试：node --check JS 0错误；node DOM-stub 实跑 renderKG 出 SVG 232节点(字段默认隐)/14 chip/选节点出邻居/搜索/切换/重置/中英 均通过；连通=1分量、0悬挂、所有type有type_meta。
+- DB只读;未提交。Phase 2(stage/hold/lm/bk 链逐表 sheet)进行中。
+
+### 完成: doc 32 Phase 2 四链逐表 sheet + 综合测试报告(doc 34) [2026-06-13]
+- 范围: stage(⑬⑲)/hold(⑮㉑)/lm(⑯㉒)/bk(⑰㉓) 四链 8 表，doc 32 由 17→25 sheet。每表 字段+业务含义+计算逻辑(lineage hops)+来源/类型+逐层举例列(25)+每 servicer 🧮 公式列。
+- 取数: 子 agent 经 redshift_prod/mysql_prod 只读拉 8 表×25 样本代表性行→ outputs/fcl_layer_examples_phase2.json；information_schema 核 8 表列 0 缺失；rs≡sync 代表行逐字节一致；多行表(hold/lm/bk)取最新代表行(注明完整历史见 BPS 面板)。stage 19/25、hold 25、lm 22、bk 6 有数据。
+- 生成器: B_TABLES +8、IMM_UP 扩四链 BPS←Redshift、fill 循环纳入 P2_METAS、合并 phase2 LE_VALS/LAYERS。BPS 侧字段 🧮=活引用上游 Redshift sheet 该笔格(asset:925/829…)。
+- 测试: 真 Excel COM 全 25 sheet 677 公式 0 错误；内容级幂等(hashA==B)；formula 文字核对 passthrough 指向正确上游。A导读/⓪b pilot 覆盖文案更新。
+- 测试报告: 新建 docs/zh/34_phase2_and_kg_test_report.md(标准头部)，TC-P2.1~5 + TC-KG.1~4；结论 PASS。doc 32 导读 v10。
+- DB/代码只读;未提交。
+
+## [2026-06-14] doc 32 完成了吗？接下来的 phase 是哪些工作？
+> doc 32完成了吗？接下来的phrase是哪些工作？
+
+## [2026-06-14] 修正两项：GLIN 同步 + flow rel 上游
+> 请修正（① fcl_lineage_source.json 改动后 GLIN 同步 ② flow basic_data_fcl_related 上游 dlcc→直取原始表）
+
+## Milestones
+- [2026-06-14] ①重跑 inject_glin（HTML GLIN 刷新 154 字段/173KB）+ verify_lineage_columns，redshift_prod+mysql_prod 列核验均 0 行（389 列含 portnewrezgeneral.legalstatus 全存在）→JSON/HTML/DB 一致。②flow rel.pred dlcc→gen（Code-First：basic_data_fcl_related 直接从 portnewrezgeneral(+carrington/liq/pmt/bk/prop) 构建，不经 daily_clean）；rel/dlcc 叙述同步（dlcc 下游=月度 portmonth/逾期线，不在本图）。Preview：rel 入边仅 gen、悬停链 s0→gen→rel→stg→s2→view→bps 无 dlcc、0 报错。
+
+### 完成: 收尾(doc34 en + ②c 正式可扩展编号) + 答 doc32 排序/group/stage 问题 [2026-06-14]
+- doc 34 en 镜像: docs/en/34_phase2_and_kg_test_report.md(标准头部, TC-P2.1~5 + TC-KG.1~4)。
+- ②c 编号正式化+可扩展(用户提示后续会加更多 servicer): 确立【②家族】编号法 ②=Newrez(primary)、②c=Carrington、未来 ②cc=Capecodfive/②sl=SLS… ——③-㉔ 永不位移(doc 19 单文件就 ~17000 处圈号引用,插号必崩),servicer 可无限扩展。更新 fcl_table_meta ②c note + 生成器 A导读。
+- doc32 排序问题: 非 bug,故意【按业务链分组】(每链 Redshift 上游+BPS 下游相邻,便于读 L4→L5);圈号是全局层级号本身不连续属正常;① 索引为有序清单。已在 A导读注明。
+- group vs stage(用户问 ⑬ 的 r 表/group): 代码取证 r=port.basic_data_fcl_related(⑫,pool:1816),group=r.delq_status=逾期/组合分类(FCL/REO/D120P…); stage=FCL法律阶段(瀑布 SALE>…>DEMAND,pool:2095-2102)——两个不同维度。改 lineage_source group rule 澄清 → 重生成 doc32(⑬⑲) + 重注 GLIN(HTML) + 同步 doc 27 zh+en 逐跳行。
+- 校验: 真 Excel 25 sheet 0 错误; 内容级幂等; HTML 含新 group 规则; 旧 terse 规则 0 残留(非归档)。DB/代码只读;未提交。
+
+## [2026-06-14] 小屏看不清——全局界面缩放 + KG 缩放按钮
+> Mac M2 屏小看不清，做个放大缩小屏幕的按钮？
+
+### Decision: 全局 CSS zoom + KG 显式按钮 [2026-06-14]
+- 顶栏加全局缩放控件（−/%/＋，点 % 重置），document.documentElement.style.zoom 等比放大整页，记忆 localStorage(fclAppZoom)，Ctrl/Cmd+滚轮也可缩放；不劫持原生 Cmd+/−。KG 视图加 ＋/－ 按钮复用 kgState.scale（kgApplyTransform），现有 ⟲重置=全览，滚轮在非 Ctrl 时仍缩放 KG（Ctrl/Cmd 时让位全局）。
+- 理由：CSS zoom 一处放大所有视图(文字/图/抽屉)，最直接解决小屏；KG 因 viewBox 自适应缩成一团，补显式按钮。
+
+## Milestones
+- [2026-06-14] 全局界面缩放：顶栏 −/%/＋ 控件(applyAppZoom，documentElement.zoom，0.6–2.0 步进0.1，记忆 localStorage，Ctrl/Cmd+滚轮)+ init 恢复；KG bar 加 ＋/－(kgZoomBy/kgApplyTransform)、wheel 在 Ctrl/Cmd 时让位全局、pan 改用 kgApplyTransform。Preview 实测：控件在、＋→120%/重置→100%/记忆 140% reload 恢复、七视图全 ok 无重叠、KG ＋ 改 scale/transform、0 报错。
+
+## [2026-06-14] 知识图谱加方向示意（有向图）
+> 知识图谱是有向图吗？有方向请在图中加方向示意，好看简洁
+
+## Milestones
+- [2026-06-14] KG 有向化：FCLKG.edges 本就有 from→to(抽屉指向/被指向)。在 SVG 加方向箭头——默认总览保持干净细线(无箭头，避免数百边糊)；选中节点时其相关边显示小箭头并缩短到节点边缘可见，色分 指向(出)=琥珀#e8a33d/被指向(入)=蓝#6cb6ff，marker userSpaceOnUse 固定小尺寸；bar 加图例。Preview 实测：overview 0 箭头、选 layer:L1(出1/入8)→1 琥珀+8 蓝 markers 匹配度数、marker 定义在、0 报错。
+
+### 完成: doc32 逐表 sheet 改为圈号升序排列 [2026-06-14]
+- 用户反馈"按编号顺序更好找表，找不到12号表"。B_TABLES 重排为升序：② ②c ⑨ ⑩ ⑪ ⑬ ⑮ ⑯ ⑰ ⑱ ⑲ ⑳ ㉑ ㉒ ㉓（原为按业务链分组）。A导读注同步改为"按圈号升序+⑫等无 sheet 表见①索引"。
+- ⑫ basic_data_fcl_related 无逐表 sheet（=阶段表 group 的 r 源），在 ⓪/① 列出标 Phase 待补，详情 Phase 3+ 补。
+- 校验: 跨表公式按名引用→重排安全；真 Excel 25 sheet 0 错误；内容级幂等。DB/代码只读;未提交。

@@ -1,4 +1,45 @@
 {
+ "portcarrington": {
+  "schema_table": "carrington.portcarrington",
+  "fields": {
+   "loanid": {
+    "m": "Bridger/投资人贷款 ID（关联键）",
+    "src": "dict_exact"
+   },
+   "snap_shot_date": {
+    "m": "快照日期（→ dataasof，pool:1575）",
+    "src": "dict_exact"
+   },
+   "carrington_ln": {
+    "m": "Carrington 自有贷款号（→ svc_loanid，pool:1578）",
+    "src": "dict_exact"
+   },
+   "fcl_flag": {
+    "m": "FCL 活跃标志（='Active' 表示在保；→ activefcflag = CASE fcl_flag='Active' THEN 1 ELSE NULL，pool:1579）",
+    "src": "dict_exact"
+   },
+   "fcl_referral_date": {
+    "m": "FCL 转交律师日期（→ fcsetupdate / referral_start_date，pool:1584-1585；daysinfc datediff 基准）",
+    "src": "dict_exact"
+   },
+   "fcl_sub_status": {
+    "m": "FCL 子状态（→ fcstage，pool:1601；Carrington 无独立 fcstage 列，取此）",
+    "src": "dict_exact"
+   },
+   "fcl_scheduled_sale_date": {
+    "m": "排定拍卖日（→ fcscheduled_sale_date，pool:1594）",
+    "src": "dict_exact"
+   },
+   "fcl_sale_held_date": {
+    "m": "实际拍卖日（→ fcsale_held_date，pool:1595）",
+    "src": "dict_exact"
+   },
+   "fcl_attorney_name": {
+    "m": "受理律所（→ fcfirm，pool:1607）",
+    "src": "dict_exact"
+   }
+  }
+ },
  "portnewrezfc": {
   "schema_table": "newrez.portnewrezfc",
   "fields": {

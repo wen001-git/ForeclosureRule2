@@ -35,6 +35,29 @@
       ],
       "note": ""
     },
+    "carrington.portcarrington": {
+      "num": "②c",
+      "layer": "L1 源（Carrington FCL 主源）",
+      "business_meaning": "Carrington 每日推送的法拍(FCL)主源表（共 199 列，本工作簿只渲染 pipeline 实际消费的 9 列）——含 fcl_flag(活跃标志)、fcl_sub_status(子状态)、fcl_referral_date(转律日)、fcl_scheduled_sale_date/fcl_sale_held_date(拍卖日)、fcl_attorney_name(律所)、carrington_ln(Carr 自有号)。",
+      "business_purpose": "Carrington 一家的法拍原始事实底座；与 Newrez/Capecodfive 并列，在 L4 CREATE_BASIC_FCL 经 UNION 汇入统一 FCL 事实表。",
+      "pipeline_role": "源保真底座（L1，Carrington 分支）：Carr 字段名/口径与 Newrez 不同，先原样落地，再到 ⑨ UNION 时改名/计算对齐（如 activefcflag=CASE fcl_flag='Active'、fcstage=fcl_sub_status）。",
+      "when_to_query": "想看某 Carrington 贷款的原始 FCL 取值，或核对 ⑨ 的 Carr 派生字段是否忠实于此源时。",
+      "why_pipeline": "各 Servicer 文件格式不同，先‘一家一张原始表’保真，再 L4 统一 UNION，便于回溯对账。",
+      "grain": "1 行/贷款/snap_shot_date（每日快照）；本 dump 取 snap_shot_date=2026-06-10。",
+      "upstream_chain": "Servicer 文件(Carrington, L0) → carrington.portcarrington",
+      "upstream_tables": [
+        "Servicer 文件(Carrington, L0)"
+      ],
+      "downstream_chain": "portcarrington → tempfc.temp_basic_data_fcl(CREATE_BASIC_FCL Carrington UNION 分支，pool:1574-1611) → port.basic_data_loan_fcl(全 servicer UNION) → { port.basic_data_loan_foreclosure / port.fcl_stage_info / ... } → bpms.sync_* → bpms.biz_data_view_loan_details_foreclosure → BPS 法拍面板",
+      "downstream_tables": [
+        "tempfc.temp_basic_data_fcl",
+        "port.basic_data_loan_fcl",
+        "port.basic_data_loan_foreclosure",
+        "bpms.sync_loan_foreclosure",
+        "bpms.biz_data_view_loan_details_foreclosure"
+      ],
+      "note": "圈号 ②c 为【正式·可扩展】编号。★②家族编号法（为后续不断新增 servicer 设计）：② = Newrez portnewrezfc（primary/canonical，与 doc 19/25 既有 ② 一致）；此后每新增一个 servicer 的 FCL L1 源 = 『②+servicer 小写后缀』——②c=Carrington、②cc=Capecodfive（未来纳入时）、②sl=SLS、②se=Selene、②mr=MRC、②av=Arvest、②fci=FCI…依此类推。如此 ③…㉔ 全局序号【永不位移】（doc 19/25 等对 ②-㉔ 已有上万处引用，插号会大规模破坏），且 servicer 源可无限扩展、同族一眼可辨（都挂在 ② 下）。Capecodfive 源(portcapecodfive_monthly_collections)同为 L1 servicer 源但暂未纳入（不进 bpms 主表、当前无样本贷款）；纳入时即用 ②cc。"
+    },
     "newrez.portnewrezbk": {
       "num": "③",
       "layer": "L1 源（Newrez 破产源）",
@@ -178,7 +201,7 @@
       "business_purpose": "port.basic_data_loan_fcl 的直接上游；承接‘改名’这一步。",
       "pipeline_role": "列名统一中间产物（L4）：承接「改名」这一步，连接 L1 各家源与 L4 UNION 事实表。",
       "when_to_query": "排查‘统一列名 ↔ 源列名’映射、定位改名是否正确。",
-      "why_pipeline": "UNION 前必须先统一列名；单列一张临时表做改名，逻辑清晰、便于调试；运行时产物。",
+      "why_pipeline": "为什么单列这张临时表、而非直接生成 ⑩：它是【单消费者暂存表】(仅被 ⑩ 读，pool:1686)，物化它是工程权衡而非复用——①关注点分离：⑨ 专做‘三家 servicer 异构源 UNION + 列名归一化’(pool:1532-1654)，⑩ 只做‘LEFT JOIN Hold 历史’(pool:1657-1692)；②可读：单 UNION 约 120 行，内联进 ⑩ 的 join 会变成约 150 行嵌套大查询；③Redshift 性能：先把 UNION 物化成带统计信息的实体表再 join，比‘join 里塞三路 UNION 子查询’计划更稳、更快；④可调试：可直接查暂存表看‘UNION 完、挂 Hold 前’的中间态。属标准 ETL staging、非缺陷；理论上可用 CTE/真 TEMP 表省一次落盘，但当前复杂度下拆两步更优。",
       "grain": "1 行/贷款/dataasof。",
       "upstream_chain": "newrez.portnewrezfc(各家源) → tempfc.temp_basic_data_fcl〔改名 basic_data_pool_config.py ~:1538-1565〕",
       "upstream_tables": [

@@ -3639,8 +3639,8 @@
     {
      "t": "port.fcl_stage_info",
      "c": "group",
-     "rule": "= r.delq_status (join loanid+dataasof)",
-     "code": "pool:2348,2400"
+     "rule": "= r.delq_status，r = port.basic_data_fcl_related(⑫)，按 loanid+dataasof JOIN 取该笔【逾期/组合分类】(FCL/REO/D120P/D90/D60/D30/C/P)。⚠️ group=逾期分类维度（来自 ⑫，答「在哪个逾期桶」）≠ stage=FCL 法律阶段维度（瀑布取最深里程碑 SALE>JUDGEMENT>…>DEMAND，答「止赎走到法律哪一步」）",
+     "code": "pool:1816(r 子查询),2400(r.delq_status as del_group)"
     },
     {
      "t": "bpms.sync_fcl_stage_info",

@@ -124,6 +124,17 @@
 
 **TC16.3 真·Excel 引擎复算**：COM `CalculateFull` 后全 16 sheet **0 公式错误**；读回 ⑨ `activefcflag`Carr=**1**（CASE 实算）、`svc_loanid`=3000077131、`referral`=2025-02-19、`daysinfc`=477、⑩ `activefcflag`Carr=1（直传）。🧮 计数 476→**487 活公式**（+11）、注 196→185（−11）；内容级幂等（hash 两跑一致）。本次仅改 Excel + 新增 JSON，未触动 lineage/HTML/doc26。
 
+## TC17 新增 ②c src·portcarrington（Carrington L1 源表）+ ⑨ Carr 公式改引真上游（v9）
+**背景**：用户指出 ⑨ 的 Carr 公式上游应是 `portcarrington` 源，且 Carrington 数据不该塞在 ② portnewrezfc / ⑨ 表底 demo 块里——应像 Newrez 那样有独立 src 表。
+
+**TC17.1 代码取证**：`CREATE_BASIC_FCL`（[pool:1530-1654]）UNION **三个 servicer L1 源**：`newrez.portnewrezfc`(pool:1572) / `carrington.portcarrington`(pool:1613) / `capecodfive.portcapecodfive_monthly_collections`(pool:1654)。此前文档仅渲染 Newrez ②，Carrington/Capecodfive 两源**不在 23 表清单内**——确属缺口。
+
+**TC17.2 DB 取数 + schema-verify**：`carrington.portcarrington` 共 199 列，pipeline 仅消费 9 列。`information_schema` 核 9 列全存在（9/9）。`redshift_prod` 拉 5 笔 Carr 样本（7727000804/806/881/883/955）snap 2026-06-10 实测值；`fcl_flag` 对非活跃笔为**空串**（→ activefcflag CASE 得 NULL），仅 806/955='Active'。值入 `fcl_layer_examples.json`、列义入 `fcl_field_meanings.json`、表元入 `fcl_table_meta.json`（num `②c`）。
+
+**TC17.3 新 sheet + 公式改引**：新增 `②c src·portcarrington`，与 ② 对称（同 25 样本列：5 Carr 实测、20 Newrez=∅NULL）。`carr_formula` 由「引用 ⑨ 表底块」改为 `cref('carrington.portcarrington', raw, 7727000806)` → 公式变成 `=IF('②c src·portcarrington'!AA18="Active",1,"∅NULL")` 等真上游引用；⑨ 表底 demo 块**已删除**（readback 确认 False）。⑩ Carr activefcflag/fcstage 仍直传 ⑨。
+
+**TC17.4 全面复算**：真 Excel COM `CalculateFull` 全 **17 sheet 0 公式错误**；读回 ⑨ Carr 经 ②c：activefcflag=**1**、svc_loanid=3000077131、referral=2025-02-19、fcstage=Contested / Litigation Start、daysinfc=477、⑩ activefcflag=1，全部正确。🧮 计数维持 487 公式/185 注；内容级幂等（hash 两跑一致）；② Newrez 未受影响（仅其 note 行提及 ②c）。Capecodfive 源同为 L1 但不进 bpms 主表、当前无样本→留 Phase 2（已在 ②c 表元 note 标注）。
+
 ## 结论（v5：每 servicer 一列）
 
 **通过（PASS）**。🧮 公式列已改为**每 servicer 一列**（🧮·Newrez 7727003984 + 🧮·Carrington 7727000806），各列内部统一引用该 servicer 那笔 → 列自洽（结果=该 servicer 该笔实测）、并天然并排展示 servicer 差异（**daysinfc：Newrez 461 直传 vs Carrington 477 datediff**，经本机真 Excel `CalculateFull` 实算确认）。336×2=672 格 → 476 活公式 + 196 诚实注；Carr 计算列加 null-guard（缺值→∅NULL）、⑨ Carr 直传标「源未纳入」。**真 Excel 0 公式错误**、幂等 `e68c7365`。下方 v4 结论（单列全覆盖）为历史。

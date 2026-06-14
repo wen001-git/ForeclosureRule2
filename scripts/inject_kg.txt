@@ -1,0 +1,15 @@
+# Inject outputs/fcl_knowledge_graph.json into outputs/fcl_pipeline.html as the FCLKG const.
+# Run from project root:  python - < scripts/inject_kg.txt
+# Idempotent: replaces the text between /*KG_START*/ and /*KG_END*/ (re-run after rebuilding the JSON).
+import json, re
+HTML='outputs/fcl_pipeline.html'
+SRC='outputs/fcl_knowledge_graph.json'
+data=json.load(open(SRC, encoding='utf-8'))
+payload=json.dumps(data, ensure_ascii=False, separators=(',',':'))
+payload=payload.replace('</','<\\/')   # guard against premature </script>
+html=open(HTML, encoding='utf-8').read()
+repl='/*KG_START*/'+payload+'/*KG_END*/'
+new,n=re.subn(r'/\*KG_START\*/.*?/\*KG_END\*/', lambda m: repl, html, count=1, flags=re.S)
+assert n==1, 'KG markers not found (expected exactly 1)'
+open(HTML,'w', encoding='utf-8').write(new)
+print('injected KG: %d bytes, %d nodes, %d edges' % (len(payload), data['_meta']['node_count'], data['_meta']['edge_count']))

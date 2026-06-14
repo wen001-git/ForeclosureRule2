@@ -163,6 +163,13 @@
 }
 ],
 "layers": {
+"carrington.portcarrington": {
+"asof_basis": "latest snapshot per loan (snap_shot_date)",
+"asof_used": "2026-06-10",
+"grain": "1 row/loan (daily snapshot; snap_shot_date)",
+"key": "loanid (Bridger 7727... ids; carrington_ln 为 Carr 自有号)",
+"note": "Carrington 的 FCL L1 源表（DB 实测只读 redshift_prod.carrington.portcarrington，共 199 列，本表只渲染 pipeline CREATE_BASIC_FCL 实际消费的 9 列，pool:1574-1611）。Newrez 20 笔不在此表→∅NULL。fcl_flag 空串=该笔当前非活跃（CASE→activefcflag NULL）。这是 ⑨ Carrington 行的真上游。"
+},
 "tempfc.temp_basic_data_fcl": {
 "asof_basis": "latest snapshot per loan (dataasof)",
 "asof_used": "2026-06-10",
@@ -197,6 +204,13 @@
 }
 },
 "values": {
+"carrington.portcarrington": {
+"7727000804": {"loanid": "7727000804", "snap_shot_date": "2026-06-10", "carrington_ln": "7000327711", "fcl_flag": "∅空串", "fcl_referral_date": "∅NULL", "fcl_sub_status": "∅空串", "fcl_scheduled_sale_date": "∅NULL", "fcl_sale_held_date": "∅NULL", "fcl_attorney_name": "∅空串"},
+"7727000806": {"loanid": "7727000806", "snap_shot_date": "2026-06-10", "carrington_ln": "3000077131", "fcl_flag": "Active", "fcl_referral_date": "2025-02-19", "fcl_sub_status": "Contested / Litigation Start", "fcl_scheduled_sale_date": "∅NULL", "fcl_sale_held_date": "∅NULL", "fcl_attorney_name": "Lender Legal PLLC"},
+"7727000881": {"loanid": "7727000881", "snap_shot_date": "2026-06-10", "carrington_ln": "7000190198", "fcl_flag": "∅空串", "fcl_referral_date": "2024-01-11", "fcl_sub_status": "Sale Deed Recorded", "fcl_scheduled_sale_date": "2026-01-16", "fcl_sale_held_date": "2026-01-16", "fcl_attorney_name": "Feiwell & Hannoy"},
+"7727000883": {"loanid": "7727000883", "snap_shot_date": "2026-06-10", "carrington_ln": "7000132046", "fcl_flag": "∅空串", "fcl_referral_date": "∅NULL", "fcl_sub_status": "∅空串", "fcl_scheduled_sale_date": "∅NULL", "fcl_sale_held_date": "2025-01-23", "fcl_attorney_name": "∅空串"},
+"7727000955": {"loanid": "7727000955", "snap_shot_date": "2026-06-10", "carrington_ln": "7000178499", "fcl_flag": "Active", "fcl_referral_date": "2026-03-09", "fcl_sub_status": "First Legal Action Filed", "fcl_scheduled_sale_date": "∅NULL", "fcl_sale_held_date": "∅NULL", "fcl_attorney_name": "Hill Wallack LLP"}
+},
 "tempfc.temp_basic_data_fcl": {
 "7727003984": {
 "dataasof": "2026-06-10",

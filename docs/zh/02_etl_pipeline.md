@@ -324,6 +324,14 @@ GROUP BY delinq ORDER BY n DESC;
 > - **关系链**：`三家原始表 → tempfc.temp_basic_data_fcl(UNION) → basic_data_loan_fcl(事实中枢) → basic_data_loan_foreclosure(BPS投影) → bpms.sync_loan_foreclosure → BPS视图`。⚠️ **只有 `basic_data_loan_foreclosure` 与 `fcl_stage_info` 直接派生自 `fcl`**；同属 FCL 业务族的 `_hold`、`_bankruptcy`(←`newrez.portnewrezbk`)、`_loss_mitigation`(←`newrez.portnewrezlm`)、`basic_data_fcl_related`(←`newrez.portnewrezgeneral`) 各自**从原始 servicer 表并行构建（非 fcl 子表、同样绕过 L2/L3）**；`basic_data_loan_reo` 在别处维护。
 > - **命名提醒**：更"原始/全"的反而叫 `_fcl`，按 BPS 塑形的叫 `_foreclosure`——所以二者像，实为父（事实）子（投影）。字段级血缘见 [doc 25–30](25_fcl_lineage_overview.md)。
 
+> **为什么在 `basic_data_loan_fcl` 之前还要先建一张 `tempfc.temp_basic_data_fcl` 暂存表？（直接生成 fcl 不行吗）**
+> 行，但**拆成两步是更好的工程选择**，不是缺陷。代码事实：`temp_basic_data_fcl` 全仓**只被 `basic_data_loan_fcl` 一处读取**（[`basic_data_pool_config.py:1686`](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1686)）——是**单消费者暂存表**，物化它**不是为了复用**，而是四点权衡：
+> 1. **关注点分离**：`temp` 专做"三家 servicer 异构源 UNION + 列名归一化"这件最脏、最 servicer-specific 的活（[:1532-1654](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1532-1654)）；`fcl` 只做"`LEFT JOIN` Hold 历史挂 4 个 Hold 槽"这件通用 join（[:1657-1692](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1657-1692)）。两个职责、两步走。
+> 2. **可读 / 可维护**：单 UNION 就约 120 行（3 分支 × ~37 列）；若内联进 `fcl` 的 join 子查询，会变成约 150 行的嵌套大查询，改一处牵连全身。
+> 3. **Redshift 性能**：把 UNION 先 `CTAS` 落成带统计信息的实体表再 join，通常比"在 join 里塞一个三路 UNION 大子查询"计划更稳、更快——是 Redshift 常见惯用法。
+> 4. **可调试**：出问题时可直接 `select * from tempfc.temp_basic_data_fcl` 看"UNION 完、挂 Hold 前"的中间态，快速定位 bug 在归一化步还是 Hold 步。
+> **结论**：属标准 ETL **staging（暂存/分步）** 模式，不是项目问题。唯一可挑的风格小账——它是单消费者却用持久 `CTAS`（落在 `tempfc` schema）而非 CTE / 真 `TEMP` 表，理论上可省一次落盘；但当前复杂度下拆两步利大于弊。
+
 ### 5.3 `port.fcl_stage_info` 阶段体系（DB实证）
 
 > **统计口径**：`port.fcl_stage_info` 按 `fctrdt` 每日快照存储（一笔在贷止赎贷款每天一行）。**两种口径分列**——「当前在贷止赎管道」用 §5.3.1 最新快照；「历史数据量」用 §5.3.2 累计。
