@@ -1,0 +1,233 @@
+# Attach per-field "values" (value-range / enum) blocks to enum fields in outputs/fcl_lineage_source.json.
+# Run from project root:  python - < scripts/add_glin_values.txt
+# Idempotent: matches each field by (bps_table, terminal bpms sync column) and sets f['values'].
+# Sources (DB-verified, read-only): mysql_prod bpms GROUP BY (2026-06-14) for sync_* decoded distributions;
+#   doc 04 §1/§5/§6.1 (port, as-of 2026-06-07) for stage/group; datadic LMxx/BKxx for code meanings.
+import json
+SRC='outputs/fcl_lineage_source.json'
+
+def it(v, zh, en, n=None):
+    d={"v":v, "m":{"zh":zh, "en":en}}
+    if n is not None: d["n"]=n
+    return d
+
+VALUES = {
+ ("sync_loan_foreclosure","summary_foreclosure_status"): {
+   "src":"doc04 §5 · datadic · BPS prod 实测", "asof":"BPS prod 2026-06-14",
+   "items":[
+     it("Active Foreclosure","止赎进行中","Foreclosure in progress",31),
+     it("Closed Foreclosure:Reinstated","已关闭——贷款复效（补齐欠款）","Closed — reinstated (arrears cured)",19),
+     it("Closed Foreclosure:Loss Mitigation","已关闭——转入损失缓解","Closed — entered loss mitigation",17),
+     it("Closed Foreclosure:Paid in Full","已关闭——全额还清","Closed — paid in full",10),
+     it("Closed Foreclosure:Process Complete","已关闭——拍卖/REO 流程完成","Closed — sale/REO process complete",9),
+     it("Closed Foreclosure:Deed in Lieu Cmplte","已关闭——以房代偿完成","Closed — deed-in-lieu complete",1),
+   ],
+   "more":{"zh":"规则：activefcflag=1→'Active Foreclosure'；=0 且 fcremovaldesc 非空→'Closed Foreclosure:'+退出原因。另有少量 Carrington 风格编号状态（如 '1. First Legal Pending'/'5. Sales Held'）。",
+           "en":"Rule: activefcflag=1→'Active Foreclosure'; =0 with non-empty fcremovaldesc→'Closed Foreclosure:'+reason. A few Carrington-style numbered statuses also occur (e.g. '1. First Legal Pending', '5. Sales Held')."}
+ },
+ ("sync_loan_foreclosure","summary_judicial_foreclosure"): {
+   "src":"datadic Judicial · BPS prod 实测", "asof":"BPS prod 2026-06-14",
+   "items":[
+     it("0","非司法止赎（不经法院，多数州）","Non-judicial foreclosure (no court)",47),
+     it("1","司法止赎（须经法院诉讼）","Judicial foreclosure (court process)",34),
+   ]
+ },
+ ("sync_loan_foreclosure","summary_type"): {
+   "src":"datadic Judicial · BPS prod 实测", "asof":"BPS prod 2026-06-14",
+   "items":[
+     it("Non Judicial","非司法止赎州流程","Non-judicial foreclosure",47),
+     it("Judicial","司法止赎州流程（须经法院）","Judicial foreclosure (court)",34),
+   ],
+   "more":{"zh":"由 judicial 码 0/1 经 CASE 转文本（pool:279）。","en":"Text from judicial code 0/1 via CASE (pool:279)."}
+ },
+ ("sync_loan_foreclosure","summary_contested_litigation"): {
+   "src":"BPS prod 实测", "asof":"BPS prod 2026-06-14",
+   "items":[
+     it("0","无争议诉讼","Not contested",79),
+     it("1","存在争议 / 进入诉讼","Contested / in litigation",1),
+   ]
+ },
+ ("sync_fcl_stage_info","stage"): {
+   "src":"doc04 §6.1（port.fcl_stage_info 最新快照）", "asof":"port 2026-06-07",
+   "items":[
+     it("REFERRAL","委托律师转介（启动止赎）","Referred to foreclosure attorney",20),
+     it("SALE","止赎拍卖","Foreclosure sale",8),
+     it("FIRST_LEGAL","首次法律行动提交","First legal action filed",7),
+     it("SERVICE","法律文书送达","Legal documents served",4),
+     it("JUDGEMENT","判决阶段（司法州）","Judgement (judicial states)",2),
+     it("PUBLICATION","公告 / 登报阶段","Publication / advertising"),
+     it("DEMAND","催款函 / 意向通知(NOI)发出","Demand letter / NOI sent",0),
+   ],
+   "more":{"zh":"stage = 瀑布取「已到达的最深里程碑」（SALE>JUDGEMENT>PUBLICATION>SERVICE>FIRST_LEGAL>REFERRAL>DEMAND，pool:2095-2102）。计数＝最新快照 41 行（doc04 §6.1）。",
+           "en":"stage = deepest milestone reached (waterfall SALE>…>DEMAND, pool:2095-2102). Counts = latest snapshot, 41 rows (doc04 §6.1)."}
+ },
+ ("sync_fcl_stage_info","group"): {
+   "src":"doc04 §1/§6.1（逾期分类 delq_status）", "asof":"port 2026-06-07",
+   "items":[
+     it("FCL","止赎进行中","In foreclosure",41),
+     it("D120P","120 天以上逾期","120+ days past due"),
+     it("D90","90–119 天逾期","90–119 DPD"),
+     it("D60","60–89 天逾期","60–89 DPD"),
+     it("D30","30–59 天逾期","30–59 DPD"),
+     it("C","当前（<30 天逾期）","Current (<30 DPD)"),
+     it("REO","银行接管房产","Real estate owned"),
+     it("P","全额还清 / 清算","Paid off / liquidated"),
+   ],
+   "more":{"zh":"group = 逾期/组合分类（= ⑫ basic_data_fcl_related.delq_status，答「在哪个逾期桶」），≠ stage（法律阶段）。最新止赎快照基本全为 FCL（doc04 §6.1）。",
+           "en":"group = delinquency bucket (= basic_data_fcl_related.delq_status), NOT the legal stage. Latest FCL snapshot is essentially all FCL (doc04 §6.1)."}
+ },
+ ("sync_loan_foreclosure_loss_mitigation","deal"): {
+   "src":"datadic LMDeal · BPS prod 实测", "asof":"BPS prod 2026-06-14",
+   "items":[
+     it("Modification","永久性修改贷款条款，把月供降到可负担水平","Permanently modify loan terms to an affordable payment",209),
+     it("Evaluation","LM 评估期——收材料、判定适用方案","Loss-mit evaluation — gathering docs, deciding eligibility",116),
+     it("Forbearance","暂缓/减少月供，到期后补缴（临时性）","Temporarily pause/reduce payments, repay later",59),
+     it("Deferment","递延——把欠款挪到贷款末尾，月供恢复正常","Defer arrears to loan maturity; payment returns to normal",58),
+     it("Payment Plan","还款计划——正常月供外分期补缴欠款","Repayment plan — pay arrears in installments",38),
+     it("Short Sale","短售——低于欠款价售房，贷方免除差额","Sell below balance; lender forgives the shortfall",12),
+     it("DIL","自愿移交房产所有权(Deed-in-Lieu)抵债","Deed-in-lieu: voluntarily transfer title to settle debt",11),
+     it("Payoff","全额结清贷款","Full payoff of the loan",1),
+   ],
+   "more":{"zh":"整数码经 datadic(LMDeal) 解码为文本。完整 13 类另含 Reinstatement / Loan Sale / Settlement / CFK / Consent Judgement，见 doc 14。",
+           "en":"Integer code decoded via datadic(LMDeal). Full 13-type domain also has Reinstatement / Loan Sale / Settlement / CFK / Consent Judgement — see doc 14."}
+ },
+ ("sync_loan_foreclosure_loss_mitigation","program"): {
+   "src":"datadic LMProgram · BPS prod 实测（最常用 12）", "asof":"BPS prod 2026-06-14",
+   "items":[
+     it("Evaluation","方案评估","Program evaluation",115),
+     it("Deferment","递延","Deferment",58),
+     it("496.0","项目码在字典中无对应文案（需向 Newrez 核对）","Program code not in dictionary (verify with Newrez)",56),
+     it("Short-term Forbearance","短期暂缓还款","Short-term forbearance",49),
+     it("Bridger mod","Bridger 自有修改方案","Bridger proprietary modification",38),
+     it("Repayment Plan","还款计划","Repayment plan",38),
+     it("VA Traditional","VA 传统方案","VA traditional program",30),
+     it("SLS Standard Mod","SLS 标准修改方案","SLS standard modification",26),
+     it("FHA Recovery SAPC","FHA 复苏 SAPC 项目","FHA recovery SAPC",16),
+     it("Short Sale","短售项目","Short sale program",12),
+     it("Deed-in-Lieu","以房抵债(DIL)项目","Deed-in-lieu program",11),
+     it("Standard Proprietary Modification","标准自有(proprietary)修改方案","Standard proprietary modification",9),
+   ],
+   "more":{"zh":"LMProgram 共 388 码，此处列最常用 12（含未解码码如 496/498/499/527/531 需向 Newrez 核对）；完整见 DB / doc 14。",
+           "en":"LMProgram has 388 codes; top 12 shown (incl. undecoded codes like 496/498/499 — verify with Newrez). Full list in DB / doc 14."}
+ },
+ ("sync_loan_foreclosure_loss_mitigation","lmc_status"): {
+   "src":"datadic LMStatus · BPS prod 实测（最常用 12）", "asof":"BPS prod 2026-06-14",
+   "items":[
+     it("Workout Denial","方案被拒","Workout denied",163),
+     it("Pending Financials","待借款人财务资料","Awaiting borrower financials",127),
+     it("Document Follow-up","催收/跟进所需材料","Following up on required documents",76),
+     it("Monitor Forbearance","监控暂缓还款执行","Monitoring forbearance",31),
+     it("Book mod","入账修改（修改正式生效）","Booking the modification (it takes effect)",28),
+     it("Deferment Agreement Ordered","已下单递延协议","Deferment agreement ordered",23),
+     it("Deferment Plan In Progress","递延计划执行中","Deferment plan in progress",12),
+     it("Monitor for pmts/funds","监控还款/资金到账","Monitoring payments/funds",10),
+     it("Liquidation Referral","转清算（短售/DIL/法拍）","Referred to liquidation (SS/DIL/FC)",7),
+     it("Solicitation Offered","已发出方案邀约","Solicitation offered",4),
+     it("Follow up for 1st Trial Payment","跟进首笔试用期还款","Follow up on 1st trial payment",4),
+     it("Awaiting investor approval","等待投资人审批","Awaiting investor approval",3),
+   ],
+   "more":{"zh":"LMStatus 共 149 码，此处列最常用 12；完整见 DB / doc 14。",
+           "en":"LMStatus has 149 codes; top 12 shown — full list in DB / doc 14."}
+ },
+ ("sync_loan_foreclosure_loss_mitigation","final_disposition"): {
+   "src":"datadic LMDecision · BPS prod 实测", "asof":"BPS prod 2026-06-14",
+   "items":[
+     it("Referral to FC","转法拍——LM 未成功","Referred to foreclosure — LM unsuccessful",127),
+     it("Request Incomplete/Failed to Provide Information","资料不全/未按时提供","Incomplete request / docs not provided",104),
+     it("Pending","处理中/待决","In progress / pending",97),
+     it("LMS Opened in Error","误开 LM 工单","LM case opened in error",53),
+     it("Reinstated/Current","已补齐欠款恢复正常","Arrears cured; loan current",36),
+     it("Deferment Completed","递延完成","Deferment completed",33),
+     it("Forbearance Complete","暂缓还款期满结束","Forbearance completed",20),
+     it("Modification Complete","修改完成（贷款重组成功）","Modification completed",17),
+     it("Not Eligible for Loss Mitigation","不符合 LM 资格","Not eligible for loss mitigation",7),
+     it("Full Pay Off","全额结清","Full payoff",7),
+     it("FC Sale Held","法拍已成交，LM 终止","FC sale held; LM ended",2),
+     it("DIL Complete","DIL 完成（房产已移交）","Deed-in-lieu completed",1),
+   ],
+   "more":{"zh":"LM 周期最终结论，整数码经 datadic(LMDecision) 解码。完整 24 码见 doc 14。",
+           "en":"LM cycle final decision, decoded via datadic(LMDecision). Full 24-code domain in doc 14."}
+ },
+ ("sync_loan_foreclosure_loss_mitigation","denialreason"): {
+   "src":"datadic DenialReason · BPS prod 实测（最常用 12）", "asof":"BPS prod 2026-06-14",
+   "items":[
+     it("Request Incomplete/Failed to Provide Documentation","资料不全/未提供文件","Incomplete request / docs not provided",30),
+     it("Loan not due for 3 or more monthly payments","逾期不足 3 期，未达条件","Not 3+ payments past due",25),
+     it("HAMP Sunset","HAMP 项目已到期终止","HAMP program sunset",15),
+     it("Withdrawal of Request/Non-Acceptance","借款人撤回申请/不接受方案","Borrower withdrew / did not accept",15),
+     it("Unable to achieve target payment","无法达到目标月供","Cannot reach target payment",9),
+     it("Hardship not resolved","困难未解决","Hardship not resolved",7),
+     it("Investor Not Participating","投资人不参与该方案","Investor not participating",6),
+     it("Failed Plan","此前方案违约失败","Prior plan failed / defaulted",5),
+     it("Loan not 90+ DPD","逾期未满 90 天，未达条件","Loan not 90+ days past due",5),
+     it("Post-Mod P&I Payment > Current P&I Payment","改后本息月供高于当前，无收益","Post-mod P&I exceeds current payment",4),
+     it("Trial Plan Default","试用期计划违约","Trial plan default",4),
+     it("HDTI out of range","房贷收入比(HDTI)超范围","Housing DTI out of range",3),
+   ],
+   "more":{"zh":"LM 被拒原因，整数码经 datadic(DenialReason) 解码。共 130 码，此处列最常用 12；完整见 DB / doc 14。",
+           "en":"LM denial reason, decoded via datadic(DenialReason). 130 codes; top 12 shown — full in DB / doc 14."}
+ },
+ ("sync_loan_foreclosure_loss_mitigation","borrower_intentions"): {
+   "src":"datadic BorrowerIntention · BPS prod 实测", "asof":"BPS prod 2026-06-14",
+   "items":[
+     it("Retention","保留房产（争取留房方案）","Keep the home (pursue retention)",49),
+     it("Disposition","处置房产（短售/DIL/放弃）","Dispose of the home (short sale/DIL/surrender)",5),
+     it("Unknown","意向未知","Intention unknown",1),
+   ]
+ },
+ ("sync_loan_foreclosure_bankruptcy","bankruptcy_status"): {
+   "src":"datadic BKStatus · BPS prod 实测", "asof":"BPS prod 2026-06-14",
+   "items":[
+     it("Completed/Cancelled","破产流程已完成 / 已取消","BK process completed or cancelled",32),
+     it("Active","破产案进行中——自动暂停(Automatic Stay)保护，法拍暂停","BK in progress — automatic stay halts foreclosure",16),
+     it("Discharged","债务已免除（个人债务责任解除）","Debt discharged",15),
+     it("Dismissed","破产案被驳回——保护解除，法拍可恢复","BK dismissed — stay lifted, FC may resume",3),
+     it("ReliefGranted","已批准解除自动暂停——债权人可推进法拍/MFR 获准","Relief from stay granted — creditor may proceed",3),
+     it("Closed","破产案结案","BK case closed",1),
+   ],
+   "more":{"zh":"datadic BKStatus 解码 1→Active/2→Discharged/3→Dismissed/4→Closed/5→ReliefGranted；实测另见 'Completed/Cancelled'。",
+           "en":"datadic BKStatus decodes 1→Active/2→Discharged/3→Dismissed/4→Closed/5→ReliefGranted; data also shows 'Completed/Cancelled'."}
+ },
+ ("sync_loan_foreclosure_bankruptcy","chapter"): {
+   "src":"BK chapter · BPS prod 实测", "asof":"BPS prod 2026-06-14",
+   "items":[
+     it("13","第 13 章——个人按 3–5 年计划分期补缴欠款、保留房产","Chapter 13 — individual 3–5yr repayment plan, keep home",38),
+     it("7","第 7 章——清算型：变卖非豁免资产清偿后免除剩余债务","Chapter 7 — liquidation; remaining debt discharged",26),
+     it("11","第 11 章——重整（多为企业/高额债务）","Chapter 11 — reorganization (usually business/large debt)",6),
+   ]
+ },
+ ("sync_loan_foreclosure_bankruptcy","legal_status"): {
+   "src":"datadic LegalStatus · BPS prod 实测", "asof":"BPS prod 2026-06-14",
+   "items":[
+     it("BK13","第 13 章破产","Chapter 13 bankruptcy",12),
+     it("BK7","第 7 章破产","Chapter 7 bankruptcy",4),
+     it("FCBU","止赎进行中","Foreclosure",3),
+     it("BK11","第 11 章破产","Chapter 11 bankruptcy",3),
+     it("BK11DCH","第 11 章已免除","Chapter 11 discharged",3),
+     it("REO","银行接管房产","Real estate owned",2),
+     it("BK7DCH","第 7 章已免除","Chapter 7 discharged",2),
+     it("FCSold","止赎拍卖已成交（第三方）","FC sale completed - 3rd party",1),
+     it("BKD7LM","第 7 章已免除-维持留置","Ch7 discharged - lien maintained",1),
+     it("BKD13LM","第 13 章已免除-维持留置","Ch13 discharged - lien maintained",1),
+     it("BK13DCH","第 13 章已免除","Chapter 13 discharged",1),
+   ],
+   "more":{"zh":"来自 portnewrezgeneral.legalstatus。LegalStatus 共 26 码，此处列实测出现的 11；完整见 datadic LegalStatus / doc 14。",
+           "en":"From portnewrezgeneral.legalstatus. LegalStatus has 26 codes; 11 observed shown — full in datadic LegalStatus / doc 14."}
+ },
+}
+
+data=json.load(open(SRC, encoding='utf-8'))
+hit=set(); fields=data['fields']
+for f in fields:
+    bt=f.get('bps_table');
+    if not bt: continue
+    synccol=None
+    for h in f.get('hops',[]):
+        t=h.get('t','');
+        if t==('bpms.'+bt): synccol=h.get('c')
+    key=(bt, synccol)
+    if key in VALUES:
+        f['values']=VALUES[key]; hit.add(key)
+missing=[k for k in VALUES if k not in hit]
+json.dump(data, open(SRC,'w',encoding='utf-8'), ensure_ascii=False, indent=1)
+print('attached values to %d fields; missing matches: %s' % (len(hit), missing))

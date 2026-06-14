@@ -119,7 +119,7 @@ _贷款当前阶段分类（waterfall 结果）。_
 **流动顺序 / Flow:** ①basic_data_loan_fcl → ②fcl_stage_info → ③sync_fcl_stage_info
 **血缘（逐跳：序号 列 — 规则 [代码]）/ Lineage (per hop)**
 - 1. `port.basic_data_loan_fcl` · (stage dates) — waterfall by first non-null date
-- 2. `port.fcl_stage_info.stage` — CASE waterfall: SALE→JUDGEMENT→PUBLICATION→SERVICE→FIRST_LEGAL→REFERRAL→DEMAND [pool:2095-2102](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2095-2102)
+- 2. `port.fcl_stage_info.stage` — CASE 瀑布取「最深已发生里程碑」（谁有 start 日期取谁；优先级 SALE>JUDGEMENT>PUBLICATION>SERVICE>FIRST_LEGAL>REFERRAL>DEMAND）。例：有 referral_start 与 first_legal_start、无更深者 → stage='FIRST_LEGAL' [pool:2095-2102](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2095-2102)
 - 3. `bpms.sync_fcl_stage_info.stage` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 **说明 / Note:** 取值：SALE / JUDGEMENT / PUBLICATION / SERVICE / FIRST_LEGAL / REFERRAL / DEMAND（7 个；prod 快照当前为 REFERRAL/SALE/FIRST_LEGAL/SERVICE/JUDGEMENT）。
@@ -141,7 +141,7 @@ _用于分桶的逾期/法律分组。_
 
 **流动顺序 / Flow:** ①basic_data_fcl_related → ②fcl_stage_info → ③sync_fcl_stage_info
 **血缘（逐跳：序号 列 — 规则 [代码]）/ Lineage (per hop)**
-- 1. `port.basic_data_fcl_related.delq_status` — CASE mba then days360 fallback 见 sql [pool:1702-1711](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1702-1711)
+- 1. `port.basic_data_fcl_related.delq_status` — delinquency_status_mba=Full Payoff→P / REO→REO / 任意 Foreclosure*→FCL；否则 days360(nextduedate,dataasof) 分桶 <30→C / <60→D30 / <90→D60 / <120→D90 / else→D120P [pool:1702-1711](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1702-1711)
 - 2. `port.fcl_stage_info.group` — = r.delq_status（r = `port.basic_data_fcl_related` ⑫，按 loanid+dataasof JOIN，取该笔【逾期/组合分类】FCL/REO/D120P/D90/D60/D30/C/P）。⚠️ group=逾期分类维度 ≠ stage=FCL 法律阶段维度（瀑布 SALE>JUDGEMENT>…>DEMAND） [pool:1816,2400](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2400)
 - 3. `bpms.sync_fcl_stage_info.group` — 12-FCL_STAGE sync pass-through [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
@@ -182,7 +182,7 @@ _司法标志（带州级回退）。_
 **流动顺序 / Flow:** ①basic_data_loan_fcl → ②fcl_stage_info → ③sync_fcl_stage_info
 **血缘（逐跳：序号 列 — 规则 [代码]）/ Lineage (per hop)**
 - 1. `port.basic_data_loan_fcl.judicial` — normalize cast(int) [pool:2034](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2034)
-- 2. `port.fcl_stage_info.judicial` — Y/N else state-config fallback 见 sql [pool:2351-2353,2432](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2351-2353)
+- 2. `port.fcl_stage_info.judicial` — CASE：本笔 judicial=1→'Y'、=0→'N'；为空则按州回退 config_judicial（JOIN port.basic_data_judicial_config ON propertystate=state，由所在州判定司法/非司法）。例：本笔 judicial 空 且 propertystate=NY → 'Y'(司法州)；CA → 'N'(非司法州) [pool:2351-2353,2432](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2351-2353)
 - 3. `bpms.sync_fcl_stage_info.judicial` — sync pass-through [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 **规则（完整）/ Rule (full):** `fcl_stage_info.judicial = CASE judicial=1→'Y'、0→'N'`。**Newrez** 提供贷款级 `judicial` 标志（[pool:1565](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1565)）。**Carrington / Capecodfive** 事实表中 `judicial=NULL`（[pool:1606](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1606) / 1647）→ **州级回退**：按房产州关联 `basic_data_judicial_config`，取其 judicial 值（[pool:2351-2353](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2351-2353)，关联 [pool:2432](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2432)）。
@@ -585,7 +585,7 @@ _阶段内含端点已历天数。_
 **血缘（逐跳：序号 列 — 规则 [代码]）/ Lineage (per hop)**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl` · (stage dates) — source 源
-- 3. `port.fcl_stage_info.demand_stage_days` — datediff+1 (inclusive) 见 sql [pool:2040-2076](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2040-2076)
+- 3. `port.fcl_stage_info.demand_stage_days` — 在该阶段已历天数 = datediff(stage_start, COALESCE(下一阶段 start, 今天)) + 1（含两端）。例：referral_start=2025-03-07、下一阶段(first_legal)未到 → datediff(2025-03-07, 今天)+1。【来源字段】start=本表 <阶段>_start_date、end=本表 <阶段>_end_date(=下一阶段 start)；DEMAND 特例直接用今天 [pool:2040-2076](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2040-2076)
 - 4. `bpms.sync_fcl_stage_info.demand_stage_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -608,7 +608,7 @@ _阶段内与开启 LM 周期重叠天数。_
 **血缘（逐跳：序号 列 — 规则 [代码]）/ Lineage (per hop)**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl` · (LM cycle) — source 源
-- 3. `port.fcl_stage_info.demand_in_lm_days` — interval overlap (LM) 见 sql [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
+- 3. `port.fcl_stage_info.demand_in_lm_days` — 阶段窗口 ∩ LM 周期 的重叠天数 = datediff(max(stage_start, LM.cycle_opened), min(stage_end, LM.cycle_closed或今天)) + 1。【为何 +1】datediff 只数两日期间跨过几个午夜(=结束−开始)、不含开始当天；天数要首尾两天都算(inclusive)，故 +1。例：重叠 04-01~05-01，datediff=30 → 30+1 = 31 天（仅当前未关闭 LM；无重叠不计）。【来源字段】stage 窗口=本表 <阶段>_start_date/_end_date；LM=⑯ basic_data_loan_foreclosure_loss_mitigation.cycle_opened_date/cycle_closed_date。【实例】7727003984·demand：窗口[2025-01-07→curr_date]，5 条 LM 中「未关闭且开于窗口内」的 2025-05-12 那条 → datediff(2025-05-12, curr_date 2026-06-13)+1 = 398（=DB；故单格无法选对那一条） [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
 - 4. `bpms.sync_fcl_stage_info.demand_in_lm_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -628,7 +628,7 @@ _阶段内与开启 Hold 重叠天数。_
 **血缘（逐跳：序号 列 — 规则 [代码]）/ Lineage (per hop)**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl.fchold1..3` — source 源
-- 3. `port.fcl_stage_info.demand_on_hold_days` — interval overlap (Hold) 见 sql [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
+- 3. `port.fcl_stage_info.demand_on_hold_days` — 阶段窗口 ∩ Hold 区间 的重叠天数 = datediff(max(stage_start, hold_start), min(stage_end, hold_end或今天)) + 1。【为何 +1】datediff 只数跨过的午夜数(=结束−开始)、不含开始当天，天数要首尾两端都算(inclusive)，故 +1。例：重叠 04-10~04-20，datediff=10 → 10+1 = 11 天（无重叠不计）。【来源字段】stage 窗口=本表 <阶段>_start_date/_end_date；Hold=⑮ basic_data_loan_foreclosure_hold.description1_start_date/description1_end_date。【实例】7727000806·referral：窗口[2025-02-19→curr_date]，5 段 Hold 中「未关闭且开于窗口内」的 2025-07-30 那段 → datediff(2025-07-30, curr_date 2026-06-13)+1 = 319（=DB） [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
 - 4. `bpms.sync_fcl_stage_info.demand_on_hold_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -648,7 +648,7 @@ _阶段内与开启 LM 周期重叠天数。_
 **血缘（逐跳：序号 列 — 规则 [代码]）/ Lineage (per hop)**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl` · (LM cycle) — source 源
-- 3. `port.fcl_stage_info.noi_in_lm_days` — interval overlap (LM) 见 sql [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
+- 3. `port.fcl_stage_info.noi_in_lm_days` — 阶段窗口 ∩ LM 周期 的重叠天数 = datediff(max(stage_start, LM.cycle_opened), min(stage_end, LM.cycle_closed或今天)) + 1。【为何 +1】datediff 只数两日期间跨过几个午夜(=结束−开始)、不含开始当天；天数要首尾两天都算(inclusive)，故 +1。例：重叠 04-01~05-01，datediff=30 → 30+1 = 31 天（仅当前未关闭 LM；无重叠不计）。【来源字段】stage 窗口=本表 <阶段>_start_date/_end_date；LM=⑯ basic_data_loan_foreclosure_loss_mitigation.cycle_opened_date/cycle_closed_date。【实例】7727003984·demand：窗口[2025-01-07→curr_date]，5 条 LM 中「未关闭且开于窗口内」的 2025-05-12 那条 → datediff(2025-05-12, curr_date 2026-06-13)+1 = 398（=DB；故单格无法选对那一条） [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
 - 4. `bpms.sync_fcl_stage_info.noi_in_lm_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -668,7 +668,7 @@ _阶段内与开启 Hold 重叠天数。_
 **血缘（逐跳：序号 列 — 规则 [代码]）/ Lineage (per hop)**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl.fchold1..3` — source 源
-- 3. `port.fcl_stage_info.noi_on_hold_days` — interval overlap (Hold) 见 sql [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
+- 3. `port.fcl_stage_info.noi_on_hold_days` — 阶段窗口 ∩ Hold 区间 的重叠天数 = datediff(max(stage_start, hold_start), min(stage_end, hold_end或今天)) + 1。【为何 +1】datediff 只数跨过的午夜数(=结束−开始)、不含开始当天，天数要首尾两端都算(inclusive)，故 +1。例：重叠 04-10~04-20，datediff=10 → 10+1 = 11 天（无重叠不计）。【来源字段】stage 窗口=本表 <阶段>_start_date/_end_date；Hold=⑮ basic_data_loan_foreclosure_hold.description1_start_date/description1_end_date。【实例】7727000806·referral：窗口[2025-02-19→curr_date]，5 段 Hold 中「未关闭且开于窗口内」的 2025-07-30 那段 → datediff(2025-07-30, curr_date 2026-06-13)+1 = 319（=DB） [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
 - 4. `bpms.sync_fcl_stage_info.noi_on_hold_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -688,7 +688,7 @@ _阶段内含端点已历天数。_
 **血缘（逐跳：序号 列 — 规则 [代码]）/ Lineage (per hop)**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl` · (stage dates) — source 源
-- 3. `port.fcl_stage_info.referral_stage_days` — datediff+1 (inclusive) 见 sql [pool:2040-2076](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2040-2076)
+- 3. `port.fcl_stage_info.referral_stage_days` — 在该阶段已历天数 = datediff(stage_start, COALESCE(下一阶段 start, 今天)) + 1（含两端）。例：referral_start=2025-03-07、下一阶段(first_legal)未到 → datediff(2025-03-07, 今天)+1。【来源字段】start=本表 <阶段>_start_date、end=本表 <阶段>_end_date(=下一阶段 start)；DEMAND 特例直接用今天 [pool:2040-2076](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2040-2076)
 - 4. `bpms.sync_fcl_stage_info.referral_stage_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -714,7 +714,7 @@ _阶段内与开启 LM 周期重叠天数。_
 **血缘（逐跳：序号 列 — 规则 [代码]）/ Lineage (per hop)**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl` · (LM cycle) — source 源
-- 3. `port.fcl_stage_info.referral_in_lm_days` — interval overlap (LM) 见 sql [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
+- 3. `port.fcl_stage_info.referral_in_lm_days` — 阶段窗口 ∩ LM 周期 的重叠天数 = datediff(max(stage_start, LM.cycle_opened), min(stage_end, LM.cycle_closed或今天)) + 1。【为何 +1】datediff 只数两日期间跨过几个午夜(=结束−开始)、不含开始当天；天数要首尾两天都算(inclusive)，故 +1。例：重叠 04-01~05-01，datediff=30 → 30+1 = 31 天（仅当前未关闭 LM；无重叠不计）。【来源字段】stage 窗口=本表 <阶段>_start_date/_end_date；LM=⑯ basic_data_loan_foreclosure_loss_mitigation.cycle_opened_date/cycle_closed_date。【实例】7727003984·demand：窗口[2025-01-07→curr_date]，5 条 LM 中「未关闭且开于窗口内」的 2025-05-12 那条 → datediff(2025-05-12, curr_date 2026-06-13)+1 = 398（=DB；故单格无法选对那一条） [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
 - 4. `bpms.sync_fcl_stage_info.referral_in_lm_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -734,7 +734,7 @@ _阶段内与开启 Hold 重叠天数。_
 **血缘（逐跳：序号 列 — 规则 [代码]）/ Lineage (per hop)**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl.fchold1..3` — source 源
-- 3. `port.fcl_stage_info.referral_on_hold_days` — interval overlap (Hold) 见 sql [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
+- 3. `port.fcl_stage_info.referral_on_hold_days` — 阶段窗口 ∩ Hold 区间 的重叠天数 = datediff(max(stage_start, hold_start), min(stage_end, hold_end或今天)) + 1。【为何 +1】datediff 只数跨过的午夜数(=结束−开始)、不含开始当天，天数要首尾两端都算(inclusive)，故 +1。例：重叠 04-10~04-20，datediff=10 → 10+1 = 11 天（无重叠不计）。【来源字段】stage 窗口=本表 <阶段>_start_date/_end_date；Hold=⑮ basic_data_loan_foreclosure_hold.description1_start_date/description1_end_date。【实例】7727000806·referral：窗口[2025-02-19→curr_date]，5 段 Hold 中「未关闭且开于窗口内」的 2025-07-30 那段 → datediff(2025-07-30, curr_date 2026-06-13)+1 = 319（=DB） [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
 - 4. `bpms.sync_fcl_stage_info.referral_on_hold_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -754,7 +754,7 @@ _阶段内含端点已历天数。_
 **血缘（逐跳：序号 列 — 规则 [代码]）/ Lineage (per hop)**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl` · (stage dates) — source 源
-- 3. `port.fcl_stage_info.first_legal_stage_days` — datediff+1 (inclusive) 见 sql [pool:2040-2076](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2040-2076)
+- 3. `port.fcl_stage_info.first_legal_stage_days` — 在该阶段已历天数 = datediff(stage_start, COALESCE(下一阶段 start, 今天)) + 1（含两端）。例：referral_start=2025-03-07、下一阶段(first_legal)未到 → datediff(2025-03-07, 今天)+1。【来源字段】start=本表 <阶段>_start_date、end=本表 <阶段>_end_date(=下一阶段 start)；DEMAND 特例直接用今天 [pool:2040-2076](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2040-2076)
 - 4. `bpms.sync_fcl_stage_info.first_legal_stage_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -780,7 +780,7 @@ _阶段内与开启 LM 周期重叠天数。_
 **血缘（逐跳：序号 列 — 规则 [代码]）/ Lineage (per hop)**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl` · (LM cycle) — source 源
-- 3. `port.fcl_stage_info.first_legal_in_lm_days` — interval overlap (LM) 见 sql [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
+- 3. `port.fcl_stage_info.first_legal_in_lm_days` — 阶段窗口 ∩ LM 周期 的重叠天数 = datediff(max(stage_start, LM.cycle_opened), min(stage_end, LM.cycle_closed或今天)) + 1。【为何 +1】datediff 只数两日期间跨过几个午夜(=结束−开始)、不含开始当天；天数要首尾两天都算(inclusive)，故 +1。例：重叠 04-01~05-01，datediff=30 → 30+1 = 31 天（仅当前未关闭 LM；无重叠不计）。【来源字段】stage 窗口=本表 <阶段>_start_date/_end_date；LM=⑯ basic_data_loan_foreclosure_loss_mitigation.cycle_opened_date/cycle_closed_date。【实例】7727003984·demand：窗口[2025-01-07→curr_date]，5 条 LM 中「未关闭且开于窗口内」的 2025-05-12 那条 → datediff(2025-05-12, curr_date 2026-06-13)+1 = 398（=DB；故单格无法选对那一条） [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
 - 4. `bpms.sync_fcl_stage_info.first_legal_in_lm_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -800,7 +800,7 @@ _阶段内与开启 Hold 重叠天数。_
 **血缘（逐跳：序号 列 — 规则 [代码]）/ Lineage (per hop)**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl.fchold1..3` — source 源
-- 3. `port.fcl_stage_info.first_legal_on_hold_days` — interval overlap (Hold) 见 sql [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
+- 3. `port.fcl_stage_info.first_legal_on_hold_days` — 阶段窗口 ∩ Hold 区间 的重叠天数 = datediff(max(stage_start, hold_start), min(stage_end, hold_end或今天)) + 1。【为何 +1】datediff 只数跨过的午夜数(=结束−开始)、不含开始当天，天数要首尾两端都算(inclusive)，故 +1。例：重叠 04-10~04-20，datediff=10 → 10+1 = 11 天（无重叠不计）。【来源字段】stage 窗口=本表 <阶段>_start_date/_end_date；Hold=⑮ basic_data_loan_foreclosure_hold.description1_start_date/description1_end_date。【实例】7727000806·referral：窗口[2025-02-19→curr_date]，5 段 Hold 中「未关闭且开于窗口内」的 2025-07-30 那段 → datediff(2025-07-30, curr_date 2026-06-13)+1 = 319（=DB） [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
 - 4. `bpms.sync_fcl_stage_info.first_legal_on_hold_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -820,7 +820,7 @@ _阶段内含端点已历天数。_
 **血缘（逐跳：序号 列 — 规则 [代码]）/ Lineage (per hop)**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl` · (stage dates) — source 源
-- 3. `port.fcl_stage_info.service_stage_days` — datediff+1 (inclusive) 见 sql [pool:2040-2076](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2040-2076)
+- 3. `port.fcl_stage_info.service_stage_days` — 在该阶段已历天数 = datediff(stage_start, COALESCE(下一阶段 start, 今天)) + 1（含两端）。例：referral_start=2025-03-07、下一阶段(first_legal)未到 → datediff(2025-03-07, 今天)+1。【来源字段】start=本表 <阶段>_start_date、end=本表 <阶段>_end_date(=下一阶段 start)；DEMAND 特例直接用今天 [pool:2040-2076](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2040-2076)
 - 4. `bpms.sync_fcl_stage_info.service_stage_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -846,7 +846,7 @@ _阶段内与开启 LM 周期重叠天数。_
 **血缘（逐跳：序号 列 — 规则 [代码]）/ Lineage (per hop)**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl` · (LM cycle) — source 源
-- 3. `port.fcl_stage_info.service_in_lm_days` — interval overlap (LM) 见 sql [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
+- 3. `port.fcl_stage_info.service_in_lm_days` — 阶段窗口 ∩ LM 周期 的重叠天数 = datediff(max(stage_start, LM.cycle_opened), min(stage_end, LM.cycle_closed或今天)) + 1。【为何 +1】datediff 只数两日期间跨过几个午夜(=结束−开始)、不含开始当天；天数要首尾两天都算(inclusive)，故 +1。例：重叠 04-01~05-01，datediff=30 → 30+1 = 31 天（仅当前未关闭 LM；无重叠不计）。【来源字段】stage 窗口=本表 <阶段>_start_date/_end_date；LM=⑯ basic_data_loan_foreclosure_loss_mitigation.cycle_opened_date/cycle_closed_date。【实例】7727003984·demand：窗口[2025-01-07→curr_date]，5 条 LM 中「未关闭且开于窗口内」的 2025-05-12 那条 → datediff(2025-05-12, curr_date 2026-06-13)+1 = 398（=DB；故单格无法选对那一条） [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
 - 4. `bpms.sync_fcl_stage_info.service_in_lm_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -866,7 +866,7 @@ _阶段内与开启 Hold 重叠天数。_
 **血缘（逐跳：序号 列 — 规则 [代码]）/ Lineage (per hop)**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl.fchold1..3` — source 源
-- 3. `port.fcl_stage_info.service_on_hold_days` — interval overlap (Hold) 见 sql [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
+- 3. `port.fcl_stage_info.service_on_hold_days` — 阶段窗口 ∩ Hold 区间 的重叠天数 = datediff(max(stage_start, hold_start), min(stage_end, hold_end或今天)) + 1。【为何 +1】datediff 只数跨过的午夜数(=结束−开始)、不含开始当天，天数要首尾两端都算(inclusive)，故 +1。例：重叠 04-10~04-20，datediff=10 → 10+1 = 11 天（无重叠不计）。【来源字段】stage 窗口=本表 <阶段>_start_date/_end_date；Hold=⑮ basic_data_loan_foreclosure_hold.description1_start_date/description1_end_date。【实例】7727000806·referral：窗口[2025-02-19→curr_date]，5 段 Hold 中「未关闭且开于窗口内」的 2025-07-30 那段 → datediff(2025-07-30, curr_date 2026-06-13)+1 = 319（=DB） [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
 - 4. `bpms.sync_fcl_stage_info.service_on_hold_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -886,7 +886,7 @@ _阶段内与开启 LM 周期重叠天数。_
 **血缘（逐跳：序号 列 — 规则 [代码]）/ Lineage (per hop)**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl` · (LM cycle) — source 源
-- 3. `port.fcl_stage_info.publication_in_lm_days` — interval overlap (LM) 见 sql [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
+- 3. `port.fcl_stage_info.publication_in_lm_days` — 阶段窗口 ∩ LM 周期 的重叠天数 = datediff(max(stage_start, LM.cycle_opened), min(stage_end, LM.cycle_closed或今天)) + 1。【为何 +1】datediff 只数两日期间跨过几个午夜(=结束−开始)、不含开始当天；天数要首尾两天都算(inclusive)，故 +1。例：重叠 04-01~05-01，datediff=30 → 30+1 = 31 天（仅当前未关闭 LM；无重叠不计）。【来源字段】stage 窗口=本表 <阶段>_start_date/_end_date；LM=⑯ basic_data_loan_foreclosure_loss_mitigation.cycle_opened_date/cycle_closed_date。【实例】7727003984·demand：窗口[2025-01-07→curr_date]，5 条 LM 中「未关闭且开于窗口内」的 2025-05-12 那条 → datediff(2025-05-12, curr_date 2026-06-13)+1 = 398（=DB；故单格无法选对那一条） [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
 - 4. `bpms.sync_fcl_stage_info.publication_in_lm_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -906,7 +906,7 @@ _阶段内与开启 Hold 重叠天数。_
 **血缘（逐跳：序号 列 — 规则 [代码]）/ Lineage (per hop)**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl.fchold1..3` — source 源
-- 3. `port.fcl_stage_info.publication_on_hold_days` — interval overlap (Hold) 见 sql [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
+- 3. `port.fcl_stage_info.publication_on_hold_days` — 阶段窗口 ∩ Hold 区间 的重叠天数 = datediff(max(stage_start, hold_start), min(stage_end, hold_end或今天)) + 1。【为何 +1】datediff 只数跨过的午夜数(=结束−开始)、不含开始当天，天数要首尾两端都算(inclusive)，故 +1。例：重叠 04-10~04-20，datediff=10 → 10+1 = 11 天（无重叠不计）。【来源字段】stage 窗口=本表 <阶段>_start_date/_end_date；Hold=⑮ basic_data_loan_foreclosure_hold.description1_start_date/description1_end_date。【实例】7727000806·referral：窗口[2025-02-19→curr_date]，5 段 Hold 中「未关闭且开于窗口内」的 2025-07-30 那段 → datediff(2025-07-30, curr_date 2026-06-13)+1 = 319（=DB） [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
 - 4. `bpms.sync_fcl_stage_info.publication_on_hold_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -926,7 +926,7 @@ _距排定判决/拍卖的倒计天数。_
 **血缘（逐跳：序号 列 — 规则 [代码]）/ Lineage (per hop)**
 - 1. `newrez.portnewrezfc.fcjudgmenthearingscheduled` — servicer raw 原始
 - 2. `port.basic_data_loan_fcl.fcjudgment_hearing_scheduled` — source 源
-- 3. `port.fcl_stage_info.to_judgement_days` — countdown to judgement: future⇒datediff(curr_date, date) (no +1), past⇒0, none⇒NULL [pool:2085-2087,2388](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2085-2087)
+- 3. `port.fcl_stage_info.to_judgement_days` — 距判决倒计时：judgement_start_date(=排定听证日) 在未来 ⇒ datediff(今天, judgement_start_date)（不 +1）；已过 ⇒ 0；无日期 ⇒ NULL。【来源字段】本表 judgement_start_date。例：judgement_start=2026-08-21、今天 2026-06-14 → 还有 68 天 [pool:2085-2087,2388](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2085-2087)
 - 4. `bpms.sync_fcl_stage_info.to_judgement_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -946,7 +946,7 @@ _阶段内与开启 LM 周期重叠天数。_
 **血缘（逐跳：序号 列 — 规则 [代码]）/ Lineage (per hop)**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl` · (LM cycle) — source 源
-- 3. `port.fcl_stage_info.judgement_in_lm_days` — interval overlap (LM) 见 sql [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
+- 3. `port.fcl_stage_info.judgement_in_lm_days` — 阶段窗口 ∩ LM 周期 的重叠天数 = datediff(max(stage_start, LM.cycle_opened), min(stage_end, LM.cycle_closed或今天)) + 1。【为何 +1】datediff 只数两日期间跨过几个午夜(=结束−开始)、不含开始当天；天数要首尾两天都算(inclusive)，故 +1。例：重叠 04-01~05-01，datediff=30 → 30+1 = 31 天（仅当前未关闭 LM；无重叠不计）。【来源字段】stage 窗口=本表 <阶段>_start_date/_end_date；LM=⑯ basic_data_loan_foreclosure_loss_mitigation.cycle_opened_date/cycle_closed_date。【实例】7727003984·demand：窗口[2025-01-07→curr_date]，5 条 LM 中「未关闭且开于窗口内」的 2025-05-12 那条 → datediff(2025-05-12, curr_date 2026-06-13)+1 = 398（=DB；故单格无法选对那一条） [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
 - 4. `bpms.sync_fcl_stage_info.judgement_in_lm_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -966,7 +966,7 @@ _阶段内与开启 Hold 重叠天数。_
 **血缘（逐跳：序号 列 — 规则 [代码]）/ Lineage (per hop)**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl.fchold1..3` — source 源
-- 3. `port.fcl_stage_info.judgement_on_hold_days` — interval overlap (Hold) 见 sql [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
+- 3. `port.fcl_stage_info.judgement_on_hold_days` — 阶段窗口 ∩ Hold 区间 的重叠天数 = datediff(max(stage_start, hold_start), min(stage_end, hold_end或今天)) + 1。【为何 +1】datediff 只数跨过的午夜数(=结束−开始)、不含开始当天，天数要首尾两端都算(inclusive)，故 +1。例：重叠 04-10~04-20，datediff=10 → 10+1 = 11 天（无重叠不计）。【来源字段】stage 窗口=本表 <阶段>_start_date/_end_date；Hold=⑮ basic_data_loan_foreclosure_hold.description1_start_date/description1_end_date。【实例】7727000806·referral：窗口[2025-02-19→curr_date]，5 段 Hold 中「未关闭且开于窗口内」的 2025-07-30 那段 → datediff(2025-07-30, curr_date 2026-06-13)+1 = 319（=DB） [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
 - 4. `bpms.sync_fcl_stage_info.judgement_on_hold_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -986,7 +986,7 @@ _距排定判决/拍卖的倒计天数。_
 **血缘（逐跳：序号 列 — 规则 [代码]）/ Lineage (per hop)**
 - 1. `newrez.portnewrezfc.fcscheduledsaledate` — servicer raw 原始
 - 2. `port.basic_data_loan_fcl.fcscheduled_sale_date` — source 源
-- 3. `port.fcl_stage_info.to_sale_days` — countdown to sale: future⇒datediff(curr_date, date) (no +1), past⇒0, none⇒NULL [pool:2091-2093,2393](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2091-2093)
+- 3. `port.fcl_stage_info.to_sale_days` — 距拍卖倒计时：sale_start_date(=排定拍卖日) 在未来 ⇒ datediff(今天, sale_start_date)（不 +1）；已过 ⇒ 0；无日期 ⇒ NULL。【来源字段】本表 sale_start_date。例：sale_start=2026-07-01、今天 2026-06-14 → 还有 17 天 [pool:2091-2093,2393](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2091-2093)
 - 4. `bpms.sync_fcl_stage_info.to_sale_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -1006,7 +1006,7 @@ _阶段内与开启 LM 周期重叠天数。_
 **血缘（逐跳：序号 列 — 规则 [代码]）/ Lineage (per hop)**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl` · (LM cycle) — source 源
-- 3. `port.fcl_stage_info.sale_in_lm_days` — interval overlap (LM) 见 sql [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
+- 3. `port.fcl_stage_info.sale_in_lm_days` — 阶段窗口 ∩ LM 周期 的重叠天数 = datediff(max(stage_start, LM.cycle_opened), min(stage_end, LM.cycle_closed或今天)) + 1。【为何 +1】datediff 只数两日期间跨过几个午夜(=结束−开始)、不含开始当天；天数要首尾两天都算(inclusive)，故 +1。例：重叠 04-01~05-01，datediff=30 → 30+1 = 31 天（仅当前未关闭 LM；无重叠不计）。【来源字段】stage 窗口=本表 <阶段>_start_date/_end_date；LM=⑯ basic_data_loan_foreclosure_loss_mitigation.cycle_opened_date/cycle_closed_date。【实例】7727003984·demand：窗口[2025-01-07→curr_date]，5 条 LM 中「未关闭且开于窗口内」的 2025-05-12 那条 → datediff(2025-05-12, curr_date 2026-06-13)+1 = 398（=DB；故单格无法选对那一条） [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
 - 4. `bpms.sync_fcl_stage_info.sale_in_lm_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -1026,7 +1026,7 @@ _阶段内与开启 Hold 重叠天数。_
 **血缘（逐跳：序号 列 — 规则 [代码]）/ Lineage (per hop)**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl.fchold1..3` — source 源
-- 3. `port.fcl_stage_info.sale_on_hold_days` — interval overlap (Hold) 见 sql [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
+- 3. `port.fcl_stage_info.sale_on_hold_days` — 阶段窗口 ∩ Hold 区间 的重叠天数 = datediff(max(stage_start, hold_start), min(stage_end, hold_end或今天)) + 1。【为何 +1】datediff 只数跨过的午夜数(=结束−开始)、不含开始当天，天数要首尾两端都算(inclusive)，故 +1。例：重叠 04-10~04-20，datediff=10 → 10+1 = 11 天（无重叠不计）。【来源字段】stage 窗口=本表 <阶段>_start_date/_end_date；Hold=⑮ basic_data_loan_foreclosure_hold.description1_start_date/description1_end_date。【实例】7727000806·referral：窗口[2025-02-19→curr_date]，5 段 Hold 中「未关闭且开于窗口内」的 2025-07-30 那段 → datediff(2025-07-30, curr_date 2026-06-13)+1 = 319（=DB） [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
 - 4. `bpms.sync_fcl_stage_info.sale_on_hold_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql

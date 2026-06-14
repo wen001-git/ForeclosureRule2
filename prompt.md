@@ -3577,3 +3577,110 @@ basic_data_fcl_related 由 portnewrezgeneral.delinquency_status_mba 映射成 de
 - 用户反馈"按编号顺序更好找表，找不到12号表"。B_TABLES 重排为升序：② ②c ⑨ ⑩ ⑪ ⑬ ⑮ ⑯ ⑰ ⑱ ⑲ ⑳ ㉑ ㉒ ㉓（原为按业务链分组）。A导读注同步改为"按圈号升序+⑫等无 sheet 表见①索引"。
 - ⑫ basic_data_fcl_related 无逐表 sheet（=阶段表 group 的 r 源），在 ⓪/① 列出标 Phase 待补，详情 Phase 3+ 补。
 - 校验: 跨表公式按名引用→重排安全；真 Excel 25 sheet 0 错误；内容级幂等。DB/代码只读;未提交。
+
+## [2026-06-14] 继续剩余 task —— 执行 Phase 3
+> 请继续剩余的task, 接下来是要执行 phrase 3？
+
+### 完成: Phase 3 —— ③④ src(bk/lm L1 源) + ㉔ 解码字典 sheet [2026-06-14]
+- ③ src·portnewrezbk(60字段)、④ src·portnewrezlm(56字段)：is_src 逐表 sheet(同 ②，字段+业务含义+来源+25 举例列；多行表取代表性最新行)；子agent 只读实测写 fcl_layer_examples_phase3.json(20/25 loan 有行,5 Carr 无)。
+- ㉔ dic·portnewrezdatadic：解码字典 sheet(自定义排版,非 per-loan)，12 类 140 行 code→文本(BKStatus/BKStage/BorrowerIntention/Judicial/LMDeal/LMDecision/LegalStatus/LiquidationType/MBADelinquency/Forbearance/Repayment/TrialStatus)；大类 LMStatus149/LMProgram388/DenialReason130 不全列(注明)。真源 outputs/fcl_datadic_decode.json。
+- ★ Schema-Verify 重大纠错(Code-First): 代码 pool:367/835-840 JOIN newrez.portnewrezdatadic(长表 field_name/code/description) decode LM/BK；子agent 初查 mysql_prod 报"不存在"(只有宽表 newrezdatadic 无 LM/BK)，实为该长表【仅在 redshift_prod】。已据 redshift 实测拉正确字典 + 订正 ㉔ 表元 business_meaning。
+- doc 32 逐表 sheet 同时改为【圈号升序】(用户反馈)：② ②c ③ ④ ⑨ ⑩ ⑪ ⑬ ⑮ ⑯ ⑰ ⑱ ⑲ ⑳ ㉑ ㉒ ㉓ ㉔。25→28 sheet。
+- 校验: 真 Excel 28 sheet 0 错误; 内容级幂等; ③ bkstatus/bkchapter 实测值在表; A导读/㉔表元/导读 v11 同步。仍无 sheet: ⑤⑥⑦⑧⑫⑭(后续)。DB/代码只读;未提交。
+
+## [2026-06-14] 下一步做 Phase 4（⑤ portnewrezgeneral + ⑥ portnewrezprop + ⑫ basic_data_fcl_related）
+> 好的，下一步做phase 4
+
+## [2026-06-14] Phase 4 完成后做全面测试 + 产出测试报告
+> after you finish phase 4,pls conduct a comprehensive testing ,and output the test report
+
+### 完成: Phase 4（⑤⑥⑫）+ 全面测试 + 测试报告 [2026-06-14]
+- ⑤ src·portnewrezgeneral(125字段)、⑥ src·portnewrezprop(32字段) is_src 源表；⑫ mid·fcl_related(14字段) 非src(计算逻辑+每servicer公式)。doc32 28→31 sheet。
+- 取数: 子agent 只读实测写 fcl_layer_examples_phase4.json(⑤⑥ mysql 各 20/25 loan、⑫ redshift 25/25)；information_schema 三表 0 缺失。⑫ delq_status 实测 C/D30/D120P/FCL/P/REO。
+- ⑫ 计算逻辑: 新增 field_rule 14 条(Code-First pool:1697-1770)。⑫ Newrez 派生字段活引用上游: propertystate→⑥、isloanlitigated/deactreason/reasonfordefault/inauctionflag→⑤、bk_flag→③.activebkflag、servicer=常量、delq_status=CASE(注=⑬ group 的 r 源)；Carr 分支源列未纳入②c→注。p12_formula 显式映射，不污染 IMM_UP。
+- 全面测试(doc 34 zh+en 补 TC-P4.1~4 + 结论): T1 31 sheet✓; T2 逐表升序✓(21页); T3 ⑤⑥⑫ 数据在表; T4 ⑫ 跨表公式 8 处 0 悬挂; 真 Excel COM 31 sheet 0 公式错误; 🧮 677→703; 内容级幂等(hash A==B)。
+- 仍无 sheet: ⑦⑧(逾期支线L2/L3)、⑭(portfunding)。doc32 导读 v12。DB/代码只读;未提交。
+
+## [2026-06-14] 审计非copy字段的计算逻辑：要逻辑文字/数学公式+举例，不能只列代码编号
+> 请检查一下，是否还存在一些非直接从上游cop的字段的 计算逻辑没说清楚，要求用 逻辑文字 or 数学公式 和 具体例子 说清楚，不要仅仅是列出代码编号
+
+### 完成: ⑬ 阶段表 18 个非copy字段计算逻辑「只列代码」→「逻辑/数学公式+举例」[2026-06-14]
+- 审计全 31 sheet col C：仅 ⑬ fcl_stage_info 有 18 个计算字段规则含「见 sql/interval overlap」却无公式/举例（judicial、8×*_in_lm_days、8×*_on_hold_days、stage；*_stage_days 有泛例但仍含"见 sql"）。
+- Code-First 读 GEN_FCL_STAGE：in_lm_days=datediff(max(stage_start,LM.cycle_opened),min(stage_end,LM.cycle_closed或今天))+1(pool:2246-2270)；on_hold_days 同构(pool:2215-2220)；judicial=CASE 1→Y/0→N/空→config_judicial(JOIN basic_data_judicial_config ON propertystate=state, pool:2351-2353,2432)；stage=瀑布最深里程碑(pool:2095-2102)；stage_days=datediff(start,COALESCE(next,today))+1。
+- 真源 fcl_lineage_source.json：replace_all 5 条规则→自带「逻辑+数学公式+具体例子」(如 阶段[03-01,06-01]∩LM[04-01,05-01]=31天)。生成器 eg 逻辑加守卫：规则已含「例」则不再追加泛化关键词模板(避免重复/张冠李戴)。
+- 传播：重跑 inject_glin 刷 HTML；doc 27 zh(中文改进)+en(英文改进) replace_all 同步。grep 旧「见 sql」5 串全仓 0 残留。
+- 校验：重新审计「计算+无举例」字段=0；真 Excel 31 sheet 0 错误；内容级幂等(hashA==B)；HTML 含新规则。DB/代码只读;未提交。
+
+## [2026-06-14] 重叠天数公式里为什么 +1？
+> 阶段窗口 ∩ LM 周期 重叠天数 = datediff(...)+1 这个公式我不太明白，为什么要 +1？
+
+### 完成: 重叠天数 +1 说明（inclusive 含两端）补进文档 [2026-06-14]
+- 用户问「为何 +1」。答：datediff(day,A,B)=A→B 跨过的午夜数(=B−A)、不含开始当天；天数要首尾两天都算(inclusive)，故 +1。例 04-01~05-01 datediff=30 → 31 天。
+- 真源 fcl_lineage_source.json 的 in_lm/on_hold 两条规则加【为何 +1】说明 → 重生成 doc32(⑬ 16 字段)+重注 HTML + doc 27 zh/en 同步。真 Excel 31 sheet 0 错误;内容级幂等;旧文 0 残留。DB/代码只读;未提交。
+
+## [2026-06-14 UTC] 血缘图谱字段抽屉新增「取值范围」一栏
+> 请给lineage graph中的 field注释 加上一栏：字段取值范围，特别是那种枚举型的字段，要把取值范围说清楚，每个取值的业务含义也要说清楚，what do you think? do you have any good UX/UI?
+
+## [2026-06-14] ⑬ *_days 字段：计算逻辑要写清 start/end 来源字段，公式列应写出真公式（不是泛化注）
+> ⑬ mid·fcl_stage_info 中 end with days 的字段，计算逻辑中的 start day 和 end day 没有来源字段吗？请写清楚；如果有来源字段，excel 公式列就能写出公式，为什么不写？
+
+### Decision: 字段取值范围栏——真源放 GLIN + 复用 datadic/doc04/14 + DB实测计数 [2026-06-14]
+- **Context**: 用户要血缘图谱字段抽屉新增「取值范围」栏，枚举字段逐值业务含义；问 UX。
+- **Options considered**: A) 每字段塞 values 进 GLIN 真源；B) 单独 enum 字典文件 join；C) 新 inject 脚本+marker。
+- **Choice**: A（值放 GLIN f.values）+ 新渲染器 glinValueRange + 复用现有 inject_glin。大枚举常用子集+more 链接；附 DB 实测计数。
+- **Reason**: 抽屉两路径都拿到 GLIN f；co-located、最少新增基建、复用 inject 管道与传播规则。计数/含义全部 DB 实测（mysql_prod bpms GROUP BY 2026-06-14 + doc04 §1/§5/§6.1 + datadic），不编造。
+
+### Milestone: 血缘图谱「📊 取值范围」栏完成 [2026-06-14]
+- 真源：scripts/add_glin_values.txt 给 fcl_lineage_source.json 15 个枚举字段加 values{src,asof,items[{v,m,n}],more}（FCL状态/类型/司法/争议·stage·group·LM deal/program/status/decision/denial/intention·BK status/chapter/legal）。计数来自 BPS prod 实测（含字典外真实值如 bankruptcy_status='Completed/Cancelled'、Carrington 风格 summary_foreclosure_status 编号状态）。
+- HTML：新增 glinValueRange(f) + .vrtbl 样式；selectField 支持 opts.valuesHtml；showGField 两路径在「业务含义」正下方插入；大枚举 more 文案，doc04 来源字段附「→ 状态码视图」链接。重跑 inject_glin（194725 bytes,154 fields）。
+- 验证（Preview）：5 类枚举字段取值范围栏渲染正确（counts/含义/flag/字典外值）；位置在业务含义之后（两路径一致）；非枚举字段不显示；中英切换正确；状态码链接点击切视图；7 视图 0 报错、__ERR 空。DB 只读。**LOCAL，待用户确认后再 push。**
+
+### 完成: ⑬ *_days 字段写出真公式 + 计算逻辑标明来源字段；清除全部「见 sql」[2026-06-14]
+- 用户指出 ⑬ *_days 的 start/end 有来源字段、公式列应写真公式而非泛化注。Code-First 读 GEN_FCL_STAGE：
+  - stage_days = datediff(<阶段>_start_date, COALESCE(<阶段>_end_date, 今天))+1（DEMAND 特例用今天，不取 end）。
+  - to_judgement/to_sale_days = IF(start>=今天, start−今天, 0)（距判决/拍卖倒计时，pool:2085-2093）。
+  - in_lm/on_hold_days = 阶段窗口 ∩ LM/Hold 窗口 重叠 = MAX(0, MIN(end或今天, 周期闭或今天) − MAX(start, 周期开) +1)。
+- 生成器新增 stage_formula()：⑬ 24 个 *_days 字段写出真 Excel 公式（start/end 引本表 ⑬ 格、LM 引 ⑯ cycle_opened/closed_date、Hold 引 ⑮ description1_start/end_date；DATEVALUE+∅NULL 守卫；TODAY() 实时）。formula_for 加 meta==FCLSTAGE 分支。计算逻辑(lineage)标明【来源字段】。
+- 真 Excel 实算：referral_stage_days NZ=40/CA=481、demand=524、referral_in_lm CA=14、to_sale NZ=16，时间链一致；全 31 sheet 0 公式错误；🧮 703→751。
+- 顺带清除项目内全部「见 sql」：⑬ stage 5 串(上轮) + summary_foreclosure_status(CASE active/closed)、delq_status(mba/days360)、datadic decode 3 串 → 改为逻辑+公式+例。传播：lineage→重生成 doc32+重注 HTML，doc 26/27/29 zh+en 同步。grep 全仓「见 sql」=0。
+- 校验：内容级幂等(hashA==B)；⑬ *_days 无公式字段=0。DB/代码只读;未提交。
+
+## [2026-06-14] 检查其他表是否也有「非copy字段公式列是泛化注/计算逻辑只列代码」的问题
+> 请检查一下其他表格字段，是不是也存在同样问题
+
+## [2026-06-14 UTC] 血缘图谱：切语言抽屉血缘小图变旧版(Bug) + 配色排版优化
+> lineage graph, 我发现但我切换页面的中英文时，右侧抽屉的字段血缘小图会变成旧的版本，首先，这是个Bug吧？但是我又发现旧版本的数据血缘小图看起来比较清晰，不杂乱，是为什么呢？是因为旧版的db、schema、table、field用不同颜色的字体来表达吗？同时又用绿色字体高亮了字段名，请思考一下好的UI
+
+### 完成: 修复切语言血缘图回退 + glinMiniSVG 配色排版 [2026-06-14]
+- **Bug 根因**：setLang(1244) 用 selectField(activeSel.id) 重渲字段抽屉，**不带 opts.hops**→从准确的 glinMiniSVG（HTML .hlin-box，含中间 Redshift 表+真实逐跳规则）回退到 FIELDS 兜底 miniLineageSVG（SVG/f.line），且我新加的「取值范围」段也丢失。
+- **为何旧版更清晰**：miniLineageSVG 把每跳分三行配色（db 灰 #8b96a5 / schema.table 浅蓝 #cfe3ff / .field 绿 #7ee787）；而 glinMiniSVG 旧版把整条 path 拼成单色 `<code>` 串，难扫读。
+- **方案（统一到准确渲染器 + 好看排版）**：① 改 hopCol → 三段配色 span（.hc-db 块级灰 / .hc-tbl 浅蓝粗 / .hc-col 绿），占位列仍渲染「派生/无独立列」不伪装成绿字段；② 修 Bug：新增全局 activeGField 记住 GLIN 字段对象，showGField 两路径都存（path1 经 selectField opts.gfield，path2 直存），setLang 改为 activeGField 存在则 showGField(activeGField) 重渲（保留准确血缘+取值范围+配色），setView 按来源视图(graph/fields)清理选中。
+- **验证(Preview)**：切 zh↔en 血缘小图结构不变（5 box 配色一致、取值范围 7 行随语言切换文本）；占位跳无绿字段；7 视图 0 报错。DB/代码只读。**LOCAL，未 push。**
+
+### 完成: 查清「公式≠DB」原因 + 修复（in_lm/on_hold 撤公式、其余实测一致）[2026-06-14]
+- 用户截图：⑬ Carr 7727000806 referral_in_lm 公式=14 但 DB=∅NULL；referral_on_hold 公式=46 但 DB=319。
+- 根因（公式逻辑局限，非数据错误，DB 对）：真 SQL 把每条 LM周期/Hold段按【在该阶段窗口内 OPEN 的那一条】归到对应阶段（in_lm 仅算 cycle_closed 为空的；Hold 有 4 槽），而我的单格公式引用 ⑯/⑮「代表性最新一行」——单格选不对该阶段该归的那一条 → 与 DB 不一致。
+- 修复：in_lm_days/on_hold_days（16 字段）撤销单格公式→NOTE + 计算逻辑说明（逻辑+为何不能单格+真值见 ⑯/⑮ 长表）。
+- 其余「检查其他表」顺带补的公式经真 Excel 实测与 DB 一致：⑬ stage=SALE✓、referral_end_date=2025-04-15✓、referral_stage_days=40✓；⑪ summary_judicial_foreclosure=0✓、summary_contested_litigation=0✓（cast 自 ⑩）。
+- stage_days 的 ±1 差异=实时 TODAY() vs DB 快照 curr_date 的预期漂移（进行中阶段大「今天−快照日」天、已结束阶段精确一致），已加注，非错误。
+- 其余表 NOTE 字段审计结论：多为合理（NULL-by-design / 系统PK/审计列 / 解码需 ㉔ 字典 VLOOKUP / 源未渲染如 ⑮hold_detail·⑫liquidation·pmt / ⑳ var_Σ 累积多格）。
+- 公式 751→729；真 Excel 31 sheet 0 错误；幂等；HTML 重注；旧「近似」措辞 0 残留。DB/代码只读;未提交。
+
+## [2026-06-14] 无法单格公式的字段(in_lm/on_hold)：把实际数据代入计算逻辑做举例(逻辑文字+数学式)
+> 这些单元格公式表达不出来的值，可以用该公式对应的实际数据，把数据代入到计算逻辑中表达出来，就像对计算逻辑的举例说明，用逻辑文字和数学表达式
+
+### 完成: in_lm/on_hold 无法单格公式的字段 → 用实际数据代入计算逻辑做举例 [2026-06-14]
+- Code-First 补全 doc 31 Open Question：in_lm/on_hold 的重叠窗口 = [stage_start, logic_<阶段>_end_date]，其中 logic_end=下一阶段 start(到达)否则 curr_date；DEMAND 的 logic_end 恒=curr_date(pool:2039) —— 故 demand_in_lm 可远大于 demand 显示窗口。
+- DB 取数(只读)：7727003984 有 5 条 LM 周期/4 段 Hold，7727000806 有 5 段 Hold。验证：
+  - 7727003984 demand_in_lm=398：窗口[2025-01-07→curr]，唯一 open 且开于窗口内的 LM=2025-05-12 → datediff(2025-05-12,2026-06-13)+1=398 ✓=DB。
+  - 7727000806 referral_on_hold=319：窗口[2025-02-19→curr]，open 且开于窗口内的 Hold=2025-07-30 → datediff(2025-07-30,2026-06-13)+1=319 ✓=DB。
+- 把这两个「实际数据代入计算逻辑」的工作示例写进 in_lm/on_hold 规则(真源 lineage)，并点明「为何单格选不出那一条」(多周期/多段，SQL 取 open+开于窗口内的)。传播：重生成 doc32(⑬ 16 字段)+重注 HTML + doc 27 zh/en 同步。
+- 校验：内容级幂等(hashA==B)；in_lm/on_hold 仍为 NOTE(公式列)、计算逻辑列含真值工作示例；其余公式列字段不变。DB/代码只读;未提交。
+
+## [2026-06-14 UTC] 血缘小图加「隐蔽切换旧版(经典)」开关
+> 我如何跳到旧版呢？我觉得你旧版的UI设计挺好的，是否可以提供一个隐蔽的按钮让给我切换旧版
+
+### 完成: 血缘小图 详细⇄经典 隐蔽开关 [2026-06-14]
+- 需求：给抽屉血缘小图一个隐蔽切换，回到旧版（紧凑配色 SVG）。
+- 实现：新增 glinClassicSVG(hops)——从 GLIN 逐跳渲染旧版紧凑 SVG（每跳一框三行配色 db灰/schema.table浅蓝/.字段绿，短边标签=edgeCatL 类别，占位列渲染「派生/无独立列」斜体不伪装字段，长表名自动缩字号）。新增 glLineStyle('rich'|'classic', localStorage 记忆) + glLineSVG(hops) 派发 + glLineToggleHtml()（血缘段标题右侧不显眼小链接「⇄ 详细/经典」）+ toggleGlLineStyle()（切换+存储+重渲当前抽屉）。selectField/glinExtra 两路径接入。
+- 验证(Preview)：开关切 详细⇄经典 正确（HTML .hlin-box ⇄ svg.miniln）；切语言保持所选样式；localStorage 持久化；经典 SVG 3 框配色+占位斜体正确；7 视图 0 报错。DB/代码只读。**LOCAL，未 push。**

@@ -530,7 +530,7 @@
     "newrez.portnewrezdatadic": {
       "num": "㉔",
       "layer": "字典（Newrez 解码字典）",
-      "business_meaning": "Newrez FCL 解码字典(8 列)——把 LM/BK 等编码(LMDeal/LMProgram/LMStatus/LMDecision/BKStatus 等)映射成业务文案。",
+      "business_meaning": "Newrez 解码字典——长表(field_name/code/description，1 行/(field_name,code))，把 LM/BK/FCL 等编码(LMDeal/LMProgram/LMStatus/LMDecision/BorrowerIntention/DenialReason/BKStatus/BKStage/LegalStatus 等)映射成业务文案。⚠️ 实测仅 redshift_prod 有此长表；mysql_prod 的 newrez.newrezdatadic 是另一张宽表(只解码 propertytype/loanpurpose 等 6 类、无 LM/BK)。",
       "business_purpose": "给 LM/BK 等表的编码解码提供查找表。",
       "pipeline_role": "解码字典维度：被 LM/BK 等表 JOIN，提供编码→业务文案的查找（COALESCE 解码）。",
       "when_to_query": "查某编码的业务含义、核对解码是否正确。",

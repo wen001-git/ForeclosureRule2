@@ -65,7 +65,33 @@ pywin32 COM 打开副本 → `CalculateFull()` → 逐 sheet `SpecialCells(xlCel
 
 ---
 
+## 三、Phase 3：③④ L1 源 + ㉔ 解码字典（2026-06-14 追加）
+
+### TC-P3.1 ③④ bk/lm L1 源 sheet
+新增 **③ src·portnewrezbk**(60 字段)、**④ src·portnewrezlm**(56 字段)，按 ② 同款 is_src 排版（字段+业务含义+来源/类型+25 逐层举例列；L1 raw 无上游故无公式列）。举例数据子 agent 只读实测写 `fcl_layer_examples_phase3.json`：`information_schema` 核 ③④ 列 0 缺失；20/25 样本贷款有行（5 Carr 无 Newrez bk/lm 行→∅NULL）；多行表取代表性最新行（bk=最新 bkfileddate、lm=最新 dealstartdate）。实测 ③ `bkstatus`/`bkchapter` 等真值已入表（如 7727000065 Ch7、7727003984 Ch13）。
+
+### TC-P3.2 ㉔ 解码字典 sheet + Schema-Verify 纠错（Code-First）
+新增 **㉔ dic·portnewrezdatadic** 自定义解码字典 sheet（非 per-loan，长表 field_name/code/description）：**12 类 140 行** code→文本（BKStatus/BKStage/BorrowerIntention/Judicial/LMDeal/LMDecision/LegalStatus/LiquidationType/MBADelinquency/ForbearanceStatus/RepaymentStatus/TrialStatus）；大类 LMStatus(149)/LMProgram(388)/DenialReason(130)/ModType(387) 注明不全列。
+**重大纠错**：代码 [pool:367](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L367)（BK）/ [pool:835-840](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L835-840)（LM）`LEFT JOIN newrez.portnewrezdatadic WHERE field_name=...` 解码。子 agent 初查 mysql_prod 报"该表不存在、只有宽表 newrezdatadic（无 LM/BK）"；经 Code-First 复核 + 直接查 `redshift_prod`，该长表【**仅在 Redshift**】且含全部 LM/BK 类——遂据 Redshift 实测拉正确字典并订正 ㉔ 表元 business_meaning（原误写"8 列"）。
+
+### TC-P3.3 排序 + 复算
+逐表 sheet 改为【圈号升序】（用户反馈"按编号好找"）：② ②c ③ ④ ⑨ ⑩ ⑪ ⑬ ⑮ ⑯ ⑰ ⑱ ⑲ ⑳ ㉑ ㉒ ㉓ ㉔。25→**28 sheet**。真 Excel COM `CalculateFull`：**28 sheet 0 公式错误**（③④ is_src 无公式、㉔ 纯文本、主链+Phase2 公式不变）；内容级幂等。仍无逐表 sheet：⑤⑥⑦⑧⑫⑭。
+
+## 四、Phase 4：⑤⑥ L1 源 + ⑫ basic_data_fcl_related（2026-06-14 追加）
+
+### TC-P4.1 ⑤⑥⑫ sheet 生成
+新增 **⑤ src·portnewrezgeneral**(125 字段)、**⑥ src·portnewrezprop**(32 字段)（is_src：字段+业务含义+来源/类型+25 举例列）+ **⑫ mid·fcl_related**(14 字段，非 src：另有 计算逻辑列 + 每 servicer 🧮 公式列)。doc 32 由 28 增至 **31 sheet**。逐表 tab 仍【圈号升序】：② ②c ③ ④ ⑤ ⑥ ⑨ ⑩ ⑪ ⑫ ⑬ ⑮ ⑯ ⑰ ⑱ ⑲ ⑳ ㉑ ㉒ ㉓ ㉔（实测 T2 升序 True，21 张逐表页）。
+
+### TC-P4.2 取数 + schema-verify
+子 agent 只读实测写 `fcl_layer_examples_phase4.json`：⑤ general(mysql_prod，125 列、20/25 loan)、⑥ prop(mysql_prod，32 列、20/25)、⑫ fcl_related(redshift_prod，14 列、25/25)。`information_schema` 核三表列 **0 缺失**。5 笔 Carrington 不在 ⑤⑥（Newrez 表）→省略；⑫ 跨 servicer 故 25 笔齐。实测 ⑥ `propertystate` = CA/AZ/FL…；⑫ `delq_status` 实测取值 C/D30/D120P/FCL/P/REO。
+
+### TC-P4.3 ⑫ 计算逻辑 + 每 servicer 活公式
+为 ⑫ 14 字段新增 `field_rule`（Code-First 自 `CREATE_FCL_RELATE_ATTR` [pool:1697-1770](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1697-1770)），计算逻辑列逐字段说明来源。⑫ Newrez 派生字段 🧮=**活引用上游**：`propertystate`=`='⑥ src·portnewrezprop'!…`、`isloanlitigated/deactreason/reasonfordefault/inauctionflag`→⑤、`bk_flag`→`='③ src·portnewrezbk'!…`(activebkflag)、`servicer`=常量、`delq_status`=CASE(注，逾期分类，即 ⑬ group 的 r 源)。Carrington 分支源列(litigation_type/property_state/bk_flag…)未纳入 ②c → 诚实注。实测 T4：⑫ 跨表公式 8 处、**0 悬挂**（均指向已存在的 ③⑤⑥ sheet）。
+
+### TC-P4.4 复算 + 幂等
+真 Excel COM `CalculateFull`：全 **31 sheet 0 公式错误**（含 ⑫ 新 passthrough 引用 ⑤⑥③）；🧮 计数 677→**703**；内容级幂等（hash 两跑一致）。仍无逐表 sheet：⑦⑧（逾期支线 L2/L3）、⑭（portfunding 维度）。
+
 ## 结论
-**Phase 2 与知识图谱两项均通过（PASS）。** doc 32 现 25 sheet、677 活公式、真 Excel 0 错误、幂等；四链每表均具备 字段/计算逻辑/逐层举例/每 servicer 公式。知识图谱 386 节点 963 边、1 连通分量、跨维 498 边，HTML 第 6 视图 JS 0 语法错误、运行时实跑通过。全程 DB 与代码只读，未提交。
+**Phase 2 / 知识图谱 / Phase 3 / Phase 4 四项均通过（PASS）。** doc 32 现 25 sheet、677 活公式、真 Excel 0 错误、幂等；四链每表均具备 字段/计算逻辑/逐层举例/每 servicer 公式。知识图谱 386 节点 963 边、1 连通分量、跨维 498 边，HTML 第 6 视图 JS 0 语法错误、运行时实跑通过。全程 DB 与代码只读，未提交。
 
 > 英文镜像（docs/en/34）：本测试报告当前为 zh；如需 en 版可后续补（业务散文性质，按 doc 同步规则）。

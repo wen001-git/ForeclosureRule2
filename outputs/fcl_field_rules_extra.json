@@ -19,6 +19,20 @@
   },
   "view_passthrough_rule": "透传自 bpms.sync_loan_foreclosure（视图 SELECT；同名）",
   "field_rule": {
+    "port.basic_data_fcl_related": {
+      "servicer": "常量 'Newrez'/'Carrington'（CREATE_FCL_RELATE_ATTR 两分支 UNION，pool:1701/1748）",
+      "delq_status": "逾期/组合分类：Newrez 按 delinquency_status_mba（Full Payoff→P / REO→REO / 任意 Foreclosure*→FCL）否则 days360(nextduedate,dataasof) 分桶 C/D30/D60/D90/D120P [pool:1702-1711]；Carrington 按 loan_status/fcl_flag [pool:1749-1758]。⚠️ 这就是 ⑬ fcl_stage_info.group 的来源（r.delq_status）",
+      "isloanlitigated": "直传 g.IsLoanLitigated（⑤ portnewrezgeneral，pool:1712）",
+      "deactreason": "直传 g.DeactReason（⑤ portnewrezgeneral，pool:1713）",
+      "reasonfordefault": "直传 g.reasonfordefault（⑤ portnewrezgeneral，pool:1714）",
+      "inauctionflag": "直传 g.inauctionflag（⑤ portnewrezgeneral，pool:1715）",
+      "liquidationdate": "直传 l.liquidationdate（portnewrezliq，未纳入本工作簿，pool:1716）",
+      "liquidationtype": "直传 l.liquidationtype（portnewrezliq，未纳入，pool:1717）",
+      "liquidationproceeds": "直传 l.liquidationproceeds（portnewrezliq，未纳入，pool:1718）",
+      "pmt": "= pmt.paymentcollectedmtd 月供（portnewrezpmt，未纳入，pool:1719）",
+      "bk_flag": "改名 bk.activebkflag→bk_flag（③ portnewrezbk，pool:1720）",
+      "propertystate": "直传 pr.propertystate（⑥ portnewrezprop；决定司法/非司法法拍路径，pool:1721）"
+    },
     "tempfc.temp_basic_data_fcl": {
       "referral_start_date": "改名自 fcreferraldate (pool:1544)",
       "svc_loanid": "改名自 shellpointloanid (pool:1537)",

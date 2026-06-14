@@ -2721,7 +2721,7 @@
     {
      "t": "port.basic_data_loan_foreclosure",
      "c": "summary_foreclosure_status",
-     "rule": "CASE active/closed 见 sql",
+     "rule": "CASE：activefcflag=1 → 'Active Foreclosure'；=0 → CONCAT('Closed Foreclosure:', fcremovaldesc)（如 'Closed Foreclosure:Reinstated'）",
      "code": "pool:273"
     },
     {
@@ -2753,6 +2753,64 @@
    "servicer_rule": {
     "en": "Inputs are built per servicer, then a shared CASE produces the text. **Newrez**: `activefcflag` (0/1) and `fcremovaldesc` taken directly. **Carrington**: no `activefcflag` column → `activefcflag = CASE WHEN fcl_flag='Active' THEN 1 ELSE NULL` (pool:1579); `fcremovaldesc` is NULL. **Capecodfive**: `activefcflag = CASE WHEN foreclosure_flag='Active' THEN 1 ELSE NULL` (pool:1620). **Shared rule**: `CASE WHEN activefcflag=1 THEN 'Active Foreclosure' WHEN activefcflag=0 AND fcremovaldesc<>'' THEN CONCAT('Closed Foreclosure:',fcremovaldesc) ELSE NULL` (pool:273).",
     "zh": "各 servicer 先各自构建输入，再走同一个 CASE 生成文本。**Newrez**：直接取 `activefcflag`(0/1) 与 `fcremovaldesc`。**Carrington**：无 `activefcflag` 列 → `activefcflag = CASE WHEN fcl_flag='Active' THEN 1 ELSE NULL`（pool:1579）；`fcremovaldesc` 为 NULL。**Capecodfive**：`activefcflag = CASE WHEN foreclosure_flag='Active' THEN 1 ELSE NULL`（pool:1620）。**共用规则**：`CASE WHEN activefcflag=1 THEN 'Active Foreclosure' WHEN activefcflag=0 AND fcremovaldesc<>'' THEN CONCAT('Closed Foreclosure:',fcremovaldesc) ELSE NULL`（pool:273）。"
+   },
+   "values": {
+    "src": "doc04 §5 · datadic · BPS prod 实测",
+    "asof": "BPS prod 2026-06-14",
+    "items": [
+     {
+      "v": "Active Foreclosure",
+      "m": {
+       "zh": "止赎进行中",
+       "en": "Foreclosure in progress"
+      },
+      "n": 31
+     },
+     {
+      "v": "Closed Foreclosure:Reinstated",
+      "m": {
+       "zh": "已关闭——贷款复效（补齐欠款）",
+       "en": "Closed — reinstated (arrears cured)"
+      },
+      "n": 19
+     },
+     {
+      "v": "Closed Foreclosure:Loss Mitigation",
+      "m": {
+       "zh": "已关闭——转入损失缓解",
+       "en": "Closed — entered loss mitigation"
+      },
+      "n": 17
+     },
+     {
+      "v": "Closed Foreclosure:Paid in Full",
+      "m": {
+       "zh": "已关闭——全额还清",
+       "en": "Closed — paid in full"
+      },
+      "n": 10
+     },
+     {
+      "v": "Closed Foreclosure:Process Complete",
+      "m": {
+       "zh": "已关闭——拍卖/REO 流程完成",
+       "en": "Closed — sale/REO process complete"
+      },
+      "n": 9
+     },
+     {
+      "v": "Closed Foreclosure:Deed in Lieu Cmplte",
+      "m": {
+       "zh": "已关闭——以房代偿完成",
+       "en": "Closed — deed-in-lieu complete"
+      },
+      "n": 1
+     }
+    ],
+    "more": {
+     "zh": "规则：activefcflag=1→'Active Foreclosure'；=0 且 fcremovaldesc 非空→'Closed Foreclosure:'+退出原因。另有少量 Carrington 风格编号状态（如 '1. First Legal Pending'/'5. Sales Held'）。",
+     "en": "Rule: activefcflag=1→'Active Foreclosure'; =0 with non-empty fcremovaldesc→'Closed Foreclosure:'+reason. A few Carrington-style numbered statuses also occur (e.g. '1. First Legal Pending', '5. Sales Held')."
+    }
    }
   },
   {
@@ -2987,6 +3045,28 @@
     "Newrez": "portnewrezfc.judicial",
     "Carrington": "—",
     "Capecodfive": "—"
+   },
+   "values": {
+    "src": "datadic Judicial · BPS prod 实测",
+    "asof": "BPS prod 2026-06-14",
+    "items": [
+     {
+      "v": "0",
+      "m": {
+       "zh": "非司法止赎（不经法院，多数州）",
+       "en": "Non-judicial foreclosure (no court)"
+      },
+      "n": 47
+     },
+     {
+      "v": "1",
+      "m": {
+       "zh": "司法止赎（须经法院诉讼）",
+       "en": "Judicial foreclosure (court process)"
+      },
+      "n": 34
+     }
+    ]
    }
   },
   {
@@ -3072,6 +3152,28 @@
     "Newrez": "portnewrezfc.fccontestedflag",
     "Carrington": "—",
     "Capecodfive": "—"
+   },
+   "values": {
+    "src": "BPS prod 实测",
+    "asof": "BPS prod 2026-06-14",
+    "items": [
+     {
+      "v": "0",
+      "m": {
+       "zh": "无争议诉讼",
+       "en": "Not contested"
+      },
+      "n": 79
+     },
+     {
+      "v": "1",
+      "m": {
+       "zh": "存在争议 / 进入诉讼",
+       "en": "Contested / in litigation"
+      },
+      "n": 1
+     }
+    ]
    }
   },
   {
@@ -3183,6 +3285,32 @@
    "sql_eg": {
     "en": "judicial='1' ⇒ 'Judicial' (7727004408); '0' ⇒ 'Non Judicial'; '' ⇒ NULL.",
     "zh": "judicial='1' ⇒ 'Judicial'（7727004408）；'0' ⇒ 'Non Judicial'；'' ⇒ NULL。"
+   },
+   "values": {
+    "src": "datadic Judicial · BPS prod 实测",
+    "asof": "BPS prod 2026-06-14",
+    "items": [
+     {
+      "v": "Non Judicial",
+      "m": {
+       "zh": "非司法止赎州流程",
+       "en": "Non-judicial foreclosure"
+      },
+      "n": 47
+     },
+     {
+      "v": "Judicial",
+      "m": {
+       "zh": "司法止赎州流程（须经法院）",
+       "en": "Judicial foreclosure (court)"
+      },
+      "n": 34
+     }
+    ],
+    "more": {
+     "zh": "由 judicial 码 0/1 经 CASE 转文本（pool:279）。",
+     "en": "Text from judicial code 0/1 via CASE (pool:279)."
+    }
    }
   },
   {
@@ -3528,7 +3656,7 @@
     {
      "t": "port.fcl_stage_info",
      "c": "stage",
-     "rule": "CASE waterfall: SALE→JUDGEMENT→PUBLICATION→SERVICE→FIRST_LEGAL→REFERRAL→DEMAND",
+     "rule": "CASE 瀑布取「最深已发生里程碑」（谁有 start 日期取谁；优先级 SALE>JUDGEMENT>PUBLICATION>SERVICE>FIRST_LEGAL>REFERRAL>DEMAND）。例：有 referral_start 与 first_legal_start、无更深者 → stage='FIRST_LEGAL'",
      "code": "pool:2095-2102"
     },
     {
@@ -3550,6 +3678,71 @@
    "sql_eg": {
     "en": "Waterfall CASE — 4 MCP-verified loans, each picks the deepest milestone reached:\n\n  • 7727001179      sale_start set                    ⇒ stage = SALE\n  • 7727000357      no sale but fcjudgment_start set  ⇒ stage = JUDGEMENT\n  • 700082880000091 only up to service_start          ⇒ stage = SERVICE\n  • 700082700000033 only referral_start               ⇒ stage = REFERRAL",
     "zh": "瀑布 CASE —— 4 笔 MCP 实测 loan，按「达到最深里程碑」落桶：\n\n  • 7727001179      sale_start 有值                   ⇒ stage = SALE\n  • 7727000357      无 sale 但 fcjudgment_start 有值  ⇒ stage = JUDGEMENT\n  • 700082880000091 仅到 service_start                ⇒ stage = SERVICE\n  • 700082700000033 仅 referral_start                 ⇒ stage = REFERRAL"
+   },
+   "values": {
+    "src": "doc04 §6.1（port.fcl_stage_info 最新快照）",
+    "asof": "port 2026-06-07",
+    "items": [
+     {
+      "v": "REFERRAL",
+      "m": {
+       "zh": "委托律师转介（启动止赎）",
+       "en": "Referred to foreclosure attorney"
+      },
+      "n": 20
+     },
+     {
+      "v": "SALE",
+      "m": {
+       "zh": "止赎拍卖",
+       "en": "Foreclosure sale"
+      },
+      "n": 8
+     },
+     {
+      "v": "FIRST_LEGAL",
+      "m": {
+       "zh": "首次法律行动提交",
+       "en": "First legal action filed"
+      },
+      "n": 7
+     },
+     {
+      "v": "SERVICE",
+      "m": {
+       "zh": "法律文书送达",
+       "en": "Legal documents served"
+      },
+      "n": 4
+     },
+     {
+      "v": "JUDGEMENT",
+      "m": {
+       "zh": "判决阶段（司法州）",
+       "en": "Judgement (judicial states)"
+      },
+      "n": 2
+     },
+     {
+      "v": "PUBLICATION",
+      "m": {
+       "zh": "公告 / 登报阶段",
+       "en": "Publication / advertising"
+      }
+     },
+     {
+      "v": "DEMAND",
+      "m": {
+       "zh": "催款函 / 意向通知(NOI)发出",
+       "en": "Demand letter / NOI sent"
+      },
+      "n": 0
+     }
+    ],
+    "more": {
+     "zh": "stage = 瀑布取「已到达的最深里程碑」（SALE>JUDGEMENT>PUBLICATION>SERVICE>FIRST_LEGAL>REFERRAL>DEMAND，pool:2095-2102）。计数＝最新快照 41 行（doc04 §6.1）。",
+     "en": "stage = deepest milestone reached (waterfall SALE>…>DEMAND, pool:2095-2102). Counts = latest snapshot, 41 rows (doc04 §6.1)."
+    }
    }
   },
   {
@@ -3633,7 +3826,7 @@
     {
      "t": "port.basic_data_fcl_related",
      "c": "delq_status",
-     "rule": "CASE mba then days360 fallback 见 sql",
+     "rule": "delinquency_status_mba=Full Payoff→P / REO→REO / 任意 Foreclosure*→FCL；否则 days360(nextduedate,dataasof) 分桶 <30→C / <60→D30 / <90→D60 / <120→D90 / else→D120P",
      "code": "pool:1702-1711"
     },
     {
@@ -3665,6 +3858,73 @@
    "servicer_rule": {
     "en": "`fcl_stage_info.group = basic_data_fcl_related.delq_status`. **Newrez** (pool:1702-1711): if `delinquency_status_mba='Full Payoff'`→P, `'REO'`→REO, any `'Foreclosure*'`→FCL; otherwise bucket by `days360(portnewrezpmt.nextduedate, dataasof)`: `<30`→C, `<60`→D30, `<90`→D60, `<120`→D90, else→D120P. **Carrington** (pool:1749-1758): if `loan_status='Foreclosure' OR fcl_flag='Active'`→FCL, `loan_status IN ('R','REO')`→REO, `IN ('Completed Payoff','Completed Short Sale')`→P; otherwise the same `days360` buckets on `date_payment_due`. **Capecodfive** is not in `basic_data_fcl_related` → group is `—`.",
     "zh": "`fcl_stage_info.group = basic_data_fcl_related.delq_status`。**Newrez**（pool:1702-1711）：`delinquency_status_mba='Full Payoff'`→P、`'REO'`→REO、任意 `'Foreclosure*'`→FCL；否则按 `days360(portnewrezpmt.nextduedate, dataasof)` 分桶：`<30`→C、`<60`→D30、`<90`→D60、`<120`→D90、否则→D120P。**Carrington**（pool:1749-1758）：`loan_status='Foreclosure' 或 fcl_flag='Active'`→FCL、`loan_status IN ('R','REO')`→REO、`IN ('Completed Payoff','Completed Short Sale')`→P；否则对 `date_payment_due` 用同样的 `days360` 分桶。**Capecodfive** 不在 `basic_data_fcl_related` → group 为 `—`。"
+   },
+   "values": {
+    "src": "doc04 §1/§6.1（逾期分类 delq_status）",
+    "asof": "port 2026-06-07",
+    "items": [
+     {
+      "v": "FCL",
+      "m": {
+       "zh": "止赎进行中",
+       "en": "In foreclosure"
+      },
+      "n": 41
+     },
+     {
+      "v": "D120P",
+      "m": {
+       "zh": "120 天以上逾期",
+       "en": "120+ days past due"
+      }
+     },
+     {
+      "v": "D90",
+      "m": {
+       "zh": "90–119 天逾期",
+       "en": "90–119 DPD"
+      }
+     },
+     {
+      "v": "D60",
+      "m": {
+       "zh": "60–89 天逾期",
+       "en": "60–89 DPD"
+      }
+     },
+     {
+      "v": "D30",
+      "m": {
+       "zh": "30–59 天逾期",
+       "en": "30–59 DPD"
+      }
+     },
+     {
+      "v": "C",
+      "m": {
+       "zh": "当前（<30 天逾期）",
+       "en": "Current (<30 DPD)"
+      }
+     },
+     {
+      "v": "REO",
+      "m": {
+       "zh": "银行接管房产",
+       "en": "Real estate owned"
+      }
+     },
+     {
+      "v": "P",
+      "m": {
+       "zh": "全额还清 / 清算",
+       "en": "Paid off / liquidated"
+      }
+     }
+    ],
+    "more": {
+     "zh": "group = 逾期/组合分类（= ⑫ basic_data_fcl_related.delq_status，答「在哪个逾期桶」），≠ stage（法律阶段）。最新止赎快照基本全为 FCL（doc04 §6.1）。",
+     "en": "group = delinquency bucket (= basic_data_fcl_related.delq_status), NOT the legal stage. Latest FCL snapshot is essentially all FCL (doc04 §6.1)."
+    }
    }
   },
   {
@@ -3773,7 +4033,7 @@
     {
      "t": "port.fcl_stage_info",
      "c": "judicial",
-     "rule": "Y/N else state-config fallback 见 sql",
+     "rule": "CASE：本笔 judicial=1→'Y'、=0→'N'；为空则按州回退 config_judicial（JOIN port.basic_data_judicial_config ON propertystate=state，由所在州判定司法/非司法）。例：本笔 judicial 空 且 propertystate=NY → 'Y'(司法州)；CA → 'N'(非司法州)",
      "code": "pool:2351-2353,2432"
     },
     {
@@ -3924,7 +4184,7 @@
     {
      "t": "port.fcl_stage_info",
      "c": "demand_stage_days",
-     "rule": "datediff+1 (inclusive) 见 sql",
+     "rule": "在该阶段已历天数 = datediff(stage_start, COALESCE(下一阶段 start, 今天)) + 1（含两端）。【来源字段】start=本表「<阶段>_start_date」、end=本表「<阶段>_end_date」(=下一阶段 start，未到则用今天)；DEMAND 特例=datediff(demand_start_date, 今天)+1（不取 demand_end_date）。⚠️ 公式列用 TODAY() 实时：已结束阶段(end 非空)与 DB 精确一致；进行中阶段(end 空→今天)比 DB 存储(快照 curr_date)大「今天−快照日」天，属预期、同 summary_days_in_fcl。例：referral_start=2025-03-07、下一阶段(first_legal)未到 → datediff(2025-03-07, 今天)+1",
      "code": "pool:2040-2076"
     },
     {
@@ -3970,7 +4230,7 @@
     {
      "t": "port.fcl_stage_info",
      "c": "demand_in_lm_days",
-     "rule": "interval overlap (LM) 见 sql",
+     "rule": "阶段窗口 ∩ LM 周期 的重叠天数 = datediff(max(stage_start, LM.cycle_opened), min(stage_end, LM.cycle_closed或今天)) + 1。【为何 +1】datediff 只数两日期间「跨过几个午夜」(=结束−开始)、不含开始当天；而天数要「首尾两天都算」(inclusive)，故 +1。例：重叠区间 04-01~05-01，datediff=30，但 4/1 与 5/1 都算在内 → 30+1 = 31 天（仅当前未关闭 LM；无重叠则不计）。【来源字段】stage_start/stage_end=本表「<阶段>_start_date」/「<阶段>_end_date」；LM.cycle_opened/closed=⑯ basic_data_loan_foreclosure_loss_mitigation.cycle_opened_date/cycle_closed_date（取最近一条 open）。⚠️ 公式列不写单格公式（会与 DB 不一致）：真 SQL 只把【在本阶段窗口内 OPEN(cycle_closed 为空) 的那一条 LM 周期】归到本阶段，而 ⑯ 只渲染「代表性最新一行」，单格选不对那一条；真值以 ⑯ 长表 / SQL(pool:2246-2330) 为准。【实例·把数据代入】7727003984·demand：窗口=[demand 起 2025-01-07 → curr_date]；该笔 5 条 LM 周期里「未关闭(cycle_closed 空) 且开在窗口内」的是 2025-05-12 开那条 → 重叠 = datediff(max(2025-01-07, 2025-05-12)=2025-05-12, curr_date 2026-06-13)+1 = 398（= DB 值；这条正是单格从 ⑯「最新一行」选不出来的那一条）",
      "code": "pool:2246-2330"
     },
     {
@@ -4016,7 +4276,7 @@
     {
      "t": "port.fcl_stage_info",
      "c": "demand_on_hold_days",
-     "rule": "interval overlap (Hold) 见 sql",
+     "rule": "阶段窗口 ∩ Hold 区间 的重叠天数 = datediff(max(stage_start, hold_start), min(stage_end, hold_end或今天)) + 1。【为何 +1】datediff 只数跨过的午夜数(=结束−开始)、不含开始当天，天数要首尾两端都算(inclusive)，故 +1。例：重叠 04-10~04-20，datediff=10 → 含首尾 10+1 = 11 天（无重叠则不计）。【来源字段】stage 窗口=本表「<阶段>_start_date」/「<阶段>_end_date」；Hold 段=⑮ basic_data_loan_foreclosure_hold.description1_start_date/description1_end_date（取最近一段 open）。⚠️ 公式列不写单格公式（会与 DB 不一致）：真 SQL 只把【在本阶段窗口内 OPEN 的那一条 Hold 段】归到本阶段（Hold 有 4 槽），而 ⑮ 只渲染代表性最新一行，单格选不对那一条；真值以 ⑮ 长表 / SQL(pool:2215-2297) 为准。【实例·把数据代入】7727000806·referral：窗口=[referral 起 2025-02-19 → curr_date]；该笔 5 段 Hold 里「未关闭且开在窗口内」的是 2025-07-30 开那段 → datediff(max(2025-02-19, 2025-07-30)=2025-07-30, curr_date 2026-06-13)+1 = 319（= DB 值）",
      "code": "pool:2215-2297"
     },
     {
@@ -4168,7 +4428,7 @@
     {
      "t": "port.fcl_stage_info",
      "c": "noi_in_lm_days",
-     "rule": "interval overlap (LM) 见 sql",
+     "rule": "阶段窗口 ∩ LM 周期 的重叠天数 = datediff(max(stage_start, LM.cycle_opened), min(stage_end, LM.cycle_closed或今天)) + 1。【为何 +1】datediff 只数两日期间「跨过几个午夜」(=结束−开始)、不含开始当天；而天数要「首尾两天都算」(inclusive)，故 +1。例：重叠区间 04-01~05-01，datediff=30，但 4/1 与 5/1 都算在内 → 30+1 = 31 天（仅当前未关闭 LM；无重叠则不计）。【来源字段】stage_start/stage_end=本表「<阶段>_start_date」/「<阶段>_end_date」；LM.cycle_opened/closed=⑯ basic_data_loan_foreclosure_loss_mitigation.cycle_opened_date/cycle_closed_date（取最近一条 open）。⚠️ 公式列不写单格公式（会与 DB 不一致）：真 SQL 只把【在本阶段窗口内 OPEN(cycle_closed 为空) 的那一条 LM 周期】归到本阶段，而 ⑯ 只渲染「代表性最新一行」，单格选不对那一条；真值以 ⑯ 长表 / SQL(pool:2246-2330) 为准。【实例·把数据代入】7727003984·demand：窗口=[demand 起 2025-01-07 → curr_date]；该笔 5 条 LM 周期里「未关闭(cycle_closed 空) 且开在窗口内」的是 2025-05-12 开那条 → 重叠 = datediff(max(2025-01-07, 2025-05-12)=2025-05-12, curr_date 2026-06-13)+1 = 398（= DB 值；这条正是单格从 ⑯「最新一行」选不出来的那一条）",
      "code": "pool:2246-2330"
     },
     {
@@ -4214,7 +4474,7 @@
     {
      "t": "port.fcl_stage_info",
      "c": "noi_on_hold_days",
-     "rule": "interval overlap (Hold) 见 sql",
+     "rule": "阶段窗口 ∩ Hold 区间 的重叠天数 = datediff(max(stage_start, hold_start), min(stage_end, hold_end或今天)) + 1。【为何 +1】datediff 只数跨过的午夜数(=结束−开始)、不含开始当天，天数要首尾两端都算(inclusive)，故 +1。例：重叠 04-10~04-20，datediff=10 → 含首尾 10+1 = 11 天（无重叠则不计）。【来源字段】stage 窗口=本表「<阶段>_start_date」/「<阶段>_end_date」；Hold 段=⑮ basic_data_loan_foreclosure_hold.description1_start_date/description1_end_date（取最近一段 open）。⚠️ 公式列不写单格公式（会与 DB 不一致）：真 SQL 只把【在本阶段窗口内 OPEN 的那一条 Hold 段】归到本阶段（Hold 有 4 槽），而 ⑮ 只渲染代表性最新一行，单格选不对那一条；真值以 ⑮ 长表 / SQL(pool:2215-2297) 为准。【实例·把数据代入】7727000806·referral：窗口=[referral 起 2025-02-19 → curr_date]；该笔 5 段 Hold 里「未关闭且开在窗口内」的是 2025-07-30 开那段 → datediff(max(2025-02-19, 2025-07-30)=2025-07-30, curr_date 2026-06-13)+1 = 319（= DB 值）",
      "code": "pool:2215-2297"
     },
     {
@@ -4357,7 +4617,7 @@
     {
      "t": "port.fcl_stage_info",
      "c": "referral_stage_days",
-     "rule": "datediff+1 (inclusive) 见 sql",
+     "rule": "在该阶段已历天数 = datediff(stage_start, COALESCE(下一阶段 start, 今天)) + 1（含两端）。【来源字段】start=本表「<阶段>_start_date」、end=本表「<阶段>_end_date」(=下一阶段 start，未到则用今天)；DEMAND 特例=datediff(demand_start_date, 今天)+1（不取 demand_end_date）。⚠️ 公式列用 TODAY() 实时：已结束阶段(end 非空)与 DB 精确一致；进行中阶段(end 空→今天)比 DB 存储(快照 curr_date)大「今天−快照日」天，属预期、同 summary_days_in_fcl。例：referral_start=2025-03-07、下一阶段(first_legal)未到 → datediff(2025-03-07, 今天)+1",
      "code": "pool:2040-2076"
     },
     {
@@ -4403,7 +4663,7 @@
     {
      "t": "port.fcl_stage_info",
      "c": "referral_in_lm_days",
-     "rule": "interval overlap (LM) 见 sql",
+     "rule": "阶段窗口 ∩ LM 周期 的重叠天数 = datediff(max(stage_start, LM.cycle_opened), min(stage_end, LM.cycle_closed或今天)) + 1。【为何 +1】datediff 只数两日期间「跨过几个午夜」(=结束−开始)、不含开始当天；而天数要「首尾两天都算」(inclusive)，故 +1。例：重叠区间 04-01~05-01，datediff=30，但 4/1 与 5/1 都算在内 → 30+1 = 31 天（仅当前未关闭 LM；无重叠则不计）。【来源字段】stage_start/stage_end=本表「<阶段>_start_date」/「<阶段>_end_date」；LM.cycle_opened/closed=⑯ basic_data_loan_foreclosure_loss_mitigation.cycle_opened_date/cycle_closed_date（取最近一条 open）。⚠️ 公式列不写单格公式（会与 DB 不一致）：真 SQL 只把【在本阶段窗口内 OPEN(cycle_closed 为空) 的那一条 LM 周期】归到本阶段，而 ⑯ 只渲染「代表性最新一行」，单格选不对那一条；真值以 ⑯ 长表 / SQL(pool:2246-2330) 为准。【实例·把数据代入】7727003984·demand：窗口=[demand 起 2025-01-07 → curr_date]；该笔 5 条 LM 周期里「未关闭(cycle_closed 空) 且开在窗口内」的是 2025-05-12 开那条 → 重叠 = datediff(max(2025-01-07, 2025-05-12)=2025-05-12, curr_date 2026-06-13)+1 = 398（= DB 值；这条正是单格从 ⑯「最新一行」选不出来的那一条）",
      "code": "pool:2246-2330"
     },
     {
@@ -4449,7 +4709,7 @@
     {
      "t": "port.fcl_stage_info",
      "c": "referral_on_hold_days",
-     "rule": "interval overlap (Hold) 见 sql",
+     "rule": "阶段窗口 ∩ Hold 区间 的重叠天数 = datediff(max(stage_start, hold_start), min(stage_end, hold_end或今天)) + 1。【为何 +1】datediff 只数跨过的午夜数(=结束−开始)、不含开始当天，天数要首尾两端都算(inclusive)，故 +1。例：重叠 04-10~04-20，datediff=10 → 含首尾 10+1 = 11 天（无重叠则不计）。【来源字段】stage 窗口=本表「<阶段>_start_date」/「<阶段>_end_date」；Hold 段=⑮ basic_data_loan_foreclosure_hold.description1_start_date/description1_end_date（取最近一段 open）。⚠️ 公式列不写单格公式（会与 DB 不一致）：真 SQL 只把【在本阶段窗口内 OPEN 的那一条 Hold 段】归到本阶段（Hold 有 4 槽），而 ⑮ 只渲染代表性最新一行，单格选不对那一条；真值以 ⑮ 长表 / SQL(pool:2215-2297) 为准。【实例·把数据代入】7727000806·referral：窗口=[referral 起 2025-02-19 → curr_date]；该笔 5 段 Hold 里「未关闭且开在窗口内」的是 2025-07-30 开那段 → datediff(max(2025-02-19, 2025-07-30)=2025-07-30, curr_date 2026-06-13)+1 = 319（= DB 值）",
      "code": "pool:2215-2297"
     },
     {
@@ -4592,7 +4852,7 @@
     {
      "t": "port.fcl_stage_info",
      "c": "first_legal_stage_days",
-     "rule": "datediff+1 (inclusive) 见 sql",
+     "rule": "在该阶段已历天数 = datediff(stage_start, COALESCE(下一阶段 start, 今天)) + 1（含两端）。【来源字段】start=本表「<阶段>_start_date」、end=本表「<阶段>_end_date」(=下一阶段 start，未到则用今天)；DEMAND 特例=datediff(demand_start_date, 今天)+1（不取 demand_end_date）。⚠️ 公式列用 TODAY() 实时：已结束阶段(end 非空)与 DB 精确一致；进行中阶段(end 空→今天)比 DB 存储(快照 curr_date)大「今天−快照日」天，属预期、同 summary_days_in_fcl。例：referral_start=2025-03-07、下一阶段(first_legal)未到 → datediff(2025-03-07, 今天)+1",
      "code": "pool:2040-2076"
     },
     {
@@ -4638,7 +4898,7 @@
     {
      "t": "port.fcl_stage_info",
      "c": "first_legal_in_lm_days",
-     "rule": "interval overlap (LM) 见 sql",
+     "rule": "阶段窗口 ∩ LM 周期 的重叠天数 = datediff(max(stage_start, LM.cycle_opened), min(stage_end, LM.cycle_closed或今天)) + 1。【为何 +1】datediff 只数两日期间「跨过几个午夜」(=结束−开始)、不含开始当天；而天数要「首尾两天都算」(inclusive)，故 +1。例：重叠区间 04-01~05-01，datediff=30，但 4/1 与 5/1 都算在内 → 30+1 = 31 天（仅当前未关闭 LM；无重叠则不计）。【来源字段】stage_start/stage_end=本表「<阶段>_start_date」/「<阶段>_end_date」；LM.cycle_opened/closed=⑯ basic_data_loan_foreclosure_loss_mitigation.cycle_opened_date/cycle_closed_date（取最近一条 open）。⚠️ 公式列不写单格公式（会与 DB 不一致）：真 SQL 只把【在本阶段窗口内 OPEN(cycle_closed 为空) 的那一条 LM 周期】归到本阶段，而 ⑯ 只渲染「代表性最新一行」，单格选不对那一条；真值以 ⑯ 长表 / SQL(pool:2246-2330) 为准。【实例·把数据代入】7727003984·demand：窗口=[demand 起 2025-01-07 → curr_date]；该笔 5 条 LM 周期里「未关闭(cycle_closed 空) 且开在窗口内」的是 2025-05-12 开那条 → 重叠 = datediff(max(2025-01-07, 2025-05-12)=2025-05-12, curr_date 2026-06-13)+1 = 398（= DB 值；这条正是单格从 ⑯「最新一行」选不出来的那一条）",
      "code": "pool:2246-2330"
     },
     {
@@ -4684,7 +4944,7 @@
     {
      "t": "port.fcl_stage_info",
      "c": "first_legal_on_hold_days",
-     "rule": "interval overlap (Hold) 见 sql",
+     "rule": "阶段窗口 ∩ Hold 区间 的重叠天数 = datediff(max(stage_start, hold_start), min(stage_end, hold_end或今天)) + 1。【为何 +1】datediff 只数跨过的午夜数(=结束−开始)、不含开始当天，天数要首尾两端都算(inclusive)，故 +1。例：重叠 04-10~04-20，datediff=10 → 含首尾 10+1 = 11 天（无重叠则不计）。【来源字段】stage 窗口=本表「<阶段>_start_date」/「<阶段>_end_date」；Hold 段=⑮ basic_data_loan_foreclosure_hold.description1_start_date/description1_end_date（取最近一段 open）。⚠️ 公式列不写单格公式（会与 DB 不一致）：真 SQL 只把【在本阶段窗口内 OPEN 的那一条 Hold 段】归到本阶段（Hold 有 4 槽），而 ⑮ 只渲染代表性最新一行，单格选不对那一条；真值以 ⑮ 长表 / SQL(pool:2215-2297) 为准。【实例·把数据代入】7727000806·referral：窗口=[referral 起 2025-02-19 → curr_date]；该笔 5 段 Hold 里「未关闭且开在窗口内」的是 2025-07-30 开那段 → datediff(max(2025-02-19, 2025-07-30)=2025-07-30, curr_date 2026-06-13)+1 = 319（= DB 值）",
      "code": "pool:2215-2297"
     },
     {
@@ -4868,7 +5128,7 @@
     {
      "t": "port.fcl_stage_info",
      "c": "service_stage_days",
-     "rule": "datediff+1 (inclusive) 见 sql",
+     "rule": "在该阶段已历天数 = datediff(stage_start, COALESCE(下一阶段 start, 今天)) + 1（含两端）。【来源字段】start=本表「<阶段>_start_date」、end=本表「<阶段>_end_date」(=下一阶段 start，未到则用今天)；DEMAND 特例=datediff(demand_start_date, 今天)+1（不取 demand_end_date）。⚠️ 公式列用 TODAY() 实时：已结束阶段(end 非空)与 DB 精确一致；进行中阶段(end 空→今天)比 DB 存储(快照 curr_date)大「今天−快照日」天，属预期、同 summary_days_in_fcl。例：referral_start=2025-03-07、下一阶段(first_legal)未到 → datediff(2025-03-07, 今天)+1",
      "code": "pool:2040-2076"
     },
     {
@@ -4914,7 +5174,7 @@
     {
      "t": "port.fcl_stage_info",
      "c": "service_in_lm_days",
-     "rule": "interval overlap (LM) 见 sql",
+     "rule": "阶段窗口 ∩ LM 周期 的重叠天数 = datediff(max(stage_start, LM.cycle_opened), min(stage_end, LM.cycle_closed或今天)) + 1。【为何 +1】datediff 只数两日期间「跨过几个午夜」(=结束−开始)、不含开始当天；而天数要「首尾两天都算」(inclusive)，故 +1。例：重叠区间 04-01~05-01，datediff=30，但 4/1 与 5/1 都算在内 → 30+1 = 31 天（仅当前未关闭 LM；无重叠则不计）。【来源字段】stage_start/stage_end=本表「<阶段>_start_date」/「<阶段>_end_date」；LM.cycle_opened/closed=⑯ basic_data_loan_foreclosure_loss_mitigation.cycle_opened_date/cycle_closed_date（取最近一条 open）。⚠️ 公式列不写单格公式（会与 DB 不一致）：真 SQL 只把【在本阶段窗口内 OPEN(cycle_closed 为空) 的那一条 LM 周期】归到本阶段，而 ⑯ 只渲染「代表性最新一行」，单格选不对那一条；真值以 ⑯ 长表 / SQL(pool:2246-2330) 为准。【实例·把数据代入】7727003984·demand：窗口=[demand 起 2025-01-07 → curr_date]；该笔 5 条 LM 周期里「未关闭(cycle_closed 空) 且开在窗口内」的是 2025-05-12 开那条 → 重叠 = datediff(max(2025-01-07, 2025-05-12)=2025-05-12, curr_date 2026-06-13)+1 = 398（= DB 值；这条正是单格从 ⑯「最新一行」选不出来的那一条）",
      "code": "pool:2246-2330"
     },
     {
@@ -4960,7 +5220,7 @@
     {
      "t": "port.fcl_stage_info",
      "c": "service_on_hold_days",
-     "rule": "interval overlap (Hold) 见 sql",
+     "rule": "阶段窗口 ∩ Hold 区间 的重叠天数 = datediff(max(stage_start, hold_start), min(stage_end, hold_end或今天)) + 1。【为何 +1】datediff 只数跨过的午夜数(=结束−开始)、不含开始当天，天数要首尾两端都算(inclusive)，故 +1。例：重叠 04-10~04-20，datediff=10 → 含首尾 10+1 = 11 天（无重叠则不计）。【来源字段】stage 窗口=本表「<阶段>_start_date」/「<阶段>_end_date」；Hold 段=⑮ basic_data_loan_foreclosure_hold.description1_start_date/description1_end_date（取最近一段 open）。⚠️ 公式列不写单格公式（会与 DB 不一致）：真 SQL 只把【在本阶段窗口内 OPEN 的那一条 Hold 段】归到本阶段（Hold 有 4 槽），而 ⑮ 只渲染代表性最新一行，单格选不对那一条；真值以 ⑮ 长表 / SQL(pool:2215-2297) 为准。【实例·把数据代入】7727000806·referral：窗口=[referral 起 2025-02-19 → curr_date]；该笔 5 段 Hold 里「未关闭且开在窗口内」的是 2025-07-30 开那段 → datediff(max(2025-02-19, 2025-07-30)=2025-07-30, curr_date 2026-06-13)+1 = 319（= DB 值）",
      "code": "pool:2215-2297"
     },
     {
@@ -5112,7 +5372,7 @@
     {
      "t": "port.fcl_stage_info",
      "c": "publication_in_lm_days",
-     "rule": "interval overlap (LM) 见 sql",
+     "rule": "阶段窗口 ∩ LM 周期 的重叠天数 = datediff(max(stage_start, LM.cycle_opened), min(stage_end, LM.cycle_closed或今天)) + 1。【为何 +1】datediff 只数两日期间「跨过几个午夜」(=结束−开始)、不含开始当天；而天数要「首尾两天都算」(inclusive)，故 +1。例：重叠区间 04-01~05-01，datediff=30，但 4/1 与 5/1 都算在内 → 30+1 = 31 天（仅当前未关闭 LM；无重叠则不计）。【来源字段】stage_start/stage_end=本表「<阶段>_start_date」/「<阶段>_end_date」；LM.cycle_opened/closed=⑯ basic_data_loan_foreclosure_loss_mitigation.cycle_opened_date/cycle_closed_date（取最近一条 open）。⚠️ 公式列不写单格公式（会与 DB 不一致）：真 SQL 只把【在本阶段窗口内 OPEN(cycle_closed 为空) 的那一条 LM 周期】归到本阶段，而 ⑯ 只渲染「代表性最新一行」，单格选不对那一条；真值以 ⑯ 长表 / SQL(pool:2246-2330) 为准。【实例·把数据代入】7727003984·demand：窗口=[demand 起 2025-01-07 → curr_date]；该笔 5 条 LM 周期里「未关闭(cycle_closed 空) 且开在窗口内」的是 2025-05-12 开那条 → 重叠 = datediff(max(2025-01-07, 2025-05-12)=2025-05-12, curr_date 2026-06-13)+1 = 398（= DB 值；这条正是单格从 ⑯「最新一行」选不出来的那一条）",
      "code": "pool:2246-2330"
     },
     {
@@ -5158,7 +5418,7 @@
     {
      "t": "port.fcl_stage_info",
      "c": "publication_on_hold_days",
-     "rule": "interval overlap (Hold) 见 sql",
+     "rule": "阶段窗口 ∩ Hold 区间 的重叠天数 = datediff(max(stage_start, hold_start), min(stage_end, hold_end或今天)) + 1。【为何 +1】datediff 只数跨过的午夜数(=结束−开始)、不含开始当天，天数要首尾两端都算(inclusive)，故 +1。例：重叠 04-10~04-20，datediff=10 → 含首尾 10+1 = 11 天（无重叠则不计）。【来源字段】stage 窗口=本表「<阶段>_start_date」/「<阶段>_end_date」；Hold 段=⑮ basic_data_loan_foreclosure_hold.description1_start_date/description1_end_date（取最近一段 open）。⚠️ 公式列不写单格公式（会与 DB 不一致）：真 SQL 只把【在本阶段窗口内 OPEN 的那一条 Hold 段】归到本阶段（Hold 有 4 槽），而 ⑮ 只渲染代表性最新一行，单格选不对那一条；真值以 ⑮ 长表 / SQL(pool:2215-2297) 为准。【实例·把数据代入】7727000806·referral：窗口=[referral 起 2025-02-19 → curr_date]；该笔 5 段 Hold 里「未关闭且开在窗口内」的是 2025-07-30 开那段 → datediff(max(2025-02-19, 2025-07-30)=2025-07-30, curr_date 2026-06-13)+1 = 319（= DB 值）",
      "code": "pool:2215-2297"
     },
     {
@@ -5296,7 +5556,7 @@
     {
      "t": "port.fcl_stage_info",
      "c": "to_judgement_days",
-     "rule": "countdown to judgement: future⇒datediff(curr_date, date) (no +1), past⇒0, none⇒NULL",
+     "rule": "距判决倒计时：judgement_start_date(=排定听证日) 在未来 ⇒ datediff(今天, judgement_start_date)（不 +1）；已过 ⇒ 0；无日期 ⇒ NULL。【来源字段】本表 judgement_start_date。例：judgement_start=2026-08-21、今天 2026-06-14 → 还有 68 天",
      "code": "pool:2085-2087,2388"
     },
     {
@@ -5342,7 +5602,7 @@
     {
      "t": "port.fcl_stage_info",
      "c": "judgement_in_lm_days",
-     "rule": "interval overlap (LM) 见 sql",
+     "rule": "阶段窗口 ∩ LM 周期 的重叠天数 = datediff(max(stage_start, LM.cycle_opened), min(stage_end, LM.cycle_closed或今天)) + 1。【为何 +1】datediff 只数两日期间「跨过几个午夜」(=结束−开始)、不含开始当天；而天数要「首尾两天都算」(inclusive)，故 +1。例：重叠区间 04-01~05-01，datediff=30，但 4/1 与 5/1 都算在内 → 30+1 = 31 天（仅当前未关闭 LM；无重叠则不计）。【来源字段】stage_start/stage_end=本表「<阶段>_start_date」/「<阶段>_end_date」；LM.cycle_opened/closed=⑯ basic_data_loan_foreclosure_loss_mitigation.cycle_opened_date/cycle_closed_date（取最近一条 open）。⚠️ 公式列不写单格公式（会与 DB 不一致）：真 SQL 只把【在本阶段窗口内 OPEN(cycle_closed 为空) 的那一条 LM 周期】归到本阶段，而 ⑯ 只渲染「代表性最新一行」，单格选不对那一条；真值以 ⑯ 长表 / SQL(pool:2246-2330) 为准。【实例·把数据代入】7727003984·demand：窗口=[demand 起 2025-01-07 → curr_date]；该笔 5 条 LM 周期里「未关闭(cycle_closed 空) 且开在窗口内」的是 2025-05-12 开那条 → 重叠 = datediff(max(2025-01-07, 2025-05-12)=2025-05-12, curr_date 2026-06-13)+1 = 398（= DB 值；这条正是单格从 ⑯「最新一行」选不出来的那一条）",
      "code": "pool:2246-2330"
     },
     {
@@ -5388,7 +5648,7 @@
     {
      "t": "port.fcl_stage_info",
      "c": "judgement_on_hold_days",
-     "rule": "interval overlap (Hold) 见 sql",
+     "rule": "阶段窗口 ∩ Hold 区间 的重叠天数 = datediff(max(stage_start, hold_start), min(stage_end, hold_end或今天)) + 1。【为何 +1】datediff 只数跨过的午夜数(=结束−开始)、不含开始当天，天数要首尾两端都算(inclusive)，故 +1。例：重叠 04-10~04-20，datediff=10 → 含首尾 10+1 = 11 天（无重叠则不计）。【来源字段】stage 窗口=本表「<阶段>_start_date」/「<阶段>_end_date」；Hold 段=⑮ basic_data_loan_foreclosure_hold.description1_start_date/description1_end_date（取最近一段 open）。⚠️ 公式列不写单格公式（会与 DB 不一致）：真 SQL 只把【在本阶段窗口内 OPEN 的那一条 Hold 段】归到本阶段（Hold 有 4 槽），而 ⑮ 只渲染代表性最新一行，单格选不对那一条；真值以 ⑮ 长表 / SQL(pool:2215-2297) 为准。【实例·把数据代入】7727000806·referral：窗口=[referral 起 2025-02-19 → curr_date]；该笔 5 段 Hold 里「未关闭且开在窗口内」的是 2025-07-30 开那段 → datediff(max(2025-02-19, 2025-07-30)=2025-07-30, curr_date 2026-06-13)+1 = 319（= DB 值）",
      "code": "pool:2215-2297"
     },
     {
@@ -5526,7 +5786,7 @@
     {
      "t": "port.fcl_stage_info",
      "c": "to_sale_days",
-     "rule": "countdown to sale: future⇒datediff(curr_date, date) (no +1), past⇒0, none⇒NULL",
+     "rule": "距拍卖倒计时：sale_start_date(=排定拍卖日) 在未来 ⇒ datediff(今天, sale_start_date)（不 +1）；已过 ⇒ 0；无日期 ⇒ NULL。【来源字段】本表 sale_start_date。例：sale_start=2026-07-01、今天 2026-06-14 → 还有 17 天",
      "code": "pool:2091-2093,2393"
     },
     {
@@ -5572,7 +5832,7 @@
     {
      "t": "port.fcl_stage_info",
      "c": "sale_in_lm_days",
-     "rule": "interval overlap (LM) 见 sql",
+     "rule": "阶段窗口 ∩ LM 周期 的重叠天数 = datediff(max(stage_start, LM.cycle_opened), min(stage_end, LM.cycle_closed或今天)) + 1。【为何 +1】datediff 只数两日期间「跨过几个午夜」(=结束−开始)、不含开始当天；而天数要「首尾两天都算」(inclusive)，故 +1。例：重叠区间 04-01~05-01，datediff=30，但 4/1 与 5/1 都算在内 → 30+1 = 31 天（仅当前未关闭 LM；无重叠则不计）。【来源字段】stage_start/stage_end=本表「<阶段>_start_date」/「<阶段>_end_date」；LM.cycle_opened/closed=⑯ basic_data_loan_foreclosure_loss_mitigation.cycle_opened_date/cycle_closed_date（取最近一条 open）。⚠️ 公式列不写单格公式（会与 DB 不一致）：真 SQL 只把【在本阶段窗口内 OPEN(cycle_closed 为空) 的那一条 LM 周期】归到本阶段，而 ⑯ 只渲染「代表性最新一行」，单格选不对那一条；真值以 ⑯ 长表 / SQL(pool:2246-2330) 为准。【实例·把数据代入】7727003984·demand：窗口=[demand 起 2025-01-07 → curr_date]；该笔 5 条 LM 周期里「未关闭(cycle_closed 空) 且开在窗口内」的是 2025-05-12 开那条 → 重叠 = datediff(max(2025-01-07, 2025-05-12)=2025-05-12, curr_date 2026-06-13)+1 = 398（= DB 值；这条正是单格从 ⑯「最新一行」选不出来的那一条）",
      "code": "pool:2246-2330"
     },
     {
@@ -5618,7 +5878,7 @@
     {
      "t": "port.fcl_stage_info",
      "c": "sale_on_hold_days",
-     "rule": "interval overlap (Hold) 见 sql",
+     "rule": "阶段窗口 ∩ Hold 区间 的重叠天数 = datediff(max(stage_start, hold_start), min(stage_end, hold_end或今天)) + 1。【为何 +1】datediff 只数跨过的午夜数(=结束−开始)、不含开始当天，天数要首尾两端都算(inclusive)，故 +1。例：重叠 04-10~04-20，datediff=10 → 含首尾 10+1 = 11 天（无重叠则不计）。【来源字段】stage 窗口=本表「<阶段>_start_date」/「<阶段>_end_date」；Hold 段=⑮ basic_data_loan_foreclosure_hold.description1_start_date/description1_end_date（取最近一段 open）。⚠️ 公式列不写单格公式（会与 DB 不一致）：真 SQL 只把【在本阶段窗口内 OPEN 的那一条 Hold 段】归到本阶段（Hold 有 4 槽），而 ⑮ 只渲染代表性最新一行，单格选不对那一条；真值以 ⑮ 长表 / SQL(pool:2215-2297) 为准。【实例·把数据代入】7727000806·referral：窗口=[referral 起 2025-02-19 → curr_date]；该笔 5 段 Hold 里「未关闭且开在窗口内」的是 2025-07-30 开那段 → datediff(max(2025-02-19, 2025-07-30)=2025-07-30, curr_date 2026-06-13)+1 = 319（= DB 值）",
      "code": "pool:2215-2297"
     },
     {
@@ -6060,7 +6320,7 @@
     {
      "t": "port.basic_data_loan_foreclosure_loss_mitigation",
      "c": "deal",
-     "rule": "datadic decode 解码 见 sql",
+     "rule": "经 LEFT JOIN newrez.portnewrezdatadic 把整数码解成业务文本（见 ㉔ 解码字典页）。例：LMStatus 166 → 'Pending Financials'",
      "code": "pool:821,835"
     },
     {
@@ -6077,6 +6337,80 @@
    "sql_eg": {
     "en": "7727004408: lmdeal=2 ⇒ deal='Evaluation'.",
     "zh": "7727004408：lmdeal=2 ⇒ deal='Evaluation'。"
+   },
+   "values": {
+    "src": "datadic LMDeal · BPS prod 实测",
+    "asof": "BPS prod 2026-06-14",
+    "items": [
+     {
+      "v": "Modification",
+      "m": {
+       "zh": "永久性修改贷款条款，把月供降到可负担水平",
+       "en": "Permanently modify loan terms to an affordable payment"
+      },
+      "n": 209
+     },
+     {
+      "v": "Evaluation",
+      "m": {
+       "zh": "LM 评估期——收材料、判定适用方案",
+       "en": "Loss-mit evaluation — gathering docs, deciding eligibility"
+      },
+      "n": 116
+     },
+     {
+      "v": "Forbearance",
+      "m": {
+       "zh": "暂缓/减少月供，到期后补缴（临时性）",
+       "en": "Temporarily pause/reduce payments, repay later"
+      },
+      "n": 59
+     },
+     {
+      "v": "Deferment",
+      "m": {
+       "zh": "递延——把欠款挪到贷款末尾，月供恢复正常",
+       "en": "Defer arrears to loan maturity; payment returns to normal"
+      },
+      "n": 58
+     },
+     {
+      "v": "Payment Plan",
+      "m": {
+       "zh": "还款计划——正常月供外分期补缴欠款",
+       "en": "Repayment plan — pay arrears in installments"
+      },
+      "n": 38
+     },
+     {
+      "v": "Short Sale",
+      "m": {
+       "zh": "短售——低于欠款价售房，贷方免除差额",
+       "en": "Sell below balance; lender forgives the shortfall"
+      },
+      "n": 12
+     },
+     {
+      "v": "DIL",
+      "m": {
+       "zh": "自愿移交房产所有权(Deed-in-Lieu)抵债",
+       "en": "Deed-in-lieu: voluntarily transfer title to settle debt"
+      },
+      "n": 11
+     },
+     {
+      "v": "Payoff",
+      "m": {
+       "zh": "全额结清贷款",
+       "en": "Full payoff of the loan"
+      },
+      "n": 1
+     }
+    ],
+    "more": {
+     "zh": "整数码经 datadic(LMDeal) 解码为文本。完整 13 类另含 Reinstatement / Loan Sale / Settlement / CFK / Consent Judgement，见 doc 14。",
+     "en": "Integer code decoded via datadic(LMDeal). Full 13-type domain also has Reinstatement / Loan Sale / Settlement / CFK / Consent Judgement — see doc 14."
+    }
    }
   },
   {
@@ -6120,6 +6454,112 @@
    "sql_eg": {
     "en": "7727004408: lmprogram=21 ⇒ program='Evaluation'.",
     "zh": "7727004408：lmprogram=21 ⇒ program='Evaluation'。"
+   },
+   "values": {
+    "src": "datadic LMProgram · BPS prod 实测（最常用 12）",
+    "asof": "BPS prod 2026-06-14",
+    "items": [
+     {
+      "v": "Evaluation",
+      "m": {
+       "zh": "方案评估",
+       "en": "Program evaluation"
+      },
+      "n": 115
+     },
+     {
+      "v": "Deferment",
+      "m": {
+       "zh": "递延",
+       "en": "Deferment"
+      },
+      "n": 58
+     },
+     {
+      "v": "496.0",
+      "m": {
+       "zh": "项目码在字典中无对应文案（需向 Newrez 核对）",
+       "en": "Program code not in dictionary (verify with Newrez)"
+      },
+      "n": 56
+     },
+     {
+      "v": "Short-term Forbearance",
+      "m": {
+       "zh": "短期暂缓还款",
+       "en": "Short-term forbearance"
+      },
+      "n": 49
+     },
+     {
+      "v": "Bridger mod",
+      "m": {
+       "zh": "Bridger 自有修改方案",
+       "en": "Bridger proprietary modification"
+      },
+      "n": 38
+     },
+     {
+      "v": "Repayment Plan",
+      "m": {
+       "zh": "还款计划",
+       "en": "Repayment plan"
+      },
+      "n": 38
+     },
+     {
+      "v": "VA Traditional",
+      "m": {
+       "zh": "VA 传统方案",
+       "en": "VA traditional program"
+      },
+      "n": 30
+     },
+     {
+      "v": "SLS Standard Mod",
+      "m": {
+       "zh": "SLS 标准修改方案",
+       "en": "SLS standard modification"
+      },
+      "n": 26
+     },
+     {
+      "v": "FHA Recovery SAPC",
+      "m": {
+       "zh": "FHA 复苏 SAPC 项目",
+       "en": "FHA recovery SAPC"
+      },
+      "n": 16
+     },
+     {
+      "v": "Short Sale",
+      "m": {
+       "zh": "短售项目",
+       "en": "Short sale program"
+      },
+      "n": 12
+     },
+     {
+      "v": "Deed-in-Lieu",
+      "m": {
+       "zh": "以房抵债(DIL)项目",
+       "en": "Deed-in-lieu program"
+      },
+      "n": 11
+     },
+     {
+      "v": "Standard Proprietary Modification",
+      "m": {
+       "zh": "标准自有(proprietary)修改方案",
+       "en": "Standard proprietary modification"
+      },
+      "n": 9
+     }
+    ],
+    "more": {
+     "zh": "LMProgram 共 388 码，此处列最常用 12（含未解码码如 496/498/499/527/531 需向 Newrez 核对）；完整见 DB / doc 14。",
+     "en": "LMProgram has 388 codes; top 12 shown (incl. undecoded codes like 496/498/499 — verify with Newrez). Full list in DB / doc 14."
+    }
    }
   },
   {
@@ -6163,6 +6603,112 @@
    "sql_eg": {
     "en": "7727004408: lmstatus=166 ⇒ lmc_status='Pending Financials'.",
     "zh": "7727004408：lmstatus=166 ⇒ lmc_status='Pending Financials'。"
+   },
+   "values": {
+    "src": "datadic LMStatus · BPS prod 实测（最常用 12）",
+    "asof": "BPS prod 2026-06-14",
+    "items": [
+     {
+      "v": "Workout Denial",
+      "m": {
+       "zh": "方案被拒",
+       "en": "Workout denied"
+      },
+      "n": 163
+     },
+     {
+      "v": "Pending Financials",
+      "m": {
+       "zh": "待借款人财务资料",
+       "en": "Awaiting borrower financials"
+      },
+      "n": 127
+     },
+     {
+      "v": "Document Follow-up",
+      "m": {
+       "zh": "催收/跟进所需材料",
+       "en": "Following up on required documents"
+      },
+      "n": 76
+     },
+     {
+      "v": "Monitor Forbearance",
+      "m": {
+       "zh": "监控暂缓还款执行",
+       "en": "Monitoring forbearance"
+      },
+      "n": 31
+     },
+     {
+      "v": "Book mod",
+      "m": {
+       "zh": "入账修改（修改正式生效）",
+       "en": "Booking the modification (it takes effect)"
+      },
+      "n": 28
+     },
+     {
+      "v": "Deferment Agreement Ordered",
+      "m": {
+       "zh": "已下单递延协议",
+       "en": "Deferment agreement ordered"
+      },
+      "n": 23
+     },
+     {
+      "v": "Deferment Plan In Progress",
+      "m": {
+       "zh": "递延计划执行中",
+       "en": "Deferment plan in progress"
+      },
+      "n": 12
+     },
+     {
+      "v": "Monitor for pmts/funds",
+      "m": {
+       "zh": "监控还款/资金到账",
+       "en": "Monitoring payments/funds"
+      },
+      "n": 10
+     },
+     {
+      "v": "Liquidation Referral",
+      "m": {
+       "zh": "转清算（短售/DIL/法拍）",
+       "en": "Referred to liquidation (SS/DIL/FC)"
+      },
+      "n": 7
+     },
+     {
+      "v": "Solicitation Offered",
+      "m": {
+       "zh": "已发出方案邀约",
+       "en": "Solicitation offered"
+      },
+      "n": 4
+     },
+     {
+      "v": "Follow up for 1st Trial Payment",
+      "m": {
+       "zh": "跟进首笔试用期还款",
+       "en": "Follow up on 1st trial payment"
+      },
+      "n": 4
+     },
+     {
+      "v": "Awaiting investor approval",
+      "m": {
+       "zh": "等待投资人审批",
+       "en": "Awaiting investor approval"
+      },
+      "n": 3
+     }
+    ],
+    "more": {
+     "zh": "LMStatus 共 149 码，此处列最常用 12；完整见 DB / doc 14。",
+     "en": "LMStatus has 149 codes; top 12 shown — full list in DB / doc 14."
+    }
    }
   },
   {
@@ -6274,6 +6820,112 @@
    "sql_eg": {
     "en": "7727004408: lmdecision=99 ⇒ final_disposition='Pending'.",
     "zh": "7727004408：lmdecision=99 ⇒ final_disposition='Pending'。"
+   },
+   "values": {
+    "src": "datadic LMDecision · BPS prod 实测",
+    "asof": "BPS prod 2026-06-14",
+    "items": [
+     {
+      "v": "Referral to FC",
+      "m": {
+       "zh": "转法拍——LM 未成功",
+       "en": "Referred to foreclosure — LM unsuccessful"
+      },
+      "n": 127
+     },
+     {
+      "v": "Request Incomplete/Failed to Provide Information",
+      "m": {
+       "zh": "资料不全/未按时提供",
+       "en": "Incomplete request / docs not provided"
+      },
+      "n": 104
+     },
+     {
+      "v": "Pending",
+      "m": {
+       "zh": "处理中/待决",
+       "en": "In progress / pending"
+      },
+      "n": 97
+     },
+     {
+      "v": "LMS Opened in Error",
+      "m": {
+       "zh": "误开 LM 工单",
+       "en": "LM case opened in error"
+      },
+      "n": 53
+     },
+     {
+      "v": "Reinstated/Current",
+      "m": {
+       "zh": "已补齐欠款恢复正常",
+       "en": "Arrears cured; loan current"
+      },
+      "n": 36
+     },
+     {
+      "v": "Deferment Completed",
+      "m": {
+       "zh": "递延完成",
+       "en": "Deferment completed"
+      },
+      "n": 33
+     },
+     {
+      "v": "Forbearance Complete",
+      "m": {
+       "zh": "暂缓还款期满结束",
+       "en": "Forbearance completed"
+      },
+      "n": 20
+     },
+     {
+      "v": "Modification Complete",
+      "m": {
+       "zh": "修改完成（贷款重组成功）",
+       "en": "Modification completed"
+      },
+      "n": 17
+     },
+     {
+      "v": "Not Eligible for Loss Mitigation",
+      "m": {
+       "zh": "不符合 LM 资格",
+       "en": "Not eligible for loss mitigation"
+      },
+      "n": 7
+     },
+     {
+      "v": "Full Pay Off",
+      "m": {
+       "zh": "全额结清",
+       "en": "Full payoff"
+      },
+      "n": 7
+     },
+     {
+      "v": "FC Sale Held",
+      "m": {
+       "zh": "法拍已成交，LM 终止",
+       "en": "FC sale held; LM ended"
+      },
+      "n": 2
+     },
+     {
+      "v": "DIL Complete",
+      "m": {
+       "zh": "DIL 完成（房产已移交）",
+       "en": "Deed-in-lieu completed"
+      },
+      "n": 1
+     }
+    ],
+    "more": {
+     "zh": "LM 周期最终结论，整数码经 datadic(LMDecision) 解码。完整 24 码见 doc 14。",
+     "en": "LM cycle final decision, decoded via datadic(LMDecision). Full 24-code domain in doc 14."
+    }
    }
   },
   {
@@ -6317,6 +6969,112 @@
    "sql_eg": {
     "en": "7727004408 (Short Sale cycle): denialreason=78 ⇒ 'Buyer walked (SS)'.",
     "zh": "7727004408（Short Sale 周期）：denialreason=78 ⇒ 'Buyer walked (SS)'。"
+   },
+   "values": {
+    "src": "datadic DenialReason · BPS prod 实测（最常用 12）",
+    "asof": "BPS prod 2026-06-14",
+    "items": [
+     {
+      "v": "Request Incomplete/Failed to Provide Documentation",
+      "m": {
+       "zh": "资料不全/未提供文件",
+       "en": "Incomplete request / docs not provided"
+      },
+      "n": 30
+     },
+     {
+      "v": "Loan not due for 3 or more monthly payments",
+      "m": {
+       "zh": "逾期不足 3 期，未达条件",
+       "en": "Not 3+ payments past due"
+      },
+      "n": 25
+     },
+     {
+      "v": "HAMP Sunset",
+      "m": {
+       "zh": "HAMP 项目已到期终止",
+       "en": "HAMP program sunset"
+      },
+      "n": 15
+     },
+     {
+      "v": "Withdrawal of Request/Non-Acceptance",
+      "m": {
+       "zh": "借款人撤回申请/不接受方案",
+       "en": "Borrower withdrew / did not accept"
+      },
+      "n": 15
+     },
+     {
+      "v": "Unable to achieve target payment",
+      "m": {
+       "zh": "无法达到目标月供",
+       "en": "Cannot reach target payment"
+      },
+      "n": 9
+     },
+     {
+      "v": "Hardship not resolved",
+      "m": {
+       "zh": "困难未解决",
+       "en": "Hardship not resolved"
+      },
+      "n": 7
+     },
+     {
+      "v": "Investor Not Participating",
+      "m": {
+       "zh": "投资人不参与该方案",
+       "en": "Investor not participating"
+      },
+      "n": 6
+     },
+     {
+      "v": "Failed Plan",
+      "m": {
+       "zh": "此前方案违约失败",
+       "en": "Prior plan failed / defaulted"
+      },
+      "n": 5
+     },
+     {
+      "v": "Loan not 90+ DPD",
+      "m": {
+       "zh": "逾期未满 90 天，未达条件",
+       "en": "Loan not 90+ days past due"
+      },
+      "n": 5
+     },
+     {
+      "v": "Post-Mod P&I Payment > Current P&I Payment",
+      "m": {
+       "zh": "改后本息月供高于当前，无收益",
+       "en": "Post-mod P&I exceeds current payment"
+      },
+      "n": 4
+     },
+     {
+      "v": "Trial Plan Default",
+      "m": {
+       "zh": "试用期计划违约",
+       "en": "Trial plan default"
+      },
+      "n": 4
+     },
+     {
+      "v": "HDTI out of range",
+      "m": {
+       "zh": "房贷收入比(HDTI)超范围",
+       "en": "Housing DTI out of range"
+      },
+      "n": 3
+     }
+    ],
+    "more": {
+     "zh": "LM 被拒原因，整数码经 datadic(DenialReason) 解码。共 130 码，此处列最常用 12；完整见 DB / doc 14。",
+     "en": "LM denial reason, decoded via datadic(DenialReason). 130 codes; top 12 shown — full in DB / doc 14."
+    }
    }
   },
   {
@@ -6364,6 +7122,36 @@
    "sql_eg": {
     "en": "7727004408 (Short Sale cycle): borrowerintention=3 ⇒ 'Disposition'.",
     "zh": "7727004408（Short Sale 周期）：borrowerintention=3 ⇒ 'Disposition'。"
+   },
+   "values": {
+    "src": "datadic BorrowerIntention · BPS prod 实测",
+    "asof": "BPS prod 2026-06-14",
+    "items": [
+     {
+      "v": "Retention",
+      "m": {
+       "zh": "保留房产（争取留房方案）",
+       "en": "Keep the home (pursue retention)"
+      },
+      "n": 49
+     },
+     {
+      "v": "Disposition",
+      "m": {
+       "zh": "处置房产（短售/DIL/放弃）",
+       "en": "Dispose of the home (short sale/DIL/surrender)"
+      },
+      "n": 5
+     },
+     {
+      "v": "Unknown",
+      "m": {
+       "zh": "意向未知",
+       "en": "Intention unknown"
+      },
+      "n": 1
+     }
+    ]
    }
   },
   {
@@ -6622,6 +7410,64 @@
    "sql_eg": {
     "en": "Loan 7727000010: bkstatus=1 ⇒ bankruptcy_status='Active'.",
     "zh": "贷款 7727000010：bkstatus=1 ⇒ bankruptcy_status='Active'。"
+   },
+   "values": {
+    "src": "datadic BKStatus · BPS prod 实测",
+    "asof": "BPS prod 2026-06-14",
+    "items": [
+     {
+      "v": "Completed/Cancelled",
+      "m": {
+       "zh": "破产流程已完成 / 已取消",
+       "en": "BK process completed or cancelled"
+      },
+      "n": 32
+     },
+     {
+      "v": "Active",
+      "m": {
+       "zh": "破产案进行中——自动暂停(Automatic Stay)保护，法拍暂停",
+       "en": "BK in progress — automatic stay halts foreclosure"
+      },
+      "n": 16
+     },
+     {
+      "v": "Discharged",
+      "m": {
+       "zh": "债务已免除（个人债务责任解除）",
+       "en": "Debt discharged"
+      },
+      "n": 15
+     },
+     {
+      "v": "Dismissed",
+      "m": {
+       "zh": "破产案被驳回——保护解除，法拍可恢复",
+       "en": "BK dismissed — stay lifted, FC may resume"
+      },
+      "n": 3
+     },
+     {
+      "v": "ReliefGranted",
+      "m": {
+       "zh": "已批准解除自动暂停——债权人可推进法拍/MFR 获准",
+       "en": "Relief from stay granted — creditor may proceed"
+      },
+      "n": 3
+     },
+     {
+      "v": "Closed",
+      "m": {
+       "zh": "破产案结案",
+       "en": "BK case closed"
+      },
+      "n": 1
+     }
+    ],
+    "more": {
+     "zh": "datadic BKStatus 解码 1→Active/2→Discharged/3→Dismissed/4→Closed/5→ReliefGranted；实测另见 'Completed/Cancelled'。",
+     "en": "datadic BKStatus decodes 1→Active/2→Discharged/3→Dismissed/4→Closed/5→ReliefGranted; data also shows 'Completed/Cancelled'."
+    }
    }
   },
   {
@@ -6660,7 +7506,105 @@
      "rule": "pass-through",
      "code": "asset:829"
     }
-   ]
+   ],
+   "values": {
+    "src": "datadic LegalStatus · BPS prod 实测",
+    "asof": "BPS prod 2026-06-14",
+    "items": [
+     {
+      "v": "BK13",
+      "m": {
+       "zh": "第 13 章破产",
+       "en": "Chapter 13 bankruptcy"
+      },
+      "n": 12
+     },
+     {
+      "v": "BK7",
+      "m": {
+       "zh": "第 7 章破产",
+       "en": "Chapter 7 bankruptcy"
+      },
+      "n": 4
+     },
+     {
+      "v": "FCBU",
+      "m": {
+       "zh": "止赎进行中",
+       "en": "Foreclosure"
+      },
+      "n": 3
+     },
+     {
+      "v": "BK11",
+      "m": {
+       "zh": "第 11 章破产",
+       "en": "Chapter 11 bankruptcy"
+      },
+      "n": 3
+     },
+     {
+      "v": "BK11DCH",
+      "m": {
+       "zh": "第 11 章已免除",
+       "en": "Chapter 11 discharged"
+      },
+      "n": 3
+     },
+     {
+      "v": "REO",
+      "m": {
+       "zh": "银行接管房产",
+       "en": "Real estate owned"
+      },
+      "n": 2
+     },
+     {
+      "v": "BK7DCH",
+      "m": {
+       "zh": "第 7 章已免除",
+       "en": "Chapter 7 discharged"
+      },
+      "n": 2
+     },
+     {
+      "v": "FCSold",
+      "m": {
+       "zh": "止赎拍卖已成交（第三方）",
+       "en": "FC sale completed - 3rd party"
+      },
+      "n": 1
+     },
+     {
+      "v": "BKD7LM",
+      "m": {
+       "zh": "第 7 章已免除-维持留置",
+       "en": "Ch7 discharged - lien maintained"
+      },
+      "n": 1
+     },
+     {
+      "v": "BKD13LM",
+      "m": {
+       "zh": "第 13 章已免除-维持留置",
+       "en": "Ch13 discharged - lien maintained"
+      },
+      "n": 1
+     },
+     {
+      "v": "BK13DCH",
+      "m": {
+       "zh": "第 13 章已免除",
+       "en": "Chapter 13 discharged"
+      },
+      "n": 1
+     }
+    ],
+    "more": {
+     "zh": "来自 portnewrezgeneral.legalstatus。LegalStatus 共 26 码，此处列实测出现的 11；完整见 datadic LegalStatus / doc 14。",
+     "en": "From portnewrezgeneral.legalstatus. LegalStatus has 26 codes; 11 observed shown — full in datadic LegalStatus / doc 14."
+    }
+   }
   },
   {
    "branch": "bk",
@@ -6732,7 +7676,37 @@
      "rule": "pass-through",
      "code": "asset:831"
     }
-   ]
+   ],
+   "values": {
+    "src": "BK chapter · BPS prod 实测",
+    "asof": "BPS prod 2026-06-14",
+    "items": [
+     {
+      "v": "13",
+      "m": {
+       "zh": "第 13 章——个人按 3–5 年计划分期补缴欠款、保留房产",
+       "en": "Chapter 13 — individual 3–5yr repayment plan, keep home"
+      },
+      "n": 38
+     },
+     {
+      "v": "7",
+      "m": {
+       "zh": "第 7 章——清算型：变卖非豁免资产清偿后免除剩余债务",
+       "en": "Chapter 7 — liquidation; remaining debt discharged"
+      },
+      "n": 26
+     },
+     {
+      "v": "11",
+      "m": {
+       "zh": "第 11 章——重整（多为企业/高额债务）",
+       "en": "Chapter 11 — reorganization (usually business/large debt)"
+      },
+      "n": 6
+     }
+    ]
+   }
   },
   {
    "branch": "bk",

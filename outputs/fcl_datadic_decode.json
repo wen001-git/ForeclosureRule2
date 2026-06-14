@@ -1,0 +1,24 @@
+{
+  "_meta": {
+    "purpose": "doc 32 ㉔ src·portnewrezdatadic 解码字典 sheet 的数据源。Newrez 编码字典(长表，grain=1 行/(field_name,code))，FCL/LM/BK 链用它把整数/短码解码成业务文本（ETL LEFT JOIN，pool:367 BK、835-840 LM）。",
+    "version": "v1 2026-06-14",
+    "source": "redshift_prod.newrez.portnewrezdatadic（DB 实测只读 2026-06-14；长表 field_name/code/description）。⚠️ 实测仅 Redshift 有此长表；mysql_prod 的 newrez.newrezdatadic 是另一张宽表(只解码 propertytype/loanpurpose 等 6 类，无 LM/BK)。",
+    "code_ref": "pool:367(BKStatus) / pool:835-840(LMDeal/LMProgram/LMStatus/LMDecision/BorrowerIntention/DenialReason)，JOIN 时 code 拼 '.0' 与浮点编码匹配",
+    "large_categories_not_fully_listed": {"LMStatus": 149, "LMProgram": 388, "DenialReason": 130, "ModType": 387, "HardshipType": 38},
+    "large_note": "LMStatus/LMProgram/DenialReason/ModType 等大类（>30 码）此处不全列；本 sheet 列出 FCL/LM/BK 链最常用、可读的 12 个解码类，完整字典见 DB。"
+  },
+  "categories": {
+    "BKStatus": [["1","Active"],["2","Discharged"],["3","Dismissed"],["4","Closed"],["5","ReliefGranted"]],
+    "BKStage": [["0","Petition"],["1","Received"],["2","341 Meeting"],["3","Objection to Plan"],["4","Confirmation"],["5","Discharge Ability"],["6","POC Bar"],["7","Proof of Claim"],["8","Discharged"],["9","Discharged Review"],["10","Dismissed"],["11","Reaffirmed"],["12","Vacated"],["13","Transfer of Claim"],["14","Final Cure (Chapter 13)"],["15","Attorney Consent"],["16","Chapter Converted"],["17","Termination"],["18","Trustee No Asset CH 7"],["19","Trustee Abandonment CH 7"],["20","Plan Review"],["21","Motion to Determine Final Cure"]],
+    "BorrowerIntention": [["1","Unknown"],["2","Retention"],["3","Disposition"]],
+    "Judicial": [["0","Non Judicial"],["1","Judicial"]],
+    "LMDeal": [["1","Modification"],["2","Evaluation"],["3","Reinstatement"],["4","Payment Plan"],["5","Forbearance"],["6","Short Sale"],["7","DIL"],["8","Loan Sale"],["9","Payoff"],["10","Settlement"],["11","Deferment"],["12","CFK"],["13","Consent Judgement"]],
+    "LMDecision": [["0","Approved"],["1","Modification Complete"],["2","Short Sale Complete"],["3","DIL Complete"],["4","Forbearance Complete"],["5","Reinstated/Current"],["6","Referral to FC"],["7","Not Eligible for Loss Mitigation"],["8","Settlement Complete"],["9","Imminent Default Denied"],["10","Request Incomplete/Failed to Provide Information"],["11","LMS Opened in Error"],["12","No Change in Circumstance"],["13","Service Released"],["14","Deferment Completed"],["15","CFK Complete"],["16","Consent Judgement Complete"],["17","Full Pay Off"],["18","FC Sale Held"],["19","Declined for other workout"],["97","Cancelled"],["98","Denied"],["99","Pending"]],
+    "LegalStatus": [["90plus","90 days or more past due"],["BK11","Ch 11 BK"],["BK11DCH","Chapter 11 discharged"],["BK12","Ch 12 BK"],["BK128DCH","BK128-Discharged Wisconsin"],["BK12DCH","Chapter 12 Discharge"],["BK13","Ch 13 BK"],["BK13DCH","Chapter 13 Discharged"],["BK7","Ch 7 BK"],["BK7DCH","Chapter 7 Discharged"],["BKD11LM","DCH 11 Lien Maintd"],["BKD12LM","DCH 12 Lien Maintd"],["BKD13LM","DCH 13 Lien Maintd"],["BKD7LM","DCH 7 Lien Maintd"],["FCBAC","FC Hold For LPS Bank Copy"],["FCBU","Foreclosure"],["FCBU11","Foreclosure Chapter 11"],["FCBU13","Foreclosure Chapter 13"],["FCBU7","We initiated FC - Ch 7"],["FCSold","FC Sale completed - 3rd Party"],["IFCBU","International Foreclosure"],["Miscell","Miscellaneous Legal"],["OFAC","OFAC Confirmed"],["REO","Real Estate Owned"],["REOSLD","REO Sold"],["SON","Suit on Note"]],
+    "LiquidationType": [["2","Pd-off Matured"],["3","Pd-off Prepaid"],["4","Liq - Reo"],["5","Liq - 3rd Party"],["6","Liq - Conveyance"]],
+    "MBADelinquency": [["1","Current"],["2","1-29 DPD"],["3","30-59 DPD"],["4","60-89 DPD"],["5","90-119 DPD"],["6","120-149 DPD"],["7","150-179 DPD"],["8","180+ DPD"],["9","Performing Bankruptcy"],["10","Non-Performing Bankruptcy"],["11","Foreclosure / Perf BK"],["12","Foreclosure / Non-Perf BK"],["13","Foreclosure"],["14","REO"],["15","Full Payoff"],["16","Settlement"],["17","REO Sale"],["18","3rd Party Sale"],["19","Service Release"]],
+    "ForbearanceStatus": [["0","Pending"],["1","Active"],["4","Satisfied"],["6","Delinquent"],["9","Settlement In Full"]],
+    "RepaymentStatus": [["0","Pending"],["1","Active"],["2","Suspended (old status)"],["3","Broken"],["4","Satisfied"],["5","Cancelled"],["6","Delinquent"],["7","None"],["8","Stip to Loan Modification"],["9","Settlement In Full"]],
+    "TrialStatus": [["0","Pending"],["1","Active"],["4","Satisfied"],["6","Delinquent"],["7","None"],["8","Stip to Loan Modification"],["9","Settlement In Full"]]
+  }
+}

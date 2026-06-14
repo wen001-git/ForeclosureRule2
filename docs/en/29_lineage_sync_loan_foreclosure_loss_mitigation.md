@@ -124,7 +124,7 @@ _LM deal type (decoded)._
 **Flow:** ①portnewrezlm → ②basic_data_loan_foreclosure_loss_mitigation → ③sync_loan_foreclosure_loss_mitigation
 **Lineage (per hop: # column — rule [code])**
 - 1. `newrez.portnewrezlm` · lmdeal (code) — servicer raw 编码
-- 2. `port.basic_data_loan_foreclosure_loss_mitigation.deal` — datadic decode 解码 见 sql [pool:821,835](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L821)
+- 2. `port.basic_data_loan_foreclosure_loss_mitigation.deal` — LEFT JOIN newrez.portnewrezdatadic to decode integer codes to business text (see ㉔ dictionary sheet). e.g. LMStatus 166 → 'Pending Financials' [pool:821,835](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L821)
 - 3. `bpms.sync_loan_foreclosure_loss_mitigation.deal` — GEN_FORECLOSURE_LM pass-through [asset:804](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L804)
 
 ```sql

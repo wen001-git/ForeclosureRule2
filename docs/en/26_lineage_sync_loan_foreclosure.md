@@ -898,7 +898,7 @@ _Active vs Closed (+reason)._
 **Flow:** ①basic_data_loan_fcl → ②basic_data_loan_foreclosure → ③sync_loan_foreclosure → ④biz_data_view_loan_details_foreclosure
 **Lineage (per hop: # column — rule [code])**
 - 1. `port.basic_data_loan_fcl` · activefcflag, fcremovaldesc — activefcflag=cast(int); fcremovaldesc rename [pool:1538,1563](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1538)
-- 2. `port.basic_data_loan_foreclosure.summary_foreclosure_status` — CASE active/closed 见 sql [pool:273](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L273)
+- 2. `port.basic_data_loan_foreclosure.summary_foreclosure_status` — CASE: activefcflag=1 → 'Active Foreclosure'; =0 → CONCAT('Closed Foreclosure:', fcremovaldesc) (e.g. 'Closed Foreclosure:Reinstated') [pool:273](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L273)
 - 3. `bpms.sync_loan_foreclosure.summary_foreclosure_status` — upsert pass-through [asset:730/780](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L730)
 - 4. `bpms.biz_data_view_loan_details_foreclosure.summary_foreclosure_status` — passthrough [view]
 

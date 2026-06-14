@@ -119,7 +119,7 @@ _The loan's current stage classification (waterfall outcome)._
 **Flow:** ①basic_data_loan_fcl → ②fcl_stage_info → ③sync_fcl_stage_info
 **Lineage (per hop: # column — rule [code])**
 - 1. `port.basic_data_loan_fcl` · (stage dates) — waterfall by first non-null date
-- 2. `port.fcl_stage_info.stage` — CASE waterfall: SALE→JUDGEMENT→PUBLICATION→SERVICE→FIRST_LEGAL→REFERRAL→DEMAND [pool:2095-2102](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2095-2102)
+- 2. `port.fcl_stage_info.stage` — CASE waterfall = deepest milestone reached (whichever has a start date; priority SALE>JUDGEMENT>PUBLICATION>SERVICE>FIRST_LEGAL>REFERRAL>DEMAND). e.g. has referral_start & first_legal_start, none deeper → stage='FIRST_LEGAL' [pool:2095-2102](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2095-2102)
 - 3. `bpms.sync_fcl_stage_info.stage` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 **Note:** Values: SALE / JUDGEMENT / PUBLICATION / SERVICE / FIRST_LEGAL / REFERRAL / DEMAND (7; prod snapshot currently REFERRAL/SALE/FIRST_LEGAL/SERVICE/JUDGEMENT).
@@ -141,7 +141,7 @@ _Delinquency/legal group used to bucket the loan._
 
 **Flow:** ①basic_data_fcl_related → ②fcl_stage_info → ③sync_fcl_stage_info
 **Lineage (per hop: # column — rule [code])**
-- 1. `port.basic_data_fcl_related.delq_status` — CASE mba then days360 fallback 见 sql [pool:1702-1711](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1702-1711)
+- 1. `port.basic_data_fcl_related.delq_status` — delinquency_status_mba=Full Payoff→P / REO→REO / any Foreclosure*→FCL; else bucket by days360(nextduedate,dataasof): <30→C / <60→D30 / <90→D60 / <120→D90 / else→D120P [pool:1702-1711](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1702-1711)
 - 2. `port.fcl_stage_info.group` — = r.delq_status (r = `port.basic_data_fcl_related` ⑫, JOIN on loanid+dataasof, taking the loan's **delinquency/portfolio class** FCL/REO/D120P/D90/D60/D30/C/P). ⚠️ group = delinquency-class dimension ≠ stage = FCL legal-stage dimension (waterfall SALE>JUDGEMENT>…>DEMAND) [pool:1816,2400](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2400)
 - 3. `bpms.sync_fcl_stage_info.group` — 12-FCL_STAGE sync pass-through [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
@@ -182,7 +182,7 @@ _Judicial flag with state fallback._
 **Flow:** ①basic_data_loan_fcl → ②fcl_stage_info → ③sync_fcl_stage_info
 **Lineage (per hop: # column — rule [code])**
 - 1. `port.basic_data_loan_fcl.judicial` — normalize cast(int) [pool:2034](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2034)
-- 2. `port.fcl_stage_info.judicial` — Y/N else state-config fallback 见 sql [pool:2351-2353,2432](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2351-2353)
+- 2. `port.fcl_stage_info.judicial` — CASE: this loan's judicial=1→'Y' / =0→'N'; if null, fall back to state config_judicial (JOIN port.basic_data_judicial_config ON propertystate=state). e.g. judicial null & propertystate=NY → 'Y' (judicial state); CA → 'N' (non-judicial) [pool:2351-2353,2432](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2351-2353)
 - 3. `bpms.sync_fcl_stage_info.judicial` — sync pass-through [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 **Rule (full):** `fcl_stage_info.judicial = CASE judicial=1→'Y', 0→'N'`. **Newrez** supplies the loan-level `judicial` flag ([pool:1565](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1565)). **Carrington / Capecodfive** have `judicial=NULL` in the fact ([pool:1606](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1606) / 1647) → **state fallback**: join `basic_data_judicial_config` on the property state and use its judicial value ([pool:2351-2353,](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2351-2353) join [pool:2432](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2432)).
@@ -585,7 +585,7 @@ _Inclusive days elapsed in the stage._
 **Lineage (per hop: # column — rule [code])**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl` · (stage dates) — source 源
-- 3. `port.fcl_stage_info.demand_stage_days` — datediff+1 (inclusive) 见 sql [pool:2040-2076](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2040-2076)
+- 3. `port.fcl_stage_info.demand_stage_days` — days in this stage = datediff(stage_start, COALESCE(next-stage start, today)) + 1 (inclusive). e.g. referral_start=2025-03-07, next stage (first_legal) not reached → datediff(2025-03-07, today)+1. [Source fields] start = this table's {stage}_start_date, end = this table's {stage}_end_date (= next-stage start); DEMAND special-cased to today [pool:2040-2076](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2040-2076)
 - 4. `bpms.sync_fcl_stage_info.demand_stage_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -608,7 +608,7 @@ _Days in the stage overlapping an open LM cycle._
 **Lineage (per hop: # column — rule [code])**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl` · (LM cycle) — source 源
-- 3. `port.fcl_stage_info.demand_in_lm_days` — interval overlap (LM) 见 sql [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
+- 3. `port.fcl_stage_info.demand_in_lm_days` — stage-window ∩ LM-cycle overlap days = datediff(max(stage_start, LM.cycle_opened), min(stage_end, LM.cycle_closed or today)) + 1. [Why +1] datediff only counts midnights crossed (end−start), excluding the start day; an inclusive day-count must include both endpoints, hence +1. e.g. overlap 04-01~05-01, datediff=30 → 30+1 = 31 days (only currently-open LM; 0 if no overlap). [Source fields] stage window = this table's {stage}_start_date/_end_date; LM = ⑯ basic_data_loan_foreclosure_loss_mitigation.cycle_opened_date/cycle_closed_date. [Worked example] 7727003984·demand: window [2025-01-07→curr_date]; of the loan's 5 LM cycles, the one still open and opened within the window is 2025-05-12 → datediff(2025-05-12, curr_date 2026-06-13)+1 = 398 (= DB; a single cell can't pick that specific one) [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
 - 4. `bpms.sync_fcl_stage_info.demand_in_lm_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -628,7 +628,7 @@ _Days in the stage overlapping an open hold._
 **Lineage (per hop: # column — rule [code])**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl.fchold1..3` — source 源
-- 3. `port.fcl_stage_info.demand_on_hold_days` — interval overlap (Hold) 见 sql [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
+- 3. `port.fcl_stage_info.demand_on_hold_days` — stage-window ∩ Hold-interval overlap days = datediff(max(stage_start, hold_start), min(stage_end, hold_end or today)) + 1. [Why +1] datediff counts midnights crossed (end−start), excluding the start day; an inclusive day-count needs both endpoints, hence +1. e.g. overlap 04-10~04-20, datediff=10 → 10+1 = 11 days (0 if no overlap). [Source fields] stage window = this table's {stage}_start_date/_end_date; Hold = ⑮ basic_data_loan_foreclosure_hold.description1_start_date/description1_end_date. [Worked example] 7727000806·referral: window [2025-02-19→curr_date]; of the loan's 5 Hold segments, the one still open and opened within the window is 2025-07-30 → datediff(2025-07-30, curr_date 2026-06-13)+1 = 319 (= DB) [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
 - 4. `bpms.sync_fcl_stage_info.demand_on_hold_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -648,7 +648,7 @@ _Days in the stage overlapping an open LM cycle._
 **Lineage (per hop: # column — rule [code])**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl` · (LM cycle) — source 源
-- 3. `port.fcl_stage_info.noi_in_lm_days` — interval overlap (LM) 见 sql [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
+- 3. `port.fcl_stage_info.noi_in_lm_days` — stage-window ∩ LM-cycle overlap days = datediff(max(stage_start, LM.cycle_opened), min(stage_end, LM.cycle_closed or today)) + 1. [Why +1] datediff only counts midnights crossed (end−start), excluding the start day; an inclusive day-count must include both endpoints, hence +1. e.g. overlap 04-01~05-01, datediff=30 → 30+1 = 31 days (only currently-open LM; 0 if no overlap). [Source fields] stage window = this table's {stage}_start_date/_end_date; LM = ⑯ basic_data_loan_foreclosure_loss_mitigation.cycle_opened_date/cycle_closed_date. [Worked example] 7727003984·demand: window [2025-01-07→curr_date]; of the loan's 5 LM cycles, the one still open and opened within the window is 2025-05-12 → datediff(2025-05-12, curr_date 2026-06-13)+1 = 398 (= DB; a single cell can't pick that specific one) [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
 - 4. `bpms.sync_fcl_stage_info.noi_in_lm_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -668,7 +668,7 @@ _Days in the stage overlapping an open hold._
 **Lineage (per hop: # column — rule [code])**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl.fchold1..3` — source 源
-- 3. `port.fcl_stage_info.noi_on_hold_days` — interval overlap (Hold) 见 sql [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
+- 3. `port.fcl_stage_info.noi_on_hold_days` — stage-window ∩ Hold-interval overlap days = datediff(max(stage_start, hold_start), min(stage_end, hold_end or today)) + 1. [Why +1] datediff counts midnights crossed (end−start), excluding the start day; an inclusive day-count needs both endpoints, hence +1. e.g. overlap 04-10~04-20, datediff=10 → 10+1 = 11 days (0 if no overlap). [Source fields] stage window = this table's {stage}_start_date/_end_date; Hold = ⑮ basic_data_loan_foreclosure_hold.description1_start_date/description1_end_date. [Worked example] 7727000806·referral: window [2025-02-19→curr_date]; of the loan's 5 Hold segments, the one still open and opened within the window is 2025-07-30 → datediff(2025-07-30, curr_date 2026-06-13)+1 = 319 (= DB) [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
 - 4. `bpms.sync_fcl_stage_info.noi_on_hold_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -688,7 +688,7 @@ _Inclusive days elapsed in the stage._
 **Lineage (per hop: # column — rule [code])**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl` · (stage dates) — source 源
-- 3. `port.fcl_stage_info.referral_stage_days` — datediff+1 (inclusive) 见 sql [pool:2040-2076](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2040-2076)
+- 3. `port.fcl_stage_info.referral_stage_days` — days in this stage = datediff(stage_start, COALESCE(next-stage start, today)) + 1 (inclusive). e.g. referral_start=2025-03-07, next stage (first_legal) not reached → datediff(2025-03-07, today)+1. [Source fields] start = this table's {stage}_start_date, end = this table's {stage}_end_date (= next-stage start); DEMAND special-cased to today [pool:2040-2076](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2040-2076)
 - 4. `bpms.sync_fcl_stage_info.referral_stage_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -714,7 +714,7 @@ _Days in the stage overlapping an open LM cycle._
 **Lineage (per hop: # column — rule [code])**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl` · (LM cycle) — source 源
-- 3. `port.fcl_stage_info.referral_in_lm_days` — interval overlap (LM) 见 sql [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
+- 3. `port.fcl_stage_info.referral_in_lm_days` — stage-window ∩ LM-cycle overlap days = datediff(max(stage_start, LM.cycle_opened), min(stage_end, LM.cycle_closed or today)) + 1. [Why +1] datediff only counts midnights crossed (end−start), excluding the start day; an inclusive day-count must include both endpoints, hence +1. e.g. overlap 04-01~05-01, datediff=30 → 30+1 = 31 days (only currently-open LM; 0 if no overlap). [Source fields] stage window = this table's {stage}_start_date/_end_date; LM = ⑯ basic_data_loan_foreclosure_loss_mitigation.cycle_opened_date/cycle_closed_date. [Worked example] 7727003984·demand: window [2025-01-07→curr_date]; of the loan's 5 LM cycles, the one still open and opened within the window is 2025-05-12 → datediff(2025-05-12, curr_date 2026-06-13)+1 = 398 (= DB; a single cell can't pick that specific one) [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
 - 4. `bpms.sync_fcl_stage_info.referral_in_lm_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -734,7 +734,7 @@ _Days in the stage overlapping an open hold._
 **Lineage (per hop: # column — rule [code])**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl.fchold1..3` — source 源
-- 3. `port.fcl_stage_info.referral_on_hold_days` — interval overlap (Hold) 见 sql [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
+- 3. `port.fcl_stage_info.referral_on_hold_days` — stage-window ∩ Hold-interval overlap days = datediff(max(stage_start, hold_start), min(stage_end, hold_end or today)) + 1. [Why +1] datediff counts midnights crossed (end−start), excluding the start day; an inclusive day-count needs both endpoints, hence +1. e.g. overlap 04-10~04-20, datediff=10 → 10+1 = 11 days (0 if no overlap). [Source fields] stage window = this table's {stage}_start_date/_end_date; Hold = ⑮ basic_data_loan_foreclosure_hold.description1_start_date/description1_end_date. [Worked example] 7727000806·referral: window [2025-02-19→curr_date]; of the loan's 5 Hold segments, the one still open and opened within the window is 2025-07-30 → datediff(2025-07-30, curr_date 2026-06-13)+1 = 319 (= DB) [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
 - 4. `bpms.sync_fcl_stage_info.referral_on_hold_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -754,7 +754,7 @@ _Inclusive days elapsed in the stage._
 **Lineage (per hop: # column — rule [code])**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl` · (stage dates) — source 源
-- 3. `port.fcl_stage_info.first_legal_stage_days` — datediff+1 (inclusive) 见 sql [pool:2040-2076](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2040-2076)
+- 3. `port.fcl_stage_info.first_legal_stage_days` — days in this stage = datediff(stage_start, COALESCE(next-stage start, today)) + 1 (inclusive). e.g. referral_start=2025-03-07, next stage (first_legal) not reached → datediff(2025-03-07, today)+1. [Source fields] start = this table's {stage}_start_date, end = this table's {stage}_end_date (= next-stage start); DEMAND special-cased to today [pool:2040-2076](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2040-2076)
 - 4. `bpms.sync_fcl_stage_info.first_legal_stage_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -780,7 +780,7 @@ _Days in the stage overlapping an open LM cycle._
 **Lineage (per hop: # column — rule [code])**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl` · (LM cycle) — source 源
-- 3. `port.fcl_stage_info.first_legal_in_lm_days` — interval overlap (LM) 见 sql [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
+- 3. `port.fcl_stage_info.first_legal_in_lm_days` — stage-window ∩ LM-cycle overlap days = datediff(max(stage_start, LM.cycle_opened), min(stage_end, LM.cycle_closed or today)) + 1. [Why +1] datediff only counts midnights crossed (end−start), excluding the start day; an inclusive day-count must include both endpoints, hence +1. e.g. overlap 04-01~05-01, datediff=30 → 30+1 = 31 days (only currently-open LM; 0 if no overlap). [Source fields] stage window = this table's {stage}_start_date/_end_date; LM = ⑯ basic_data_loan_foreclosure_loss_mitigation.cycle_opened_date/cycle_closed_date. [Worked example] 7727003984·demand: window [2025-01-07→curr_date]; of the loan's 5 LM cycles, the one still open and opened within the window is 2025-05-12 → datediff(2025-05-12, curr_date 2026-06-13)+1 = 398 (= DB; a single cell can't pick that specific one) [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
 - 4. `bpms.sync_fcl_stage_info.first_legal_in_lm_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -800,7 +800,7 @@ _Days in the stage overlapping an open hold._
 **Lineage (per hop: # column — rule [code])**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl.fchold1..3` — source 源
-- 3. `port.fcl_stage_info.first_legal_on_hold_days` — interval overlap (Hold) 见 sql [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
+- 3. `port.fcl_stage_info.first_legal_on_hold_days` — stage-window ∩ Hold-interval overlap days = datediff(max(stage_start, hold_start), min(stage_end, hold_end or today)) + 1. [Why +1] datediff counts midnights crossed (end−start), excluding the start day; an inclusive day-count needs both endpoints, hence +1. e.g. overlap 04-10~04-20, datediff=10 → 10+1 = 11 days (0 if no overlap). [Source fields] stage window = this table's {stage}_start_date/_end_date; Hold = ⑮ basic_data_loan_foreclosure_hold.description1_start_date/description1_end_date. [Worked example] 7727000806·referral: window [2025-02-19→curr_date]; of the loan's 5 Hold segments, the one still open and opened within the window is 2025-07-30 → datediff(2025-07-30, curr_date 2026-06-13)+1 = 319 (= DB) [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
 - 4. `bpms.sync_fcl_stage_info.first_legal_on_hold_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -820,7 +820,7 @@ _Inclusive days elapsed in the stage._
 **Lineage (per hop: # column — rule [code])**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl` · (stage dates) — source 源
-- 3. `port.fcl_stage_info.service_stage_days` — datediff+1 (inclusive) 见 sql [pool:2040-2076](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2040-2076)
+- 3. `port.fcl_stage_info.service_stage_days` — days in this stage = datediff(stage_start, COALESCE(next-stage start, today)) + 1 (inclusive). e.g. referral_start=2025-03-07, next stage (first_legal) not reached → datediff(2025-03-07, today)+1. [Source fields] start = this table's {stage}_start_date, end = this table's {stage}_end_date (= next-stage start); DEMAND special-cased to today [pool:2040-2076](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2040-2076)
 - 4. `bpms.sync_fcl_stage_info.service_stage_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -846,7 +846,7 @@ _Days in the stage overlapping an open LM cycle._
 **Lineage (per hop: # column — rule [code])**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl` · (LM cycle) — source 源
-- 3. `port.fcl_stage_info.service_in_lm_days` — interval overlap (LM) 见 sql [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
+- 3. `port.fcl_stage_info.service_in_lm_days` — stage-window ∩ LM-cycle overlap days = datediff(max(stage_start, LM.cycle_opened), min(stage_end, LM.cycle_closed or today)) + 1. [Why +1] datediff only counts midnights crossed (end−start), excluding the start day; an inclusive day-count must include both endpoints, hence +1. e.g. overlap 04-01~05-01, datediff=30 → 30+1 = 31 days (only currently-open LM; 0 if no overlap). [Source fields] stage window = this table's {stage}_start_date/_end_date; LM = ⑯ basic_data_loan_foreclosure_loss_mitigation.cycle_opened_date/cycle_closed_date. [Worked example] 7727003984·demand: window [2025-01-07→curr_date]; of the loan's 5 LM cycles, the one still open and opened within the window is 2025-05-12 → datediff(2025-05-12, curr_date 2026-06-13)+1 = 398 (= DB; a single cell can't pick that specific one) [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
 - 4. `bpms.sync_fcl_stage_info.service_in_lm_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -866,7 +866,7 @@ _Days in the stage overlapping an open hold._
 **Lineage (per hop: # column — rule [code])**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl.fchold1..3` — source 源
-- 3. `port.fcl_stage_info.service_on_hold_days` — interval overlap (Hold) 见 sql [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
+- 3. `port.fcl_stage_info.service_on_hold_days` — stage-window ∩ Hold-interval overlap days = datediff(max(stage_start, hold_start), min(stage_end, hold_end or today)) + 1. [Why +1] datediff counts midnights crossed (end−start), excluding the start day; an inclusive day-count needs both endpoints, hence +1. e.g. overlap 04-10~04-20, datediff=10 → 10+1 = 11 days (0 if no overlap). [Source fields] stage window = this table's {stage}_start_date/_end_date; Hold = ⑮ basic_data_loan_foreclosure_hold.description1_start_date/description1_end_date. [Worked example] 7727000806·referral: window [2025-02-19→curr_date]; of the loan's 5 Hold segments, the one still open and opened within the window is 2025-07-30 → datediff(2025-07-30, curr_date 2026-06-13)+1 = 319 (= DB) [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
 - 4. `bpms.sync_fcl_stage_info.service_on_hold_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -886,7 +886,7 @@ _Days in the stage overlapping an open LM cycle._
 **Lineage (per hop: # column — rule [code])**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl` · (LM cycle) — source 源
-- 3. `port.fcl_stage_info.publication_in_lm_days` — interval overlap (LM) 见 sql [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
+- 3. `port.fcl_stage_info.publication_in_lm_days` — stage-window ∩ LM-cycle overlap days = datediff(max(stage_start, LM.cycle_opened), min(stage_end, LM.cycle_closed or today)) + 1. [Why +1] datediff only counts midnights crossed (end−start), excluding the start day; an inclusive day-count must include both endpoints, hence +1. e.g. overlap 04-01~05-01, datediff=30 → 30+1 = 31 days (only currently-open LM; 0 if no overlap). [Source fields] stage window = this table's {stage}_start_date/_end_date; LM = ⑯ basic_data_loan_foreclosure_loss_mitigation.cycle_opened_date/cycle_closed_date. [Worked example] 7727003984·demand: window [2025-01-07→curr_date]; of the loan's 5 LM cycles, the one still open and opened within the window is 2025-05-12 → datediff(2025-05-12, curr_date 2026-06-13)+1 = 398 (= DB; a single cell can't pick that specific one) [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
 - 4. `bpms.sync_fcl_stage_info.publication_in_lm_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -906,7 +906,7 @@ _Days in the stage overlapping an open hold._
 **Lineage (per hop: # column — rule [code])**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl.fchold1..3` — source 源
-- 3. `port.fcl_stage_info.publication_on_hold_days` — interval overlap (Hold) 见 sql [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
+- 3. `port.fcl_stage_info.publication_on_hold_days` — stage-window ∩ Hold-interval overlap days = datediff(max(stage_start, hold_start), min(stage_end, hold_end or today)) + 1. [Why +1] datediff counts midnights crossed (end−start), excluding the start day; an inclusive day-count needs both endpoints, hence +1. e.g. overlap 04-10~04-20, datediff=10 → 10+1 = 11 days (0 if no overlap). [Source fields] stage window = this table's {stage}_start_date/_end_date; Hold = ⑮ basic_data_loan_foreclosure_hold.description1_start_date/description1_end_date. [Worked example] 7727000806·referral: window [2025-02-19→curr_date]; of the loan's 5 Hold segments, the one still open and opened within the window is 2025-07-30 → datediff(2025-07-30, curr_date 2026-06-13)+1 = 319 (= DB) [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
 - 4. `bpms.sync_fcl_stage_info.publication_on_hold_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -926,7 +926,7 @@ _Forward countdown to the scheduled judgement/sale._
 **Lineage (per hop: # column — rule [code])**
 - 1. `newrez.portnewrezfc.fcjudgmenthearingscheduled` — servicer raw 原始
 - 2. `port.basic_data_loan_fcl.fcjudgment_hearing_scheduled` — source 源
-- 3. `port.fcl_stage_info.to_judgement_days` — countdown to judgement: future⇒datediff(curr_date, date) (no +1), past⇒0, none⇒NULL [pool:2085-2087,2388](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2085-2087)
+- 3. `port.fcl_stage_info.to_judgement_days` — countdown to judgement: judgement_start_date (scheduled hearing) in the future ⇒ datediff(today, judgement_start_date) (no +1); past ⇒ 0; none ⇒ NULL. [Source field] this table's judgement_start_date. e.g. judgement_start=2026-08-21, today 2026-06-14 → 68 days left [pool:2085-2087,2388](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2085-2087)
 - 4. `bpms.sync_fcl_stage_info.to_judgement_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -946,7 +946,7 @@ _Days in the stage overlapping an open LM cycle._
 **Lineage (per hop: # column — rule [code])**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl` · (LM cycle) — source 源
-- 3. `port.fcl_stage_info.judgement_in_lm_days` — interval overlap (LM) 见 sql [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
+- 3. `port.fcl_stage_info.judgement_in_lm_days` — stage-window ∩ LM-cycle overlap days = datediff(max(stage_start, LM.cycle_opened), min(stage_end, LM.cycle_closed or today)) + 1. [Why +1] datediff only counts midnights crossed (end−start), excluding the start day; an inclusive day-count must include both endpoints, hence +1. e.g. overlap 04-01~05-01, datediff=30 → 30+1 = 31 days (only currently-open LM; 0 if no overlap). [Source fields] stage window = this table's {stage}_start_date/_end_date; LM = ⑯ basic_data_loan_foreclosure_loss_mitigation.cycle_opened_date/cycle_closed_date. [Worked example] 7727003984·demand: window [2025-01-07→curr_date]; of the loan's 5 LM cycles, the one still open and opened within the window is 2025-05-12 → datediff(2025-05-12, curr_date 2026-06-13)+1 = 398 (= DB; a single cell can't pick that specific one) [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
 - 4. `bpms.sync_fcl_stage_info.judgement_in_lm_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -966,7 +966,7 @@ _Days in the stage overlapping an open hold._
 **Lineage (per hop: # column — rule [code])**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl.fchold1..3` — source 源
-- 3. `port.fcl_stage_info.judgement_on_hold_days` — interval overlap (Hold) 见 sql [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
+- 3. `port.fcl_stage_info.judgement_on_hold_days` — stage-window ∩ Hold-interval overlap days = datediff(max(stage_start, hold_start), min(stage_end, hold_end or today)) + 1. [Why +1] datediff counts midnights crossed (end−start), excluding the start day; an inclusive day-count needs both endpoints, hence +1. e.g. overlap 04-10~04-20, datediff=10 → 10+1 = 11 days (0 if no overlap). [Source fields] stage window = this table's {stage}_start_date/_end_date; Hold = ⑮ basic_data_loan_foreclosure_hold.description1_start_date/description1_end_date. [Worked example] 7727000806·referral: window [2025-02-19→curr_date]; of the loan's 5 Hold segments, the one still open and opened within the window is 2025-07-30 → datediff(2025-07-30, curr_date 2026-06-13)+1 = 319 (= DB) [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
 - 4. `bpms.sync_fcl_stage_info.judgement_on_hold_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -986,7 +986,7 @@ _Forward countdown to the scheduled judgement/sale._
 **Lineage (per hop: # column — rule [code])**
 - 1. `newrez.portnewrezfc.fcscheduledsaledate` — servicer raw 原始
 - 2. `port.basic_data_loan_fcl.fcscheduled_sale_date` — source 源
-- 3. `port.fcl_stage_info.to_sale_days` — countdown to sale: future⇒datediff(curr_date, date) (no +1), past⇒0, none⇒NULL [pool:2091-2093,2393](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2091-2093)
+- 3. `port.fcl_stage_info.to_sale_days` — countdown to sale: sale_start_date (scheduled sale) in the future ⇒ datediff(today, sale_start_date) (no +1); past ⇒ 0; none ⇒ NULL. [Source field] this table's sale_start_date. e.g. sale_start=2026-07-01, today 2026-06-14 → 17 days left [pool:2091-2093,2393](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2091-2093)
 - 4. `bpms.sync_fcl_stage_info.to_sale_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -1006,7 +1006,7 @@ _Days in the stage overlapping an open LM cycle._
 **Lineage (per hop: # column — rule [code])**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl` · (LM cycle) — source 源
-- 3. `port.fcl_stage_info.sale_in_lm_days` — interval overlap (LM) 见 sql [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
+- 3. `port.fcl_stage_info.sale_in_lm_days` — stage-window ∩ LM-cycle overlap days = datediff(max(stage_start, LM.cycle_opened), min(stage_end, LM.cycle_closed or today)) + 1. [Why +1] datediff only counts midnights crossed (end−start), excluding the start day; an inclusive day-count must include both endpoints, hence +1. e.g. overlap 04-01~05-01, datediff=30 → 30+1 = 31 days (only currently-open LM; 0 if no overlap). [Source fields] stage window = this table's {stage}_start_date/_end_date; LM = ⑯ basic_data_loan_foreclosure_loss_mitigation.cycle_opened_date/cycle_closed_date. [Worked example] 7727003984·demand: window [2025-01-07→curr_date]; of the loan's 5 LM cycles, the one still open and opened within the window is 2025-05-12 → datediff(2025-05-12, curr_date 2026-06-13)+1 = 398 (= DB; a single cell can't pick that specific one) [pool:2246-2330](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2246-2330)
 - 4. `bpms.sync_fcl_stage_info.sale_in_lm_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql
@@ -1026,7 +1026,7 @@ _Days in the stage overlapping an open hold._
 **Lineage (per hop: # column — rule [code])**
 - 1. `newrez.portnewrezfc` — —
 - 2. `port.basic_data_loan_fcl.fchold1..3` — source 源
-- 3. `port.fcl_stage_info.sale_on_hold_days` — interval overlap (Hold) 见 sql [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
+- 3. `port.fcl_stage_info.sale_on_hold_days` — stage-window ∩ Hold-interval overlap days = datediff(max(stage_start, hold_start), min(stage_end, hold_end or today)) + 1. [Why +1] datediff counts midnights crossed (end−start), excluding the start day; an inclusive day-count needs both endpoints, hence +1. e.g. overlap 04-10~04-20, datediff=10 → 10+1 = 11 days (0 if no overlap). [Source fields] stage window = this table's {stage}_start_date/_end_date; Hold = ⑮ basic_data_loan_foreclosure_hold.description1_start_date/description1_end_date. [Worked example] 7727000806·referral: window [2025-02-19→curr_date]; of the loan's 5 Hold segments, the one still open and opened within the window is 2025-07-30 → datediff(2025-07-30, curr_date 2026-06-13)+1 = 319 (= DB) [pool:2215-2297](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L2215-2297)
 - 4. `bpms.sync_fcl_stage_info.sale_on_hold_days` — sync passthrough [asset:925](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/bps/bps_config/asset_managment_config.py#L925)
 
 ```sql

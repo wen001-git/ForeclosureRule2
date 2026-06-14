@@ -61,5 +61,31 @@ With a minimal DOM stub in Node: `renderKG()` emits `<svg>`, **232 visible nodes
 
 ---
 
+## 3 · Phase 3: ③④ L1 sources + ㉔ decode dictionary (added 2026-06-14)
+
+### TC-P3.1 ③④ bk/lm L1 source sheets
+Added **③ src·portnewrezbk** (60 fields) and **④ src·portnewrezlm** (56 fields), rendered like ② (is_src: fields + business meaning + source/type + 25 per-loan example columns; L1 raw has no upstream so no formula columns). A sub-agent pulled the data read-only into `fcl_layer_examples_phase3.json`: `information_schema` confirms 0 missing columns; 20/25 sample loans have rows (the 5 Carrington loans have no Newrez bk/lm row → ∅NULL); multi-row tables use the representative latest row (bk = latest bkfileddate, lm = latest dealstartdate). Real values verified in-sheet (e.g. 7727000065 Ch7, 7727003984 Ch13).
+
+### TC-P3.2 ㉔ decode-dictionary sheet + Schema-Verify correction (Code-First)
+Added **㉔ dic·portnewrezdatadic**, a custom decode-dictionary sheet (not per-loan; long format field_name/code/description): **12 categories, 140 rows** code→text (BKStatus/BKStage/BorrowerIntention/Judicial/LMDeal/LMDecision/LegalStatus/LiquidationType/MBADelinquency/ForbearanceStatus/RepaymentStatus/TrialStatus); large categories LMStatus(149)/LMProgram(388)/DenialReason(130)/ModType(387) flagged as not fully listed.
+**Correction**: the ETL ([pool:367](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L367) BK / [pool:835-840](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L835-840) LM) `LEFT JOIN newrez.portnewrezdatadic WHERE field_name=...`. The sub-agent's mysql_prod check reported the table missing (only the wide `newrezdatadic`, no LM/BK); a Code-First recheck + direct `redshift_prod` query found the long table lives **only in Redshift** with all LM/BK categories — the correct dict was pulled from there and the ㉔ table-meta business_meaning corrected (was wrongly "8 columns").
+
+### TC-P3.3 Ordering + recalc
+Per-table sheets reordered to **ascending circled-number** (user feedback: easier to find by number): ② ②c ③ ④ ⑨ ⑩ ⑪ ⑬ ⑮ ⑯ ⑰ ⑱ ⑲ ⑳ ㉑ ㉒ ㉓ ㉔. 25 → **28 sheets**. Real Excel COM `CalculateFull`: **28 sheets, 0 formula errors** (③④ is_src have no formulas; ㉔ is plain text; main+Phase2 formulas unchanged); content-level idempotent. Still without a detail sheet: ⑤⑥⑦⑧⑫⑭.
+
+## 4 · Phase 4: ⑤⑥ L1 sources + ⑫ basic_data_fcl_related (added 2026-06-14)
+
+### TC-P4.1 ⑤⑥⑫ sheets
+Added **⑤ src·portnewrezgeneral** (125 fields), **⑥ src·portnewrezprop** (32 fields) (is_src: fields + business meaning + source/type + 25 example columns) + **⑫ mid·fcl_related** (14 fields, non-src: also has the calc-logic column + per-servicer 🧮 formula columns). doc 32 grew 28 → **31 sheets**. Detail tabs remain ascending-by-number: ② ②c ③ ④ ⑤ ⑥ ⑨ ⑩ ⑪ ⑫ ⑬ ⑮ ⑯ ⑰ ⑱ ⑲ ⑳ ㉑ ㉒ ㉓ ㉔ (test T2 ascending = True, 21 detail sheets).
+
+### TC-P4.2 Data pull + schema-verify
+Sub-agent read-only pull → `fcl_layer_examples_phase4.json`: ⑤ general (mysql_prod, 125 cols, 20/25 loans), ⑥ prop (mysql_prod, 32 cols, 20/25), ⑫ fcl_related (redshift_prod, 14 cols, 25/25). `information_schema`: **0 missing columns** on all three. The 5 Carrington loans are absent from ⑤⑥ (Newrez tables) → omitted; ⑫ is cross-servicer so all 25 present. Verified ⑥ `propertystate` = CA/AZ/FL…; ⑫ `delq_status` observed values C/D30/D120P/FCL/P/REO.
+
+### TC-P4.3 ⑫ calc logic + per-servicer live formulas
+Added `field_rule` for ⑫'s 14 fields (Code-First from `CREATE_FCL_RELATE_ATTR` [pool:1697-1770](https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/32a750a39c7eda989de991c47467979043e3d209/flow/basic_data/basic_data_config/basic_data_pool_config.py#L1697-1770)). ⑫ Newrez derived fields' 🧮 = **live upstream refs**: `propertystate`=`='⑥ src·portnewrezprop'!…`, `isloanlitigated/deactreason/reasonfordefault/inauctionflag`→⑤, `bk_flag`→`='③ src·portnewrezbk'!…` (activebkflag), `servicer`=constant, `delq_status`=CASE (note — the delinquency class, i.e. the `r` source of ⑬'s group). Carrington-branch source columns (litigation_type/property_state/bk_flag…) are not in ②c → honest note. Test T4: ⑫ has 8 cross-sheet formula refs, **0 dangling** (all point to existing ③⑤⑥ sheets).
+
+### TC-P4.4 Recalc + idempotency
+Real Excel COM `CalculateFull`: all **31 sheets, 0 formula errors** (incl. ⑫'s new passthrough refs to ⑤⑥③); formula count 677→**703**; content-level idempotent. Still without a detail sheet: ⑦⑧ (delinquency-branch L2/L3), ⑭ (portfunding dimension).
+
 ## Conclusion
-**Both Phase 2 and the Knowledge Graph PASS.** doc 32 now has 25 sheets, 677 live formulas, real-Excel 0 errors, idempotent; each of the four chains carries fields / calc logic / per-layer examples / per-servicer formulas. The knowledge graph has 386 nodes, 963 edges, 1 connected component, 498 cross-dimension edges; the HTML 6th view has 0 JS syntax errors and passes runtime execution. All DB and code access was read-only; nothing committed.
+**Phase 2, the Knowledge Graph, Phase 3, and Phase 4 all PASS.** doc 32 now has 25 sheets, 677 live formulas, real-Excel 0 errors, idempotent; each of the four chains carries fields / calc logic / per-layer examples / per-servicer formulas. The knowledge graph has 386 nodes, 963 edges, 1 connected component, 498 cross-dimension edges; the HTML 6th view has 0 JS syntax errors and passes runtime execution. All DB and code access was read-only; nothing committed.
