@@ -3713,3 +3713,18 @@ basic_data_fcl_related 由 portnewrezgeneral.delinquency_status_mba 映射成 de
 ## [2026-06-14 UTC] doc 32 ⑬ 公式列(E/F) 改为「数据代入·分步运算」工作示例
 > 你改了吗？没改啊，公式列还是没有拿实际数据来运算啊，如果你不能用excel公式，也可以用语言或者数学公式把这个公式代入数据描述出来吧？
 > 如果不能用excel公式实现，你就用计算cell需要用到的数据，在cell中把逻辑描述出来，分步骤运算出来，用语言描述，也可以用数学公式描述
+
+## [2026-06-14 UTC] 圈号表编号(⑯等)加悬停提示 + 答 JSON 与 HTML 关系
+> 加上这个悬停提示，界面上还有同样的问题吗？另外这些 json 文件是 html 的相关文件还是 html 独立？
+
+### 完成: 圈号→表名 悬停提示（仅表引用语境）[2026-06-14]
+- ⑯ = port.basic_data_loan_foreclosure_loss_mitigation（pipeline 表序号，来自 fcl_table_meta.num；doc32/管道/Excel 通用约定）。⑫=fcl_related、㉔=datadic 等。
+- 实现：circMap()（从 FTMETA 单字符 num 建 圈号→表名 映射）+ decoCirc(escd)（把已转义文本里的圈号包成 `<span class="circref" title="表名（全路径）">`）。应用于 ruleHtml(主句+详解段)、sql_note、sql_eg、flow 表抽屉 sec()。
+- **关键纠错**：圈号是「重载」的——GLIN rule/FTMETA 文本里=表序号(⑯)，但 BPS_STAGE_INFO/业务科普里 ①②③=运营阶段序号。故 decoCirc **只**作用于表引用语境，**不碰**阶段标题（验证 primer 视图 0 个 circref）。
+- 「还有同样问题吗」答：是，FTMETA 表抽屉的 pipeline_role/why_pipeline/when_to_query/note 也含表圈号 → 一并加 tooltip（flow 抽屉实测 8 个 circref）。
+- 验证(Preview)：⑯ 悬停显示「basic_data_loan_foreclosure_loss_mitigation（port.…）」；primer 阶段号不受影响；7 视图 0 报错。DB/代码只读。**LOCAL，未 push。**
+
+### 记录: JSON 与 HTML 的关系（答疑）
+- HTML 运行时**自包含/独立**（无 fetch/.json）——所有数据通过 3 个标记块内嵌：GLIN/FTMETA/KG。
+- **直接内嵌（改后须重跑 inject）**：fcl_lineage_source.json→GLIN、fcl_table_meta.json→FTMETA、fcl_knowledge_graph.json→KG。
+- **间接构建输入（喂上述或喂 docs/Excel，不内嵌）**：datadic_decode/meanings（撰写 GLIN values + doc32）、kg_analysis/business/panels（构建 KG）、layer_examples*/field_meanings/field_rules_extra/formula_demos/minihist_demos/logic_coverage（docs/分析）。

@@ -166,6 +166,7 @@
   .ruleseg{margin:4px 0 0 4px;padding:2px 0 2px 8px;border-left:2px solid var(--border);line-height:1.55;font-size:10px;color:#a7b4c4}
   .ruleseg .rsl{color:var(--accent2);font-weight:600;margin-right:4px}
   .ruleseg .rwarn{color:#e8a33d}
+  .circref{border-bottom:1px dotted var(--muted);cursor:help;color:var(--accent2)}
   .gsearch.nomatch{border-color:var(--bps);animation:gshake .35s}
   @keyframes gshake{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
   .gtoolbar button{background:var(--panel);border:1px solid var(--border);color:var(--txt);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px}
@@ -955,7 +956,7 @@ function flowSelectNode(id){
   let h;
   if(m){
     const full=_glDbName(key)+'.'+key;
-    const sec=(tt,v)=> v?`<div class="sec"><h3>${tt}</h3><div class="kv">${esc(v)}</div></div>`:'';
+    const sec=(tt,v)=> v?`<div class="sec"><h3>${tt}</h3><div class="kv">${decoCirc(esc(v))}</div></div>`:'';
     const lst=(tt,a)=> (a&&a.length)?`<div class="sec"><h3>${tt}</h3><div class="lin">${a.map(x=>`<code>${esc(x)}</code>`).join('<br>')}</div></div>`:'';
     const asof=/fctrdt/.test(m.grain||'')?'fctrdt':(/dataasof/.test(m.grain||'')?'dataasof':null);
     const sql=`SELECT * FROM ${key} ${asof?`WHERE ${asof}=(SELECT MAX(${asof}) FROM ${key}) `:''}LIMIT 50;`;
@@ -2182,12 +2183,22 @@ function fmtRuleSegments(rule){
   const segs=marks.map((mk,i)=>({label:mk.label, body:s.slice(mk.end,(i+1<marks.length)?marks[i+1].start:s.length).trim()}));
   return {head,segs};
 }
+// 圈号表编号（①②…⑯㉔）→ 表名 悬停提示：圈号是 doc 32 / 管道视图 / Excel 的表序号，在血缘抽屉里加 title 让它自解释
+let _CIRCMAP=null;
+function circMap(){ if(_CIRCMAP) return _CIRCMAP; _CIRCMAP={};
+  try{ Object.keys(FTMETA||{}).forEach(function(tn){ const m=FTMETA[tn]; const num=m&&m.num;
+    if(num && [...(''+num)].length===1 && !_CIRCMAP[num]) _CIRCMAP[num]=tn; }); }catch(_){}
+  return _CIRCMAP; }
+const _CIRCRE=/[①-⓿㉐-㊿]/g;   // enclosed alphanumerics + CJK enclosed
+function decoCirc(escd){ if(!escd) return escd; const map=circMap();
+  return (''+escd).replace(_CIRCRE, function(ch){ const tn=map[ch]; if(!tn) return ch;
+    return `<span class="circref" title="${esc(tn.split('.').pop()+'（'+tn+'）')}">${ch}</span>`; }); }
 function ruleHtml(rule){
   const {head,segs}=fmtRuleSegments(rule);
-  let h=`<code>${esc(head||((rule==null?'':rule)+''))}</code>`;
+  let h=`<code>${decoCirc(esc(head||((rule==null?'':rule)+'')))}</code>`;
   if(segs.length){ const zh=lang==='zh';
     h+=`<details class="ruledet"><summary>${zh?'详解':'details'} (${segs.length})</summary>`
-      + segs.map(g=>`<div class="ruleseg"><span class="rsl">${esc(g.label)}</span>${esc(g.body).replace(/⚠️?/g,'<br><span class="rwarn">⚠️</span> ')}</div>`).join('')
+      + segs.map(g=>`<div class="ruleseg"><span class="rsl">${esc(g.label)}</span>${decoCirc(esc(g.body)).replace(/⚠️?/g,'<br><span class="rwarn">⚠️</span> ')}</div>`).join('')
       + `</details>`; }
   return h;
 }
@@ -2265,8 +2276,8 @@ function glinExtra(f,withSvg){
     +`<table class="mini"><tr><th>${L({zh:'表.列',en:'table.column'})}</th><th>rule</th><th>code</th></tr>`
     +(f.hops||[]).map(hp=>{const rp=rulePlain(hp.rule);return `<tr><td>${hopCol(hp.t,hp.c)}</td><td>${ruleHtml(hp.rule)}`+(rp?`<div class="rplain">💡 ${L(rp)}${rp.formula?` · <span class="rformula">${esc(rp.formula)}</span>`:''}</div>`:'')+`</td><td style="color:var(--muted)">${glinCodeCell(hp.code)}</td></tr>`;}).join('')+`</table>`+glinCodeLegend()+`</div>`;
   if(f.sql) h+=`<div class="sec"><h3>${L({zh:'取数 SQL（doc 25–31）',en:'Fetch SQL (doc 25–31)'})}</h3><div class="sqlwrap"><button class="copy" onclick="copySql(this)">${t('copy')}</button><pre>${esc(f.sql)}</pre></div></div>`;
-  if(f.sql_note) h+=`<div class="sec"><h3>${L({zh:'规则说明',en:'Rule note'})}</h3><div class="kv" style="white-space:pre-wrap">${L(f.sql_note)}</div></div>`;
-  if(f.sql_eg) h+=`<div class="sec"><h3>${L({zh:'实测样例',en:'Worked example'})}</h3><div class="kv" style="white-space:pre-wrap">${L(f.sql_eg)}</div></div>`;
+  if(f.sql_note) h+=`<div class="sec"><h3>${L({zh:'规则说明',en:'Rule note'})}</h3><div class="kv" style="white-space:pre-wrap">${decoCirc(esc(L(f.sql_note)))}</div></div>`;
+  if(f.sql_eg) h+=`<div class="sec"><h3>${L({zh:'实测样例',en:'Worked example'})}</h3><div class="kv" style="white-space:pre-wrap">${decoCirc(esc(L(f.sql_eg)))}</div></div>`;
   if(f.servicers) h+=`<div class="sec"><h3>${L({zh:'各 Servicer 来源',en:'Per-servicer source'})}</h3><div class="kv" style="font-size:11px">Newrez: <code>${esc(f.servicers.Newrez||'—')}</code><br>Carrington: <code>${esc(f.servicers.Carrington||'—')}</code><br>Capecodfive: <code>${esc(f.servicers.Capecodfive||'—')}</code></div></div>`;
   return h;
 }
