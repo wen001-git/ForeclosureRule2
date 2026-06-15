@@ -1,0 +1,198 @@
+{
+ "7727003984": {
+  "demand_in_lm_days": {
+   "text": "数据代入分步：①窗口=[催告(DEMAND)起 2025-01-07 → curr 快照日 2026-06-13]｜②本笔 open LM「Document Follow-up」(未关闭)开于窗口内=2025-05-12(见⑯)｜③重叠起=greatest(2025-01-07,2025-05-12)=2025-05-12｜④重叠止=least(2026-06-13,curr 2026-06-13)=2026-06-13｜⑤datediff(2025-05-12,2026-06-13)+1 = 398（=DB实测，举例列同值）",
+   "db": "398",
+   "computed": 398,
+   "ok": true
+  },
+  "demand_on_hold_days": {
+   "text": "数据代入分步：①窗口=[催告(DEMAND)起 2025-01-07 → curr 快照日 2026-06-13]｜②本笔 open Hold「Bankruptcy Filed」(未关闭)开于窗口内=2026-02-27(见⑮)｜③重叠起=greatest(2025-01-07,2026-02-27)=2026-02-27｜④重叠止=least(2026-06-13,curr 2026-06-13)=2026-06-13｜⑤datediff(2026-02-27,2026-06-13)+1 = 107（=DB实测，举例列同值）",
+   "db": "107",
+   "computed": 107,
+   "ok": true
+  },
+  "noi_in_lm_days": {
+   "text": "∅NULL：本笔未进入NOI阶段（noi_start_date 为空）",
+   "db": "∅NULL",
+   "computed": "∅NULL",
+   "ok": true
+  },
+  "noi_on_hold_days": {
+   "text": "∅NULL：本笔未进入NOI阶段（noi_start_date 为空）",
+   "db": "∅NULL",
+   "computed": "∅NULL",
+   "ok": true
+  },
+  "referral_in_lm_days": {
+   "text": "∅NULL：本笔 open LM 周期 开于 2025-05-12，落在本阶段窗口[2025-03-07→2025-04-15]窗口后",
+   "db": "∅NULL",
+   "computed": "∅NULL",
+   "ok": true
+  },
+  "referral_on_hold_days": {
+   "text": "∅NULL：本笔 open Hold 段 开于 2026-02-27，落在本阶段窗口[2025-03-07→2025-04-15]窗口后",
+   "db": "∅NULL",
+   "computed": "∅NULL",
+   "ok": true
+  },
+  "first_legal_in_lm_days": {
+   "text": "数据代入分步：①窗口=[首次法律(FIRST_LEGAL)起 2025-04-15 → curr 快照日 2026-06-13]｜②本笔 open LM「Document Follow-up」(未关闭)开于窗口内=2025-05-12(见⑯)｜③重叠起=greatest(2025-04-15,2025-05-12)=2025-05-12｜④重叠止=least(2026-06-13,curr 2026-06-13)=2026-06-13｜⑤datediff(2025-05-12,2026-06-13)+1 = 398（=DB实测，举例列同值）",
+   "db": "398",
+   "computed": 398,
+   "ok": true
+  },
+  "first_legal_on_hold_days": {
+   "text": "数据代入分步：①窗口=[首次法律(FIRST_LEGAL)起 2025-04-15 → curr 快照日 2026-06-13]｜②本笔 open Hold「Bankruptcy Filed」(未关闭)开于窗口内=2026-02-27(见⑮)｜③重叠起=greatest(2025-04-15,2026-02-27)=2026-02-27｜④重叠止=least(2026-06-13,curr 2026-06-13)=2026-06-13｜⑤datediff(2026-02-27,2026-06-13)+1 = 107（=DB实测，举例列同值）",
+   "db": "107",
+   "computed": 107,
+   "ok": true
+  },
+  "service_in_lm_days": {
+   "text": "∅NULL：本笔未进入送达(SERVICE)阶段（service_start_date 为空）",
+   "db": "∅NULL",
+   "computed": "∅NULL",
+   "ok": true
+  },
+  "service_on_hold_days": {
+   "text": "∅NULL：本笔未进入送达(SERVICE)阶段（service_start_date 为空）",
+   "db": "∅NULL",
+   "computed": "∅NULL",
+   "ok": true
+  },
+  "publication_in_lm_days": {
+   "text": "∅NULL：本笔未进入公告(PUBLICATION)阶段（publication_start_date 为空）",
+   "db": "∅NULL",
+   "computed": "∅NULL",
+   "ok": true
+  },
+  "publication_on_hold_days": {
+   "text": "∅NULL：本笔未进入公告(PUBLICATION)阶段（publication_start_date 为空）",
+   "db": "∅NULL",
+   "computed": "∅NULL",
+   "ok": true
+  },
+  "judgement_in_lm_days": {
+   "text": "∅NULL：本笔未进入判决(JUDGEMENT)阶段（judgement_start_date 为空）",
+   "db": "∅NULL",
+   "computed": "∅NULL",
+   "ok": true
+  },
+  "judgement_on_hold_days": {
+   "text": "∅NULL：本笔未进入判决(JUDGEMENT)阶段（judgement_start_date 为空）",
+   "db": "∅NULL",
+   "computed": "∅NULL",
+   "ok": true
+  },
+  "sale_in_lm_days": {
+   "text": "∅NULL：本阶段起 2026-06-30（计划日，晚于 curr 快照日 2026-06-13）→ 阶段尚未实际开始，无 open LM 周期 落入",
+   "db": "∅NULL",
+   "computed": "∅NULL",
+   "ok": true
+  },
+  "sale_on_hold_days": {
+   "text": "∅NULL：本阶段起 2026-06-30（计划日，晚于 curr 快照日 2026-06-13）→ 阶段尚未实际开始，无 open Hold 段 落入",
+   "db": "∅NULL",
+   "computed": "∅NULL",
+   "ok": true
+  }
+ },
+ "7727000806": {
+  "demand_in_lm_days": {
+   "text": "∅NULL：本笔未进入催告(DEMAND)阶段（demand_start_date 为空）",
+   "db": "∅NULL",
+   "computed": "∅NULL",
+   "ok": true
+  },
+  "demand_on_hold_days": {
+   "text": "∅NULL：本笔未进入催告(DEMAND)阶段（demand_start_date 为空）",
+   "db": "∅NULL",
+   "computed": "∅NULL",
+   "ok": true
+  },
+  "noi_in_lm_days": {
+   "text": "∅NULL：本笔未进入NOI阶段（noi_start_date 为空）",
+   "db": "∅NULL",
+   "computed": "∅NULL",
+   "ok": true
+  },
+  "noi_on_hold_days": {
+   "text": "∅NULL：本笔未进入NOI阶段（noi_start_date 为空）",
+   "db": "∅NULL",
+   "computed": "∅NULL",
+   "ok": true
+  },
+  "referral_in_lm_days": {
+   "text": "∅NULL：本笔无 open（未关闭）的LM 周期",
+   "db": "∅NULL",
+   "computed": "∅NULL",
+   "ok": true
+  },
+  "referral_on_hold_days": {
+   "text": "数据代入分步：①窗口=[转介(REFERRAL)起 2025-02-19 → curr 快照日 2026-06-13]｜②本笔 open Hold(未关闭)开于窗口内=2025-07-30(见⑮)｜③重叠起=greatest(2025-02-19,2025-07-30)=2025-07-30｜④重叠止=least(2026-06-13,curr 2026-06-13)=2026-06-13｜⑤datediff(2025-07-30,2026-06-13)+1 = 319（=DB实测，举例列同值）",
+   "db": "319",
+   "computed": 319,
+   "ok": true
+  },
+  "first_legal_in_lm_days": {
+   "text": "∅NULL：本笔未进入首次法律(FIRST_LEGAL)阶段（first_legal_start_date 为空）",
+   "db": "∅NULL",
+   "computed": "∅NULL",
+   "ok": true
+  },
+  "first_legal_on_hold_days": {
+   "text": "∅NULL：本笔未进入首次法律(FIRST_LEGAL)阶段（first_legal_start_date 为空）",
+   "db": "∅NULL",
+   "computed": "∅NULL",
+   "ok": true
+  },
+  "service_in_lm_days": {
+   "text": "∅NULL：本笔未进入送达(SERVICE)阶段（service_start_date 为空）",
+   "db": "∅NULL",
+   "computed": "∅NULL",
+   "ok": true
+  },
+  "service_on_hold_days": {
+   "text": "∅NULL：本笔未进入送达(SERVICE)阶段（service_start_date 为空）",
+   "db": "∅NULL",
+   "computed": "∅NULL",
+   "ok": true
+  },
+  "publication_in_lm_days": {
+   "text": "∅NULL：本笔未进入公告(PUBLICATION)阶段（publication_start_date 为空）",
+   "db": "∅NULL",
+   "computed": "∅NULL",
+   "ok": true
+  },
+  "publication_on_hold_days": {
+   "text": "∅NULL：本笔未进入公告(PUBLICATION)阶段（publication_start_date 为空）",
+   "db": "∅NULL",
+   "computed": "∅NULL",
+   "ok": true
+  },
+  "judgement_in_lm_days": {
+   "text": "∅NULL：本笔未进入判决(JUDGEMENT)阶段（judgement_start_date 为空）",
+   "db": "∅NULL",
+   "computed": "∅NULL",
+   "ok": true
+  },
+  "judgement_on_hold_days": {
+   "text": "∅NULL：本笔未进入判决(JUDGEMENT)阶段（judgement_start_date 为空）",
+   "db": "∅NULL",
+   "computed": "∅NULL",
+   "ok": true
+  },
+  "sale_in_lm_days": {
+   "text": "∅NULL：本笔未进入拍卖(SALE)阶段（sale_start_date 为空）",
+   "db": "∅NULL",
+   "computed": "∅NULL",
+   "ok": true
+  },
+  "sale_on_hold_days": {
+   "text": "∅NULL：本笔未进入拍卖(SALE)阶段（sale_start_date 为空）",
+   "db": "∅NULL",
+   "computed": "∅NULL",
+   "ok": true
+  }
+ }
+}

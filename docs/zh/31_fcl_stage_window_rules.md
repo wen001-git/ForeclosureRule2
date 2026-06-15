@@ -29,11 +29,11 @@
 - `port.basic_data_loan_foreclosure_loss_mitigation` 提供 LM 周期（cycle_opened_date / cycle_closed_date）。
 - `tempfc.current_fcl_hold_temp`（运行时临时表）提供 Hold 区间（hold_start_dt / hold_end_dt / hold_stage）。
 - `tempfc.current_date_new_york.curr_date` 提供 ETL 运行日（NY 时区）。
-- `tempfc.current_fcl_business_2_temp` 提供长格式的 `(loanid, stage, stage_start_dt, stage_end_dt)`，是 in_lm/on_hold 计算的左表。**注**：该表的 stage_end_dt 在某些 stage 上可能与 `business_1.<X>_end_date` 不完全一致（见 §8 Open Question）。
+- `tempfc.current_fcl_business_2_temp` 提供长格式的 `(loanid, stage, stage_start_dt, stage_end_dt)`，是 in_lm/on_hold 计算的左表。**注**：该表的 stage_end_dt = `logic_<stage>_end_date`（≠ `business_1.<X>_end_date`；DEMAND=curr_date，其余=下一阶段 start 或 curr_date，pool:2028-2105；§8 OQ1 已关闭）。
 
 ## 已知局限（Known Limitations）
 
-- §8 Open Question 1 未消化：`business_2.stage_end_dt` 详细构造代码（约 pool:2100-2200，本文档发布时未取证）。下次更新拿到后即可完整解释 7727000131 demand_in_lm_days=14（vs 按 demand_end_date 算出 5 的差异）。
+- ~~§8 Open Question 1~~ **已于 2026-06-14 关闭**：`business_2.stage_end_dt` = `logic_<stage>_end_date`（DEMAND=curr_date，pool:2028-2105 取证），且 in_lm 归因 `rnk=1` 取最近 open cycle（pool:2235-2266）；loan 7727000131 demand_in_lm 已对账（18=datediff(2026-05-28,2026-06-14)+1）。详见 §5.3 / §8 OQ1。
 
 ---
 
@@ -207,14 +207,15 @@ Hold 逻辑完全镜像，**唯一差异**：
 
 注：lm_stage 2/3/6 是 closed cycle，被 OPEN 过滤掉。
 
-**对 DEMAND stage 应用规则**（demand window 按 `bpms.sync_fcl_stage_info`：start=2025-08-15, end=2025-09-19）：
+**对 DEMAND stage 应用规则**（demand window：start=`demand_start_date`=2025-08-15；**end=`logic_demand_sent_end_date`=`curr_date`**——DEMAND 窗口端恒取 curr_date，**不取** `demand_end_date`=demandexpirationdate=2025-09-19，pool:2039/2028-2105 实测）：
 
-- 过滤"cycle 在 stage 内 open"：2025-09-15 ✓ 在 [2025-08-15, 2025-09-19]；其余 ✗。
-- 仅 1 条 OPEN cycle 命中 → rnk=1 = lm_stage=5 (2025-09-15)。
-- 算式：`datediff(greatest(2025-08-15, 2025-09-15), least(2025-09-19, curr_date 2026-06-09)) + 1 = datediff(2025-09-15, 2025-09-19) + 1 = 4 + 1 = 5`。
-- **但 prod 实测 demand_in_lm_days = 14**。
+- 窗口 = [2025-08-15, **curr_date 2026-06-14**]（最新快照 fctrdt 2026-06-12；curr_date 由 demand_stage_days=304=datediff(2025-08-15,curr)+1 反解得 2026-06-14）。
+- 过滤"cycle 在 stage 窗口内 open"：三条 OPEN cycle（2026-05-28 / 2025-10-20 / 2025-09-15）**全部** ∈ [2025-08-15, 2026-06-14]。
+- 多条命中 → `rnk=1` 取 **cycle_opened 最近** 的一条 = **2026-05-28**（lm_stage=1），**不是** 最早的 2025-09-15。
+- 算式：`datediff(greatest(2025-08-15, 2026-05-28), least(curr_date 2026-06-14, curr_date)) + 1 = datediff(2026-05-28, 2026-06-14) + 1 = 17 + 1 = 18`。
+- **prod 实测 demand_in_lm_days = 18 ✓ 完全对账**（doc 早期版本在 2026-06-08 快照记为 14：同机制，该快照 curr_date≈2026-06-10 → datediff(2026-05-28,2026-06-10)+1=14，亦对账）。
 
-**差 9 天 — 见 §8 Open Question 1**：差异指向 `tempfc.current_fcl_business_2_temp.stage_end_dt` 对 DEMAND stage 的取值 ≠ `fcl_stage_info.demand_end_date`（=2025-09-19）；按反推应为 2025-09-28 才能给出 14 天，但 2025-09-28 不对应任何已知里程碑。需取证 `business_2_temp` 构造代码（约 pool:2100-2200）。
+> **本例曾是 §8 OQ1（已于 2026-06-14 关闭）**：早期手算 5 天用了两个错误前提——① 误把 demand 窗口端当成 `demand_end_date`（实为 curr_date）；② 误取最早的 open cycle 2025-09-15（实为 rnk=1 取最近的 2026-05-28）。两处均经 Code-First 取证 `current_fcl_business_2_temp`/in_lm 归因（pool:2028-2105 / 2235-2266）订正，无残留未解。
 
 ---
 
@@ -244,15 +245,17 @@ Hold 逻辑完全镜像，**唯一差异**：
 
 ## 8. Open Questions / 待确证
 
-### OQ1 — `business_2_temp.stage_end_dt` 在 DEMAND 等 stage 上的真实取值（影响 in_lm/on_hold 算式）
+### ~~OQ1~~ — ✅ 已关闭（2026-06-14）：`business_2_temp.stage_end_dt` 的真实取值
 
-**症状**：`bpms.sync_fcl_stage_info.demand_in_lm_days` 实测为 14（loan 7727000131，2026-06-08 fctrdt），但按 `business_1.demand_sent_end_date`（=demandexpirationdate=2025-09-19）+ 仅 cycle 2025-09-15 命中算出仅 5 天。差 9 天。
+**结论**：`tempfc.current_fcl_business_2_temp.stage_end_dt` = 各 stage 的 **`logic_<stage>_end_date`**（pool:2028-2105 实测），**不是** `<stage>_end_date`：
+- **DEMAND** → `curr_date`（pool:2039；恒取运行日，不取 demandexpirationdate）。
+- referral/first_legal/service → 下一阶段 start（无则 `curr_date`）。
+- judgement/sale → `least(下一里程碑, curr_date)`。
+- **noi / publication → NULL**（无 logic 窗口端 → 这两阶段不计 in_lm/on_hold）。
 
-**推测**：`tempfc.current_fcl_business_2_temp.stage_end_dt` 对 DEMAND 行取的 ≠ `business_1.demand_sent_end_date`，可能是 demandexpirationdate + N（反推 N=9 → 2025-09-28），或某个 servicer 特定逻辑/state-level 配置 / fcsetupdate 派生值。
+**原"差 9 天"的两处错因**（早期 §5 工作例）：① 误用 `demand_end_date`(2025-09-19) 作窗口端（实为 curr_date）；② 误取最早 open cycle 2025-09-15（实为 in_lm 归因 `rnk=1` 取 **cycle_opened 最近** 的一条，pool:2235-2266 `ROW_NUMBER ... ORDER BY cycle_opened_date DESC`）。订正后 loan 7727000131：窗口[2025-08-15, curr 2026-06-14] ∩ 最近 open cycle 2026-05-28 → `datediff(2026-05-28,2026-06-14)+1 = 18` = prod 实测 ✓。
 
-**取证途径**：拿到 `basic_data_pool_config.py` 约 pool:2100-2200（`current_fcl_business_2_temp` 构造段）后即可定位。
-
-**影响**：本文档 §5 工作例标注了差异未对账；其他 stage（referral/first_legal/service）的 in_lm/on_hold 算式同样依赖 business_2 stage_end_dt，可能存在同类偏差。
+**取证**：本会话 Code-First 读 `basic_data_pool_config.py` pool:2028-2105（business_1/2 窗口端）+ pool:2204-2266（in_lm/on_hold 归因）+ pool:1779-1781（curr_date 参数）。同机制已在 doc 32 ⑬ 的 `*_in_lm_days`/`*_on_hold_days` 公式列「数据代入·分步运算」工作示例中对 2 笔 demo loan 32/32 对账。
 
 ### OQ2 — `hold_stage` 的具体定义（影响 Hold rnk=1 的选取）
 

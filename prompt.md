@@ -3728,3 +3728,12 @@ basic_data_fcl_related 由 portnewrezgeneral.delinquency_status_mba 映射成 de
 - HTML 运行时**自包含/独立**（无 fetch/.json）——所有数据通过 3 个标记块内嵌：GLIN/FTMETA/KG。
 - **直接内嵌（改后须重跑 inject）**：fcl_lineage_source.json→GLIN、fcl_table_meta.json→FTMETA、fcl_knowledge_graph.json→KG。
 - **间接构建输入（喂上述或喂 docs/Excel，不内嵌）**：datadic_decode/meanings（撰写 GLIN values + doc32）、kg_analysis/business/panels（构建 KG）、layer_examples*/field_meanings/field_rules_extra/formula_demos/minihist_demos/logic_coverage（docs/分析）。
+
+### 完成: ⑬ in_lm/on_hold 公式列「数据代入·分步运算」工作示例 + doc 31 OQ1 关闭 [2026-06-14]
+- **背景**：用户连续指出 doc 32 ⑬ 的 `*_in_lm_days`/`*_on_hold_days` 公式列(E/F)仍是通用样板注 NOTE_GEN，没拿实际数据运算；要求即便不能用活 Excel 公式，也要用该格所需真实数据把逻辑**分步骤**算出来(语言/数学式)。
+- **Code-First 取证**(Explore 读 PrefectFlow)：in_lm 归因 pool:2235-2266(stage_start≤cycle_opened≤stage_end 且 cycle_closed IS NULL；多条取 cycle_opened 最近 rnk=1；datediff(greatest,least(.,curr))+1)；on_hold pool:2204-2231(同构，hold_end IS NULL，rnk=1 取 hold_stage/slot 最小)；窗口端=logic_<stage>_end_date pool:2028-2105(DEMAND=curr_date；referral/first_legal/service=下一阶段 start 否则 curr；judgement/sale=least(.,curr)；noi/publication=NULL)；curr_date={input_curr_date} 快照参数 pool:1779-1781。
+- **数据**(redshift_prod 只读)：2 笔 demo(7727003984/7727000806) 的 fcl_stage_info 阶段日期+in_lm/on_hold、LM 全历史周期(open=closed IS NULL)、Hold 最新快照 4 槽。curr_date 反解=2026-06-13(与 LE_VALS 举例列同快照；当前 DB 已进到 2026-06-14=399/108/320，用 LE_VALS 值保持表内一致)。
+- **实现**：新建 `outputs/build_fcl_stage_worked_examples.txt`(算+逐一核验=LE_VALS，32/32 命中)→ `outputs/fcl_stage_worked_examples.json`；生成器 stage_formula 的 in_lm/on_hold 分支改读 WEX 返回分步示例文本(kind='wex')，新增 FILL_WEX 浅黄样式(区别于灰注)+A 导读图例；NOTE_GEN 审计打印(其余 159 字段确不可单格代入)。
+- **结果**：⑬ noi_in_lm 等空格=「∅NULL：本笔未进入NOI阶段(noi_start_date 为空)」；demand/first_legal in_lm=398·on_hold=107、referral_on_hold(806)=319 全显分步算式=DB=举例列。活公式 729+数据代入示例 32+注 363；真 Excel 741 公式 0 错误；内容级幂等(MD5 ccc700c2…)。doc 32 zh v13、依赖清单同步。
+- **附带(传播规则)**：本轮取证恰好解掉 doc 31 §8 **OQ1**(business_2.stage_end_dt 真实取值)——旧 §5 工作例对 loan 7727000131 用了两个错前提(窗口端当 demand_end_date、取最早 open cycle)算出 5、留「差9天」未解；订正为 窗口端=curr_date + rnk=1 取最近 open cycle 2026-05-28 → datediff(2026-05-28,2026-06-14)+1=18=prod ✓。doc 31 zh+en 的 §5.3/§8 OQ1/Known Limitations/§5.2 注 全部更新为已关闭。
+- DB/代码全程只读；未提交。

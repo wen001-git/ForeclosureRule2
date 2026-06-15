@@ -29,11 +29,11 @@ data engineers · business analysts · validators · onboarding engineers · new
 - `port.basic_data_loan_foreclosure_loss_mitigation` provides LM cycles (cycle_opened_date / cycle_closed_date).
 - `tempfc.current_fcl_hold_temp` (runtime temp table) provides Hold intervals (hold_start_dt / hold_end_dt / hold_stage).
 - `tempfc.current_date_new_york.curr_date` provides the ETL run date (NY timezone).
-- `tempfc.current_fcl_business_2_temp` provides long-form `(loanid, stage, stage_start_dt, stage_end_dt)` — the left table for in_lm/on_hold. **Note**: this table's `stage_end_dt` for some stages may differ from `business_1.<X>_end_date` (see §8 Open Question).
+- `tempfc.current_fcl_business_2_temp` provides long-form `(loanid, stage, stage_start_dt, stage_end_dt)` — the left table for in_lm/on_hold. **Note**: this table's `stage_end_dt` = `logic_<stage>_end_date` (≠ `business_1.<X>_end_date`; DEMAND=curr_date, others=next stage start or curr_date, pool:2028-2105; §8 OQ1 closed).
 
 ## Known Limitations
 
-- §8 Open Question 1 unresolved: the construction code of `business_2.stage_end_dt` (≈pool:2100-2200) was not retrieved when publishing this doc. Once obtained, we can fully reconcile 7727000131 demand_in_lm_days=14 vs hand-computed 5.
+- ~~§8 Open Question 1~~ **CLOSED 2026-06-14**: `business_2.stage_end_dt` = `logic_<stage>_end_date` (DEMAND=curr_date, verified pool:2028-2105), and in_lm attribution `rnk=1` takes the most-recent open cycle (pool:2235-2266); loan 7727000131 demand_in_lm reconciled (18=datediff(2026-05-28,2026-06-14)+1). See §5.3 / §8 OQ1.
 
 ---
 
@@ -207,14 +207,15 @@ Hold logic mirrors LM with **one difference**:
 
 Note: lm_stage 2/3/6 are closed cycles filtered out by OPEN.
 
-**Apply rules to DEMAND stage** (demand window per `bpms.sync_fcl_stage_info`: start=2025-08-15, end=2025-09-19):
+**Apply rules to DEMAND stage** (demand window: start=`demand_start_date`=2025-08-15; **end=`logic_demand_sent_end_date`=`curr_date`** — the DEMAND window end is always curr_date, **not** `demand_end_date`=demandexpirationdate=2025-09-19, per pool:2039/2028-2105):
 
-- Filter "cycle opens within stage": 2025-09-15 ✓ in [2025-08-15, 2025-09-19]; others ✗.
-- 1 OPEN cycle qualifies → rnk=1 = lm_stage=5 (2025-09-15).
-- Compute: `datediff(greatest(2025-08-15, 2025-09-15), least(2025-09-19, curr_date 2026-06-09)) + 1 = datediff(2025-09-15, 2025-09-19) + 1 = 4 + 1 = 5`.
-- **But prod measures demand_in_lm_days = 14**.
+- Window = [2025-08-15, **curr_date 2026-06-14**] (latest snapshot fctrdt 2026-06-12; curr_date back-solved from demand_stage_days=304=datediff(2025-08-15,curr)+1 → 2026-06-14).
+- Filter "cycle opens within stage window": all three OPEN cycles (2026-05-28 / 2025-10-20 / 2025-09-15) ∈ [2025-08-15, 2026-06-14].
+- Multiple qualify → `rnk=1` takes the **most recent cycle_opened** = **2026-05-28** (lm_stage=1), **not** the earliest 2025-09-15.
+- Compute: `datediff(greatest(2025-08-15, 2026-05-28), least(curr_date 2026-06-14, curr_date)) + 1 = datediff(2026-05-28, 2026-06-14) + 1 = 17 + 1 = 18`.
+- **prod measures demand_in_lm_days = 18 ✓ fully reconciled** (an earlier doc revision recorded 14 at the 2026-06-08 snapshot: same mechanism, that snapshot's curr_date≈2026-06-10 → datediff(2026-05-28,2026-06-10)+1=14, also reconciles).
 
-**9-day gap — see §8 Open Question 1**: the gap points to `tempfc.current_fcl_business_2_temp.stage_end_dt` for DEMAND ≠ `fcl_stage_info.demand_end_date` (=2025-09-19); back-solving gives 2025-09-28 to produce 14 days, but 2025-09-28 doesn't match any known milestone. Need to retrieve the construction code for `business_2_temp` (≈pool:2100-2200).
+> **This was §8 OQ1 (closed 2026-06-14)**: the earlier hand-computed 5 used two wrong premises — ① treated the demand window end as `demand_end_date` (it's curr_date); ② took the earliest open cycle 2025-09-15 (rnk=1 takes the most recent, 2026-05-28). Both corrected by Code-First evidence on `current_fcl_business_2_temp` / in_lm attribution (pool:2028-2105 / 2235-2266); no residual unknown.
 
 ---
 
@@ -244,15 +245,18 @@ Note: lm_stage 2/3/6 are closed cycles filtered out by OPEN.
 
 ## 8. Open Questions
 
-### OQ1 — Actual value of `business_2_temp.stage_end_dt` for DEMAND etc. (affects in_lm/on_hold)
+### ~~OQ1~~ — ✅ CLOSED (2026-06-14): actual value of `business_2_temp.stage_end_dt`
 
-**Symptom**: `bpms.sync_fcl_stage_info.demand_in_lm_days` measures 14 for loan 7727000131 (fctrdt 2026-06-08), but using `business_1.demand_sent_end_date` (= demandexpirationdate = 2025-09-19) and only cycle 2025-09-15 hits, the hand-computed value is 5. Gap = 9 days.
+**Conclusion**: `tempfc.current_fcl_business_2_temp.stage_end_dt` = each stage's **`logic_<stage>_end_date`** (verified pool:2028-2105), **not** `<stage>_end_date`:
 
-**Hypothesis**: `tempfc.current_fcl_business_2_temp.stage_end_dt` for DEMAND ≠ `business_1.demand_sent_end_date`. Could be `demandexpirationdate + N` (back-solved N=9 → 2025-09-28), or some servicer-specific / state-level configured / fcsetupdate-derived value.
+- **DEMAND** → `curr_date` (pool:2039; always the run date, not demandexpirationdate).
+- referral/first_legal/service → next stage's start (else `curr_date`).
+- judgement/sale → `least(next milestone, curr_date)`.
+- **noi / publication → NULL** (no logic window end → these two stages do not compute in_lm/on_hold).
 
-**How to resolve**: get `basic_data_pool_config.py` ≈ pool:2100-2200 (the `current_fcl_business_2_temp` construction block) and verify.
+**The two errors behind the old "9-day gap"** (earlier §5 worked example): ① used `demand_end_date`(2025-09-19) as the window end (it's curr_date); ② took the earliest open cycle 2025-09-15 (in_lm attribution `rnk=1` takes the **most recent** cycle_opened, pool:2235-2266 `ROW_NUMBER ... ORDER BY cycle_opened_date DESC`). Corrected, loan 7727000131: window [2025-08-15, curr 2026-06-14] ∩ most-recent open cycle 2026-05-28 → `datediff(2026-05-28,2026-06-14)+1 = 18` = prod ✓.
 
-**Impact**: §5 worked example shows the gap unresolved. Other stages (referral/first_legal/service) in_lm/on_hold rely on the same business_2 stage_end_dt and may have similar offsets.
+**Evidence**: this session Code-First read `basic_data_pool_config.py` pool:2028-2105 (business_1/2 window ends) + pool:2204-2266 (in_lm/on_hold attribution) + pool:1779-1781 (curr_date param). The same mechanism is reconciled 32/32 for 2 demo loans in doc 32 ⑬'s `*_in_lm_days`/`*_on_hold_days` "data-plugged step-by-step" worked examples.
 
 ### OQ2 — Exact definition of `hold_stage` (affects Hold rnk=1 selection)
 

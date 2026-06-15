@@ -1,0 +1,131 @@
+# 生成 ⑬ fcl_stage_info 的 *_in_lm_days / *_on_hold_days 「数据代入·分步运算」工作示例
+# 真源逻辑: pool:2204-2266(归因) + 2028-2105(窗口端) + 1779-1781(curr_date)
+# 用 LE_VALS(举例列同源, 快照 curr_date=2026-06-13) 为目标值逐一核验; 命中才写数字, 否则回退 NOTE
+# 运行: cd 项目根 && python - < outputs/build_fcl_stage_worked_examples.txt
+import json, sys
+from datetime import date
+sys.stdout.reconfigure(encoding='utf-8')
+B = 'outputs/'
+
+def D(s):
+    if not s or s in ('∅NULL','∅空串',''): return None
+    y,m,dd = map(int, s[:10].split('-')); return date(y,m,dd)
+def fmt(d): return d.isoformat()
+def datediff(a,b): return (b-a).days            # Redshift datediff(day,a,b)=b-a
+
+# ---- MCP 只读实测数据 (snapshot 与 LE_VALS 同, curr_date=2026-06-13) ----
+CURR = '2026-06-13'
+STAGES = ['demand','noi','referral','first_legal','service','publication','judgement','sale']
+# 每 loan: stages[stage]=(start, window_end)  window_end='curr'|日期|None(无logic窗口端)
+LOANS = {
+ '7727003984': {'svc':'Newrez', 'curr':CURR,
+   'stages':{'demand':('2025-01-07','curr'), 'noi':(None,None),
+             'referral':('2025-03-07','2025-04-15'), 'first_legal':('2025-04-15','curr'),
+             'service':(None,None), 'publication':(None,None), 'judgement':(None,None),
+             'sale':('2026-06-30','curr')},
+   'lm_open':[('2025-05-12','Document Follow-up',None)],     # cycle_closed IS NULL（rnk 取 cycle_opened 最近）
+   'hold_open':[('2026-02-27','Bankruptcy Filed',1)]},       # description1_end IS NULL（slot=1；rnk 取 hold_stage/slot 最小）
+ '7727000806': {'svc':'Carrington', 'curr':CURR,
+   'stages':{'demand':(None,None), 'noi':(None,None),
+             'referral':('2025-02-19','curr'), 'first_legal':(None,None),
+             'service':(None,None), 'publication':(None,None), 'judgement':(None,None),
+             'sale':(None,None)},
+   'lm_open':[],                                             # 仅 1 条 LM 周期且已关闭
+   'hold_open':[('2025-07-30',None,2)]},                     # description2_end IS NULL（slot=2）
+}
+STAGE_CN = {'demand':'催告(DEMAND)','noi':'NOI','referral':'转介(REFERRAL)','first_legal':'首次法律(FIRST_LEGAL)',
+            'service':'送达(SERVICE)','publication':'公告(PUBLICATION)','judgement':'判决(JUDGEMENT)','sale':'拍卖(SALE)'}
+
+# ---- 目标值 = LE_VALS (举例列同源) ----
+LEV = json.load(open(B+'fcl_layer_examples_phase2.json',encoding='utf-8'))['values']['port.fcl_stage_info']
+
+def windows_end_label(we, curr):
+    if we == 'curr': return 'curr 快照日 %s' % curr
+    return we
+def attribute(loan, stage, kind):
+    """返回 (value:int|None, detail:dict, reason:str|None) 完全复刻 pool 归因"""
+    cfg = LOANS[loan]; curr = D(cfg['curr'])
+    start_s, we_s = cfg['stages'][stage]
+    if start_s is None:
+        return None, None, '本笔未进入%s阶段（%s_start_date 为空）' % (STAGE_CN[stage], stage)
+    if we_s is None:
+        return None, None, '%s阶段无 logic 窗口端（logic_%s_end 未定义，pool 不计 in_lm/on_hold）' % (STAGE_CN[stage], stage)
+    start = D(start_s)
+    wend = curr if we_s=='curr' else D(we_s)
+    opens = cfg['lm_open'] if kind=='lm' else cfg['hold_open']
+    kname = 'LM 周期' if kind=='lm' else 'Hold 段'
+    see = '⑯' if kind=='lm' else '⑮'
+    if start > wend:        # 阶段起晚于窗口端(如计划拍卖日在未来)→ 窗口尚未开始, 无重叠
+        return None, None, '本阶段起 %s（计划日，晚于 curr 快照日 %s）→ 阶段尚未实际开始，无 open %s 落入' % (fmt(start), cfg['curr'], kname)
+    # 命中窗口的 open 项: start <= opened <= wend
+    cand = [(D(o),lab,slot) for o,lab,slot in opens if start <= D(o) <= wend]
+    if not cand:
+        if not opens:
+            return None, None, '本笔无 open（未关闭）的%s' % kname
+        odates = '、'.join('%s'%o for o,_,_ in opens)
+        rel = '窗口前' if all(D(o)<start for o,_,_ in opens) else ('窗口后' if all(D(o)>wend for o,_,_ in opens) else '窗口外')
+        return None, None, '本笔 open %s 开于 %s，落在本阶段窗口[%s→%s]%s' % (kname, odates, fmt(start), windows_end_label(we_s,cfg['curr']), rel)
+    # rnk=1：LM 取 cycle_opened 最近一条(lm_stage=ROW_NUMBER ORDER BY cycle_opened DESC，pool:2255-2266)；
+    #        Hold 取 hold_stage/slot 最小一条(unpivot 1..4 ORDER BY hold_stage，pool:2204-2222)
+    if kind=='lm': cand.sort(key=lambda x:x[0], reverse=True)
+    else:          cand.sort(key=lambda x:(x[2] if x[2] is not None else 99))
+    opened, lab, _slot = cand[0]
+    ostart = max(start, opened)            # greatest(stage_start, opened)
+    oend   = min(wend, curr)               # least(stage_end, curr) (open→lm_end=curr)
+    val = datediff(ostart, oend) + 1
+    detail = dict(start=fmt(start), wend=wend, we_label=windows_end_label(we_s,cfg['curr']),
+                  opened=fmt(opened), lab=lab, ostart=fmt(ostart), oend=fmt(oend), kname=kname, see=see, curr=cfg['curr'])
+    return val, detail, None
+
+def worked_text(loan, stage, kind, val, detail):
+    k = 'LM' if kind=='lm' else 'Hold'
+    labtxt = '「%s」' % detail['lab'] if detail.get('lab') else ''
+    return ('数据代入分步：①窗口=[%s起 %s → %s]｜'
+            '②本笔 open %s%s(未关闭)开于窗口内=%s(见%s)｜'
+            '③重叠起=greatest(%s,%s)=%s｜'
+            '④重叠止=least(%s,curr %s)=%s｜'
+            '⑤datediff(%s,%s)+1 = %d（=DB实测，举例列同值）') % (
+            STAGE_CN[stage], detail['start'], detail['we_label'],
+            k, labtxt, detail['opened'], detail['see'],
+            detail['start'], detail['opened'], detail['ostart'],
+            fmt(detail['wend']), detail['curr'], detail['oend'],
+            detail['ostart'], detail['oend'], val)
+
+WEX = {}
+rows = []   # 核验表
+for loan in LOANS:
+    WEX[loan] = {}
+    for stage in STAGES:
+        for kind,suffix in (('lm','in_lm_days'),('hold','on_hold_days')):
+            field = '%s_%s' % (stage, suffix)
+            db_raw = str(LEV.get(loan,{}).get(field,'∅NULL'))
+            db = None if db_raw in ('∅NULL','∅空串','','None') else int(db_raw)
+            val, detail, reason = attribute(loan, stage, kind)
+            if val is not None:
+                text = worked_text(loan, stage, kind, val, detail)
+            else:
+                text = '∅NULL：' + reason
+            ok = (val == db)
+            WEX[loan][field] = {'text': text, 'db': db_raw, 'computed': (val if val is not None else '∅NULL'), 'ok': ok}
+            rows.append((loan, field, ('∅NULL' if val is None else val), db_raw, '✓' if ok else '✗ 不匹配!'))
+
+# 核验表
+print('='*90)
+print('%-12s %-26s %-10s %-10s %s' % ('loan','field','computed','DB(LEV)','match'))
+print('-'*90)
+bad=0
+for r in rows:
+    if r[4].startswith('✗'): bad+=1
+    print('%-12s %-26s %-10s %-10s %s' % r)
+print('-'*90)
+print('总 %d 格，不匹配 %d 格' % (len(rows), bad))
+if bad:
+    print('!! 存在不匹配，未写 JSON（诚实：不发布错值）'); sys.exit(1)
+json.dump(WEX, open(B+'fcl_stage_worked_examples.json','w',encoding='utf-8'), ensure_ascii=False, indent=1)
+print('已写 outputs/fcl_stage_worked_examples.json （%d loan）' % len(WEX))
+# 抽样打印 2 条
+print('\n--- 抽样 ---')
+print('7727003984 demand_in_lm_days:\n ', WEX['7727003984']['demand_in_lm_days']['text'])
+print('7727000806 referral_on_hold_days:\n ', WEX['7727000806']['referral_on_hold_days']['text'])
+print('7727003984 noi_in_lm_days:\n ', WEX['7727003984']['noi_in_lm_days']['text'])
+print('7727003984 sale_on_hold_days:\n ', WEX['7727003984']['sale_on_hold_days']['text'])

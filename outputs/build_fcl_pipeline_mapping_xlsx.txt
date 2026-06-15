@@ -26,6 +26,8 @@ DATADIC = json.load(open(B+'fcl_datadic_decode.json', encoding='utf-8'))
 # Phase 4：⑤ general / ⑥ prop（L1 源）+ ⑫ basic_data_fcl_related（group 的 r 源）
 _P4 = json.load(open(B+'fcl_layer_examples_phase4.json', encoding='utf-8'))
 LE_VALS.update(_P4.get('values', {})); LE_LAYERS.update(_P4.get('layers', {}))
+# ⑬ *_in_lm_days / *_on_hold_days 公式列「数据代入·分步运算」工作示例（生成器 build_fcl_stage_worked_examples.txt 算+核验，结果=DB实测=举例列）
+WEX = json.load(open(B+'fcl_stage_worked_examples.json', encoding='utf-8'))
 FX = json.load(open(B+'fcl_formula_demos.json', encoding='utf-8'))     # 🧮 公式演示规格（脚本只排版）
 MH = json.load(open(B+'fcl_minihist_demos.json', encoding='utf-8'))   # 首见 min(dataasof) 活公式演示数据（方案3 多值）
 from openpyxl.comments import Comment
@@ -34,6 +36,7 @@ def _d(s):
     y,m,dd=str(s).split('-'); return _date(int(y),int(m),int(dd))
 REG = {}; WS_OF = {}   # 后置 pass：每非 src 表 {hdr_row, field2row, loan2col, end_row} + ws 对象
 FILL_IN='DDEBF7'; FILL_OUT='FCE4D6'; FILL_FX='E2EFDA'   # 高亮：输入浅蓝 / 输出浅橙 / 公式浅绿
+FILL_WEX='FFF2CC'   # 「数据代入·分步运算」工作示例（非活公式，但已用真实数据逐步算出=DB）：浅黄，区别于灰注
 def _T(v):   # 文本单元格防止以 '=' 开头被 Excel 当成公式(#NAME?)；首字符 '=' → 全角 '＝'(显示几乎一致、确为文本)。真公式单元格不经此函数。
     return ('＝'+v[1:]) if isinstance(v,str) and v[:1]=='=' else v
 
@@ -316,7 +319,8 @@ line('全局/导航：① 表清单 索引（分层分组+跳转）｜⓪ 表说
 line('分析视图（字母页）：A 导读·色卡·样本 / B 主表逐字段 mapping（每字段一行：L1源→L4→L5 每跳规则+转换类型+样本，可筛选）/ C 生产数据矩阵(样本；末列 覆盖LT#) / D 多as-of改期演示 / E BPS截图三方对账 / F 逻辑类型目录(LT01-30+M1-5+完整性体检) / G 字段级逻辑清单(每字段标LT#，字段驱动穷尽，154 字段)。')
 line('逐表页（圈号·层级标签）：主链 ②src·portnewrezfc、②c src·portcarrington、⑨mid·temp、⑩mid·fcl、⑪mid·foreclosure、⑱bps·sync主表、⑳bps·视图；★ Phase 2 新增四链（Redshift 上游→BPS sync）：⑬⑲ 阶段(stage)、⑮㉑ 暂停(hold)、⑯㉒ 损失缓释(lm)、⑰㉓ 破产(bk)——各表同样有 字段+计算逻辑+逐层举例+每 servicer Excel 公式。★ Phase 3 新增：③src·portnewrezbk、④src·portnewrezlm（bk/lm 的 L1 raw 源，同 ② 只有 字段+举例）+ ㉔dic·portnewrezdatadic（解码字典 sheet：LM/BK 编码→文本，redshift 长表）。★ Phase 4 新增：⑤src·portnewrezgeneral、⑥src·portnewrezprop（L1 源）+ ⑫mid·fcl_related（⑬ group 的 r 源；delq_status 逾期分类 + propertystate 等；Newrez 派生字段活引用 ⑤⑥③，Carr 分支源列未纳入 ②c→注）。⚠️ 圈号=全 pipeline 表全局编号（同 doc 19/25）。★ servicer 源用【②家族·可扩展】编号：②=Newrez（primary）、②c=Carrington，后续每新增一个 servicer 的 FCL L1 源即 ②+后缀（②cc=Capecodfive、②sl=SLS…），③-㉔ 永不位移（避免 doc 19/25 上万处引用破坏）、servicer 可无限扩展。★ 逐表页 tab【按圈号升序】排列，便于按编号查找：② ②c ③ ④ ⑤ ⑥ ⑨ ⑩ ⑪ ⑫ ⑬ ⑮ ⑯ ⑰ ⑱ ⑲ ⑳ ㉑ ㉒ ㉓ ㉔。同一业务链的 Redshift 上游与其 BPS 下游因层级号不同会分开（如 stage 的 ⑬ 与 ⑲、hold 的 ⑮ 与 ㉑）——顺链阅读请用 ① 索引（分层分组+跳转）或 ⓪b 管道图。⚠️ 仍无逐表 sheet 的圈号（⑦⑧ 逾期支线 L2/L3 日表、⑭ portfunding 融资池维度），在 ⓪ 总览 + ① 索引中列出（标「Phase 待补」），逐表详情后续补。多行历史表(hold/lm/bk)举例列取该笔代表性最新行（完整历史见 BPS 面板/长表）。')
 line('★ 非 src 表（⑨⑩⑪⑱⑳）「来源/类型」列后新增「🧮 公式演示」列 + 25 笔样本贷款「逐层真值举例列」（1 列 1 贷款，序同 C 页；冻结前 5 列、举例列可一键折叠）。同一贷款顺着 ⑨→⑩→⑪→⑱→⑳ 往下看，即见值如何被改名/派生/坍缩。全历史字段（拍卖/判决听证 首见 set_date）格内在当前值下附「多天提示」（完整改期链见 D 页）。值约定：∅NULL=真实空、∅空串=空字符串。')
-line('🧮 公式演示=【两列，每 servicer 一列】：Newrez(7727003984) / Carrington(7727000806) 各 1 笔 demo 的活 Excel 公式(点击格看)。直传/改名=引用上游层该笔格(改 ② 源头值会一路联动上来)、计算=真公式(显示码已在公式内当空、VALUE/DATEVALUE 转数日期)、结果=该 servicer 该笔实测值。绿=公式 / 灰=说明注。例 daysinfc：Newrez=461(直传) vs Carrington=477(datediff)——正是 servicer 差异。')
+line('🧮 公式演示=【两列，每 servicer 一列】：Newrez(7727003984) / Carrington(7727000806) 各 1 笔 demo 的活 Excel 公式(点击格看)。直传/改名=引用上游层该笔格(改 ② 源头值会一路联动上来)、计算=真公式(显示码已在公式内当空、VALUE/DATEVALUE 转数日期)、结果=该 servicer 该笔实测值。绿=活公式 / 浅黄=数据代入示例 / 灰=说明注。例 daysinfc：Newrez=461(直传) vs Carrington=477(datediff)——正是 servicer 差异。')
+line('🟨 浅黄「数据代入·分步运算」示例：⑬ fcl_stage_info 的 *_in_lm_days / *_on_hold_days 单格活公式选不出"对的那一条"(真 SQL 把【该阶段窗口内 OPEN 未关闭的那一条】LM周期/Hold段归到阶段，一笔常有多条；⑯/⑮ 长表只渲染代表行)。故公式列改写成把本笔真实数据①窗口②open周期/段③重叠起④重叠止⑤datediff+1 分步算出的工作示例，结果=DB实测=该笔举例列同值(curr_date=举例快照日 2026-06-13)。空值则注明原因(未进入该阶段 / 窗口内无 open 周期段 / 阶段未实际开始)。这是"已用实数算出"，区别于灰色"真不可单格表达"的说明注。')
 line('⚠️ Carrington 源表 carrington.portcarrington 未建为独立 sheet(② 仅 Newrez) → 改为在 ⑨ 表底新增「Carr 源输入演示」小块(DB 实测 8 列原始值)，⑨ 的 Carr 派生字段(activefcflag=CASE fcl_flag / fcstage=fcl_sub_status / svc_loanid / referral 等)的 🧮 公式引用该块 → 出活公式(改块内值会联动重算)；⑩⑪⑱⑳ 管道内 Carr 引用照常。仅该分支恒 NULL 的字段标「Carr 分支=NULL 常量」。未写公式=常量/系统/解码/Hold多行/视图实时算(见「计算逻辑」列)。')
 line('★「计算逻辑 / mapping rule」列：对每个【非 copy 的真计算规则】在格内紧跟「｜ 例 …」用本笔真值给出工作示例(纯直传/改名=copy 不举例)。例 daysinfc：Newrez 直传源值=461 vs Carr 计算 datediff(referral 2025-02-19→快照 2026-06-10)+1=477；summary_foreclosure_status=CASE activefcflag；summary_type=CASE judicial；⑱ summary_days_in_fcl=⑪存储+(TODAY−as-of)；⑳ actual_*=TO_DAYS(里程碑)−TO_DAYS(nextduedate)。')
 line('★ 全历史「首见 min(dataasof)」字段（拍卖/判决听证 set_date）需多值才能用公式：⑪⑱ 表底各加「方案3」3 行抽样小块 + 活公式 MIN(助列) 取首见（=2026-05-22）；D 页另有自包含同款演示。两公式列的 set_date 行指向该块。')
@@ -642,7 +646,7 @@ for meta_key, fm_key, sheetname in B_TABLES:
         note=('举例列（最右 %d 列，loan i→第 7+i 列）= 各样本贷款在「%s」层真实值（%s；as-of %s）。∅NULL=真实空、∅空串=空字符串。'
               '全历史字段（拍卖/判决听证首见 set_date）格内附「方案B」多天提示，完整改期链见 D 页。'
               '　★ 两个「🧮 公式演示」列 = 每 servicer 各 1 笔 demo（Newrez 7727003984 / Carrington 7727000806）的活 Excel 公式（点击看）：直传/改名=引用上游层该笔格、计算=真公式（显示码已在公式内当空）、结果=该 servicer 该笔实测值。'
-              '⚠️ Carrington 源表未建独立 sheet → ⑨ 表底「Carr 源输入演示」块(DB 实测)供 Carr 派生字段(activefcflag CASE / fcstage / svc_loanid / referral 等)出活公式；仅该分支恒 NULL 字段标「Carr 分支=NULL 常量」。绿=公式 / 灰=说明注。'
+              '⚠️ Carrington 源表未建独立 sheet → ⑨ 表底「Carr 源输入演示」块(DB 实测)供 Carr 派生字段(activefcflag CASE / fcstage / svc_loanid / referral 等)出活公式；仅该分支恒 NULL 字段标「Carr 分支=NULL 常量」。绿=活公式 / 🟨浅黄=数据代入分步示例(⑬ in_lm/on_hold：本笔真实数据逐步算出=DB) / 灰=说明注。'
               % (N, meta_key, lay.get('grain',''), lay.get('asof_used','')))
         cnote=ws.cell(r,1,note); ws.merge_cells(start_row=r,start_column=1,end_row=r,end_column=6+N)
         cnote.font=ENDFONT; cnote.fill=F('FFF2CC'); cnote.alignment=WRAP; cnote.border=BORDER; ws.row_dimensions[r].height=autoheight(note,per_line=150); r+=1
@@ -774,8 +778,12 @@ def stage_formula(field, loan):         # -> (text, is_formula) 或 None
         stg='judgement' if 'judg' in field else 'sale'; s=c(stg+'_start_date')
         if not s: return None
         return ('=IF(%s="∅NULL","∅NULL",IF(DATEVALUE(%s)>=TODAY(),DATEVALUE(%s)-TODAY(),0))'%(s,s,s), True)
-    # in_lm_days / on_hold_days：不写单格公式（会与 DB 不一致）。真 SQL 把 LM周期/Hold段按【在该阶段窗口内 OPEN 的那一条】归到对应阶段
-    # (stage_start≤cycle_opened≤stage_end 且 in_lm 仅算未关闭周期；Hold 有 4 槽)，而 ⑯/⑮ 只渲染代表性最新一行，单格无法选对那一条 → 落 NOTE（计算逻辑列说明，真值见 ⑯/⑮ 长表）
+    # in_lm_days / on_hold_days：单格活公式选不出"对的那一条"（真 SQL 把【该阶段窗口内 OPEN 的那一条】LM周期/Hold段归到阶段，
+    # 一笔常有多条，⑯/⑮ 只渲染代表行），故改写「数据代入·分步运算」静态工作示例（真实数据逐步算出=DB=举例列，见 WEX）。无该格则回退 NOTE。
+    if field.endswith('_in_lm_days') or field.endswith('_on_hold_days'):
+        w = WEX.get(loan, {}).get(field)
+        if w and w.get('text'): return (w['text'], 'wex')
+        return None
     return None
 def _passthrough(meta, field, loan):    # 直传/改名 → 引用上游该笔格（无 =）
     imm=IMM_UP.get(meta)
@@ -844,7 +852,8 @@ def formula_for(meta, field, loan):     # -> (cell_text, is_formula)
     if a: return ('='+a, True)
     return (NOTE_GEN, False)
 # Carr 源已建为 ②c src·portcarrington 独立 sheet（B_TABLES is_src）；carr_formula 直接 cref 它，无需 ⑨ 表底块
-nf=nn=0
+nf=nn=nw=0
+NOTE_LEFT=[]   # 仍为 NOTE_GEN 的公式格审计清单（(sheet,字段)）
 for meta in [TEMP,FCL,FORE,SYNC,VIEW,P12]+P2_METAS:
     R=REG.get(meta); ws=WS_OF.get(meta)
     if not R or not ws: continue
@@ -852,9 +861,17 @@ for meta in [TEMP,FCL,FORE,SYNC,VIEW,P12]+P2_METAS:
         for col,loan in ((5,NZ),(6,CA)):
             txt,isf=formula_for(meta,field,loan)
             cell=ws.cell(row,col); cell.value=txt; cell.font=VFONT; cell.border=BORDER; cell.alignment=WRAP
-            cell.fill=F(FILL_FX) if isf else F(GREY)
-            nf+=1 if isf else 0; nn+=0 if isf else 1
-print('🧮 双列填充：公式 %d，说明注 %d（含 Newrez+Carrington 两列）'%(nf,nn))
+            if isf=='wex':   cell.fill=F(FILL_WEX); nw+=1            # 数据代入·分步工作示例（浅黄）
+            elif isf:        cell.fill=F(FILL_FX);  nf+=1            # 活公式（浅绿）
+            else:
+                cell.fill=F(GREY); nn+=1                            # 说明注（灰）
+                if txt==NOTE_GEN and col==5: NOTE_LEFT.append((ws.title, field))
+print('🧮 双列填充：活公式 %d，数据代入示例 %d，说明注 %d（含 Newrez+Carrington 两列）'%(nf,nw,nn))
+# —— NOTE_GEN 公式格审计：列出仍为通用样板注的字段（仅 Newrez 列计数，避免重复），便于确认确实不可代入 ——
+print('—— 仍为 NOTE_GEN 的公式格（%d 字段·按表）：确认确不可单格代入(常量/系统列/解码/视图多行实时/off-sheet 源) ——'%len(NOTE_LEFT))
+_byt={}
+for sn,fd in NOTE_LEFT: _byt.setdefault(sn,[]).append(fd)
+for sn in _byt: print('   %s: %s'%(sn, '、'.join(_byt[sn])))
 
 # ============================================================ ① 表清单 索引（仿 doc 19；分层分组 + 跳转链）置首位
 SHEET_OF = {mk: sn for mk, _, sn in B_TABLES}
