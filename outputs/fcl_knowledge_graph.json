@@ -10,7 +10,7 @@
   },
   "version": "v1 2026-06-13",
   "node_count": 386,
-  "edge_count": 963,
+  "edge_count": 962,
   "node_types": {
    "layer": 6,
    "table": 24,
@@ -28,7 +28,7 @@
   },
   "edge_types": {
    "in_layer": 24,
-   "lineage": 76,
+   "lineage": 75,
    "supplies": 2,
    "belongs_to": 154,
    "in_family": 128,
@@ -496,8 +496,8 @@
    "type": "table",
    "label_zh": "㉔ portnewrezdatadic",
    "label_en": "㉔ portnewrezdatadic",
-   "desc_zh": "Newrez FCL 解码字典(8 列)——把 LM/BK 等编码(LMDeal/LMProgram/LMStatus/LMDecision/BKStatus 等)映射成业务文案。",
-   "desc_en": "Newrez FCL 解码字典(8 列)——把 LM/BK 等编码(LMDeal/LMProgram/LMStatus/LMDecision/BKStatus 等)映射成业务文案。",
+   "desc_zh": "Newrez 解码字典——长表(field_name/code/description，1 行/(field_name,code))，把 LM/BK/FCL 等编码(LMDeal/LMProgram/LMStatus/LMDecision/BorrowerIntention/DenialReason/BKStatus/BKStage/LegalStatus 等)映射成业务文案。⚠️ 实测仅 redshift_prod 有此长表；mysql_prod 的 newrez.newrezdatadic 是另一张宽表(只解码 propertytype/loanpurpose 等 6 类、无 LM/BK)。",
+   "desc_en": "Newrez 解码字典——长表(field_name/code/description，1 行/(field_name,code))，把 LM/BK/FCL 等编码(LMDeal/LMProgram/LMStatus/LMDecision/BorrowerIntention/DenialReason/BKStatus/BKStage/LegalStatus 等)映射成业务文案。⚠️ 实测仅 redshift_prod 有此长表；mysql_prod 的 newrez.newrezdatadic 是另一张宽表(只解码 propertytype/loanpurpose 等 6 类、无 LM/BK)。",
    "layer": "L1",
    "db": "mysql",
    "doc": "02",
@@ -4447,6 +4447,13 @@
   },
   {
    "from": "table:carrington.portcarrington",
+   "to": "table:port.basic_data_fcl_related",
+   "type": "lineage",
+   "label_zh": "下游",
+   "label_en": "downstream"
+  },
+  {
+   "from": "table:carrington.portcarrington",
    "to": "table:bpms.sync_loan_foreclosure",
    "type": "lineage",
    "label_zh": "下游",
@@ -4462,6 +4469,13 @@
   {
    "from": "table:newrez.portnewrezbk",
    "to": "table:port.basic_data_loan_foreclosure_bankruptcy",
+   "type": "lineage",
+   "label_zh": "下游",
+   "label_en": "downstream"
+  },
+  {
+   "from": "table:newrez.portnewrezbk",
+   "to": "table:port.basic_data_fcl_related",
    "type": "lineage",
    "label_zh": "下游",
    "label_en": "downstream"
@@ -4552,6 +4566,13 @@
   },
   {
    "from": "table:newrez.portnewrezprop",
+   "to": "table:port.basic_data_fcl_related",
+   "type": "lineage",
+   "label_zh": "下游",
+   "label_en": "downstream"
+  },
+  {
+   "from": "table:newrez.portnewrezprop",
    "to": "table:bpms.sync_loan_foreclosure",
    "type": "lineage",
    "label_zh": "下游",
@@ -4560,34 +4581,6 @@
   {
    "from": "table:port.basic_data_daily_loan_common",
    "to": "table:port.basic_data_daily_loan_common_clean",
-   "type": "lineage",
-   "label_zh": "下游",
-   "label_en": "downstream"
-  },
-  {
-   "from": "table:port.basic_data_daily_loan_common",
-   "to": "table:port.basic_data_fcl_related",
-   "type": "lineage",
-   "label_zh": "下游",
-   "label_en": "downstream"
-  },
-  {
-   "from": "table:port.basic_data_daily_loan_common",
-   "to": "table:port.fcl_stage_info",
-   "type": "lineage",
-   "label_zh": "下游",
-   "label_en": "downstream"
-  },
-  {
-   "from": "table:port.basic_data_daily_loan_common_clean",
-   "to": "table:port.basic_data_fcl_related",
-   "type": "lineage",
-   "label_zh": "下游",
-   "label_en": "downstream"
-  },
-  {
-   "from": "table:port.basic_data_daily_loan_common_clean",
-   "to": "table:port.fcl_stage_info",
    "type": "lineage",
    "label_zh": "下游",
    "label_en": "downstream"

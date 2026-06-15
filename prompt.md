@@ -3737,3 +3737,123 @@ basic_data_fcl_related 由 portnewrezgeneral.delinquency_status_mba 映射成 de
 - **结果**：⑬ noi_in_lm 等空格=「∅NULL：本笔未进入NOI阶段(noi_start_date 为空)」；demand/first_legal in_lm=398·on_hold=107、referral_on_hold(806)=319 全显分步算式=DB=举例列。活公式 729+数据代入示例 32+注 363；真 Excel 741 公式 0 错误；内容级幂等(MD5 ccc700c2…)。doc 32 zh v13、依赖清单同步。
 - **附带(传播规则)**：本轮取证恰好解掉 doc 31 §8 **OQ1**(business_2.stage_end_dt 真实取值)——旧 §5 工作例对 loan 7727000131 用了两个错前提(窗口端当 demand_end_date、取最早 open cycle)算出 5、留「差9天」未解；订正为 窗口端=curr_date + rnk=1 取最近 open cycle 2026-05-28 → datediff(2026-05-28,2026-06-14)+1=18=prod ✓。doc 31 zh+en 的 §5.3/§8 OQ1/Known Limitations/§5.2 注 全部更新为已关闭。
 - DB/代码全程只读；未提交。
+
+## [2026-06-14 UTC] 数据流动：点选某表后高亮保持（不再随鼠标移开而消失）
+> data flow page: 点表高亮其流向，但鼠标移到空白处高亮就消失、全部表又变亮；想逐表看流向+读右侧抽屉时难以区分
+
+### 完成: flow 高亮回退到「选中表」[2026-06-14]
+- 问题：流向高亮只由 hover 驱动（flowHoverId），mouseleave 即清空→全亮；选中(flowSel)仅给节点描边、不锁定高亮。读抽屉时鼠标离开节点高亮就没了。
+- 修法：applyFlowHover 的高亮源改为 `focus = flowHoverId!=null ? flowHoverId : flowSel`——悬停优先，无悬停时回退到「选中表」。flowSelectNode 末尾加 applyFlowHover() 使点选即高亮并保持；flowCloseDrawer(flowSel=null)→清空。
+- 验证(Preview)：点 stg→17 表淡出仅其流向链亮+开抽屉；鼠标移到空白→仍保持 17 淡出（修复点）；悬停另一表 fc→临时预览(14 淡出)，移开→回到选中 stg(17)；关抽屉→全清。7 视图 0 报错。DB/代码只读。**LOCAL，未 push。**
+
+## [2026-06-14 UTC] 数据流动：选中高亮后如何复位到初始界面
+> 单击选中某节点、相关 data flow 高亮后，如何恢复到初始界面？
+
+### 完成: flow 复位三途径 + 提示文案 [2026-06-14]
+- 背景：上一步让选中高亮保持后，需要直观的「取消/复位」方式（原仅抽屉 ✕）。
+- 实现：① flowSelectNode 顶部 `if(id===flowSel){flowCloseDrawer();return;}`——再点同一表=取消；② svg 加背景点击 `if(flowSel && !e.target.closest('g.fbox')) flowCloseDrawer()`——点空白=复位（不误伤节点点击）；③ ✕ 仍可用。提示文案补「再点该表/点空白处/抽屉 ✕＝复位」(zh+en)。
+- 验证(Preview)：选 stg(17 淡出)→再点 stg=复位(0,抽屉隐藏)；再选→点空白 svg=复位(0,隐藏)；真实 DOM 点 fc 仍正常选中(14 淡出)、背景处理不clobber；0 报错。DB/代码只读。**LOCAL，未 push。**
+
+## [2026-06-15 UTC] doc 32 G 字段级逻辑清单：规则摘要列改为简洁清晰的逻辑文字/数学式
+> doc 32 ,  G 字段级逻辑清单, 能用逻辑文字或数学公式简洁描述一些这些规则摘要吗？有些没看明白
+
+### 完成: doc 32 G 页「规则摘要」改为简明逻辑文字 [2026-06-15]
+- **背景**：用户看 G 字段级逻辑清单的「规则摘要」列(D)，原是代码追踪术语(sync passthrough / upsert pass-through / GEN_FORECLOSURE 直传（值=NULL）/ target_* commented out → NULL / auto-increment PK / UNION ALL unpivot / dealid → bid_id 等 20 种)截断 48 字，反馈"有些没看明白"。
+- **改法(仅 G 页渲染，不动真源)**：生成器加 `g_summary()` 归一器(正则+关键词)，把 20 种术语→13 种白话：① 拷贝/直传/sync/upsert 统一「本列 := 上游同名列（原样拷贝，值不变）」(+「；实测 = ∅NULL」当空)；② 改名「本列(Y) := 上游 X（仅改列名，值不变）」；③ target_*「源计算在代码中被注释停用 ⇒ 恒 = ∅NULL」；④ 自增主键/系统列(BPS·ETL 自管)/破产·损失缓释·阶段分支/宽表 UNION ALL 拆长表/视图实时算 各白话；":=" 读作"取自"。G 页顶部加「读法」图例行(浅黄)解释术语 + 历史依赖列(最新/全历史/最新view)。规则摘要列宽 50→60，表头/数据下移一行(图例行)。
+- **不传播**：B 主表逐字段页 / doc 26 / fcl_pipeline.html 仍保留逐跳详细规则+代码出处(代码追踪版)，G 页只是"摘要白话版"，二者分工；fcl_lineage_source.json 只读引用未改。
+- **验证**：G 154 行、distinct 规则摘要 20→13；真 Excel 741 公式 0 错误(G 无公式)；内容级幂等(MD5 f74eaa0…)。doc 32 zh v14。
+- DB/代码只读；未提交。
+
+## [2026-06-14 UTC] 血缘图谱搜索：单结果下拉选中不展开定位
+> lineage 搜索结果只有一个时，从下拉选中该字段，下方 lineage 没展开定位到该字段
+
+### 完成: 精确匹配即定位 + 重渲后恢复搜索框 [2026-06-14]
+- 根因：之前为修「输入'stage'被清空」把 graphSearchPick 限制为「仅 datalist pick(insertReplacementText) 才定位」。但单结果时，用户把全名打完→下拉唯一建议=已输入值→点它不改变 value→不触发 input 事件→不定位（onchange 也不触发）。故卡住。
+- 修法：① graphSearchPick 去掉 inputType 限制——只要 value 精确匹配某表/字段就定位（精确匹配，不是子串，不会每键都触发）；② 新增 _restoreGsearch(q)，在 focusGraph*（会 renderGraph 重建工具栏/搜索框）之后恢复搜索框的 value+焦点+光标——这才是「输入被清空」的真正根因，恢复后输入永不中断。graphSearch 各定位分支后调用之。
+- 验证(Preview)：逐字打满 target_first_legal_days→打到全名即自动定位(3 表展开)、框内文字保留；打 'stage'→定位 stage 且框仍可继续输入(canStillType=true)→续打 'stage_x' 正常；datalist pick(deal)/回车(bankruptcy_status) 均定位且保留框文字；7 视图 0 报错。DB/代码只读。**LOCAL，未 push。**
+
+## [2026-06-14 UTC] target 目标天数字段措辞修正（按 state/judicial/servicer 预设 → 实情）
+> 该字段 biz「按 state/judicial/servicer 预设，与 Newrez 无关」是否该填 servicer？→ ok 补充说明
+
+### 完成: *_target 目标天数 biz 文案按 Code-First+DB 改准 [2026-06-14]
+- 查证（Code-First+DB 只读）：target_judgement_hearing_set_days 在 basic_data_pool_config.py:184 是 DDL 列（注释默认 120）；target_* 写入在 GEN_FORECLOSURE 与 BPS sync(asset_managment_config.py:564-573) 均被注释。DB：redshift port=NULL(5743 行全空)，bpms sync=120(94)、view=120(130785)——全量同值固定常量，非 servicer 数据。
+- 结论：用户猜「应是 servicer data」不对（恰相反，是系统侧合规目标/SLA 常量）；但原文「按 state/judicial/servicer 预设」夸大——代码无 state/judicial/servicer 分档，就是写死默认值。
+- 修法：fcl_pipeline.html:1333 共享 biz（覆盖全部 mile_*_target）改为：「系统合规目标天数(SLA 基准)：固定默认常量(见取值范围)，全量贷款同值——非 servicer 上报；Redshift 恒 NULL(target_* 被注释)，BPS 层填默认值；与 Newrez 等任何 servicer 数据无关。(DB 实测：每笔=默认值)」zh+en。
+- 验证(Preview)：抽屉 biz zh/en 正确渲染；7 视图 0 报错。DB/代码只读。**LOCAL，未 push。**
+
+## [2026-06-14 UTC] 详细版血缘小图：方框贴合内容 + 连线加长便于看标签
+> 新版（详细）血缘小图方框空白太多（应像旧版贴合内容留少量空白）；框间连线太挤、看不清线上文字
+
+### 完成: .hlin-box 贴合内容 + .hlin-edge 连线竖线+留白 [2026-06-14]
+- .hlin-box：display:inline-block + width:fit-content + max-width:100%——方框贴合内容（db/表/字段三行最长者），不再整宽撑满；padding 5px 11px。块级 edge 夹在框间使各框仍竖直堆叠。
+- .hlin-edge：padding 4→9px(上下) + 左 22px，新增 ::before 竖向连线（left:9px，top/bottom:-3px，宽 2px #4a5666）——形成「竖线 + 右侧标签」如经典版，标签(copy/规则)有空间、看得清。
+- 验证(Preview)：summary_completed_foreclosure 详细图 3 框贴合内容（boxW 231 < 容器 288）、竖直堆叠(y 431/530/629)、edge 高 50px 含连线；7 视图 0 报错。纯 CSS。DB/代码只读。**LOCAL，未 push。**
+
+## [2026-06-15 UTC] doc 32 ⑫ fcl_related：rule 里的表别名 g./l./pmt./bk. 未说清具体是哪张表
+> doc 32, ⑫ mid·fcl_related, 的 g表，I 表 都具体是什么表？文档中有说清楚吗？请检查一下其他地方是否还有此问题。
+
+## [2026-06-14 UTC] 详细版血缘小图：连线按转换类型配色 + 方向箭头
+> 你觉得呢？好的 UI/UX？→ 选「连线按转换类型配色+方向箭头」
+
+### 完成: .hlin-edge 连线配色+下箭头（呼应顶部图例）[2026-06-14]
+- 方案：每段竖向连线颜色 = 该跳 edgeCatL(rule) 对应的 EDGE_COLOR（copy 灰/decode 绿/coalesce 蓝/track 橙/computed 紫/config 粉/map 灰蓝），并在线末加朝下小箭头——一眼看出方向(↓源→BPS)+每跳转换类型，与顶部图例统一。
+- 实现：CSS .hlin-edge::before background=var(--econ)、新增 ::after CSS 三角(border-top-color=var(--econ))；glinMiniSVG 边 div 注入 style="--econ:${EDGE_COLOR[edgeCatL(rule)]}"，去掉冗余内联「▼」。
+- 验证(Preview)：deal=绿(decode)→灰(copy)；demand_in_lm=灰→紫(computed)→灰；foreclosure_status=灰(copy)/灰蓝(map/CASE)；线与箭头同色；7 视图 0 报错。纯 CSS/渲染。DB/代码只读。**LOCAL，未 push。**
+
+## [2026-06-15 UTC] doc 32 F 逻辑类型目录：LT09 条件取源列(fcresults) 是什么意思？举例
+> doc 32 F 逻辑类型目录, 这条规则是什么意思？什么逻辑？请举例说明：LT09 条件取源列(fcresults)
+
+### 完成: ⑫ 表别名(g/l/pmt/bk/pr) 澄清 + ⑫ 上游血缘 Code-First 订正 [2026-06-15]
+- **用户问**：⑫ fcl_related 计算逻辑里的 g表/l表 是什么表？文档说清楚没？检查其他地方。
+- **别名澄清**：扫全部 rule 源(fcl_field_rules_extra + fcl_lineage_source)找未定义表别名——真问题集中在 ⑫(g/l/pmt/bk/pr/r)；其余 e.(=e.g. 误报)、r.(已内联定义)、fc./sa./ju.(pool 代码逐字引用，源明确)。Code-First 读 CREATE_FCL_RELATE_ATTR(pool:1696-1770)实测：g=newrez.portnewrezgeneral、l=newrez.portnewrezliq、pmt=newrez.portnewrezpmt、bk=newrez.portnewrezbk、pr=newrez.portnewrezprop、c=carrington.portcarrington、r=本表⑫。把 fcl_field_rules_extra.json 的 ⑫ 12 条 rule 全部改写为含全名 db.schema.table + 别名定义 + Carrington 分支源 + servicer 行加别名图例。
+- **附带 Code-First 订正(重大)**：⑫ table_meta 旧上游误标 basic_data_loan_fcl + daily_loan_common_clean；实测 FROM = 5 张 Newrez 原始表 JOIN(loanid+dataasof) UNION carrington.portcarrington，delq_status 由 g.delinquency_status_mba + days360(pmt.nextduedate) 现算(非取自逾期支线 L3)。连带订正：⑬ 上游(去掉误标 daily_clean，补 LM/Hold)、⑦⑧(逾期支线 L2/L3 不流向 ⑫/⑬ group——它们独立重算同一逻辑)、⑤(general 两条独立去向:逾期支线 vs FCL分组直读)、③⑥②c(补 →⑫ 下游，bk_flag/propertystate/Carrington分支)。
+- **传播**：fcl_table_meta.json → 重生成 doc 19(card)、doc 32(⑫ 表头)、rebuild KG(edges:daily→⑫ 已删,补 general/bk/prop/carrington→⑫)、re-inject HTML FTMETA+KG。grep 全仓旧上游 claim 残留=0。
+- **验证**：DB 只读实测(timeline_third_party_sold 5743 行 0 非空；fcresults 取值分布)；doc 32 真 Excel 741 公式 0 错误、内容级幂等(afca3e29…)。
+
+### 完成: doc 32 F 页 LT09 澄清 [2026-06-15]
+- **问题**：LT09「条件取源列(fcresults)」名字含糊，且与实情不符。Code-First+DB 实测：timeline_third_party_sold_date_date 本意=法拍第三方拍下(fcresults='3rd Party')的售出日，但 pipeline 恒置 null(pool:270)、BPS 仅透传(asset:769)，实测 5743 行全空→该条件逻辑【未实装】。fcresults 实测：''/null 绝大多数、REO 611、3rd Party 458。同族 proceeds_received_date 取自 fc.fcl3rdpartyproceedsreceiveddate(pool:271)有真值。
+- **修法**：fcl_logic_coverage.json LT09 名改「第三方拍下售出日(按 fcresults；实测恒 null)」+ 新增 lt_notes['LT09'] 详解；生成器 F 页 col6 改为同时显示「例 loan ｜ 说明注」(原 loan 存在时隐藏 note，导致 LT09 等看不到解释)。重生成 doc 32，F 页 LT09 行现含全解释。真 Excel 0 错误、幂等。
+- DB/代码全程只读；未提交。
+
+## [2026-06-15 UTC] doc 32 F 页 LT09：fcresults 是字段吗(找不到)？示例说明太乱请整齐
+> doc 32, F 逻辑类型目录, fcresults 是一个字段吗？LT09的示例逻辑太乱了，请整齐
+
+### 完成: F 页 LT09 说明整齐化 + fcresults 字段定位 [2026-06-15]
+- fcresults 是【真列】(information_schema 实测)：在 newrez.portnewrezfc(② 源)、tempfc.temp_basic_data_fcl(⑨)、port.basic_data_loan_fcl(⑩)；属 Redshift 中间列、非 BPS 输出字段，故 F/G 页(只列 BPS sync 字段)查不到——去 doc 32 ②(行39)/⑨(行40)/⑩(行40) sheet 可见。
+- LT09 col6 说明原为一大段，改成 7 行分点(字段/判定列 fcresults 位置/取值分布/设计本意/实测未实装/对比) ——lt_notes['LT09'] 用 \n 分行；生成器 F 页 col6 join 改 '\n'(例 loan 行1 + 说明注换行)、col6 列宽 24→48、行高改为兼顾换行+折行(避免裁切)。
+- 验证：F LT09 渲染 7 行(height 280)；真 Excel 741 公式 0 错误、幂等(4badbcf1)。DB/代码只读、未提交。
+
+## [2026-06-15 UTC] 血缘图(fcl_pipeline.html)为何没有 fcresults，但 doc 32 ② 有
+> why the lineage page do not have this field - fcresults, but doc 32 ② src·portnewrezfc has this field
+
+### 完成: 澄清血缘图为何无 fcresults（按 BPS sync 驱动，dead-end 列不入图）[2026-06-15]
+- 根因(Code-First 确认)：血缘图(fcl_pipeline.html GLIN)由 fcl_lineage_source.json 驱动，只追「能到达 5 张 BPS sync 表」的字段链。fcresults 在 lineage_source 中 0 命中；pool 里只 1559(携带进 ⑨ temp)、1600/1641(其他 servicer 分支=null)，GEN_FCL_DETAIL(266-305)不取它、asset 0 引用 → fcresults 只携带到 ⑩ basic_data_loan_fcl 即终止、不进 ⑪/BPS，故无 BPS 血缘链、不成图节点。doc 32 ② sheet 是【整表列清单】故含 fcresults(及 ⑨/⑩)。
+- 修：在 fcl_pipeline.html 图视图「页面说明」zh+en 各补一句——源/中间表里不流向 BPS 的列(如 portnewrezfc.fcresults)不入图，完整列清单见 doc 32 ②/⑨/⑩ sheet。直接改 HTML 静态 desc(非 inject marker 区)，结构完好、marker 全在。DB/代码只读、未提交。
+
+## [2026-06-15 UTC] doc 32 还有未完成任务吗？请继续
+> 这个32 doc还有未完成的任务吗？请继续
+
+### 完成: Phase 5 —— 补全 ⑦⑧⑭ 逐表 sheet（doc 32 全 24 表齐）[2026-06-15]
+- 评估：doc 32 唯一结构性缺口＝⑦⑧⑭ 三表无逐表 sheet（"仍无 sheet：⑦⑧⑭"）。核查发现字段含义本已在 fcl_field_meanings.json（⑦78/⑧103/⑭57 全有 m/src），仅缺 25 笔举例数据。用户选「补全三张完整 sheet」。
+- 数据：子agent 只读拉 redshift_prod 25 笔样本最新快照（⑦ asofdate=2026-06-13 / ⑧ fctrdt=2026-07-01 / ⑭ current，均 25/25 命中，含 5 Carr 笔）→ fcl_layer_examples_phase5.json；字段名与 FM 100% 对齐（0 缺 0 多）。
+- 生成器：加载 _P5；B_TABLES 升序插 ⑦(mid·daily_loan_common)⑧(mid·daily_common_clean)⑭(dim·portfunding)；新增 SRC_LIKE 集令三表走 src-like 布局（字段+业务含义+来源/类型+25 举例，无 FCL 公式列）+ 专用 note（⑦⑧=逾期支线·不流向 FCL group·仅上下文；⑭=融资维度·运行时 JOIN 取 funding_id/bid_id）；导读去「仍无 sheet」警告、tab 列表补 ⑦⑧⑭、① 索引三行自动由「待补」变「➤ 打开」。
+- 验证：31→34 sheet；真 Excel 741 公式 0 错误；内容级幂等(3febdeae)；① 索引 ⑦⑧⑭ 跳转 OK、三表举例值实测(asofdate 2026-06-13 / fctrdt 2026-07-01 / fundingid HMC002)。doc 32 zh v16、依赖清单+phase5。DB/代码只读、未提交。
+
+## [2026-06-14 UTC] 血缘图加「内部·条件列」诉求 → Code-First 查证：无条件列；改正 fcresults 错注
+> 希望血缘图显示「不进 BPS 但为 BPS 服务的条件列」（如 fcresults）→ 选「只加真正条件型(先查)」+「改正 doc 32 fcresults 错注」
+
+### 完成: Code-First 结论 + fcresults 错注全链改正 [2026-06-14]
+- **关键发现（Code-First 全仓）**：fcresults 整仓仅 3 处(UNION 列定义 1559/1600/1641)，0 处 CASE/WHERE 条件用法；timeline_third_party_sold_date 在 pool:270 恒 null、与 fcresults 无关。→ fcresults 是「带进 Redshift 但下游未用」型，**不是**为 BPS 服务的条件列。
+- **Task A（血缘图加条件列）结论=无需新增**：扫 GEN_FCL_DETAIL（summary/timeline）+GEN_FCL_STAGE 全部 CASE/WHERE，条件输入＝activefcflag/fcremovaldesc/judicial/fccontestedflag/各阶段日期/LM/hold/delq——**全部已作为对应 BPS 字段的源跳显示在图里**；不存在「隐藏的、不进 BPS 但作 BPS 条件」的列。fcresults/fcapprbidprice 属 carried-unused（用户已排除）。故按选定范围，血缘图 0 新增。
+- **Task B（改正错注，传播）**：① outputs/fcl_field_rules_extra.json 两处 fcresults 注释改为「下游未用、不进 BPS、third_party_sold 恒 null@270、Code-First 0 条件用法」；② 重跑 build_fcl_pipeline_mapping_xlsx.txt → docs/32_…xlsx（34 sheet），⑨/⑩ sheet 实测确认改正；③ 顺带改正 live HTML tp3sold 字段(timeline_third_party_sold)：calc/note 从「当 fcresults='3rd Party'→fcsalehelddate」改为「设计本意+⚠实测未实装恒 null」，fill 2.0%→0%。
+- fcl_logic_coverage.json LT09 已正确(标"未实装")，无需改。**待办/建议**：doc 13/14(zh+en) 仍把该设计当成实装陈述——已向用户标注、按需对齐。
+- 验证(Preview)：tp3sold 计算逻辑显示「设计本意…⚠未实装恒 null」；7 视图 0 报错。DB/代码只读。**LOCAL，未 push。**
+
+## [2026-06-14 UTC] 血缘图谱加 servicer 切换开关（Carrington/Capecodfive 源层）
+> 我想把 Carrington 的源数据表也加入到 lineage 中，你觉得怎样的 UI 和 UX 会好一些？→ 选「servicer 切换开关」（换第一跳源层）
+
+### 完成: 血缘图 servicer 切换开关（Carrington/Capecodfive 源层）[2026-06-14]
+- DB 核验（Schema-Verify，redshift_prod 只读）：carrington.portcarrington 与 capecodfive.portcapecodfive_monthly_collections 的全部 Code-First 源列 NOT-IN 检查 0 行（含 fcl_flag/fcl_referral_date/fcl_sub_status/fcl_attorney_name/fcl_scheduled_sale_date/fcl_sale_held_date/loan_status/property_state；capecodfive foreclosure_*/noi_date/most_recent_foreclosure_stage）。GLIN 现有 servicers 块经核验已准确完整，**无需改 GLIN 数据/无需重注入**。
+- 实现（fcl_pipeline.html 纯前端）：①state graphServicer='Newrez'；②NODE_DB_COLOR 加 carrington(青)/capecodfive(金)；③_glTier/_glDb 认这两 schema 为 tier-0、_glDbName 归 redshift_prod；④buildGraph 加 _svcSrcHop(f) 解析 f.servicers[servicer]→第一跳，非 Newrez 时换 tier-0 hop、该家不上报的字段直接跳过（聚焦贡献，避免 100+ 占位）；⑤工具栏分段开关「源:Newrez|Carrington|Capecodfive」+graphSetServicer；⑥L1 列头随 servicer 动态（Carrington→redshift_prod.carrington）；⑦非 Newrez 显示「仅上报 N 字段」caption；⑧.gsvc CSS。
+- **与计划的偏差**：计划写「不报字段 __NOSRC__ 占位」，实测发现 Carrington 只报 14/154，占位会成 100+ 边的 hub→改为「跳过不报字段、只画该家贡献的聚焦子图」+ caption 计数（更清爽，三家差异在字段抽屉对照里仍可见）。
+- 验证(Preview)：默认 Newrez=原图；切 Carrington→列头 redshift_prod.carrington、源=carrington.portcarrington、14 字段、下游不变；切 Capecodfive→13 字段、capecodfive.portcapecodfive_monthly_collections；展开源表字段列解析正确（含 loan_status/fcl_flag、fchold4 slot）；切回 Newrez=原图；7 视图 0 报错。DB/代码只读。**LOCAL，未 push。**

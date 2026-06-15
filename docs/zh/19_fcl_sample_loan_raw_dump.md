@@ -295,8 +295,8 @@ SELECT t.* FROM newrez.portnewrezfc t JOIN (SELECT loanid, MAX(dataasof) AS _md 
 > - **何时来查这张表**：查某贷款原始破产章节/状态/申请日，或核对 BPS 破产面板。
 > - **上游链路**：Servicer 文件(S3, L0) → newrez.portnewrezbk
 > - **全部上游表**：Servicer 文件(S3, L0)
-> - **下游链路**：portnewrezbk → port.basic_data_loan_foreclosure_bankruptcy〔解码 bkstatus，basic_data_pool_config.py:331-370，JOIN newrez.portnewrezdatadic〕 → bpms.sync_loan_foreclosure_bankruptcy〔asset_managment_config.py:822-843〕 → bpms.biz_data_view_loan_details_foreclosure(视图) → BPS 破产面板
-> - **全部下游表**：port.basic_data_loan_foreclosure_bankruptcy、bpms.sync_loan_foreclosure_bankruptcy、bpms.biz_data_view_loan_details_foreclosure
+> - **下游链路**：portnewrezbk → port.basic_data_loan_foreclosure_bankruptcy〔解码 bkstatus，basic_data_pool_config.py:331-370，JOIN newrez.portnewrezdatadic〕 → bpms.sync_loan_foreclosure_bankruptcy〔asset_managment_config.py:822-843〕 → bpms.biz_data_view_loan_details_foreclosure(视图) → BPS 破产面板。另：bk.activebkflag → port.basic_data_fcl_related.bk_flag(⑫，CREATE_FCL_RELATE_ATTR pool:1720)
+> - **全部下游表**：port.basic_data_loan_foreclosure_bankruptcy、port.basic_data_fcl_related、bpms.sync_loan_foreclosure_bankruptcy、bpms.biz_data_view_loan_details_foreclosure
 > - **数据粒度**：1 行/贷款/破产申请(bkfileddate)；多次申请多行。
 <!-- META:newrez.portnewrezbk END -->
 
@@ -473,7 +473,7 @@ SELECT t.* FROM newrez.portnewrezlm t JOIN (SELECT loanid, MAX(dataasof) AS _md 
 > - **何时来查这张表**：查某贷款原始逾期分类/法律状态/下次到期日。
 > - **上游链路**：Servicer 文件(S3, L0) → newrez.portnewrezgeneral
 > - **全部上游表**：Servicer 文件(S3, L0)
-> - **下游链路**：portnewrezgeneral.delinquency_status_mba → port.portdaily_v2〔portdaily_config.py〕 → port.basic_data_daily_loan_common.delq_status(逾期支线 L2，daily_data_loan_common_config.py) → port.basic_data_daily_loan_common_clean.delinq(L3，daily_data_loan_common_clean_config.py，CASE+days360) → { port.basic_data_fcl_related.delq_status / port.fcl_stage_info.group / port.portmonthbase } → BPS
+> - **下游链路**：portnewrezgeneral.delinquency_status_mba 有两条独立去向：(A 逾期支线) → port.portdaily_v2 → port.basic_data_daily_loan_common.delq_status(L2) → port.basic_data_daily_loan_common_clean.delinq(L3，CASE+days360) → port.portmonthbase → BPS；(B FCL 分组) general 被 CREATE_FCL_RELATE_ATTR(pool:1696-1770) 直接读取 → port.basic_data_fcl_related.delq_status → port.fcl_stage_info.group → bpms.sync_fcl_stage_info → BPS。⚠️ B 路不经 daily_loan_common_clean——⑫ 用同一 CASE+days360 逻辑独立重算。
 > - **全部下游表**：port.portdaily_v2、port.basic_data_daily_loan_common、port.basic_data_daily_loan_common_clean、port.basic_data_fcl_related、port.fcl_stage_info、port.portmonthbase、bpms.sync_fcl_stage_info
 > - **数据粒度**：1 行/贷款/dataasof。
 <!-- META:newrez.portnewrezgeneral END -->
@@ -629,8 +629,8 @@ SELECT t.* FROM newrez.portnewrezgeneral t JOIN (SELECT loanid, MAX(dataasof) AS
 > - **何时来查这张表**：查某贷款物业州/LTV/占用情况。
 > - **上游链路**：Servicer 文件(S3, L0) → newrez.portnewrezprop
 > - **全部上游表**：Servicer 文件(S3, L0)
-> - **下游链路**：portnewrezprop.propertystate → port.basic_data_daily_loan_common(州维度) / port.basic_data_loan_foreclosure(summary_judicial_foreclosure 司法标志) → bpms.sync_loan_foreclosure → BPS
-> - **全部下游表**：port.basic_data_daily_loan_common、port.basic_data_loan_foreclosure、bpms.sync_loan_foreclosure
+> - **下游链路**：portnewrezprop.propertystate → port.basic_data_daily_loan_common(州维度) / port.basic_data_loan_foreclosure(summary_judicial_foreclosure 司法标志) → bpms.sync_loan_foreclosure → BPS。另：pr.propertystate → port.basic_data_fcl_related.propertystate(⑫，CREATE_FCL_RELATE_ATTR pool:1721)
+> - **全部下游表**：port.basic_data_daily_loan_common、port.basic_data_loan_foreclosure、port.basic_data_fcl_related、bpms.sync_loan_foreclosure
 > - **数据粒度**：1 行/贷款/dataasof。
 <!-- META:newrez.portnewrezprop END -->
 
@@ -692,10 +692,10 @@ SELECT t.* FROM newrez.portnewrezprop t JOIN (SELECT loanid, MAX(dataasof) AS _m
 > - **何时来查这张表**：查‘统一后的每日逾期/状态原值’、对账各家归一。
 > - **上游链路**：Servicer 文件(L0) → newrez.portnewrezgeneral(等各家) → port.portdaily_v2〔portdaily_config.py〕 → port.basic_data_daily_loan_common〔daily_data_loan_common_config.py〕
 > - **全部上游表**：Servicer 文件(L0)、newrez.portnewrezgeneral、newrez.portnewrezfc、port.portdaily_v2
-> - **下游链路**：→ port.basic_data_daily_loan_common_clean(L3) → { port.portmonthbase / port.basic_data_fcl_related.delq_status / port.fcl_stage_info.group } → BPS
-> - **全部下游表**：port.basic_data_daily_loan_common_clean、port.basic_data_fcl_related、port.fcl_stage_info、port.portmonthbase
+> - **下游链路**：→ port.basic_data_daily_loan_common_clean(L3) → port.portmonthbase → BPS（逾期支线月度路径）。注：FCL 分组 fcl_stage_info.group / ⑫ basic_data_fcl_related.delq_status 不经本表——⑫ 由 Newrez 原始表(g.delinquency_status_mba + days360(pmt.nextduedate)) 独立重算同一逻辑，见 CREATE_FCL_RELATE_ATTR pool:1696-1770。
+> - **全部下游表**：port.basic_data_daily_loan_common_clean、port.portmonthbase
 > - **数据粒度**：1 行/贷款/asofdate。
-> - **备注**：fcl_flag 在 L2 未归一（直传，Newrez/SLS NULL）；真正归一在 L4 FCL 业务族。
+> - **备注**：fcl_flag 在 L2 未归一（直传，Newrez/SLS NULL）；真正归一在 L4 FCL 业务族。逾期支线(本表/⑧)只流向 portmonthbase 月度，不流向 ⑫/⑬ 的 FCL 分组（后者独立重算，2026-06-15 Code-First 订正）。
 <!-- META:port.basic_data_daily_loan_common END -->
 
 查询 SQL（prod 只读）：
@@ -796,16 +796,16 @@ SELECT t.* FROM port.basic_data_daily_loan_common t JOIN (SELECT loanid, MAX(aso
 >
 > - **所处层级**：L3 逾期支线 清洗日表（Redshift）
 > - **业务说明**：逾期支线 L3 清洗日表(103 列)——把 delq_status 经 CASE 归一成标准 delinq 码(C/D30/D60/D90/D120P/FCL/REO/P)，并用 days360(nextduedate,fctrdt) 分桶(fctrdt)。
-> - **业务目的**：标准逾期码的单一来源；喂 portmonthbase 与 FCL 业务族(stage 分组)。
-> - **在 pipeline 中的作用**：标准逾期码单一来源（L3）：CASE+days360 把 delq_status 归一为标准 delinq 码，喂 portmonthbase 与 FCL stage 分组。
+> - **业务目的**：逾期支线标准逾期码的单一来源；喂 port.portmonthbase 月度（不喂 FCL 分组——见下游说明）。
+> - **在 pipeline 中的作用**：标准逾期码单一来源（L3，逾期支线）：CASE+days360 把 delq_status 归一为标准 delinq 码，喂 port.portmonthbase。
 > - **为什么会有这张表**：业务要统一的 MBA 逾期码；文本状态(Foreclosure*/REO/Paid*)直接映射，其余按 days360 天数分桶。注意：FCL 码只来自 servicer 显式法拍状态，绝不由 days360 推导。
 > - **何时来查这张表**：查‘标准化后的逾期码/天数桶口径’、核对 days360 计算。
 > - **上游链路**：… → port.basic_data_daily_loan_common → port.basic_data_daily_loan_common_clean〔daily_data_loan_common_clean_config.py，CASE + days360〕
 > - **全部上游表**：port.basic_data_daily_loan_common、port.portdaily_v2、newrez.portnewrezgeneral
-> - **下游链路**：→ { port.portmonthbase / port.basic_data_fcl_related.delq_status / port.fcl_stage_info.group } → BPS。另：旁支 port.basic_data_loan_delinq_clean(含 is_ghost_payoff 等)实测存在，但其生成代码不在 PrefectFlow 仓库(grep 0 命中，开放问题)。
-> - **全部下游表**：port.basic_data_fcl_related、port.fcl_stage_info、port.portmonthbase
+> - **下游链路**：→ port.portmonthbase → BPS（逾期支线月度路径）。⚠️ 本 L3 清洗层不流向 FCL 分组：⑫ basic_data_fcl_related.delq_status / ⑬ fcl_stage_info.group 由 Newrez 原始表(g.delinquency_status_mba + days360(pmt.nextduedate)) 独立重算同一 CASE+days360 逻辑(CREATE_FCL_RELATE_ATTR pool:1696-1770)，并不读本表(2026-06-15 Code-First 订正)。另：旁支 port.basic_data_loan_delinq_clean(含 is_ghost_payoff 等)实测存在，但其生成代码不在 PrefectFlow 仓库(grep 0 命中，开放问题)。
+> - **全部下游表**：port.portmonthbase
 > - **数据粒度**：1 行/贷款/fctrdt。
-> - **备注**：旁支 port.basic_data_loan_delinq_clean 生成代码不在仓库（grep 0 命中，开放问题），未列为确定下游。
+> - **备注**：旁支 port.basic_data_loan_delinq_clean 生成代码不在仓库（grep 0 命中，开放问题），未列为确定下游。逾期支线 L3 不喂 ⑫/⑬ 的 FCL 分组（后者独立重算同一逻辑，2026-06-15 Code-First 订正）。
 <!-- META:port.basic_data_daily_loan_common_clean END -->
 
 查询 SQL（prod 只读）：
@@ -933,7 +933,7 @@ SELECT t.* FROM port.basic_data_daily_loan_common_clean t JOIN (SELECT loanid, M
 > - **业务说明**：Redshift 运行时改名临时表(37 列)——把各 servicer 原始列(如 fcreferraldate)改成统一列(referral_start_date)的中间产物。
 > - **业务目的**：port.basic_data_loan_fcl 的直接上游；承接‘改名’这一步。
 > - **在 pipeline 中的作用**：列名统一中间产物（L4）：承接「改名」这一步，连接 L1 各家源与 L4 UNION 事实表。
-> - **为什么会有这张表**：UNION 前必须先统一列名；单列一张临时表做改名，逻辑清晰、便于调试；运行时产物。
+> - **为什么会有这张表**：为什么单列这张临时表、而非直接生成 ⑩：它是【单消费者暂存表】(仅被 ⑩ 读，pool:1686)，物化它是工程权衡而非复用——①关注点分离：⑨ 专做‘三家 servicer 异构源 UNION + 列名归一化’(pool:1532-1654)，⑩ 只做‘LEFT JOIN Hold 历史’(pool:1657-1692)；②可读：单 UNION 约 120 行，内联进 ⑩ 的 join 会变成约 150 行嵌套大查询；③Redshift 性能：先把 UNION 物化成带统计信息的实体表再 join，比‘join 里塞三路 UNION 子查询’计划更稳、更快；④可调试：可直接查暂存表看‘UNION 完、挂 Hold 前’的中间态。属标准 ETL staging、非缺陷；理论上可用 CTE/真 TEMP 表省一次落盘，但当前复杂度下拆两步更优。
 > - **何时来查这张表**：排查‘统一列名 ↔ 源列名’映射、定位改名是否正确。
 > - **上游链路**：newrez.portnewrezfc(各家源) → tempfc.temp_basic_data_fcl〔改名 basic_data_pool_config.py ~:1538-1565〕
 > - **全部上游表**：newrez.portnewrezfc、Servicer 文件(L0)
@@ -1185,14 +1185,15 @@ SELECT t.* FROM port.basic_data_loan_foreclosure t JOIN (SELECT loanid, MAX(data
 > - **所处层级**：L4 FCL 关联/过滤中间表
 > - **业务说明**：FCL 关联属性中间表(14 列)——诉讼标志、清算类型、BK 标志、违约原因、delq_status 等。
 > - **业务目的**：给 stage 计算与过滤提供‘关联属性/分组键’(delq_status → stage group)。
-> - **在 pipeline 中的作用**：分组键提供者（L4）：合并逾期码与 FCL 属性，为 stage 计算提供分组键（delq_status→group）。
-> - **为什么会有这张表**：stage 计算需把逾期支线的 delq_status 与 FCL 属性合并；单列一张关联表承接，避免主时间线表过宽。
+> - **在 pipeline 中的作用**：分组键提供者（L4）：把 5 张 Newrez 原始表(general/liq/pmt/bk/prop)+ Carrington 源的关联属性合并，为 stage 计算提供分组键（delq_status→group）。
+> - **为什么会有这张表**：把 5 张 Newrez 原始表(general/liq/pmt/bk/prop)与 Carrington 源(portcarrington)的【诉讼/清算/BK/违约/逾期分类】按 loanid+dataasof 合并成一张窄关联表(1 行/贷款)，供 ⑬ stage 计算取 delq_status 作分组键(group)；单列一张承接，避免主时间线表过宽。注：delq_status 由 g.delinquency_status_mba + days360(pmt.nextduedate, dataasof) 现算，并非取自逾期支线 daily_loan_common_clean。
 > - **何时来查这张表**：查某贷款 stage 分组依据、关联诉讼/清算/违约属性。
-> - **上游链路**：{ port.basic_data_loan_fcl(FCL 属性) + port.basic_data_daily_loan_common_clean.delinq(逾期码) } → port.basic_data_fcl_related〔basic_data_pool_config.py〕
-> - **全部上游表**：port.basic_data_loan_fcl、port.basic_data_daily_loan_common_clean
+> - **上游链路**：{ newrez.portnewrezgeneral(g) + newrez.portnewrezliq(l) + newrez.portnewrezpmt(pmt) + newrez.portnewrezbk(bk) + newrez.portnewrezprop(pr)，按 loanid+dataasof JOIN }〔Newrez 分支〕 UNION { carrington.portcarrington(c) }〔Carrington 分支〕 → port.basic_data_fcl_related〔CREATE_FCL_RELATE_ATTR basic_data_pool_config.py:1696-1770〕
+> - **全部上游表**：newrez.portnewrezgeneral、newrez.portnewrezliq、newrez.portnewrezpmt、newrez.portnewrezbk、newrez.portnewrezprop、carrington.portcarrington
 > - **下游链路**：basic_data_fcl_related.delq_status → port.fcl_stage_info.group(stage 分组) → bpms.sync_fcl_stage_info → 视图 → BPS Stage 面板
 > - **全部下游表**：port.fcl_stage_info、bpms.sync_fcl_stage_info、bpms.biz_data_view_loan_details_foreclosure
 > - **数据粒度**：1 行/贷款（最新 dataasof）。
+> - **备注**：上游为 5 张 Newrez 原始表(general/liq/pmt/bk/prop) + carrington.portcarrington（代码 CREATE_FCL_RELATE_ATTR pool:1696-1770 实测，按 loanid+dataasof JOIN 后 UNION）；并非 basic_data_loan_fcl / daily_loan_common_clean（旧元数据误标，2026-06-15 经 Code-First 订正）。SQL 表别名：g=portnewrezgeneral、l=portnewrezliq、pmt=portnewrezpmt、bk=portnewrezbk、pr=portnewrezprop、c=portcarrington。
 <!-- META:port.basic_data_fcl_related END -->
 
 查询 SQL（prod 只读）：
@@ -1233,8 +1234,8 @@ SELECT t.* FROM port.basic_data_fcl_related t JOIN (SELECT loanid, MAX(dataasof)
 > - **在 pipeline 中的作用**：阶段量化点（L4）：把法拍拆 6 阶段算停留天数（扣 LM/Hold 重叠），作 BPS Stage 面板上游。
 > - **为什么会有这张表**：业务关心‘卡在哪一步多久’；阶段口径复杂(N:N 扣 LM/Hold 重叠)，单列一张表算清，并 JOIN portfunding 取 funding 维。
 > - **何时来查这张表**：查某贷款‘在每个阶段停留多久、扣除 LM/Hold 后净时长、当前在哪个阶段组’。
-> - **上游链路**：{ port.basic_data_loan_fcl + port.basic_data_fcl_related(delq_status 分组) + port.portfunding(JOIN) } → port.fcl_stage_info〔GEN_FCL_STAGE basic_data_pool_config.py:1774-2440〕
-> - **全部上游表**：port.basic_data_loan_fcl、port.basic_data_fcl_related、port.basic_data_daily_loan_common_clean、port.portfunding
+> - **上游链路**：{ port.basic_data_loan_fcl + port.basic_data_fcl_related(delq_status 分组) + port.basic_data_loan_foreclosure_loss_mitigation + port.basic_data_loan_foreclosure_hold(算 in_lm/on_hold) + port.portfunding(JOIN) } → port.fcl_stage_info〔GEN_FCL_STAGE basic_data_pool_config.py:1774-2440〕
+> - **全部上游表**：port.basic_data_loan_fcl、port.basic_data_fcl_related、port.basic_data_loan_foreclosure_loss_mitigation、port.basic_data_loan_foreclosure_hold、port.portfunding
 > - **下游链路**：fcl_stage_info → bpms.sync_fcl_stage_info〔GET_FCL_STAGE_DATA asset_managment_config.py:925-929，JOIN port.portfunding〕 → 视图 → BPS Stage 面板
 > - **全部下游表**：bpms.sync_fcl_stage_info、bpms.biz_data_view_loan_details_foreclosure
 > - **数据粒度**：1 行/贷款/fctrdt。
@@ -2147,7 +2148,7 @@ SELECT * FROM bpms.sync_loan_foreclosure_bankruptcy WHERE loanid IN (7727000088,
 > **📋 业务含义与全链路血缘**
 >
 > - **所处层级**：字典（Newrez 解码字典）
-> - **业务说明**：Newrez FCL 解码字典(8 列)——把 LM/BK 等编码(LMDeal/LMProgram/LMStatus/LMDecision/BKStatus 等)映射成业务文案。
+> - **业务说明**：Newrez 解码字典——长表(field_name/code/description，1 行/(field_name,code))，把 LM/BK/FCL 等编码(LMDeal/LMProgram/LMStatus/LMDecision/BorrowerIntention/DenialReason/BKStatus/BKStage/LegalStatus 等)映射成业务文案。⚠️ 实测仅 redshift_prod 有此长表；mysql_prod 的 newrez.newrezdatadic 是另一张宽表(只解码 propertytype/loanpurpose 等 6 类、无 LM/BK)。
 > - **业务目的**：给 LM/BK 等表的编码解码提供查找表。
 > - **在 pipeline 中的作用**：解码字典维度：被 LM/BK 等表 JOIN，提供编码→业务文案的查找（COALESCE 解码）。
 > - **为什么会有这张表**：源表存编码省空间，展示需文案；统一一张字典 JOIN 解码(COALESCE(dict_desc, raw_code))。

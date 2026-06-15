@@ -20,18 +20,18 @@
   "view_passthrough_rule": "透传自 bpms.sync_loan_foreclosure（视图 SELECT；同名）",
   "field_rule": {
     "port.basic_data_fcl_related": {
-      "servicer": "常量 'Newrez'/'Carrington'（CREATE_FCL_RELATE_ATTR 两分支 UNION，pool:1701/1748）",
-      "delq_status": "逾期/组合分类：Newrez 按 delinquency_status_mba（Full Payoff→P / REO→REO / 任意 Foreclosure*→FCL）否则 days360(nextduedate,dataasof) 分桶 C/D30/D60/D90/D120P [pool:1702-1711]；Carrington 按 loan_status/fcl_flag [pool:1749-1758]。⚠️ 这就是 ⑬ fcl_stage_info.group 的来源（r.delq_status）",
-      "isloanlitigated": "直传 g.IsLoanLitigated（⑤ portnewrezgeneral，pool:1712）",
-      "deactreason": "直传 g.DeactReason（⑤ portnewrezgeneral，pool:1713）",
-      "reasonfordefault": "直传 g.reasonfordefault（⑤ portnewrezgeneral，pool:1714）",
-      "inauctionflag": "直传 g.inauctionflag（⑤ portnewrezgeneral，pool:1715）",
-      "liquidationdate": "直传 l.liquidationdate（portnewrezliq，未纳入本工作簿，pool:1716）",
-      "liquidationtype": "直传 l.liquidationtype（portnewrezliq，未纳入，pool:1717）",
-      "liquidationproceeds": "直传 l.liquidationproceeds（portnewrezliq，未纳入，pool:1718）",
-      "pmt": "= pmt.paymentcollectedmtd 月供（portnewrezpmt，未纳入，pool:1719）",
-      "bk_flag": "改名 bk.activebkflag→bk_flag（③ portnewrezbk，pool:1720）",
-      "propertystate": "直传 pr.propertystate（⑥ portnewrezprop；决定司法/非司法法拍路径，pool:1721）"
+      "servicer": "常量：Newrez 分支='Newrez'、Carrington 分支='Carrington'（CREATE_FCL_RELATE_ATTR 两分支 UNION，pool:1701/1748）。【本表 mapping rule 用的 SQL 表别名】g=newrez.portnewrezgeneral(⑤)、l=newrez.portnewrezliq(未建sheet)、pmt=newrez.portnewrezpmt(未建sheet)、bk=newrez.portnewrezbk(③)、pr=newrez.portnewrezprop(⑥)、c=carrington.portcarrington(②c)、r=本表 port.basic_data_fcl_related(⑫)",
+      "delq_status": "逾期/组合分类（CASE）。Newrez：按 g.delinquency_status_mba（g=newrez.portnewrezgeneral ⑤）Full Payoff→P／REO→REO／Foreclosure*→FCL；否则按 days360(pmt.nextduedate, dataasof)（pmt=newrez.portnewrezpmt）分桶 <30→C／<60→D30／<90→D60／<120→D90／else→D120P [pool:1702-1711]。Carrington：按 c.loan_status/c.fcl_flag（c=carrington.portcarrington ②c），否则 days360(c.date_payment_due,…) 同分桶 [pool:1749-1758]。⚠️ 即 ⑬ fcl_stage_info.group 的来源（r.delq_status，r=本表 ⑫）",
+      "isloanlitigated": "直传自 newrez.portnewrezgeneral.IsLoanLitigated（别名 g＝⑤源表，pool:1712）。Carrington 分支＝carrington.portcarrington.litigation_type（别名 c，pool:1759）",
+      "deactreason": "直传自 newrez.portnewrezgeneral.DeactReason（别名 g＝⑤源表，pool:1713）。Carrington 分支恒 NULL（pool:1760）",
+      "reasonfordefault": "直传自 newrez.portnewrezgeneral.reasonfordefault（别名 g＝⑤源表，pool:1714）。Carrington 分支＝carrington.portcarrington.reason_for_default1（c，pool:1761）",
+      "inauctionflag": "直传自 newrez.portnewrezgeneral.inauctionflag（别名 g＝⑤源表，pool:1715）。Carrington 分支恒 NULL（pool:1762）",
+      "liquidationdate": "直传自 newrez.portnewrezliq.liquidationdate（别名 l；该源表未建 sheet／未纳入本工作簿，pool:1716）。Carrington 分支恒 NULL（pool:1763）",
+      "liquidationtype": "直传自 newrez.portnewrezliq.liquidationtype（别名 l；该源表未纳入本工作簿，pool:1717）。Carrington 分支恒 NULL（pool:1764）",
+      "liquidationproceeds": "直传自 newrez.portnewrezliq.liquidationproceeds（别名 l；该源表未纳入本工作簿，pool:1718）。Carrington 分支恒 NULL（pool:1765）",
+      "pmt": "月供 := newrez.portnewrezpmt.paymentcollectedmtd（别名 pmt；该源表未纳入本工作簿，pool:1719）。Carrington 分支恒 NULL（pool:1766）",
+      "bk_flag": "改名自 newrez.portnewrezbk.activebkflag → bk_flag（别名 bk＝③源表，pool:1720）。Carrington 分支＝carrington.portcarrington.bk_flag（c，pool:1767）",
+      "propertystate": "直传自 newrez.portnewrezprop.propertystate（别名 pr＝⑥源表；决定司法/非司法法拍路径，pool:1721）。Carrington 分支＝carrington.portcarrington.property_state（c，pool:1768）"
     },
     "tempfc.temp_basic_data_fcl": {
       "referral_start_date": "改名自 fcreferraldate (pool:1544)",
@@ -48,11 +48,11 @@
       "servicer": "常量 'Newrez'/'Carrington'/'Capecodfive'（UNION 分支 pool:1536/1577/1618）",
       "daysinfc": "Newrez 直传；Carr/CC5 计算 datediff(referral, snap)+1 (pool:1587/1628)",
       "fcstage": "Newrez 直传 fcstage；Carr 取 fcl_sub_status；CC5 NULL (pool:1560/1601/1642)",
-      "fcresults": "直传自 fcresults（pool:1559）；本身不进 BPS，仅作下游 timeline_third_party_sold 的判定条件(fcresults='3rd Party')",
+      "fcresults": "直传自 fcresults（pool:1559）；带入 basic_data_loan_fcl 后下游未被引用——既不进 BPS，也不作任何 BPS 字段的计算/条件（Code-First 全仓核验：fcresults 无任何 CASE/WHERE 用法；timeline_third_party_sold_date 在 pool:270 恒为 null，与 fcresults 无关）",
       "fcapprbidprice": "直传自 fcapprbidprice（核准竞价价 pool:1556）；下游 BPS 未使用"
     },
     "port.basic_data_loan_fcl": {
-      "fcresults": "继承 temp（直传 fcresults）；仅作 timeline_third_party_sold 条件(pool:270)，本身不进 BPS",
+      "fcresults": "继承 temp（直传 fcresults）；下游未使用——不进 BPS，也不参与任何 BPS 字段计算/条件（timeline_third_party_sold_date 在 pool:270 恒 null，与 fcresults 无关；Code-First 全仓 0 处条件用法）",
       "fcapprbidprice": "继承 temp（直传 fcapprbidprice）；核准竞价价，下游 BPS 未使用",
       "referral_start_date": "继承 temp（改名自 fcreferraldate, pool:1544）",
       "legal_start_date": "继承 temp（改名自 firstlegaldate）",

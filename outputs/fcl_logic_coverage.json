@@ -71,7 +71,7 @@
     ["LT06","常量非空默认(SLA target)","最新(view/config)","target_first_legal_days"],
     ["LT07","布尔取反","最新","summary_completed_foreclosure"],
     ["LT08","COALESCE 双源回退","最新","timeline_foreclosure_completed_date"],
-    ["LT09","条件取源列(fcresults)","最新","timeline_third_party_sold_date_date"],
+    ["LT09","第三方拍下售出日(按 fcresults；实测恒 null)","最新","timeline_third_party_sold_date_date"],
     ["LT10","datadic 解码(JOIN)","最新","bankruptcy_status / lm program"],
     ["LT11","CASE 派生","最新","summary_type"],
     ["LT12","fcstage 直传","最新","summary_current_step"],
@@ -122,6 +122,7 @@
     "LT04":"合并入 LT11：summary_foreclosure_status 同时 CASE+CONCAT('Closed Foreclosure:'+desc)，无独立 CONCAT-only 字段",
     "LT13":"上游 Redshift days360 计算→喂 del_group；BPS sync 字段是 del_group(LT15)/group，见 C 页逾期桶 + D",
     "LT14":"上游逾期状态覆盖(FCL/REO/P)→喂 del_group；同 LT13，见 FCL 桶样本 700082700000033",
-    "LT21":"view 列(biz_data_view_loan_details_foreclosure)，非 5 张 sync 表字段；见 ⑳ 视图 + LT20(actual)"
+    "LT21":"view 列(biz_data_view_loan_details_foreclosure)，非 5 张 sync 表字段；见 ⑳ 视图 + LT20(actual)",
+    "LT09":"字段 timeline_third_party_sold_date_date（法拍以「第三方拍下」成交的售出日）\n• 判定列 fcresults＝法拍结果，是【真列】，在 ② portnewrezfc(源) / ⑨ temp_basic_data_fcl / ⑩ basic_data_loan_fcl —— 属 Redshift 中间列、非 BPS 输出字段，故本 F 页/G 页查不到（去 ②/⑨/⑩ sheet 可见）\n• fcresults 取值（prod 实测分布）：'3rd Party'=第三方拍得(458) ／ 'REO'=流拍归贷款人(611) ／ 空·null=未到拍卖(绝大多数)\n• 设计本意：当 fcresults='3rd Party' 时取该售出日\n• 实测 ⚠️ 未实装：GEN_FCL_DETAIL 恒置 null(pool:270)、BPS 仅 upsert 透传(asset:769) → 全表 5743 行 0 非空（含示例 loan 7727000196）\n• 对比：同族 timeline_third_party_proceeds_received_date 取自源列 fc.fcl3rdpartyproceedsreceiveddate(pool:271)，有真值(3 非空)"
   }
 }
