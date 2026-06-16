@@ -3857,3 +3857,35 @@ basic_data_fcl_related 由 portnewrezgeneral.delinquency_status_mba 映射成 de
 - 实现（fcl_pipeline.html 纯前端）：①state graphServicer='Newrez'；②NODE_DB_COLOR 加 carrington(青)/capecodfive(金)；③_glTier/_glDb 认这两 schema 为 tier-0、_glDbName 归 redshift_prod；④buildGraph 加 _svcSrcHop(f) 解析 f.servicers[servicer]→第一跳，非 Newrez 时换 tier-0 hop、该家不上报的字段直接跳过（聚焦贡献，避免 100+ 占位）；⑤工具栏分段开关「源:Newrez|Carrington|Capecodfive」+graphSetServicer；⑥L1 列头随 servicer 动态（Carrington→redshift_prod.carrington）；⑦非 Newrez 显示「仅上报 N 字段」caption；⑧.gsvc CSS。
 - **与计划的偏差**：计划写「不报字段 __NOSRC__ 占位」，实测发现 Carrington 只报 14/154，占位会成 100+ 边的 hub→改为「跳过不报字段、只画该家贡献的聚焦子图」+ caption 计数（更清爽，三家差异在字段抽屉对照里仍可见）。
 - 验证(Preview)：默认 Newrez=原图；切 Carrington→列头 redshift_prod.carrington、源=carrington.portcarrington、14 字段、下游不变；切 Capecodfive→13 字段、capecodfive.portcapecodfive_monthly_collections；展开源表字段列解析正确（含 loan_status/fcl_flag、fchold4 slot）；切回 Newrez=原图；7 视图 0 报错。DB/代码只读。**LOCAL，未 push。**
+
+## [2026-06-15 UTC] 整理 right drawer 长注释便于阅读
+> 请把 html 中的 right drawer 的长注释整理整齐，便于人类阅读，请检查
+
+## [2026-06-15 UTC] 用户：⑦⑧⑭ 我看 ⓪b 全局Pipeline图里早就有了，你上条什么意思？
+> I saw ⑦⑧⑭ already in the doc 32 ⓪b 全局Pipeline图, what do you mean? pls reply by Chinese
+
+### 完成: 澄清「节点 vs 逐表sheet」+ 修 ⓪b 逾期支线残留错误血缘 [2026-06-15]
+- 用户对：⑦⑧⑭ 一直就在 ⓪b（表节点 R3C2/R3C3/R8C4 + 支线流程行）、⓪ 全链路血缘、① 索引——因为它们本在 table_meta 24 表里。我上条"可把 ⑦⑧⑭ 接进 ⓪b"表述错误（误把"节点级已有"说成"未接入"）→ 撤回澄清。Phase 5 真正补的是【逐表 detail sheet（字段级）】，非节点。
+- 顺带修真错：⓪b「逾期支线」流程行(line 296)原写「⑧ 清洗日表 → ⑫ related / ⑬ stage.group；两支线在 ⑬ group 汇合」——与本会话已订正血缘冲突（⑧ 不流向 ⑫，⑫ 由 ⑤general+pmt 独立重算）。改为：⑧→portmonthbase(月度)；FCL group 不取自本支线、⑫ 独立重算→⑬ group（算法同·数据各取各源）。
+- 本次 regen 同时纳入用户对 fcl_field_rules_extra.json 的补充（⑨⑩ fcresults/fcapprbidprice = 下游未用，与 fcresults 调查一致）。真 Excel 741 公式 0 错误、幂等(1f2dc165)、34 sheet。DB/代码只读、未提交。
+
+### 完成: right drawer 长注释逐句断行（prose 整形）[2026-06-15]
+- 新增 prose(s) 渲染器：在 raw 文本的分句符「；。」之后插哨兵(␟)→再 esc+decoCirc→split→<br>，把 run-on 段落整成「逐句一行」；句末标点不断（短句不受影响）。.kv line-height 1.6→1.72。
+- 接入：selectField biz/why、glinExtra sql_note、showGField path2 biz、flow 表抽屉 sec()（business_meaning/pipeline_role/why_pipeline/when_to_query/note）。sql_eg 保留 pre-wrap（手排 worked example）。结构化段（逐跳表/迷你血缘/famDiagram）此前已折叠/配色，不动。
+- **关键修正**：首版在「已转义」文本上断句，把 esc 产生的 &lt;/&gt; 实体里的「;」误断（如 <30 被拆）→改为在 raw 文本断句+哨兵，避免实体分号。删除遗留带控制字符的死变量行（python stdin）。
+- 验证(Preview)：group 规则说明断成 2 行且 &lt;30/&lt;60 不被拆；短 biz/单句不断；prose 单测 3 段/短句不断；7 视图 0 报错。纯前端、DB/代码只读。**LOCAL，未 push。**
+
+## [2026-06-15 UTC] 逐表 sheet 说明文字占高太多，小屏看不见下方表格——做收缩展开
+> 每张表的说明文字占用的高度是否可以少一些？…导致下面的表格只能看见一点点…excel有收缩展开的功能吗？做一个收缩展开的按钮？
+
+### 完成: 逐表 sheet 顶部「表说明块」改可折叠行分组·默认收起 [2026-06-15]
+- Excel 有行 outline 分组(+/-)。每张逐表 sheet 顶部 10 行表说明(层级/业务说明/目的/作用/为什么/上下游链路+表/粒度)设为 outline_level=1 + hidden(默认收起) + summaryBelow=False(按钮在标题行) + 标题行 collapsed。收起后字段表(note+表头+数据)紧贴标题立即可见，小屏友好；点标题左侧 +/− 展开看血缘/上下游。kv 行高 per_line 70→100 缩短。标题加提示。
+- 与举例列既有【列分组】(summaryRight=False)并存、互不干扰。
+- 真 Excel 实测：⑫ row5 OutlineLevel=2/Hidden=True、字段行(row14) Hidden=False、741 公式 0 错误；内容级幂等(13f59490)、34 sheet。doc 32 zh v17。DB/代码只读、未提交。
+
+## [2026-06-15 UTC] 表说明改默认展开 + 让收起按钮明显可见
+> 我希望默认展开，然后读者可以很明显的看到可以收起的按钮
+
+### 完成: 逐表 sheet「业务含义」列宽按表自适应（不留过多空白）[2026-06-15]
+- 用户反馈业务含义列太宽、留空多。原固定 src=60/非src=44 → 改 biz_w()：按本表含义显示宽度(中文×2, dispw)的 ~80 分位自适应、上限 40 下限 16（最长约 20% 换行、其余一行）；数据行加自适应行高 mh()，含义/字段超列宽换行不裁切。
+- 实测各表 B 列宽收敛 18–39（⑭=18、⑤/⑦=26、⑩=35、⑫=39），较 60/44 明显变窄。纯格式改动(列宽/行高)，单元格值不变(内容 MD5 6a2af15d 不变)、真 Excel 741 公式 0 错误。doc 32 zh v18。DB/代码只读、未提交。

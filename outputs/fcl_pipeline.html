@@ -83,7 +83,7 @@
   .d-body{padding:14px 18px}
   .sec{margin-bottom:18px}
   .sec h3{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);margin:0 0 8px;border-bottom:1px solid var(--border);padding-bottom:5px}
-  .kv{font-size:13px;line-height:1.6}
+  .kv{font-size:13px;line-height:1.72}
   .chips{display:flex;flex-wrap:wrap;gap:6px}
   .chip{background:var(--chip);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11.5px;font-family:"Cascadia Code",Consolas,monospace}
   table.mini{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
@@ -965,7 +965,7 @@ function flowSelectNode(id){
   let h;
   if(m){
     const full=_glDbName(key)+'.'+key;
-    const sec=(tt,v)=> v?`<div class="sec"><h3>${tt}</h3><div class="kv">${decoCirc(esc(v))}</div></div>`:'';
+    const sec=(tt,v)=> v?`<div class="sec"><h3>${tt}</h3><div class="kv">${prose(v)}</div></div>`:'';
     const lst=(tt,a)=> (a&&a.length)?`<div class="sec"><h3>${tt}</h3><div class="lin">${a.map(x=>`<code>${esc(x)}</code>`).join('<br>')}</div></div>`:'';
     const asof=/fctrdt/.test(m.grain||'')?'fctrdt':(/dataasof/.test(m.grain||'')?'dataasof':null);
     const sql=`SELECT * FROM ${key} ${asof?`WHERE ${asof}=(SELECT MAX(${asof}) FROM ${key}) `:''}LIMIT 50;`;
@@ -1904,7 +1904,7 @@ function selectField(id,opts){
   if(!f){drawerEmpty();return;}
   d.className='drawer';
   let h=`<div class="d-head"><span class="pill" style="background:var(--accent)">BPS field</span><h2>${L(f.label)}</h2></div><div class="d-body">`;
-  h+=`<div class="sec"><h3>${t('fBiz')}</h3><div class="kv">${L(f.biz)}</div></div>`;
+  h+=`<div class="sec"><h3>${t('fBiz')}</h3><div class="kv">${prose(L(f.biz))}</div></div>`;
   if(opts&&opts.valuesHtml) h+=opts.valuesHtml;   // 取值范围（来自 GLIN 字段 values，由 showGField 传入）
   if(f.calc) h+=`<div class="sec"><h3>${t('fCalc')}</h3><div class="lin"><code>${esc(L(f.calc))}</code></div></div>`;
   h+=`<div class="sec"><h3>${t('fLineage')}${opts&&opts.hops?glLineToggleHtml():''}</h3>`;
@@ -1934,7 +1934,7 @@ function selectField(id,opts){
     h+=`</div>`; }
   if(f.code) h+=`<div class="sec"><h3>${t('fCode')}</h3><div class="lin"><code>${esc(f.code)}</code></div></div>`;
   if(f.note) h+=`<div class="sec"><div class="note">⚠ ${L(f.note)}</div></div>`;
-  if(f.why) h+=`<div class="sec"><h3>${L({zh:'📌 为什么这样建模',en:'📌 Why modeled this way'})}</h3><div class="kv">${L(f.why)}</div></div>`;
+  if(f.why) h+=`<div class="sec"><h3>${L({zh:'📌 为什么这样建模',en:'📌 Why modeled this way'})}</h3><div class="kv">${prose(L(f.why))}</div></div>`;
   h+=`</div>`; d.innerHTML=h; d.scrollTop=0;
 }
 function copyText(btn,txt){navigator.clipboard.writeText(txt).then(()=>{const o=btn.textContent;btn.textContent='✓';setTimeout(()=>btn.textContent=o,1000);});}
@@ -2221,6 +2221,12 @@ const _CIRCRE=/[①-⓿㉐-㊿]/g;   // enclosed alphanumerics + CJK enclosed
 function decoCirc(escd){ if(!escd) return escd; const map=circMap();
   return (''+escd).replace(_CIRCRE, function(ch){ const tn=map[ch]; if(!tn) return ch;
     return `<span class="circref" title="${esc(tn.split('.').pop()+'（'+tn+'）')}">${ch}</span>`; }); }
+// 长注释整形：在 raw 文本的分句符「；。」之后断行，再 esc+圈号 tooltip。
+// 用哨兵在转义前标记断点 → 避免 esc 产生的 &lt;/&gt; 实体里的「;」被误断；句末标点不断（短句不受影响）。
+function prose(s){ s=(s==null?'':s)+''; if(!s) return '';
+  const SENT2='␟';   // unit-separator 哨兵：不会出现在文本，且不含 <>&
+  const raw=s.replace(/([；。])(?!\s*$)/g,'$1'+SENT2);
+  return decoCirc(esc(raw)).split(SENT2).join('<br>'); }
 function ruleHtml(rule){
   const {head,segs}=fmtRuleSegments(rule);
   let h=`<code>${decoCirc(esc(head||((rule==null?'':rule)+'')))}</code>`;
@@ -2305,7 +2311,7 @@ function glinExtra(f,withSvg){
     +`<table class="mini"><tr><th>${L({zh:'表.列',en:'table.column'})}</th><th>rule</th><th>code</th></tr>`
     +(f.hops||[]).map(hp=>{const rp=rulePlain(hp.rule);return `<tr><td>${hopCol(hp.t,hp.c)}</td><td>${ruleHtml(hp.rule)}`+(rp?`<div class="rplain">💡 ${L(rp)}${rp.formula?` · <span class="rformula">${esc(rp.formula)}</span>`:''}</div>`:'')+`</td><td style="color:var(--muted)">${glinCodeCell(hp.code)}</td></tr>`;}).join('')+`</table>`+glinCodeLegend()+`</div>`;
   if(f.sql) h+=`<div class="sec"><h3>${L({zh:'取数 SQL（doc 25–31）',en:'Fetch SQL (doc 25–31)'})}</h3><div class="sqlwrap"><button class="copy" onclick="copySql(this)">${t('copy')}</button><pre>${esc(f.sql)}</pre></div></div>`;
-  if(f.sql_note) h+=`<div class="sec"><h3>${L({zh:'规则说明',en:'Rule note'})}</h3><div class="kv" style="white-space:pre-wrap">${decoCirc(esc(L(f.sql_note)))}</div></div>`;
+  if(f.sql_note) h+=`<div class="sec"><h3>${L({zh:'规则说明',en:'Rule note'})}</h3><div class="kv">${prose(L(f.sql_note))}</div></div>`;
   if(f.sql_eg) h+=`<div class="sec"><h3>${L({zh:'实测样例',en:'Worked example'})}</h3><div class="kv" style="white-space:pre-wrap">${decoCirc(esc(L(f.sql_eg)))}</div></div>`;
   if(f.servicers) h+=`<div class="sec"><h3>${L({zh:'各 Servicer 来源',en:'Per-servicer source'})}</h3><div class="kv" style="font-size:11px">Newrez: <code>${esc(f.servicers.Newrez||'—')}</code><br>Carrington: <code>${esc(f.servicers.Carrington||'—')}</code><br>Capecodfive: <code>${esc(f.servicers.Capecodfive||'—')}</code></div></div>`;
   return h;
@@ -2367,7 +2373,7 @@ function showGField(f,nodeId){
   const st=GL_STATUS[f.status];
   let h=`<div class="d-head"><span class="pill" style="background:var(--accent)">${esc(f.family||'field')}</span><h2>${L(f.label)}</h2>`
     +`<div class="path">${esc(f.bps_table)}${st?` · <span style="color:${st.c}">●</span> ${L(st)}`:''}</div></div><div class="d-body">`;
-  h+=`<div class="sec"><div class="kv">${L(f.biz)}</div></div>`+(f.values?glinValueRange(f,vmode):'')+glinExtra(f,true);
+  h+=`<div class="sec"><div class="kv">${prose(L(f.biz))}</div></div>`+(f.values?glinValueRange(f,vmode):'')+glinExtra(f,true);
   if(f.note) h+=`<div class="sec"><div class="note">${L(f.note)}</div></div>`;
   d.innerHTML=h+`</div>`; d.scrollTop=0;
 }
