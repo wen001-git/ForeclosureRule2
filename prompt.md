@@ -233,8 +233,8 @@
 ## [2026-06-08 UTC] 解释并定义 doc 21 的「FCL 阶段」与「FCL episode」
 > doc 21, FCL阶段是什么意思？请列出FCL阶段包含哪些阶段。FCL episode是什么意思？
 
-## [2026-06-08 UTC] 用词正式化：全库去除「老板/Boss」等口语化字眼
-> doc 21 ,所有文档，请不要用 老板，boss 等字眼，用词需要正式一些，请检查所有的md  excel  html的中英文文档，
+## [2026-06-08 UTC] 用词正式化：全库去除人物称谓口语词等口语化字眼
+> doc 21 ,所有文档，请不要用 人物称谓口语词 等字眼，用词需要正式一些，请检查所有的md  excel  html的中英文文档，
 
 ## [2026-06-07 14:05 UTC] 研究本项目
 > pls research this project
@@ -283,12 +283,12 @@
 > 结论（3 Explore 实读 PrefectFlow + MCP 实测）：L1 原始 / L2 统一 / L3 清洗 / L4 月度 = **MySQL+Redshift 双写**（plain→RS、`mysql_`→MySQL 两套 config/flow）；**FCL 业务族**（foreclosure/stage/hold/lm/bk）= 仅 Redshift 建、**L5 同步到 MySQL**；L5 读 RS 写 MySQL(port+bpms)。连接判据 db_conn.py（pymysql vs redshift_connector）。
 > 落地：doc 20（zh+en）A.1/A.2/B.1 全景与 B.2 各层补"落库 DB+file:line"、新增 §B.6 证据表，rev v4；doc 21（zh+en）§0.2 加双写说明，zh rev v7 / en rev v6。MCP 实测 newrez.portnewrezfc、port.basic_data_daily_loan_common(_clean)、basic_data_loan_foreclosure 两库都在。
 
-## [2026-06-06 UTC] A.6 业务理由表加进 doc 21（紧挨 §0.3）+ 读者措辞含蓄化（去 CTO，改"给同事讲解"）
-> 把 A.6 业务理由表也加到 doc 21 紧挨 §0.3；文档目的和目标读者 改得含蓄一些，这个文档要是给CTO看到了，就不好了。// 追加：CTO也去除，改成 给同事讲解
-> 决定：doc 21（zh+en）新增 §0.4「业务理由」（=doc20 §A.6，10 条），ERD 顺延 §0.5；全库（doc 20/21/00_index, zh+en）去除一切「CTO/老板/龟毛/管得细/问得细/给老板看/避免被问倒」画像，统一改为中性「同事/数据团队/技术读者」；doc20 升 v3、doc21 升 v5。grep 全库 CTO/老板=0。
+## [2026-06-06 UTC] A.6 业务理由表加进 doc 21（紧挨 §0.3）+ 读者措辞含蓄化（去技术管理层称谓，改"给同事讲解"）
+> 把 A.6 业务理由表也加到 doc 21 紧挨 §0.3；文档目的和目标读者 改得含蓄一些，这个文档要是给技术管理层看到了，就不好了。// 追加：技术管理层称谓也去除，改成 给同事讲解
+> 决定：doc 21（zh+en）新增 §0.4「业务理由」（=doc20 §A.6，10 条），ERD 顺延 §0.5；全库（doc 20/21/00_index, zh+en）去除一切「人物」画像，统一改为中性「同事/数据团队/技术读者」；doc20 升 v3、doc21 升 v5。grep 全库 人物称谓词汇=0。
 
 ## [2026-06-06 UTC] 新增 doc 20：FCL 数据流总览+讲解稿（向团队讲解 servicer 文件→BPS 全流程）
-> 我老板要求我查看代码，了解整个foreclosure 的数据流 pipeline,产出文档，能跟他讲解出整个数据流从来源servicer数据文件到最终输出到BPS系统的整个数据的生产过程，我会一些基础的python编码，不过你可以把我当作只会一点，我熟悉中国的银行存贷款数据，但这是我公司的业务是美国的贷款，我公司是Asset management公司，我应该如何执行？我该产出什么？你能帮我做什么？
+> 我的上级要求我查看代码，了解整个foreclosure 的数据流 pipeline,产出文档，能跟他讲解出整个数据流从来源servicer数据文件到最终输出到BPS系统的整个数据的生产过程，我会一些基础的python编码，不过你可以把我当作只会一点，我熟悉中国的银行存贷款数据，但这是我公司的业务是美国的贷款，我公司是Asset management公司，我应该如何执行？我该产出什么？你能帮我做什么？
 > 决定（AskUserQuestion）：交付形式=「数据流总览+讲解稿」Markdown；深度=一份文档两个层次（面向管理层的 5 分钟版 + 自己深入版）。产出 docs/zh|en/20_end_to_end_walkthrough.md + 更新 00_index。
 > 追加需求（需求逐字段细化）：要逐字段、含中间表/转换规则；代码在 PrefectFlow、数据走 MCP 实测。决定（AskUserQuestion）：核心 FCL 字段全链路 + 新建 doc 21 字段血缘专文（zh+en）。
 
@@ -303,11 +303,11 @@
 > 决定：doc 21（zh+en）增 §0.3 业务粒度/一对多（loan:FCL=1:1；FCL:Hold/LM/BK=1:N）+ 每组「业务含义」；业务口径对齐 doc 17/18/10。MCP 实测：loan 7727000088 = Hold×9 + LM×9；loan 7727000010 = BK×2（证 1:N）。
 
 ## [2026-06-06 UTC] doc 20 修正读者=技术读者 + 新增 A.6「数据为什么这样处理（业务理由）」
-> doc 20 文档目的写错了…我的上司不是外行，他是CTO，不过他比较龟毛，管得很细，问得很细，他要我从业务角度解释为什么数据要这样处理，比如…一个foreclosure有多条hold记录，doc 17/doc 18都说了这些知识…
+> doc 20 文档目的写错了…我的上级不是外行，他是技术管理层，管得很细，问得很细，他要我从业务角度解释为什么数据要这样处理，比如…一个foreclosure有多条hold记录，doc 17/doc 18都说了这些知识…
 > 决定：深研 doc 17/18/10 提炼业务理由；doc 20（zh+en）改文档目的/读者=技术读者、Part A 重定基调、新增 §A.6 业务理由表（10 条，多 Hold 打头）、rev v3；00_index 描述同步。
 
 ## [2026-06-06 UTC] doc 20 Part A：不要讲中国银行（讲解对象不熟悉中国银行业务，概念桥仅供个人理解）
-> Part A（给老板）…do not need to talk about China Bank to this CTO , he does not know China bank business, just I know China bank business
+> Part A（给上级）…do not need to talk about China Bank to this manager , he does not know China bank business, just I know China bank business
 > 决定：doc 20（zh+en）Part A 口播脚本去除中国银行类比；概念桥改标注「仅供你自己理解，正式讲解时跳过」。
 
 ## [2026-06-05 08:20 UTC] 说明检测 SQL 如何缩小 dataasof 范围（窗口函数邻居陷阱）
@@ -1635,7 +1635,7 @@
 
 
 ## [2026-05-26 UTC] 逆向推导 BPS FCL 展示字段的来源逻辑（Newrez 为例）
-> 之前我是以我调研到的美国贷款的业内通用的 Foreclosure 数据字段 输出了 08/09/11 文档，今天Boss要求要以我们公司的BPS系统所展示的Foreclosure信息为结果导向，倒推我司目前是如何利用Servicer提供的数据进行怎样的逻辑计算、Mapping rules的，得出BPS Asset Management系统所需的servicer提供的贷款的Foreclosure的字段（请不要输出中间的代码数据流的处理信息，只重点关注从Service原始数据字段直接到 BPS Asset Management系统 界面展示的字段的逻辑计算规则），先以数据比较规则的servicer Newrez为例
+> 之前我是以我调研到的美国贷款的业内通用的 Foreclosure 数据字段 输出了 08/09/11 文档，今天上级要求要以我们公司的BPS系统所展示的Foreclosure信息为结果导向，倒推我司目前是如何利用Servicer提供的数据进行怎样的逻辑计算、Mapping rules的，得出BPS Asset Management系统所需的servicer提供的贷款的Foreclosure的字段（请不要输出中间的代码数据流的处理信息，只重点关注从Service原始数据字段直接到 BPS Asset Management系统 界面展示的字段的逻辑计算规则），先以数据比较规则的servicer Newrez为例
 
 
 
@@ -2297,18 +2297,18 @@
 - **范围**（AskUserQuestion=核心全量+大字段去长尾）；**凭据**：连接仅 fetch 脚本从 gitignored .mcp.json 读取，跟踪脚本无凭据；全 prod 只读。
 - **新脚本**：build_datadic_md_block.py（读 JSON 拼 表26，幂等标记 DATADIC26，不连库）。**环境**：本会话装了 pg8000/openpyxl。
 ## [2026-06-06 09:45 UTC] 规划 foreclosure 数据流 pipeline 学习与交付物
-> 我老板要求我查看代码，了解整个foreclosure 的数据流 pipeline,产出文档，
+> 我的上级要求我查看代码，了解整个foreclosure 的数据流 pipeline,产出文档，
 > 能跟他讲解出整个数据流从来源servicer数据文件到最终输出到BPS系统的整个数据的生产过程，
 > 我会一些基础的python编码，不过你可以把我当作只会一点，我熟悉中国的银行存贷款数据，
 > 但这是我公司的业务是美国的贷款，我公司是Asset management公司，
 > 我应该如何执行？我该产出什么？我要看代码的话，如何看代码，从哪个代码看起，请给我步骤
 ## [2026-06-06 09:52 UTC] 管理层要求补充 foreclosure 中间表规则
-> 目前foreclosure doc文件夹的文件都是我产出的，老板不满意，估计他也没有仔细看，我跟他说我 已经完成了 从 servicer原始数据到BPS最终输出数据的规则映射，他说他还需要中间表的规则，要我把中间表的规则写出来，我跟他说没必要，因为 我已经把所有规则都写出来了，他够变态吧？
+> 目前foreclosure doc文件夹的文件都是我产出的，上级不满意，估计他也没有仔细看，我跟他说我 已经完成了 从 servicer原始数据到BPS最终输出数据的规则映射，他说他还需要中间表的规则，要我把中间表的规则写出来，我跟他说没必要，因为 我已经把所有规则都写出来了，他够严格吧？
 ## [2026-06-06 10:05 UTC] 管理层要求字段级 pipeline 规则和业务解释
 > 他想把每个字段的pipeline规则写出来，还要在业务角度的解释，比如一个foreclosure有多条Hold记录
 
 ## [2026-06-06 00:00 UTC] 如何执行"读代码理解 foreclosure 数据流并产出讲解文档"任务的指导
-> 我老板要求我查看代码，了解整个foreclosure 的数据流 pipeline,产出文档，能跟他讲解出整个数据流从来源servicer数据文件到最终输出到BPS系统的整个数据的生产过程，我会一些基础的python编码，不过你可以把我当作只会一点，我熟悉中国的银行存贷款数据，但这是我公司的业务是美国的贷款，我公司是Asset management公司，我应该如何执行？我该产出什么？我要看代码的话，如何看代码，从哪个代码看起，请给我步骤
+> 我的上级要求我查看代码，了解整个foreclosure 的数据流 pipeline,产出文档，能跟他讲解出整个数据流从来源servicer数据文件到最终输出到BPS系统的整个数据的生产过程，我会一些基础的python编码，不过你可以把我当作只会一点，我熟悉中国的银行存贷款数据，但这是我公司的业务是美国的贷款，我公司是Asset management公司，我应该如何执行？我该产出什么？我要看代码的话，如何看代码，从哪个代码看起，请给我步骤
 
 ## [2026-06-06 00:00 UTC] 交互式血缘网页:点选字段高亮整条关联数据链
 > （随截图)我想选中一个字段之后，就把和它相关联的整个数据链的字段都高亮
@@ -2392,11 +2392,11 @@
 - preview 实测：tab 存在、4 模式皆可、A 7框+高亮边+字幕、B 18粒子、C 边宽变化、D 令牌；切 pipeline/graph/fields 无回归，errors=[]。
 - 沙盒 outputs/fcl_flow_playground.html 保留（可删）。
 
-### Milestone: 全库用词正式化（去除「老板/Boss」等口语化字眼）[2026-06-08]
-- 全库扫描（md/html `老板|Boss|CTO|龟毛|变态|被问倒|别家|领导` + openpyxl 扫 `docs/**/*.xlsx`）：Excel/HTML 零命中；en 文档已正式（无 boss，用中性「when asked」）；en doc 99 不存在。实际范围=zh 文档 4 处。
-- 改动：① `docs/zh/21_fcl_field_lineage.md` §7 引导句「老板若问…」→「本节三张表回答的问题：『某一 Servicer 的某字段从何而来、经哪些跳转』」、§6「最易被问倒」→「最易混淆、最需精确对照」（升 v8）；② `docs/zh/99_…md` 目标读者「Boss/Reviewer」→「管理层 / Reviewer」（升 v2）；③ `docs/zh/00_index.md` doc 99 用例「Reviewer/Boss 汇报」→「向管理层 / Reviewer 汇报」（升 v2）。三处补修订行。
-- prompt.md：按用户要求把我自己写的标题/决策/小结里的「老板/CTO」改为「管理层/团队/技术读者」（共 10 处）；保留用户逐字 prompt 原话与「描述删除该词」的元引用不动。
-- 验证：`grep 老板|Boss` over docs/**/*.{md,html} = 0；Excel/HTML = 0；prompt.md 残留均为逐字 prompt 或元引用。DB 未涉及。
+### Milestone: 全库用词正式化（去除人物称谓口语词等口语化字眼）[2026-06-08]
+- 全库扫描（md/html `(人物称谓词典)` + openpyxl 扫 `docs/**/*.xlsx`）：Excel/HTML 零命中；en 文档已正式（无人物称谓词汇，用中性「when asked」）；en doc 99 不存在。实际范围=zh 文档 4 处。
+- 改动：① `docs/zh/21_fcl_field_lineage.md` §7 引导句「[人物称谓]若问…」→「本节三张表回答的问题：『某一 Servicer 的某字段从何而来、经哪些跳转』」、§6「最易被问倒」→「最易混淆、最需精确对照」（升 v8）；② `docs/zh/99_…md` 目标读者「[人物称谓]/Reviewer」→「管理层 / Reviewer」（升 v2）；③ `docs/zh/00_index.md` doc 99 用例「Reviewer/[人物称谓] 汇报」→「向管理层 / Reviewer 汇报」（升 v2）。三处补修订行。
+- prompt.md：按用户要求把我自己写的标题/决策/小结里的人物称谓改为「管理层/团队/技术读者」（共 10 处）；保留用户逐字 prompt 原话与「描述删除该词」的元引用不动。
+- 验证：`grep 人物称谓词典` over docs/**/*.{md,html} = 0；Excel/HTML = 0；prompt.md 残留均为逐字 prompt 或元引用。DB 未涉及。
 
 ### Milestone: 把审核通过的预览整体同步进 fcl_pipeline.html [2026-06-08]
 - 用户：fcl_state_dimensions_preview.html 审核通过 → 全部同步（按预览原样，含状态图叠加态改动）。
@@ -3889,3 +3889,83 @@ basic_data_fcl_related 由 portnewrezgeneral.delinquency_status_mba 映射成 de
 ### 完成: 逐表 sheet「业务含义」列宽按表自适应（不留过多空白）[2026-06-15]
 - 用户反馈业务含义列太宽、留空多。原固定 src=60/非src=44 → 改 biz_w()：按本表含义显示宽度(中文×2, dispw)的 ~80 分位自适应、上限 40 下限 16（最长约 20% 换行、其余一行）；数据行加自适应行高 mh()，含义/字段超列宽换行不裁切。
 - 实测各表 B 列宽收敛 18–39（⑭=18、⑤/⑦=26、⑩=35、⑫=39），较 60/44 明显变窄。纯格式改动(列宽/行高)，单元格值不变(内容 MD5 6a2af15d 不变)、真 Excel 741 公式 0 错误。doc 32 zh v18。DB/代码只读、未提交。
+
+## [2026-06-16 UTC] doc 32 ⑨：「首见(set_date)」是什么字段/什么意思？首见值是数据值还是当时 as-of date？
+> doc 32 ⑨ mid·temp_basic_data_fcl —— 这个 set_date 是什么字段？什么意思？这里天首见的数据值 还是当时的 as of date？
+
+### 完成: 澄清「首见 set_date」语义 + 改 in-cell hint 措辞 [2026-06-16]
+- 答疑：set_date 不是 ⑨ 的列，是下游 BPS 字段 timeline_<里程碑>_set_date（拍卖=timeline_sale_date_set_date、判决听证=timeline_judgement_hearing_set_date）。语义(Code-First lineage:1350)：=min(dataasof) GROUP BY (loanid,里程碑日值) —— 即【该里程碑日值首次出现在哪天的快照(as-of/dataasof 观察日)】，是【快照日】不是里程碑日期值本身。典型例(lineage:1393)：听证日值=2026-08-21、set_date=2026-05-14(首登快照日)。
+- 修：⑨⑩⑪⑱⑳ 方案B 多天提示里「首见(set_date)=X」措辞改为「首见快照日 set_date(=该值首次出现的 dataasof 快照日，是观察日不是里程碑日期值)=X」；非 src note 同步定义 set_date。真 Excel 741 公式 0 错误、幂等(f73f52bd)。DB/代码只读、未提交。
+
+## [2026-06-16 UTC] 质疑：⑩ fcjudgment_hearing_scheduled 不是有计算逻辑吗？怎么写成改名？
+> 这个字段mid·basic_data_loan_fcl. fcjudgment_hearing_scheduled 不是有计算逻辑的吗？怎么 你写成 改名呢？
+
+### 完成: 澄清 fcjudgment_hearing_scheduled(⑨⑩ 纯改名) vs timeline_judgement_hearing_set_date(⑪ min(dataasof)) [2026-06-16]
+- 用户两问：①set_date hint 加在 date 字段上误导；②"怎么写成改名"。Code-First 核验(pool:1551 rename / pool:295-298 min(dataasof) in GEN_FCL_DETAIL=⑪)：fcjudgment_hearing_scheduled 在 ⑨⑩ 确是纯改名(听证排定日值)，min(dataasof)→timeline_judgement_hearing_set_date 的转换在 ⑪ GEN_FCL_DETAIL。用户理解完全正确。
+- 修：①方案B hint 改 field-aware——date 字段(⑨⑩ fcjudgment_hearing_scheduled/fcscheduled_sale_date)注明"本列＝排定日期值本身，首登快照日是下游另一字段 timeline_*_set_date"；_set_date 字段(⑪⑱⑳)注"本列＝首登快照日 min(dataasof)"。②⑨ extra rule 写清"纯改名无计算；首见在下游⑪"(并加"例"抑制自动追加的 set 示例)。⑩ C列由 lineage hop 渲染"rename 改名"(正确)+hint 补充。真 Excel 741 公式 0 错误、幂等。DB/代码只读、未提交。
+
+### 完成: 更新 docs/zh/00_index.md + docs/en/00_index.md（目录同步）[2026-06-16]
+- 起因：用户问 00_index 是否需更新。对比实际 docs/ 发现目录与文件脱节。
+- zh（全面更新）：① 目录补 doc 19（样例贷款全表原始转储）、doc 08-1（数据验证手册）行；② 新增交互件 `outputs/fcl_pipeline.html`（FCL Pipeline Explorer，7 视图）条目；③ 新增「测试报告」小节列 `32_formula_demo_test_report.md`+`34_phase2_and_kg_test_report.md`（不占主目录编号；并标注 32 编号冲突=后者属测试报告）；④ 阅读顺序「字段级血缘」由已归档 21 改为 25→26-30→13→19；⑤ doc 32 描述更新（已扩展 Phase 2-5 四链 + 公式演示列；xlsx git 忽略、真源在 JSON+生成器）；⑥ 修订历史加 v3。
+- en（补齐 + 镜像）：en 索引更落后（修订仅 v1）。补 doc 14/16/18 行（en 文件存在却未编目）+ HTML 条目 + 测试报告(34)小节；阅读顺序 21→25/26-30 并去掉 19（en 无此文件）；修订加 v2；明确 15/17/19/32/98/99/template 为 zh-only。
+- 校验：两索引无悬挂引用（21→ 仅存于 changelog 描述；en 不引用其没有的文件）；表结构正常（zh 64 行 / en 55 行）。纯文档。**LOCAL，未 push。**
+
+### 完成: 右侧抽屉所有内联代码出处 pool:/asset: 全部可点链接 [2026-06-16]
+> 注释中的代码注释（pool:NNN 等）有些加了链接有些没加，请全部加上
+- 新增 codeLinks(escd)：把(已转义)文本里的内联 `pool:NNN` / `asset:NNN(-NNN//NNN)` 正则替换成跳 GitLab 的 `<a>`（复用 GLIN_COMMIT+GLIN_CODE_FILE，#L 取首个行号）；只匹配带行号的 pool/asset，'view' 单词不误命中；在已转义文本上跑，不破坏 decoCirc 圈号 tooltip。
+- 新增 etlCodeCell(code)：「ETL 代码」格——结构化 pool:/asset:/view→glinCodeCell；自由文本(文件名+函数, 如 asset_managment_config.py GEN_FORECLOSURE_HOLD)→给配置文件名加文件级链接。
+- 接入：prose()（业务含义/为何建模/规则说明/flow 表散文）、ruleHtml()（逐跳表 rule 列 + 迷你血缘边）、famDiagram 逾期支线注（pool:1697-1770）、selectField「ETL 代码」(etlCodeCell)。逐跳表 code 列原本已用 glinCodeCell（保持）。
+- 验证(Preview)：famDiagram (pool:1697-1770) 与 ETL 代码 asset_managment_config.py 均成链接；pool:259→#L259；'view' 词不误链；**a 嵌套 a = 0**（无破损/重复链接）；7 视图 0 报错。纯前端、DB/代码只读。**LOCAL，未 push。**
+
+### 完成: 全量核查——抽屉里所有渲染的 pool:/asset: 都已成链接 [2026-06-16]
+> html 中所有的代码链接都加上了吗？
+- 审计：扫 GLIN/FTMETA/KG 三数据源 + HTML 静态文本里的 pool:/asset: 出现位置，逐一对渲染路径。发现首轮只覆盖 rule/code/biz/sql_note/why/famDiagram/ETL代码；仍漏：f.calc、f.note(两路径)、sql_eg、f.sql/doc14 SQL(<pre>)、glinValueRange(more/src/items/raw)、KG 节点 desc/code。FTMETA downstream_chain 未被渲染（moot）。
+- 补全：在上述全部渲染点接 codeLinks/prose；KG drawer 的 n.code 与 desc 接 codeLinks；glinValueRange 的 more/src/items.m/raw.range/raw.note 接 codeLinks。
+- 全量验证(Preview)：遍历 154 字段 × zh+en，去掉 <a> 后再查 pool:/asset:NNN → **0 残留**；所有 flow 表抽屉 → 0；KG 节点 → 0；a 嵌套 a = 0；7 视图 0 报错。'view' 词不误链。纯前端、DB/代码只读。**LOCAL，未 push。**
+
+## [2026-06-17 UTC] ⑨⑩ 只解释"是什么"，简明扼要（去掉"不是什么"的冗长说明）
+> sheet 9 10, 不需要解释不是什么，只需要解释是什么就好了，简明扼要
+### 完成: ⑨⑩ fcjudgment_hearing_scheduled/fcscheduled_sale_date 说明精简 [2026-06-17]
+- 上一轮为澄清把 ⑨⑩ 写得冗长(纯改名·无计算·勿与首登快照日混淆·下游另一字段·例…)，用户要"只说是什么"。
+- 改：calc-logic 回到简明「改名自 fcjudgmenthearingscheduled（判决听证排定日，pool:1551）」；方案B 多天提示——date 字段(⑨⑩)只留改期历史(h.split('；首见(set_date)=')[0])、去掉"注：本列＝…非快照日…下游另一字段…"尾巴；set_date 字段(⑪⑱⑳)简化为「首登快照日(min dataasof)=」。真 Excel 0 错误、幂等。DB/代码只读、未提交。
+
+## [2026-06-17 UTC] prompt.md 二次清理：含用户原话脱敏（去除人物称谓口语词）
+> 请去除 prompt.md或其他输出的md/excel/html文件中对人物描写的文字、形容词或称呼，比如人物称谓口语词等
+
+### Decision: prompt.md verbatim 脱敏 [2026-06-17]
+- **Context**：2026-06-08 首轮清理保留了用户逐字 prompt 原话（含若干口语化人物称谓），用户今天再次提出清理同款字眼。
+- **Options considered**：A 仅 AI 自写区脱敏（沿用 verbatim 原则）；B 用户原话也脱敏改写；C 用户原话用 [REDACTED] 占位。
+- **Choice**：B（用户原话也脱敏）。
+- **Reason**：用户通过 AskUserQuestion 明确选 B；prompt.md 已脱离个人化记录用途，全文档对外可读性优先于 verbatim。
+
+### Milestone: prompt.md 二次清理（含用户原话）[2026-06-17]
+- 范围：仅 `prompt.md`（其他 md/html/xlsx/json/txt 经全仓 grep+openpyxl 扫描，已于 2026-06-08 全部清理为 0）。
+- 字典脱敏：把 7 类人物称谓口语词（中/英文称谓 + 1 个口语形容词）统一映射到中性词（上级/我的上级/技术管理层/管理层/严格 等）；复合元引用（含上述词的引号短语 + grep 验证命令）→ 抽象化字典名（「人物称谓口语词」/「人物称谓词典」/「人物称谓词汇=0」）。
+- 改动总计 ~18 处替换（横跨用户逐字 prompt 区 + AI 自写标题/Decision/Milestone 元引用）；保留 `outputs/fcl_layer_examples_phase4.json` 的 `Mr. Cooper`（servicer 公司名 = prod 真值）。
+- 验证：用 grep 字典扫 prompt.md = 0 行；docs/ outputs/ 维持 0；DB 全程未涉及；未推送。
+
+## [2026-06-17 UTC] 表里字段若无共用 db.schema.table 说明，需在字段上注明 db.schema.table
+> 表格里面的字段，如果没有共用的地方指明 db.schema.table, 则要在字段上指明 db.schema.table
+
+## [2026-06-17 UTC] ⑪ timeline_judgement_hearing_set_date 公式算 2026-3-6 与 DB 实际 2025-12-17 不一致，查证
+> doc 32,⑪ mid·basic_data_loan_forecl, 公式逻辑算出来的是 2026-3-6, timeline_judgement_hearing_set_date, 怎么跟实际数据库数据 2025-12-17 不一致？请查代码/查数据库验证
+
+### 完成: ⑪ set_date 数据查证(2025-12-17 对) + 重建 stale 多天提示 + 字段补 db.schema.table 共用说明 [2026-06-17]
+- **数据查证**(请查代码/查DB)：⑪ timeline_judgement_hearing_set_date 正确值=2025-12-17(用户 DB 对、doc 单元格值也对)；旧"2026-03-06"是 stale hint。DB 实证 7727000088 判决听证排定日历史：2026-03-27(2025-12-17 首见,至今当前)曾临时改到 2026-07-15(2026-03-06~04-06)又改回；set_date=当前值首见=2025-12-17。2026-03-06 是那个临时值的首见(hint 生成时的旧快照)，与现值不符=vintage mismatch。
+- **修**：子agent 从 DB 重建 value_hints——date 字段(⑨⑩ judgment 6笔/sale 12笔)改为准确"曾改期；当前=X（自 set_date 首见）"，sale 已成交(现值 null)的 4 笔删 hint；set_date 字段(⑪⑱⑳)hint 清空(值+计算逻辑已够)。子agent 交叉核验所有 cell value 与 DB 一致(无 stale 值)。全仓 2026-03-06 对 7727000088=0 命中。
+- **db.schema.table**：非 src 表 note 顶部加共用说明「📌『(自 X)』源列默认= 直接上游表 db.schema.table 的同名列(=db.schema.table.field)」(note_upstream+db_of，按 NOTE_UP/table_meta)；⑪=redshift_prod.port.basic_data_loan_fcl。⑫ 已逐字段写全名故跳过。
+- 真 Excel 0 错误、幂等。DB/代码只读、未提交。
+
+## [2026-06-17 UTC] ⑪ 7727000065 也不一致（截图）
+> ⑪ mid·basic_data_loan_forecl 的 7727000065 也不一致
+### 完成: 确认 7727000065 已在上一轮修复（截图为旧版）+ 全量交叉核验 0 不一致 [2026-06-17]
+- 截图显示 ⑪ 7727000065 timeline_judgement_hearing_set_date hint「首登快照日 min dataasof=2025-07-21」且当前=2025-12-...——这是【上一轮已清理的 stale hint】。当前磁盘文件：该格=2025-07-15(仅值、无 hint)，与 DB 实测一致(DB stored=2025-07-15、current hearing=2025-10-15、2025-07-15 是当前值首见)。2025-07-21 是非当前值 2025-12-03 的首见，旧 hint 取错。
+- 全量交叉核验：⑪ timeline_judgement_hearing_set_date(6 笔)+timeline_sale_date_set_date(12 笔，含 4 笔 ∅NULL) 全部 = DB 算得 set_date，0 不一致。残留 2025-07-21 仅出现在 ⑪.timeline_first_legal_date(7727004200) 是合法真值、与本问题无关。
+- 结论：上一轮(子agent 从 DB 重建 hint + 清空 set_date hint)已修好；用户截图为旧版，重开文件即可。无需再生成。DB 只读、未提交。
+
+## [2026-06-17 UTC] ⑪ 计算字段(set_date)的详细举例逻辑解释没了，上一版有
+> ⑪ 非copy/非改名字段的计算样本数据的详细计算逻辑解释怎么没有了，前1版还是有的
+### 完成: 恢复 set_date 字段「首见日算法」工作示例（改为从显示值现生成、恒一致）[2026-06-17]
+- 上一轮为消除 stale，把 set_date 字段(⑪⑱⑳ timeline_*_set_date)的内联提示全清了——但这些是【计算字段】，用户要保留详细举例逻辑。
+- 改：生成器对 set_date 字段【从本表当前值现生成】「首见日算法」工作示例：当前里程碑日=timeline_judgement_date/timeline_sale_date_projected_date 的值，set_date=本格值 ⇒「该日首次出现于 <set_date> 快照 ⇒ set_date=min(dataasof)=<set_date>」。因派生自显示值，永不再 stale。
+- 验证：7727000065=2025-07-15(当前听证 2025-10-15)、088=2025-12-17(当前 2026-03-27)、4408=2026-05-14(当前 2026-08-21)、3984 sale=2026-05-22(当前 2026-06-30)——示例末值=单元格值=DB。真 Excel 0 错误、幂等。DB/代码只读、未提交。

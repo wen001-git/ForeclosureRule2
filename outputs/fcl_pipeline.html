@@ -1076,7 +1076,7 @@ function famDiagram(){
   d+=row(`${C('newrez.portnewrezlm')} → ${C('port.basic_data_loan_foreclosure_loss_mitigation')} → ${C('bpms.sync_loan_foreclosure_loss_mitigation')}`);
   d+=row(`${C('newrez.portnewrezfc')} → hold_detail → ${C('port.basic_data_loan_foreclosure_hold')} → ${C('bpms.sync_loan_foreclosure_hold')}`);
   d+=row(`${C('newrez.portnewrezgeneral')} ∪ ${C('carrington.portcarrington')} → ${C('port.basic_data_fcl_related')} → ${C('port.fcl_stage_info')}`
-    +`<div class="famdg-note" style="color:var(--muted);font-size:11px;margin:2px 0 0 14px">${zh?'逾期支线：basic_data_fcl_related = Newrez(portnewrezgeneral + portnewrezliq/pmt/bk/prop) ∪ Carrington(portcarrington)，把 MBA 逾期状态 delinquency_status_mba（Carrington 用 loan_status）映射成 delq_status（FCL / REO / D120P / P…），作为阶段表 fcl_stage_info 的 group（逾期分类）+ state 维度（pool:1697-1770）':'delinquency branch: basic_data_fcl_related = Newrez(portnewrezgeneral + portnewrezliq/pmt/bk/prop) ∪ Carrington(portcarrington); maps MBA delinquency_status_mba (Carrington uses loan_status) → delq_status (FCL / REO / D120P / P…), used as the stage table fcl_stage_info group (delinquency class) + state dimension (pool:1697-1770)'}</div>`);
+    +`<div class="famdg-note" style="color:var(--muted);font-size:11px;margin:2px 0 0 14px">${codeLinks(zh?'逾期支线：basic_data_fcl_related = Newrez(portnewrezgeneral + portnewrezliq/pmt/bk/prop) ∪ Carrington(portcarrington)，把 MBA 逾期状态 delinquency_status_mba（Carrington 用 loan_status）映射成 delq_status（FCL / REO / D120P / P…），作为阶段表 fcl_stage_info 的 group（逾期分类）+ state 维度（pool:1697-1770）':'delinquency branch: basic_data_fcl_related = Newrez(portnewrezgeneral + portnewrezliq/pmt/bk/prop) ∪ Carrington(portcarrington); maps MBA delinquency_status_mba (Carrington uses loan_status) → delq_status (FCL / REO / D120P / P…), used as the stage table fcl_stage_info group (delinquency class) + state dimension (pool:1697-1770)')}</div>`);
   return '<div class="sec"><h3>'+cap+'</h3><div class="famdg">'+d+'</div></div>';
 }
 
@@ -1906,7 +1906,7 @@ function selectField(id,opts){
   let h=`<div class="d-head"><span class="pill" style="background:var(--accent)">BPS field</span><h2>${L(f.label)}</h2></div><div class="d-body">`;
   h+=`<div class="sec"><h3>${t('fBiz')}</h3><div class="kv">${prose(L(f.biz))}</div></div>`;
   if(opts&&opts.valuesHtml) h+=opts.valuesHtml;   // 取值范围（来自 GLIN 字段 values，由 showGField 传入）
-  if(f.calc) h+=`<div class="sec"><h3>${t('fCalc')}</h3><div class="lin"><code>${esc(L(f.calc))}</code></div></div>`;
+  if(f.calc) h+=`<div class="sec"><h3>${t('fCalc')}</h3><div class="lin"><code>${codeLinks(esc(L(f.calc)))}</code></div></div>`;
   h+=`<div class="sec"><h3>${t('fLineage')}${opts&&opts.hops?glLineToggleHtml():''}</h3>`;
   h+=`<div class="kv" style="color:var(--muted);font-size:11px;margin-bottom:6px">${L({zh:'数据生产方向：从上到下 = 源 → BPS（上＝最初来源，下＝最终进入 BPS）',en:'Production direction: top → bottom = source → BPS (top = original source, bottom = final in BPS)'})}</div>`;
   if(opts&&opts.hops){
@@ -1924,16 +1924,16 @@ function selectField(id,opts){
   h+=famDiagram();
   if(f.range) h+=`<div class="sec"><h3>${t('fRange')}</h3><div class="kv">${L(f.range)}</div></div>`;
   if(f.spec) h+=`<div class="sec"><h3>${t('fSpec')}</h3><div class="kv">${L(f.spec)}</div></div>`;
-  if(f.sql) h+=`<div class="sec"><h3>${t('fSql')}</h3><div class="sqlwrap"><button class="copy" onclick="copySql(this)">${t('copy')}</button><pre>${esc(f.sql)}</pre></div></div>`;
+  if(f.sql) h+=`<div class="sec"><h3>${t('fSql')}</h3><div class="sqlwrap"><button class="copy" onclick="copySql(this)">${t('copy')}</button><pre>${codeLinks(esc(f.sql))}</pre></div></div>`;
   const d14=doc14FieldSQL(f);
-  if(d14) h+=`<div class="sec"><h3>${t('fDoc14Sql')}</h3><div class="sqlwrap"><button class="copy" onclick="copySql(this)">${t('copy')}</button><pre>${esc(d14)}</pre></div></div>`;
+  if(d14) h+=`<div class="sec"><h3>${t('fDoc14Sql')}</h3><div class="sqlwrap"><button class="copy" onclick="copySql(this)">${t('copy')}</button><pre>${codeLinks(esc(d14))}</pre></div></div>`;
   if(f.fill||f.fill2){ h+=`<div class="sec"><h3>${t('fFill')}</h3>`;
     h+=statMeta(L({zh:`📅 单一最新快照 · as-of <b>2026-06-08</b>（Newrez dataasof）· 口径＝非空占比 COUNT(列 IS NOT NULL)/COUNT(*)`,en:`📅 single latest snapshot · as-of <b>2026-06-08</b> (Newrez dataasof) · method = non-null share COUNT(col NOT NULL)/COUNT(*)`}));
     if(f.fill) h+=`<div class="kv" style="color:var(--accent2)">${f.fill}</div>`;
     if(f.fill2) h+=`<div class="kv" style="color:var(--muted);font-size:11px;margin-top:3px">${L({zh:'跨 servicer（prod 2026-06-07）',en:'cross-servicer (prod 2026-06-07)'})}: Newrez ${f.fill2.nz} · Carrington ${f.fill2.carr}</div>`;
     h+=`</div>`; }
-  if(f.code) h+=`<div class="sec"><h3>${t('fCode')}</h3><div class="lin"><code>${esc(f.code)}</code></div></div>`;
-  if(f.note) h+=`<div class="sec"><div class="note">⚠ ${L(f.note)}</div></div>`;
+  if(f.code) h+=`<div class="sec"><h3>${t('fCode')}</h3><div class="lin"><code>${etlCodeCell(f.code)}</code></div></div>`;
+  if(f.note) h+=`<div class="sec"><div class="note">⚠ ${prose(L(f.note))}</div></div>`;
   if(f.why) h+=`<div class="sec"><h3>${L({zh:'📌 为什么这样建模',en:'📌 Why modeled this way'})}</h3><div class="kv">${prose(L(f.why))}</div></div>`;
   h+=`</div>`; d.innerHTML=h; d.scrollTop=0;
 }
@@ -2226,13 +2226,13 @@ function decoCirc(escd){ if(!escd) return escd; const map=circMap();
 function prose(s){ s=(s==null?'':s)+''; if(!s) return '';
   const SENT2='␟';   // unit-separator 哨兵：不会出现在文本，且不含 <>&
   const raw=s.replace(/([；。])(?!\s*$)/g,'$1'+SENT2);
-  return decoCirc(esc(raw)).split(SENT2).join('<br>'); }
+  return codeLinks(decoCirc(esc(raw)).split(SENT2).join('<br>')); }
 function ruleHtml(rule){
   const {head,segs}=fmtRuleSegments(rule);
-  let h=`<code>${decoCirc(esc(head||((rule==null?'':rule)+'')))}</code>`;
+  let h=`<code>${codeLinks(decoCirc(esc(head||((rule==null?'':rule)+''))))}</code>`;
   if(segs.length){ const zh=lang==='zh';
     h+=`<details class="ruledet"><summary>${zh?'详解':'details'} (${segs.length})</summary>`
-      + segs.map(g=>`<div class="ruleseg"><span class="rsl">${esc(g.label)}</span>${decoCirc(esc(g.body)).replace(/⚠️?/g,'<br><span class="rwarn">⚠️</span> ')}</div>`).join('')
+      + segs.map(g=>`<div class="ruleseg"><span class="rsl">${esc(g.label)}</span>${codeLinks(decoCirc(esc(g.body)).replace(/⚠️?/g,'<br><span class="rwarn">⚠️</span> '))}</div>`).join('')
       + `</details>`; }
   return h;
 }
@@ -2295,6 +2295,19 @@ function glinCodeCell(code){
   const tip=GLIN_CODE_FILE[kind]+(first?(' · '+L({zh:'冒号后数字=行号',en:'number after colon = line number'})):'');
   return `<a href="${url}" target="_blank" rel="noopener" title="${esc(tip)}" style="color:var(--accent2)">${esc(code)}</a>`;
 }
+// 把(已转义)文本里的内联代码出处 pool:NNN / asset:NNN(-NNN/NNN) 变成可点的 GitLab 链接，与逐跳表 code 列一致。
+// 仅匹配带行号的 pool:/asset:；在已转义文本上跑（pool:273 不受 esc 影响），不会命中圈号 tooltip（其 title 无 pool:）。
+function codeLinks(escd){ if(!escd) return escd;
+  return (''+escd).replace(/\b(pool|asset):(\d+(?:[-\/]\d+)*)/g, function(m,kind,spec){
+    const first=(spec.match(/\d+/)||[''])[0];
+    const url='https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/'+GLIN_COMMIT+'/'+GLIN_CODE_FILE[kind]+'#L'+first;
+    return `<a href="${url}" target="_blank" rel="noopener" title="${esc(GLIN_CODE_FILE[kind]+' · '+L({zh:'冒号后数字=行号',en:'number after colon = line'}))}" style="color:var(--accent2)">${m}</a>`;
+  }); }
+// 「ETL 代码」格 f.code：结构化 pool:/asset:/view → glinCodeCell；自由文本(文件名+函数) → 给配置文件名加文件级链接
+function etlCodeCell(code){ code=(code==null?'':code)+''; if(!code) return '';
+  if(/^(pool|asset|view)\b/.test(code)) return glinCodeCell(code);
+  return esc(code).replace(/\b(basic_data_pool_config\.py|asset_managment_config\.py)\b/g, function(m){ const k=(m.indexOf('basic')===0)?'pool':'asset';
+    return `<a href="https://gitlab.bridgerinvestment.com/jli/prefectflow/-/blob/${GLIN_COMMIT}/${GLIN_CODE_FILE[k]}" target="_blank" rel="noopener" title="${esc(GLIN_CODE_FILE[k])}" style="color:var(--accent2)">${m}</a>`; }); }
 function glinCodeLegend(){
   const c=(GLIN.meta&&GLIN.meta.code_legend)||{};
   return `<div class="note" style="font-size:11px;line-height:1.7;margin-top:6px">`
@@ -2310,9 +2323,9 @@ function glinExtra(f,withSvg){
   h+=`<div class="sec"><h3>${L({zh:'逐跳转换规则',en:'Per-hop transform rules'})}</h3>`+(st?statMeta(`<span style="color:${st.c}">●</span> ${L(st)}`):'')
     +`<table class="mini"><tr><th>${L({zh:'表.列',en:'table.column'})}</th><th>rule</th><th>code</th></tr>`
     +(f.hops||[]).map(hp=>{const rp=rulePlain(hp.rule);return `<tr><td>${hopCol(hp.t,hp.c)}</td><td>${ruleHtml(hp.rule)}`+(rp?`<div class="rplain">💡 ${L(rp)}${rp.formula?` · <span class="rformula">${esc(rp.formula)}</span>`:''}</div>`:'')+`</td><td style="color:var(--muted)">${glinCodeCell(hp.code)}</td></tr>`;}).join('')+`</table>`+glinCodeLegend()+`</div>`;
-  if(f.sql) h+=`<div class="sec"><h3>${L({zh:'取数 SQL（doc 25–31）',en:'Fetch SQL (doc 25–31)'})}</h3><div class="sqlwrap"><button class="copy" onclick="copySql(this)">${t('copy')}</button><pre>${esc(f.sql)}</pre></div></div>`;
+  if(f.sql) h+=`<div class="sec"><h3>${L({zh:'取数 SQL（doc 25–31）',en:'Fetch SQL (doc 25–31)'})}</h3><div class="sqlwrap"><button class="copy" onclick="copySql(this)">${t('copy')}</button><pre>${codeLinks(esc(f.sql))}</pre></div></div>`;
   if(f.sql_note) h+=`<div class="sec"><h3>${L({zh:'规则说明',en:'Rule note'})}</h3><div class="kv">${prose(L(f.sql_note))}</div></div>`;
-  if(f.sql_eg) h+=`<div class="sec"><h3>${L({zh:'实测样例',en:'Worked example'})}</h3><div class="kv" style="white-space:pre-wrap">${decoCirc(esc(L(f.sql_eg)))}</div></div>`;
+  if(f.sql_eg) h+=`<div class="sec"><h3>${L({zh:'实测样例',en:'Worked example'})}</h3><div class="kv" style="white-space:pre-wrap">${codeLinks(decoCirc(esc(L(f.sql_eg))))}</div></div>`;
   if(f.servicers) h+=`<div class="sec"><h3>${L({zh:'各 Servicer 来源',en:'Per-servicer source'})}</h3><div class="kv" style="font-size:11px">Newrez: <code>${esc(f.servicers.Newrez||'—')}</code><br>Carrington: <code>${esc(f.servicers.Carrington||'—')}</code><br>Capecodfive: <code>${esc(f.servicers.Capecodfive||'—')}</code></div></div>`;
   return h;
 }
@@ -2328,25 +2341,25 @@ function glinValueRange(f,mode){
     const r=v.raw; if(!r) return '';
     const rows=(r.servicers||[]).map(function(s){
       const cnt=(s.counts&&s.counts.length)?`<div class="vrn" style="margin-top:3px">${s.counts.map(c=>esc(c[0])+'·'+(typeof c[1]==='number'?c[1].toLocaleString():c[1])).join('  ')}</div>`:'';
-      return `<tr><td class="vrv"><b>${esc(s.who)}</b><br><code>${esc(s.col)}</code></td><td class="vrm">${esc(L(s.range))}${cnt}</td></tr>`;
+      return `<tr><td class="vrv"><b>${esc(s.who)}</b><br><code>${esc(s.col)}</code></td><td class="vrm">${codeLinks(esc(L(s.range)))}${cnt}</td></tr>`;
     }).join('');
     const term=outputColOf(f)||'—';
     let h=`<div class="sec"><h3>${L({zh:'📊 取值范围 · 原始源列',en:'📊 Value range · raw source'})}</h3>`;
     h+= rows?`<table class="vrtbl">${rows}</table>`:`<div class="kv" style="color:var(--muted)">${zh?'无单一原始源列':'no single raw source column'}</div>`;
-    if(r.note) h+=`<div class="vrmore">${esc(L(r.note))}</div>`;
+    if(r.note) h+=`<div class="vrmore">${codeLinks(esc(L(r.note)))}</div>`;
     h+=`<div class="vrmore">${zh?'⤵ 合并各 servicer、解码后的 BPS 输出取值 → 点本链路末端的输出列 ':'⤵ merged·decoded BPS output values → click the output column at the end of this chain '}<code>${esc(term)}</code></div>`;
     return h+`</div>`;
   }
   if(!v.items||!v.items.length) return '';
   const rows=v.items.map(function(x){
     const cnt=(x.n!=null)?` <span class="vrn">· ${x.n.toLocaleString()} ${zh?'行':'rows'}</span>`:'';
-    return `<tr><td class="vrv"><code>${esc(x.v)}</code></td><td class="vrm">${esc(L(x.m))}${cnt}</td></tr>`;
+    return `<tr><td class="vrv"><code>${esc(x.v)}</code></td><td class="vrm">${codeLinks(esc(L(x.m)))}${cnt}</td></tr>`;
   }).join('');
-  let meta=v.src?esc(v.src):'';
+  let meta=v.src?codeLinks(esc(v.src)):'';
   if(v.asof) meta+=(meta?' · ':'')+'as-of '+esc(v.asof);
   let more='';
   if(v.raw) more+=`<div class="vrmore">${zh?'这是 BPS 输出列（已合并各 servicer、已解码）的取值；各 servicer 原始源列取值不同 → 点链路上游的源列看「原始源列」范围。':'These are the BPS output column values (merged across servicers, decoded); each servicer’s raw source differs → click an upstream source column for its raw range.'}</div>`;
-  if(v.more) more+=`<div class="vrmore">${esc(L(v.more))}</div>`;
+  if(v.more) more+=`<div class="vrmore">${codeLinks(esc(L(v.more)))}</div>`;
   if(v.src && v.src.indexOf('doc04')>=0) more+=`<div class="vrmore"><a onclick="setView('status');return false;">${zh?'→ 打开「状态码」视图看完整清单':'→ open the Status-codes view for the full list'}</a></div>`;
   return `<div class="sec"><h3>${L({zh:'📊 取值范围 · BPS 输出列',en:'📊 Value range · BPS output'})}</h3>`
     +(meta?statMeta(meta):'')
@@ -2374,7 +2387,7 @@ function showGField(f,nodeId){
   let h=`<div class="d-head"><span class="pill" style="background:var(--accent)">${esc(f.family||'field')}</span><h2>${L(f.label)}</h2>`
     +`<div class="path">${esc(f.bps_table)}${st?` · <span style="color:${st.c}">●</span> ${L(st)}`:''}</div></div><div class="d-body">`;
   h+=`<div class="sec"><div class="kv">${prose(L(f.biz))}</div></div>`+(f.values?glinValueRange(f,vmode):'')+glinExtra(f,true);
-  if(f.note) h+=`<div class="sec"><div class="note">${L(f.note)}</div></div>`;
+  if(f.note) h+=`<div class="sec"><div class="note">${prose(L(f.note))}</div></div>`;
   d.innerHTML=h+`</div>`; d.scrollTop=0;
 }
 function graphCollapseAll(){ graphExpanded.clear(); graphFocus=null; graphCatFilter=null; renderGraph(); }
@@ -2832,8 +2845,8 @@ function kgDrawer(id){ const n=idx(id); if(!n)return; const d=document.getElemen
   let h=`<div class="sec"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="pill" style="background:#${m.color}">${zh?m.zh:m.en}</span><span style="font-size:11px;color:var(--muted)">${(tm[n.type]||{}).dim||''}</span></div>`;
   h+=`<h3 style="margin:8px 0 2px">${esc(kgL(n))}</h3>`;
   if(n.label_en&&n.label_zh&&n.label_en!==n.label_zh) h+=`<div style="color:var(--muted);font-size:12px;margin-bottom:6px">${esc(lang==='zh'?n.label_en:n.label_zh)}</div>`;
-  h+=`<div style="font-size:11px;color:var(--muted);font-family:monospace;margin-bottom:6px">${esc(n.id)}${n.full?(' · '+esc(n.full)):''}${n.layer?(' · '+esc(n.layer)):''}${n.code?(' · '+esc(n.code)):''}</div>`;
-  if(kgD(n)) h+=`<p class="kg-in" style="line-height:1.6">${esc(kgD(n))}</p>`;
+  h+=`<div style="font-size:11px;color:var(--muted);font-family:monospace;margin-bottom:6px">${esc(n.id)}${n.full?(' · '+esc(n.full)):''}${n.layer?(' · '+esc(n.layer)):''}${n.code?(' · '+codeLinks(esc(n.code))):''}</div>`;
+  if(kgD(n)) h+=`<p class="kg-in" style="line-height:1.6">${codeLinks(esc(kgD(n)))}</p>`;
   if(n.doc) h+=`<div style="margin-top:4px;font-size:12px;color:var(--muted)">📄 ${zh?'来源':'source'}: doc ${esc(n.doc)}</div>`;
   h+='</div>';
   if(outs.length){ h+=`<div class="sec"><h3 style="font-size:13px">→ ${zh?'指向':'points to'} (${outs.length})</h3>${outs.map(([e,o])=>chip(e,o,'→')).join('')}</div>`; }

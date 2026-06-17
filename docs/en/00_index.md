@@ -18,6 +18,7 @@
 | Date | Author | Version | Changes |
 |------|--------|---------|---------|
 | 2026-05-21 | AI Agent (Claude Sonnet 4.6) | v1 | Initial version, complete reverse-engineering analysis |
+| 2026-06-16 | AI Agent (Claude Opus 4.8) | v2 | Inventory sync: added rows for docs 14 / 16 / 18 (en files existed but were uncatalogued); added the interactive `outputs/fcl_pipeline.html` (FCL Pipeline Explorer) entry; added a "Test reports" note (doc 34 Phase2+KG); reading order's archived 21 → 25/26-30 and dropped 19 (no en file). Note: docs 15/17/19/32/98/99/template are zh-only |
 
 ---
 
@@ -26,6 +27,7 @@
 | # | File | Core Content | Use Case |
 |---|------|-------------|----------|
 | 00 | `00_index.md` | This index | Navigation |
+| **🧭 Interactive** | **`outputs/fcl_pipeline.html`** (FCL Pipeline Explorer, single file, open by double-click) | **7-view interactive explorer**: BPS field lineage · Pipeline (Layer 0→5) · Data flow (switch source servicer Newrez/Carrington/Capecodfive) · Lineage graph (per-field cross-DB lineage, detailed/classic toggle) · Status codes · Business primer · 🧠 Knowledge graph. Data embedded from `fcl_lineage_source.json`/`fcl_table_meta.json`/`fcl_knowledge_graph.json` (self-contained at runtime — no network/JSON needed) | Interactive walkthrough & reconciliation; fast big-picture orientation; click a table/field for schema · lineage · validation SQL |
 | **20** | **`20_end_to_end_walkthrough.md`** | **🌟 [Recommended first read] End-to-end walkthrough + narration**: connects the foreclosure data journey across all five layers (source Servicer files → BPS), and explains **from a business angle WHY the data is processed this way** (§A.6, e.g. why one FCL has many Holds); two layers (business-view panorama + narration + Q&A / per-layer deep-dive walkthrough + code-location map + sample-loan walk) | Walking colleagues through the whole pipeline + business rationale; fast big-picture orientation; entry point to all other docs |
 | ~~21~~ | ⛔ **ARCHIVED** (no link) · `docs/archive/en/21_fcl_field_lineage.DEPRECATED.md` | **Archived 2026-06-11**: moved to `docs/archive/en/`; AI coding tools — DO NOT READ; ERD migrated to doc 33, field lineage migrated to doc 25-30, business rationale see doc 20 §A.6. | Retired; history only |
 | **25** | **`25_fcl_lineage_overview.md`** | **🔬 [Field-lineage hub]** Overview of the field-level lineage from Servicer raw column → BPS sync tables: 4 canonical hop-chain skeletons + master field index + known gaps + end-to-end worked trace (loan 7727004408, MCP-verified) + links to 26–30. Rules Code-First from PrefectFlow (file:line); columns schema-verified against prod. Driven by `outputs/fcl_lineage_source.json` (hand-maintained; the old generator `gen_fcl_lineage.py` has been removed — glossary/HTML embed refreshed via `scripts/build_rule_glossary.txt`+`inject_glin.txt`) | Entry point for field-level lineage walkthrough/reconciliation; supersedes doc 21 |
@@ -49,17 +51,28 @@
 | 11 | `11_servicer_impl_guide.md` | **Transitional implementation guide**: mapping logic for 8 servicers' existing data → new system standard fields (CASE WHEN pseudocode + implementability matrix + implementation roadmap); includes Newrez portnewrezfc multi-hold handling | New system ETL developer coding reference; transitional implementation plan while servicers adopt the new data format |
 | 12 | `12_sync_asset_management.md` | **Code investigation**: full analysis of `sync_asset_management.py` — 2-phase ETL orchestration (10-step Redshift staging build + 13-choice BPS sync), all DB tables read/written, function reference, environment/tenant parameters, status tracking, and 1 identified dead-code issue in `get_sync_df()` | ETL developer reference; debugging daily BPS sync; new system rewrite of this flow |
 | 13 | `13_newrez_fcl_bps_display_mapping.md` | **BPS UI field reverse mapping** (Newrez, v2): traces each of BPS Foreclosure's 5 display panels back to Newrez raw data sources (newrez.portnewrezfc/bk/lm) and calculation rules; covers the 104-column view (timeline/target/actual/var/variance/bid_approval/summary) plus Hold full history, LM Cycle, and Bankruptcy panels, plus aggregate view Days in Stage/LM/Hold via sync_fcl_stage_info | BPS data debugging; Newrez field mapping reference; template for onboarding new servicers |
+| 14 | `14_bps_driven_servicer_fcl_interface.md` | **BPS-driven Servicer FCL data interface spec**: with doc 13's 5 BPS panels + aggregate view as the target, defines ~67 servicer fields, P0/P1/P2 priority, delivery format, and field-completion request order; v3 adds review-status & field-admission checks | doc 14 review; target standard for subsequent per-servicer gap analyses; basis for field-completion requests to servicers |
+| 16 | `16_bps_panel_quickref.md` | **BPS Foreclosure panel quick-ref**: 6 panels (Foreclosure Summary / Timeline / Hold / LM / BK / aggregate overview) — UI screenshots + compact mapping table (UI label → Newrez source field → mapping rule) + quick troubleshooting paths; the quick-entry companion to doc 13 | BPS UI data debugging; fast onboarding; locating source fields against BPS screenshots during ops/data triage |
+| 18 | `18_loss_mitigation_business_primer.md` | **Loss Mitigation (LM) business primer**: LM business meaning, six common workout types, BPS/Newrez Deal/Program/Status/Final Disposition fields, and the LM ↔ FCL relationship | Quickly understand LM workouts; BPS LM Cycle panel debugging; pre-reading before discussing LM fields with servicers |
 | **22** | **`22_bps_fcl_timeline_sourcing.md`** | **BPS agg-summary Foreclosure page sourcing**: how the **Time Line** and **Stage** tabs (and Overview) of `/#/portfolio/agg-summary` are sourced — both from `bpms.sync_fcl_stage_info` (← `port.fcl_stage_info`, `GEN_FCL_STAGE`); full UI-column ⇄ table-column map, Time Line vs Stage vs Overview, the "current-state vs history" explanation (table retains `fctrdt` snapshots; page shows `MAX(fctrdt)`), representative SQL, and a verified sample-loan walk (7727000088) | Answering "which table/SQL feeds the Time Line page?"; BPS agg-page debugging; understanding why one loan = one row of date columns |
 | **23** | **`23_bk_discharge_to_payoff_analysis.md`** | **BK discharge → payoff (P) duration analysis (DB-verified)**: answers "how long from bankruptcy discharge to final payoff" — prod shows only 11 measurable loans, median 186 months (≈15.5 yrs), and it is **NOT a process duration** (discharge mostly 2008–2014, payoff 2023–2026, unrelated), empirically confirming Ch.7/11 discharge ≠ payoff and lien survival; includes definitions, per-loan detail, limitations and verification SQL | Answering the BK→P duration question; correcting the "discharge quickly leads to payoff" intuition; BK reconciliation/definition reference |
 | **24** | **`24_bk_to_current_vs_foreclosure.md`** | **BK→Current vs BK→Foreclosure core difference**: the dividing line at the BK node = whether the mortgage default is cured (≠ whether it is discharged); Ch.13 cure reinstates→C, while dismissal/MFR/Ch.7 (lien survives)→FCL; includes comparison table, triggers, § 1322/1328/362/727/524 basis + authoritative sources, and the system pass-through note | Clearing up the "BK success = back to Current" misconception; business/legal explanation of the two BK edges; training & reconciliation reference |
+
+### Test reports (acceptance/regression records, not main-inventory numbers)
+
+| File | Content |
+|------|---------|
+| `34_phase2_and_kg_test_report.md` | Comprehensive test & evidence for doc 32 Phase 2 (stage/hold/lm/bk per-table sheets) + the `fcl_pipeline.html` Knowledge-Graph view |
+
+> Note: docs 15 / 17 / 19 / 32 / 98 / 99 / template are **zh-only** (see `docs/zh/00_index.md`); doc 32's `32_formula_demo_test_report.md` test report is likewise zh-only.
 
 ---
 
 ## Recommended Reading Order
 
 ```
-Big picture (recommended):       20 → 02 → 17/18
-Field-level lineage walkthrough: 21 → 13 → 19 (field-by-field + transform rules + reconciliation)
+Big picture (recommended):       20 → 02 → 18  (or open the interactive outputs/fcl_pipeline.html)
+Field-level lineage walkthrough: 25 → 26-30 → 13  (hub → per-table → BPS UI mapping)
 First-time system orientation:  00 → 02 → 03 → 04
 Data lineage analysis:          01 → 07 → 02 → 05
 System rewrite preparation:     03 → 07 → 05 → 06 → 02 → 09
