@@ -24,6 +24,7 @@ db_stats_mysql_output.json
 ~$*
 docs/zh/~$*
 *.xlsx
+.DS_Store
 # …but DO track the single-source-of-truth workbooks (no DB creds; doc 14 holds the 人工 columns)
 !docs/14_servicer_fcl_field_spec.xlsx
 !docs/16_bps_fcl_display_mapping.xlsx
